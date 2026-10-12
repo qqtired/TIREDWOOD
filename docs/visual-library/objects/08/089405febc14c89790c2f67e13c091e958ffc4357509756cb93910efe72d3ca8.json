@@ -1,0 +1,30 @@
+{
+  "id": "chainwarden",
+  "tris": 4876,
+  "parts": 12,
+  "clips": [
+    "chainwarden_idle",
+    "chainwarden_walk",
+    "chainwarden_windup",
+    "chainwarden_attack",
+    "chainwarden_windup_r",
+    "chainwarden_attack_r",
+    "chainwarden_recover",
+    "chainwarden_hit",
+    "chainwarden_death"
+  ],
+  "bbox": [
+    [
+      -0.7900000214576721,
+      -0.5270000100135803,
+      0.01343536376953125
+    ],
+    [
+      0.7541989684104919,
+      0.7200000286102295,
+      2.4437615871429443
+    ]
+  ],
+  "background": true,
+  "fps": 24
+}

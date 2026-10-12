@@ -1,0 +1,206 @@
+{
+  "case": "hook-contact",
+  "seedCase": "hook-contact",
+  "automated": "PASS",
+  "visual": "PENDING_ROOT_REVIEW",
+  "sourceFreeze": "79c7aa9061682aefdbf130d1fcc03e5689c7ecfd3dde341bcc65a9eac089b332",
+  "flags": {
+    "nativeGlobalMenuResumed": true,
+    "ticksAdvanced": true,
+    "serverParity": true,
+    "warning": true,
+    "actualHit": true,
+    "fullCycle": true
+  },
+  "captures": [
+    "entry",
+    "hook-before",
+    "hook-impact",
+    "hook-full-recover",
+    "final-checkpoint"
+  ],
+  "elapsedMs": 8150,
+  "state": {
+    "tick": 54,
+    "hash": 1986972716,
+    "wave": 16,
+    "stage": "wave",
+    "end": "running",
+    "hero": {
+      "x": 120,
+      "z": 120,
+      "hp": 86,
+      "hpMax": 100,
+      "level": 1,
+      "qHold": 0,
+      "qCd": 0
+    },
+    "cards": false,
+    "chest": false,
+    "alive": 1,
+    "mobs": [
+      {
+        "id": 207,
+        "k": "hookclaw",
+        "x": 122,
+        "z": 120,
+        "hp": 312,
+        "die": 0,
+        "st": "rest",
+        "attackKind": "attack",
+        "attackAt": 0,
+        "attackStep": 1,
+        "ax": -1,
+        "az": 0,
+        "kx": 0,
+        "kz": 0,
+        "stunT": 0
+      }
+    ],
+    "bosses": [],
+    "marks": [],
+    "enemyCharges": [],
+    "weapons": [
+      {
+        "id": "lantern",
+        "lv": 1,
+        "evo": 0
+      }
+    ],
+    "stats": {
+      "kills": 0,
+      "bosses": 0,
+      "dmg": {},
+      "killedBy": "",
+      "waves": 15,
+      "ms": 0,
+      "chests": 0,
+      "lamps": 0
+    },
+    "fx": []
+  },
+  "frames": [
+    {
+      "tick": 0,
+      "hp": 100,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 23,
+      "hp": 100,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "hook_snap"
+      ],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 23,
+      "hp": 100,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "hook_snap"
+      ],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 26,
+      "hp": 86,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "hook_snap"
+      ],
+      "fx": [
+        {
+          "k": "hurt"
+        }
+      ],
+      "missing": 0
+    },
+    {
+      "tick": 54,
+      "hp": 86,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 54,
+      "hp": 86,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 54,
+      "hp": 86,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    }
+  ]
+}

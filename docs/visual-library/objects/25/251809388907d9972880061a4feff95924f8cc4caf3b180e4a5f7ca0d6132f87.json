@@ -1,0 +1,9 @@
+{
+  "background": true,
+  "pid": 81852,
+  "version": "5.2.2 LTS",
+  "endpoint": "localhost:9876",
+  "transport": "unchanged addon command handlers, main-thread queue drain",
+  "bootstrap": "models/scripts/headless_mcp_bootstrap.py",
+  "model_execution": "mcp__blender__execute_blender_code"
+}

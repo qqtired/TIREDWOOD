@@ -1,0 +1,24 @@
+{
+  "passed": true,
+  "client": {
+    "waves": 0,
+    "ms": 0,
+    "kills": 0,
+    "level": 1,
+    "bosses": 0,
+    "killedBy": "",
+    "dmg": {},
+    "end": "running"
+  },
+  "server": {
+    "waves": 0,
+    "ms": 0,
+    "kills": 0,
+    "level": 1,
+    "bosses": 0,
+    "killedBy": "",
+    "dmg": {},
+    "end": "leave"
+  },
+  "scope": "normal no-hook run result after actual exit"
+}

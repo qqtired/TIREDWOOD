@@ -1,0 +1,499 @@
+{
+  "recordedAt": "2026-10-12T09:15:32.447Z",
+  "method": "Source arithmetic: pending queue AFTER event allocation + each scheduled event once. No step(),combat replay,Chrome/build/full tests. Perfect planned kills/collection including slime children and boss10 once; no hpMul XP scaling.",
+  "xpFormula": "k XP-level choices cost10k+5k(k+1)=5k(k+3); one choice per level. Starting Lantern1 is free.",
+  "rows": [
+    {
+      "wave": 1,
+      "counts": {
+        "rat": 133,
+        "slime": 18
+      },
+      "plannedBodies": 151,
+      "plannedKillXp": 205,
+      "plannedEliteChests": 0,
+      "cumulativeKillXp": 205,
+      "cumulativeEliteChests": 0
+    },
+    {
+      "wave": 2,
+      "counts": {
+        "rat": 103,
+        "bat": 34,
+        "slime": 18
+      },
+      "plannedBodies": 155,
+      "plannedKillXp": 209,
+      "plannedEliteChests": 0,
+      "cumulativeKillXp": 414,
+      "cumulativeEliteChests": 0
+    },
+    {
+      "wave": 3,
+      "counts": {
+        "rat": 121,
+        "bat": 12,
+        "slime": 14,
+        "spitter": 16
+      },
+      "plannedBodies": 163,
+      "plannedKillXp": 237,
+      "plannedEliteChests": 0,
+      "cumulativeKillXp": 651,
+      "cumulativeEliteChests": 0
+    },
+    {
+      "wave": 4,
+      "counts": {
+        "rat": 114,
+        "slime": 13,
+        "shroom": 8,
+        "spitter": 13,
+        "barrel": 1,
+        "bat": 22
+      },
+      "plannedBodies": 171,
+      "plannedKillXp": 299,
+      "plannedEliteChests": 1,
+      "cumulativeKillXp": 950,
+      "cumulativeEliteChests": 1
+    },
+    {
+      "wave": 5,
+      "counts": {
+        "rat": 127,
+        "bat": 36,
+        "slime": 9,
+        "shroom": 12,
+        "beetle": 12,
+        "spitter": 12
+      },
+      "plannedBodies": 208,
+      "plannedKillXp": 319,
+      "plannedEliteChests": 0,
+      "cumulativeKillXp": 1269,
+      "cumulativeEliteChests": 1
+    },
+    {
+      "wave": 6,
+      "counts": {
+        "rat": 107,
+        "slime": 16,
+        "shroom": 14,
+        "beetle": 12,
+        "spitter": 10,
+        "barrel": 1,
+        "bat": 44
+      },
+      "plannedBodies": 204,
+      "plannedKillXp": 377,
+      "plannedEliteChests": 1,
+      "cumulativeKillXp": 1646,
+      "cumulativeEliteChests": 2
+    },
+    {
+      "wave": 7,
+      "counts": {
+        "rat": 132,
+        "bat": 17,
+        "slime": 11,
+        "shroom": 35,
+        "beetle": 15,
+        "spitter": 14,
+        "shaman": 1
+      },
+      "plannedBodies": 225,
+      "plannedKillXp": 460,
+      "plannedEliteChests": 1,
+      "cumulativeKillXp": 2106,
+      "cumulativeEliteChests": 3
+    },
+    {
+      "wave": 8,
+      "counts": {
+        "rat": 156,
+        "slime": 21,
+        "shroom": 22,
+        "beetle": 20,
+        "spitter": 15,
+        "shaman": 1,
+        "barrel": 1,
+        "bat": 29
+      },
+      "plannedBodies": 265,
+      "plannedKillXp": 542,
+      "plannedEliteChests": 2,
+      "cumulativeKillXp": 2648,
+      "cumulativeEliteChests": 5
+    },
+    {
+      "wave": 9,
+      "counts": {
+        "rat": 246,
+        "bat": 60,
+        "slime": 31,
+        "shroom": 36,
+        "beetle": 32,
+        "spitter": 24,
+        "barrel": 2
+      },
+      "plannedBodies": 431,
+      "plannedKillXp": 822,
+      "plannedEliteChests": 2,
+      "cumulativeKillXp": 3470,
+      "cumulativeEliteChests": 7
+    },
+    {
+      "wave": 10,
+      "counts": {
+        "rat": 40
+      },
+      "plannedBodies": 40,
+      "plannedKillXp": 340,
+      "plannedEliteChests": 0,
+      "cumulativeKillXp": 3810,
+      "cumulativeEliteChests": 7
+    },
+    {
+      "wave": 11,
+      "counts": {
+        "rat": 550,
+        "slime": 13,
+        "beetle": 13,
+        "spitter": 22,
+        "shaman": 1
+      },
+      "plannedBodies": 599,
+      "plannedKillXp": 747,
+      "plannedEliteChests": 1,
+      "cumulativeKillXp": 4557,
+      "cumulativeEliteChests": 8
+    },
+    {
+      "wave": 12,
+      "counts": {
+        "rat": 474,
+        "shroom": 83,
+        "spitter": 69,
+        "barrel": 1,
+        "bat": 28
+      },
+      "plannedBodies": 655,
+      "plannedKillXp": 1081,
+      "plannedEliteChests": 1,
+      "cumulativeKillXp": 5638,
+      "cumulativeEliteChests": 9
+    },
+    {
+      "wave": 13,
+      "counts": {
+        "rat": 462,
+        "beetle": 86,
+        "spitter": 51,
+        "shaman": 1
+      },
+      "plannedBodies": 600,
+      "plannedKillXp": 913,
+      "plannedEliteChests": 1,
+      "cumulativeKillXp": 6551,
+      "cumulativeEliteChests": 10
+    },
+    {
+      "wave": 14,
+      "counts": {
+        "rat": 459,
+        "slime": 35,
+        "spitter": 104,
+        "barrel": 1,
+        "bat": 32,
+        "shaman": 1
+      },
+      "plannedBodies": 632,
+      "plannedKillXp": 1023,
+      "plannedEliteChests": 2,
+      "cumulativeKillXp": 7574,
+      "cumulativeEliteChests": 12
+    },
+    {
+      "wave": 15,
+      "counts": {
+        "rat": 189,
+        "bat": 395,
+        "shroom": 48,
+        "barrel": 1,
+        "shaman": 1
+      },
+      "plannedBodies": 634,
+      "plannedKillXp": 856,
+      "plannedEliteChests": 2,
+      "cumulativeKillXp": 8430,
+      "cumulativeEliteChests": 14
+    },
+    {
+      "wave": 16,
+      "counts": {
+        "rat": 425,
+        "bat": 59,
+        "slime": 16,
+        "shroom": 16,
+        "beetle": 23,
+        "spitter": 27,
+        "hookclaw": 31,
+        "barrel": 1,
+        "shaman": 1
+      },
+      "plannedBodies": 599,
+      "plannedKillXp": 935,
+      "plannedEliteChests": 2,
+      "cumulativeKillXp": 9365,
+      "cumulativeEliteChests": 16
+    },
+    {
+      "wave": 17,
+      "counts": {
+        "rat": 513,
+        "slime": 12,
+        "beetle": 11,
+        "spitter": 21,
+        "hookclaw": 18,
+        "wickmole": 22,
+        "shaman": 1,
+        "barrel": 1
+      },
+      "plannedBodies": 599,
+      "plannedKillXp": 879,
+      "plannedEliteChests": 2,
+      "cumulativeKillXp": 10244,
+      "cumulativeEliteChests": 18
+    },
+    {
+      "wave": 18,
+      "counts": {
+        "rat": 375,
+        "bat": 78,
+        "shroom": 36,
+        "spitter": 36,
+        "hookclaw": 24,
+        "wickmole": 19,
+        "railhopper": 28,
+        "barrel": 1,
+        "shaman": 1,
+        "chainwarden": 1
+      },
+      "plannedBodies": 599,
+      "plannedKillXp": 1057,
+      "plannedEliteChests": 3,
+      "cumulativeKillXp": 11301,
+      "cumulativeEliteChests": 21
+    },
+    {
+      "wave": 19,
+      "counts": {
+        "rat": 369,
+        "beetle": 69,
+        "spitter": 41,
+        "hookclaw": 33,
+        "wickmole": 21,
+        "railhopper": 42,
+        "shaman": 1,
+        "barrel": 1,
+        "chainwarden": 1
+      },
+      "plannedBodies": 578,
+      "plannedKillXp": 1128,
+      "plannedEliteChests": 3,
+      "cumulativeKillXp": 12429,
+      "cumulativeEliteChests": 24
+    }
+  ],
+  "budgets": [
+    {
+      "throughWave": 15,
+      "plannedKillXp": 8430,
+      "allClearSweepExtra": 600,
+      "perfectKillAndSweepXp": 9030,
+      "choicesNoBonus": {
+        "plannedOnly": 39,
+        "allSweeps": 41
+      },
+      "earlyMagnet5Upper": {
+        "bonus": 0.2,
+        "rawXpToFirstFiveLevels": 182.2501859570825,
+        "plannedOnlyCredited": 10097.299776851502,
+        "allSweepsCredited": 10817.299776851502,
+        "plannedOnlyChoices": 43,
+        "allSweepsChoices": 45
+      },
+      "chests": {
+        "mapGenerationOpportunitiesIfContinuouslyCollected": [
+          19,
+          20
+        ],
+        "mapConcurrentCap": 6,
+        "plannedEliteChests": 14,
+        "eliteRows": {
+          "minimum": 1,
+          "maximum": 3,
+          "expected": 1.5
+        },
+        "boss10Big": 1,
+        "bigRows": 3,
+        "guarantee": "No chest acquisition guaranteed by elapsed waves: elite/boss need kills, map needs route/placement; cap6 suppresses replenishment."
+      }
+    },
+    {
+      "throughWave": 19,
+      "plannedKillXp": 12429,
+      "allClearSweepExtra": 950,
+      "perfectKillAndSweepXp": 13379,
+      "choicesNoBonus": {
+        "plannedOnly": 48,
+        "allSweeps": 50
+      },
+      "earlyMagnet5Upper": {
+        "bonus": 0.2,
+        "rawXpToFirstFiveLevels": 182.2501859570825,
+        "plannedOnlyCredited": 14896.0997768515,
+        "allSweepsCredited": 16036.0997768515,
+        "plannedOnlyChoices": 53,
+        "allSweepsChoices": 55
+      },
+      "chests": {
+        "mapGenerationOpportunitiesIfContinuouslyCollected": [
+          23,
+          24
+        ],
+        "mapConcurrentCap": 6,
+        "plannedEliteChests": 24,
+        "eliteRows": {
+          "minimum": 1,
+          "maximum": 3,
+          "expected": 1.5
+        },
+        "boss10Big": 1,
+        "bigRows": 3,
+        "guarantee": "No chest acquisition guaranteed by elapsed waves: elite/boss need kills, map needs route/placement; cap6 suppresses replenishment."
+      }
+    }
+  ],
+  "builds": [
+    {
+      "id": "kite",
+      "weaponUpgrades": 34,
+      "passiveUpgrades": 22,
+      "temperSelections": 5,
+      "temperIsNotAbsoluteMax": 15,
+      "totalUpgradeEquivalents": 61,
+      "xpIfNoChestOrForge": 19520,
+      "evoChestPickups": 5,
+      "neededGearChestUpgrades": [
+        {
+          "beforeWave": 16,
+          "favorableXpCards": 45,
+          "gearUpgradeDeficit": 16,
+          "evoChestsInAddition": 5
+        },
+        {
+          "beforeWave": 20,
+          "favorableXpCards": 55,
+          "gearUpgradeDeficit": 6,
+          "evoChestsInAddition": 5
+        }
+      ]
+    },
+    {
+      "id": "guard",
+      "weaponUpgrades": 34,
+      "passiveUpgrades": 25,
+      "temperSelections": 5,
+      "temperIsNotAbsoluteMax": 15,
+      "totalUpgradeEquivalents": 64,
+      "xpIfNoChestOrForge": 21440,
+      "evoChestPickups": 5,
+      "neededGearChestUpgrades": [
+        {
+          "beforeWave": 16,
+          "favorableXpCards": 41,
+          "gearUpgradeDeficit": 23,
+          "evoChestsInAddition": 5
+        },
+        {
+          "beforeWave": 20,
+          "favorableXpCards": 50,
+          "gearUpgradeDeficit": 14,
+          "evoChestsInAddition": 5
+        }
+      ]
+    },
+    {
+      "id": "range",
+      "weaponUpgrades": 34,
+      "passiveUpgrades": 25,
+      "temperSelections": 5,
+      "temperIsNotAbsoluteMax": 15,
+      "totalUpgradeEquivalents": 64,
+      "xpIfNoChestOrForge": 21440,
+      "evoChestPickups": 5,
+      "neededGearChestUpgrades": [
+        {
+          "beforeWave": 16,
+          "favorableXpCards": 45,
+          "gearUpgradeDeficit": 19,
+          "evoChestsInAddition": 5
+        },
+        {
+          "beforeWave": 20,
+          "favorableXpCards": 55,
+          "gearUpgradeDeficit": 9,
+          "evoChestsInAddition": 5
+        }
+      ]
+    }
+  ],
+  "minimumFiveEvolutions": {
+    "weaponUpgrades": 34,
+    "catalystLv1Picks": 5,
+    "totalUpgradeEquivalents": 39,
+    "xpIfNoUpgradeChest": 8190,
+    "evoChests": 5,
+    "scope": "Minimum recipe-ready target, not max passives/temper; acquisition still requires route/RNG."
+  },
+  "optionalSources": {
+    "sweep": "5×wave only for actual complete clear, not timer survival",
+    "map": "4–5 initial attempts;+1 per credited wave only while fewer than6 remain; acquisition not guaranteed",
+    "isle": "2 upgrades or1 ready evo; respawn120s after pickup; route-dependent, excluded from base",
+    "curse": "2 active points; reward3 owned upgrades or1 ready evo plus50XP; fight/time/cap/120s respawn, excluded from base",
+    "brazier": "15XP withp0.4→expected6XP per broken brazier; excluded from base",
+    "forge": "One weapon upgrade or temper, globally every3waves; consumes all current-level XP with≥half-bar requirement; not added as free cards",
+    "summons": "Only count pending same-kind reserves once; after queue exhaustion extra summons/larvae and debt conversion depend on timing, excluded, so planned budget is not an absolute global XP ceiling"
+  },
+  "conclusion": "Full fixture builds are a powered upper comparison requiring active chest collection/favorable choices, not typical or guaranteed at16/20. XP alone is insufficient. Arithmetic does not show impossibility with active chest route; three wins validate full-build functions/tactics, not progression or statistical balance.",
+  "guardBefore16Illustration": {
+    "xpChoicesWithAllPlannedKillsAndAllSweeps": 41,
+    "requiredUpgradeEquivalents": 64,
+    "gearChestDeficit": 23,
+    "conditionalMinimumEliteUpgrades": 14,
+    "conditionalBigChestUpgrades": 3,
+    "extraPlainGearUpgrades": 6,
+    "plainEvoPickups": 5,
+    "mapPickupsNeededForThisAllocation": 11,
+    "mapOpportunities": [
+      19,
+      20
+    ],
+    "assumptions": "All14 elites and boss10 killed/picked, hold/bank ready chests,6plain gear+5plain evo, desired initial slot choices,5temper fromXP-card fillers/forge not normal chests. Necessary aggregate budget, not temporal/RNG guarantee."
+  },
+  "sourceHashes": {
+    "shared/dungeon/data.ts": "2c4dd3483a1cdde6b723e52d7b654793818df4a8f585b4798ce3f32f1ef1121b",
+    "shared/dungeon/director.ts": "ffa09a8e4295edcb8a6a0c63df2ac0d018b49c3a31caea21e75da6935eeb62ae",
+    "shared/dungeon/mobs.ts": "da51aea88bb3ef3bfaf008b3a41c27811ad715bef2165050f0a9f1f763926299",
+    "shared/dungeon/progress.ts": "b4721b606669d70d824126526605aafd06e898cfd92bcfab851178ed52cdee80",
+    "shared/dungeon/pickups.ts": "90508eac73a77fa121ffe86c1a1b3d2d24662569c5cde2864ec2ae44537af382",
+    "shared/dungeon/props.ts": "163ee32657b4410eb52a13d0dc8aed0705798e1ca5bd017c38b96f0e7da2806b",
+    "shared/dungeon/boss.ts": "fd9fd375458225256816fd34ea575d05e53dea348bc70e40a2bec9502b941734",
+    "docs/survivors/design-data.json": "932a6775825747f3126c596dea0143cf5b34b1b040e87c3e05e45a20f5965849",
+    "docs/survivors/level-data.json": "a9a47bd09a0453581d9bbbca7f86492dc8899b423dab4965e995ee4a8489c506"
+  },
+  "scriptSHA256": "3097ffc77a21c291ce0f160a23cecfaf21a74494f710ac23f20120e6e81560e7",
+  "physicsStepsExecuted": 0
+}

@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Набор архитектуры — проверка</title>
+<style>
+@font-face { font-family: Rubik; font-weight: 700; src: url(/fonts/rubik-cyrillic-700-normal.woff2) format('woff2'); unicode-range: U+0400-045F; }
+@font-face { font-family: Rubik; font-weight: 700; src: url(/fonts/rubik-latin-700-normal.woff2) format('woff2'); }
+@font-face { font-family: Rubik; font-weight: 900; src: url(/fonts/rubik-cyrillic-900-normal.woff2) format('woff2'); unicode-range: U+0400-045F; }
+@font-face { font-family: Rubik; font-weight: 900; src: url(/fonts/rubik-latin-900-normal.woff2) format('woff2'); }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #cfe0f2; font-family: Rubik, system-ui, sans-serif; }
+#hud { position: fixed; left: 12px; top: 10px; background: rgba(42, 31, 36, .8); color: #fff3de; padding: 8px 12px;
+  border-radius: 10px; font: 700 13px/1.5 Rubik, system-ui, sans-serif; white-space: pre; }
+</style>
+<script type="importmap">{ "imports": { "three": "../../../../../game-opus/node_modules/three/build/three.module.js", "three/addons/": "/three/examples/jsm/" } }</script>
+</head>
+<body>
+<div id="hud">загрузка…</div>
+<script type="module">
+// Проверка набора в three.js с видом игры (look v2: кривая тона и «рисованный» свет из client/render/lookpaint.ts,
+// свет из client/lobby/look.ts). Материалы — семейства по имени (p3_matte/p3_gloss/p3_glow/p3_foliage), как их будет
+// подменять игра; повторяющиеся предметы — InstancedMesh из kit_*.glb по пустышкам anchor_prop__<деталь>__NN,
+// лампочки — один InstancedMesh по anchor_bulbs_*, вывеска — холст на месте anchor_sign_face.
+// Адрес: viewer.html?view=34|above|front|stairs[&col] (col — показать боксы столкновений)
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const Q = new URLSearchParams(location.search);
+const hud = document.getElementById('hud');
+
+// ------------------------------------------------------------ кривая тона нового вида (копия lookpaint.ts)
+const TONE = { exposure: 1.08, shade: [0.92, 0.96, 1.1], light: [1.07, 1.0, 0.88], t0: 0.05, t1: 1.0, sat: 1.42, lift: 0.4 };
+const f3 = (v) => `vec3( ${v.map((x) => x.toFixed(4)).join(', ')} )`;
+const TONE_GLSL = `
+vec3 CustomToneMapping( vec3 color ) {
+	const mat3 lookIn = mat3( vec3( 0.59719, 0.07600, 0.02840 ), vec3( 0.35458, 0.90834, 0.13383 ), vec3( 0.04823, 0.01566, 0.83777 ) );
+	const mat3 lookOut = mat3( vec3( 1.60475, -0.10208, -0.00327 ), vec3( -0.53108, 1.10813, -0.07276 ), vec3( -0.07367, -0.00605, 1.07602 ) );
+	const vec3 lum = vec3( 0.2126, 0.7152, 0.0722 );
+	vec3 c = max( color, 0.0 ) * ( toneMappingExposure * ${(TONE.exposure / 0.6).toFixed(5)} );
+	float l = dot( c, lum );
+	c *= mix( ${f3(TONE.shade)}, ${f3(TONE.light)}, smoothstep( ${TONE.t0.toFixed(4)}, ${TONE.t1.toFixed(4)}, l ) );
+	l = dot( c, lum );
+	c = max( vec3( l ) + ( c - l ) * ${TONE.sat.toFixed(4)}, 0.0 );
+	c = saturate( lookOut * RRTAndODTFit( lookIn * c ) );
+	vec3 d = 1.0 - c;
+	return c + ${TONE.lift.toFixed(4)} * c * d * d;
+}`;
+THREE.ShaderChunk.tonemapping_pars_fragment = THREE.ShaderChunk.tonemapping_pars_fragment.replace('vec3 CustomToneMapping( vec3 color ) { return color; }', TONE_GLSL);
+
+// ------------------------------------------------------------ «рисованный» свет (копия lookpaint.ts)
+const WRAP = 0.3;
+const TERMINATOR = [0.82, 0.9, 1.12];
+const PAINT_PARS = `
+varying vec3 vLookW;
+uniform vec3 uLookShade;
+uniform float uLookSunInv;
+float lookLit = 0.0;
+vec3 lookDirect( float nl, vec3 light ) {
+	float w = saturate( ( nl + ${WRAP.toFixed(3)} ) / ${(1 + WRAP).toFixed(3)} );
+	lookLit = max( lookLit, saturate( luminance( light ) * uLookSunInv ) * smoothstep( -0.05, 0.35, nl ) );
+	return light * ( w * mix( ${f3(TERMINATOR)}, vec3( 1.0 ), smoothstep( 0.0, 0.5, w ) ) );
+}
+float lookWobble( vec3 p ) {
+	return sin( p.x * 0.9 + sin( p.z * 1.3 + p.y * 0.7 ) * 1.7 ) * sin( p.z * 0.8 + sin( p.x * 1.1 - p.y * 0.9 ) * 1.5 + p.y * 0.4 );
+}`;
+const GRAIN = `
+	{
+		float lookFar = length( vLookW - cameraPosition );
+		if ( lookFar < 260.0 ) {
+			vec3 lookK = vec3( 0.075, 0.055, 0.035 ) * lookWobble( vLookW * 0.45 ) * ( 1.0 - smoothstep( 120.0, 260.0, lookFar ) );
+			if ( lookFar < 70.0 ) lookK += 0.04 * lookWobble( vLookW * 1.9 + 7.3 ) * ( 1.0 - smoothstep( 25.0, 70.0, lookFar ) );
+			diffuseColor.rgb *= 1.0 + lookK;
+		}
+	}`;
+const VERT_POS = `
+	{
+		vec4 lookWp = vec4( transformed, 1.0 );
+		#ifdef USE_INSTANCING
+			lookWp = instanceMatrix * lookWp;
+		#endif
+		vLookW = ( modelMatrix * lookWp ).xyz;
+	}`;
+const PHYS = 'reflectedLight.directDiffuse += irradiance * BRDF_Lambert( material.diffuseContribution ) * ( 1.0 - F );';
+const physical = THREE.ShaderChunk.lights_physical_pars_fragment.replace(PHYS,
+  'reflectedLight.directDiffuse += lookDirect( dot( geometryNormal, directLight.direction ), directLight.color ) * BRDF_Lambert( material.diffuseContribution ) * ( 1.0 - F );');
+const paintUniforms = { uLookShade: { value: new THREE.Color(0.9, 0.96, 1.22) }, uLookSunInv: { value: 1 } };
+function paint(m) {
+  if (!m.isMeshStandardMaterial) return m;
+  m.onBeforeCompile = (s) => {
+    s.vertexShader = s.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vLookW;')
+      .replace('#include <project_vertex>', `#include <project_vertex>\n${VERT_POS}`);
+    Object.assign(s.uniforms, paintUniforms);
+    s.fragmentShader = s.fragmentShader.replace('#include <common>', `#include <common>\n${PAINT_PARS}`)
+      .replace('#include <lights_physical_pars_fragment>', physical)
+      .replace('#include <lights_fragment_end>', '#include <lights_fragment_end>\n\treflectedLight.indirectDiffuse *= mix( uLookShade, vec3( 1.0 ), lookLit );')
+      .replace('#include <color_fragment>', `#include <color_fragment>\n${GRAIN}`);
+  };
+  m.customProgramCacheKey = () => 'look2g';
+  return m;
+}
+
+// ------------------------------------------------------------ семейства материалов (как подменит игра)
+const FAM = new Map();
+function famMat(name) {
+  let m = FAM.get(name);
+  if (m) return m;
+  if (name === 'p3_glow') m = new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false });
+  else m = paint(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: name === 'p3_gloss' ? 0.35 : 0.85, metalness: 0 }));
+  m.name = name;
+  FAM.set(name, m);
+  return m;
+}
+
+// ------------------------------------------------------------ сцена, свет как в look.ts
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(Math.min(2, devicePixelRatio));
+renderer.setSize(innerWidth, innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.CustomToneMapping;
+renderer.toneMappingExposure = 1.0;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFShadowMap;
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.1, 2000);
+
+const SUN_ELEV = 0.42;
+const sun = new THREE.DirectionalLight(0xffd49a, 3.4);
+const az = new THREE.Vector3(0.55, 0, -0.83).normalize();
+const toSun = new THREE.Vector3(az.x * Math.cos(SUN_ELEV), Math.sin(SUN_ELEV), az.z * Math.cos(SUN_ELEV));
+const center = new THREE.Vector3(0, 2, -2);
+sun.position.copy(center).addScaledVector(toSun, 80);
+sun.target.position.copy(center);
+sun.castShadow = true;
+sun.shadow.mapSize.set(4096, 4096);
+Object.assign(sun.shadow.camera, { left: -26, right: 26, top: 26, bottom: -26, near: 20, far: 160 });
+sun.shadow.bias = -0.0006;
+sun.shadow.normalBias = 0.04;
+sun.shadow.radius = 3;
+scene.add(sun, sun.target, new THREE.HemisphereLight(0xb2c8f4, 0xd2a57c, 1.3));
+paintUniforms.uLookSunInv.value = 1.6 / Math.max(0.05, sun.intensity * (0.2126 * sun.color.r + 0.7152 * sun.color.g + 0.0722 * sun.color.b));
+
+// небо: вечерняя палитра набережной (горизонт тёплый, зенит синий)
+const sky = new THREE.Mesh(new THREE.SphereGeometry(900, 32, 16), new THREE.ShaderMaterial({
+  side: THREE.BackSide, depthWrite: false, toneMapped: false,
+  uniforms: { a: { value: new THREE.Color(0xffd9ad) }, b: { value: new THREE.Color(0x9cc4ee) }, c: { value: new THREE.Color(0x4f86d0) } },
+  vertexShader: 'varying vec3 p; void main(){ p = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.); }',
+  fragmentShader: 'uniform vec3 a,b,c;\nvarying vec3 p;\nvoid main(){\nfloat h = max(p.y, 0.);\nvec3 col = mix(a, b, smoothstep(0., .18, h));\ncol = mix(col, c, smoothstep(.18, .8, h));\ngl_FragColor = vec4(col, 1.);\n#include <colorspace_fragment>\n}',
+}));
+scene.add(sky);
+// плитка площади и море (море — с −Z, за стенкой набережной на z = −12)
+const deck = paint(new THREE.MeshStandardMaterial({ color: 0xd9c6a2, roughness: 0.95 }));
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(400, 212).rotateX(-Math.PI / 2), deck);
+ground.position.set(0, 0, 94);
+ground.receiveShadow = true;
+const sea = new THREE.Mesh(new THREE.PlaneGeometry(400, 200).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x2a8796, roughness: 0.18 }));
+sea.position.set(0, -1.25, -112);
+scene.add(ground, sea);
+
+// ------------------------------------------------------------ загрузка
+const loader = new GLTFLoader();
+const load = (url) => new Promise((ok, no) => loader.load(url, ok, undefined, no));
+const [demo, manifest] = await Promise.all([load('./demo.glb'), fetch('./glb/manifest.json').then((r) => r.json())]);
+demo.scene.updateMatrixWorld(true);
+const stat = { static: 0, props: 0, bulbs: 0 };
+
+// склеенная статика: как есть, материалы — по семейству
+const anchors = [];
+demo.scene.traverse((o) => {
+  if (o.name.startsWith('anchor_') || o.name.startsWith('col_')) anchors.push(o);
+});
+for (const node of [...demo.scene.children]) {
+  if (!node.name.startsWith('static_')) continue;
+  node.traverse((o) => {
+    if (!o.isMesh) return;
+    o.material = famMat(o.material.name);
+    o.castShadow = o.material.name !== 'p3_glow';
+    o.receiveShadow = true;
+    stat.static += o.geometry.index ? o.geometry.index.count / 3 : o.geometry.attributes.position.count / 3;
+  });
+}
+for (const a of anchors) a.parent.remove(a);
+scene.add(demo.scene);
+
+// предметы: InstancedMesh по пустышкам anchor_prop__<деталь>__NN
+const want = new Map();
+for (const a of anchors) {
+  const m = /^anchor_prop__(.+?)__\d+$/.exec(a.name);
+  if (!m) continue;
+  if (!want.has(m[1])) want.set(m[1], []);
+  want.get(m[1]).push(a.matrixWorld.clone());
+}
+const files = [...new Set([...want.keys()].map((n) => manifest.pieces.find((p) => p.name === n)?.file).filter(Boolean))];
+const kits = await Promise.all(files.map(load));
+for (const k of kits) k.scene.updateMatrixWorld(true);
+const inv = new THREE.Matrix4();
+const tmp = new THREE.Matrix4();
+for (const [name, mats] of want) {
+  const node = kits.map((k) => k.scene.getObjectByName(name)).find(Boolean);
+  if (!node) { console.warn('нет детали', name); continue; }
+  inv.copy(node.matrixWorld).invert();
+  node.traverse((o) => {
+    if (!o.isMesh) return;
+    const rel = new THREE.Matrix4().multiplyMatrices(inv, o.matrixWorld);
+    const im = new THREE.InstancedMesh(o.geometry, famMat(o.material.name), mats.length);
+    mats.forEach((m, i) => im.setMatrixAt(i, tmp.multiplyMatrices(m, rel)));
+    im.castShadow = o.material.name !== 'p3_glow';
+    im.receiveShadow = true;
+    scene.add(im);
+    stat.props += (o.geometry.index ? o.geometry.index.count / 3 : o.geometry.attributes.position.count / 3) * mats.length;
+  });
+}
+
+// лампочки рамок: один InstancedMesh
+const bulbs = anchors.filter((a) => /^anchor_bulbs_\d+$/.test(a.name));
+const bulbMesh = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(0.05, 1), new THREE.MeshBasicMaterial({ color: 0xffe3a6, toneMapped: false }), bulbs.length);
+bulbs.forEach((b, i) => bulbMesh.setMatrixAt(i, b.matrixWorld));
+scene.add(bulbMesh);
+stat.bulbs = bulbs.length;
+
+// вывеска: холст на месте anchor_sign_face (иконка слева, название, строка статуса)
+await Promise.all([document.fonts.load('900 64px Rubik'), document.fonts.load('700 40px Rubik')]).catch(() => {});
+const face = anchors.find((a) => a.name === 'anchor_sign_face');
+if (face) {
+  const s = new THREE.Vector3();
+  face.matrixWorld.decompose(new THREE.Vector3(), new THREE.Quaternion(), s);
+  const W = 1024, H = Math.round(W * s.y / s.x);
+  const c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const g = c.getContext('2d');
+  g.fillStyle = '#fff3de'; g.fillRect(0, 0, W, H);
+  const r = H * 0.36, cx = H * 0.5, cy = H * 0.5;
+  g.fillStyle = '#d9643a'; g.beginPath(); g.arc(cx, cy, r, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#fff3de'; g.fillRect(cx - r * 0.55, cy + r * 0.12, r * 1.1, r * 0.4);
+  g.fillRect(cx - r * 0.07, cy - r * 0.5, r * 0.14, r * 0.66);
+  g.beginPath(); g.arc(cx, cy - r * 0.5, r * 0.2, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#2a1f24'; g.font = `900 ${Math.round(H * 0.42)}px Rubik, sans-serif`; g.textBaseline = 'alphabetic';
+  g.fillText('АРКАДА', H * 1.05, H * 0.56);
+  g.fillStyle = '#d9643a'; g.font = `700 ${Math.round(H * 0.2)}px Rubik, sans-serif`;
+  g.fillText('играют 3 · свободно 5', H * 1.07, H * 0.84);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 8;
+  const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), new THREE.MeshBasicMaterial({ map: tex, toneMapped: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2 }));
+  quad.matrixAutoUpdate = false;
+  quad.matrix.copy(face.matrixWorld);
+  scene.add(quad);
+}
+if (Q.has('col')) {
+  for (const a of anchors.filter((x) => x.name.startsWith('col_'))) {
+    const p = new THREE.Vector3(), q = new THREE.Quaternion(), s = new THREE.Vector3();
+    a.matrixWorld.decompose(p, q, s);
+    scene.add(new THREE.Box3Helper(new THREE.Box3(p.clone().sub(s), p.clone().add(s)), 0xff3366));
+  }
+}
+
+// ------------------------------------------------------------ камера и кадр
+const VIEWS = {
+  '34': [[8.2, 3.0, -8.6], [-1.2, 3.3, 2.6]],
+  above: [[17, 20, -30], [0, 1.5, -2.5]],
+  front: [[0, 2.2, -9.5], [0, 4.2, 2.0]],
+  stairs: [[-9, 2.4, -19], [0, 0.2, -11]],
+};
+const [cp, ct] = VIEWS[Q.get('view') || '34'] || VIEWS['34'];
+camera.position.set(...cp);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(...ct);
+controls.update();
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+let frames = 0;
+renderer.setAnimationLoop(() => {
+  controls.update();
+  renderer.render(scene, camera);
+  if (++frames === 3) {
+    const i = renderer.info;
+    window.__stats = { calls: i.render.calls, triangles: i.render.triangles, programs: i.programs.length,
+      staticTris: stat.static, propTris: stat.props, bulbs: stat.bulbs };
+    hud.textContent = `отрисовок за кадр (с тенями): ${i.render.calls}\nтреугольников в кадре: ${i.render.triangles}\n` +
+      `программ шейдеров: ${i.programs.length}\nстатика павильона и набережной: ${stat.static} тр.\n` +
+      `предметы инстансами: ${stat.props} тр. · лампочек: ${stat.bulbs}`;
+    window.__ready = true;
+  }
+});
+</script>
+</body>
+</html>

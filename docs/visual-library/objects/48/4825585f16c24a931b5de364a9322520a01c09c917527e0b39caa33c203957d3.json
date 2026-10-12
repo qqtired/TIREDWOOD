@@ -1,0 +1,248 @@
+{
+  "id": "canopy",
+  "file": "../glb/canopy-r2-07.glb",
+  "sha256": "da211a74ffa180edc8ce5f532dd595015776ff8373456d7fa9bf1f2d522b986a",
+  "binSHA256": "3dcc8940b3d2357759750afb53348f3e739909d0917afbc8f1216c284ed4b015",
+  "triangles": 2860,
+  "materials": 5,
+  "textures": 0,
+  "images": 0,
+  "primitives": 34,
+  "bytes": 500048,
+  "clips": [
+    {
+      "name": "canopy_idle",
+      "seconds": 2,
+      "runtimeDuration": 2.041667,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 2.0416667461395264,
+      "frames": 49,
+      "channels": 57,
+      "variedChannels": 12,
+      "minimumFloorY": 0.015994,
+      "worstFloorPart": {
+        "part": "footR",
+        "seconds": 0,
+        "value": 0.015994273126125336
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": null,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {}
+    },
+    {
+      "name": "canopy_walk",
+      "seconds": 1,
+      "runtimeDuration": 1.041667,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 1.0416666269302368,
+      "frames": 25,
+      "channels": 57,
+      "variedChannels": 4,
+      "minimumFloorY": 0.015994,
+      "worstFloorPart": {
+        "part": "footR",
+        "seconds": 0,
+        "value": 0.015994273126125336
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": null,
+      "walkStanceDriftM": 0,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {}
+    },
+    {
+      "name": "canopy_windup",
+      "seconds": 1.833333,
+      "runtimeDuration": 1.875,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 1.875,
+      "frames": 45,
+      "channels": 57,
+      "variedChannels": 23,
+      "minimumFloorY": 0.015994,
+      "worstFloorPart": {
+        "part": "footR",
+        "seconds": 0,
+        "value": 0.015994273126125336
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": 0,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {}
+    },
+    {
+      "name": "canopy_attack",
+      "seconds": 0.833333,
+      "runtimeDuration": 0.875,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 0.875,
+      "frames": 21,
+      "channels": 57,
+      "variedChannels": 11,
+      "minimumFloorY": 0.015994,
+      "worstFloorPart": {
+        "part": "footR",
+        "seconds": 0,
+        "value": 0.015994273126125336
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": 0,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": 1.1438,
+      "firstFloorContactS": {}
+    },
+    {
+      "name": "canopy_recover",
+      "seconds": 1.833333,
+      "runtimeDuration": 1.875,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 1.875,
+      "frames": 45,
+      "channels": 57,
+      "variedChannels": 10,
+      "minimumFloorY": 0.015994,
+      "worstFloorPart": {
+        "part": "footR",
+        "seconds": 0,
+        "value": 0.015994273126125336
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": null,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {}
+    },
+    {
+      "name": "canopy_hit",
+      "seconds": 0.583333,
+      "runtimeDuration": 0.625,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 0.625,
+      "frames": 15,
+      "channels": 57,
+      "variedChannels": 12,
+      "minimumFloorY": 0.015994,
+      "worstFloorPart": {
+        "part": "footR",
+        "seconds": 0,
+        "value": 0.015994273126125336
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": null,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {}
+    },
+    {
+      "name": "canopy_death",
+      "seconds": 2.833333,
+      "runtimeDuration": 2.875,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 2.875,
+      "frames": 69,
+      "channels": 57,
+      "variedChannels": 26,
+      "minimumFloorY": 0.008,
+      "worstFloorPart": {
+        "part": "lock",
+        "seconds": 0.4166666666666667,
+        "value": 0.007999905134518787
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": null,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "lock": 0.1667,
+        "drop0": 1.4167,
+        "drop1": 1.5833,
+        "drop2": 1.7917
+      }
+    },
+    {
+      "name": "canopy_open",
+      "seconds": 2,
+      "runtimeDuration": 2.041667,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 2.0416667461395264,
+      "frames": 49,
+      "channels": 57,
+      "variedChannels": 10,
+      "minimumFloorY": 0.015994,
+      "worstFloorPart": {
+        "part": "footR",
+        "seconds": 0,
+        "value": 0.015994273126125336
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": null,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {}
+    },
+    {
+      "name": "canopy_canopy_break",
+      "seconds": 2.833333,
+      "runtimeDuration": 2.875,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 2.875,
+      "frames": 69,
+      "channels": 57,
+      "variedChannels": 27,
+      "minimumFloorY": 0.015994,
+      "worstFloorPart": {
+        "part": "footR",
+        "seconds": 0,
+        "value": 0.015994273126125336
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": null,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {}
+    },
+    {
+      "name": "canopy_cover_disabled",
+      "seconds": 2,
+      "runtimeDuration": 2.041667,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 2.0416667461395264,
+      "frames": 49,
+      "channels": 57,
+      "variedChannels": 3,
+      "minimumFloorY": 0.015994,
+      "worstFloorPart": {
+        "part": "footR",
+        "seconds": 0,
+        "value": 0.015994273126125336
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": null,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {}
+    }
+  ],
+  "checks": {
+    "rootUpright": true,
+    "bracedFeet": true,
+    "walkStance": true,
+    "workingGrips": true,
+    "floor": true,
+    "sixRequired": true,
+    "allRequiredHaveMotion": true
+  }
+}

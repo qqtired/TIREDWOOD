@@ -1,0 +1,23 @@
+{
+  "assembledAt": "2026-10-12T02:59:56.386Z",
+  "htmlBytes": 31388691,
+  "bundleBytes": 695530,
+  "embeddedNewGlbs": [
+    "hookclaw",
+    "wickmole",
+    "railhopper",
+    "chainwarden",
+    "cauldronmaster"
+  ],
+  "newModelClipCount": 57,
+  "embeddedBaselineGlbs": [
+    "rat",
+    "beetle",
+    "cooper",
+    "boss",
+    "hero"
+  ],
+  "sourceCommit": "bd182c2 + uncommitted mode/dungeon-expansion-v2",
+  "imageCount": 5,
+  "sha256": "17e53e92533f6638aa5f9592a8d4837fc74632b998cefb34c5d229d050ba23cd"
+}

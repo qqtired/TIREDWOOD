@@ -1,0 +1,38 @@
+{
+  "id": "cauldronmaster",
+  "tris": 14738,
+  "parts": 13,
+  "bones": 13,
+  "clips": [
+    "cauldronmaster_idle",
+    "cauldronmaster_walk",
+    "cauldronmaster_appear",
+    "cauldronmaster_windup",
+    "cauldronmaster_attack",
+    "cauldronmaster_lid_open",
+    "cauldronmaster_pour_wind",
+    "cauldronmaster_pour",
+    "cauldronmaster_boil_wind",
+    "cauldronmaster_boil",
+    "cauldronmaster_phase1",
+    "cauldronmaster_phase2",
+    "cauldronmaster_phase3",
+    "cauldronmaster_recover",
+    "cauldronmaster_hit",
+    "cauldronmaster_death"
+  ],
+  "bbox": [
+    [
+      -1.866157054901123,
+      -1.7448960542678833,
+      0.0
+    ],
+    [
+      2.000244617462158,
+      2.0381078720092773,
+      4.795445442199707
+    ]
+  ],
+  "background": true,
+  "fps": 24
+}

@@ -1,0 +1,366 @@
+{
+  "id": "crabcrane",
+  "file": "../glb/crabcrane-r2-06.glb",
+  "sha256": "553d4ad2279a93faf7650b034cb484953717e856655819217c26ae1844acdf94",
+  "binSHA256": "f21e83a1c6517c41e243a53ba0885326024a2f870ee64a2f6653ee0e767cfb15",
+  "triangles": 6552,
+  "materials": 5,
+  "textures": 0,
+  "images": 0,
+  "primitives": 58,
+  "bytes": 1649292,
+  "clips": [
+    {
+      "name": "crabcrane_idle",
+      "seconds": 2,
+      "runtimeDuration": 2.041667,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 2.0416667461395264,
+      "frames": 49,
+      "channels": 132,
+      "variedChannels": 83,
+      "minimumFloorY": 0.015,
+      "worstFloorPart": {
+        "part": "support0",
+        "seconds": 0,
+        "value": 0.014999985694885254
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": null,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "support0": 0,
+        "support1": 0,
+        "support2": 0
+      }
+    },
+    {
+      "name": "crabcrane_walk",
+      "seconds": 1,
+      "runtimeDuration": 1.041667,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 1.0416666269302368,
+      "frames": 25,
+      "channels": 132,
+      "variedChannels": 87,
+      "minimumFloorY": 0.015,
+      "worstFloorPart": {
+        "part": "support0",
+        "seconds": 0,
+        "value": 0.014999985694885254
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": null,
+      "walkStanceDriftM": 0,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "support0": 0,
+        "support1": 0,
+        "support2": 0
+      }
+    },
+    {
+      "name": "crabcrane_windup",
+      "seconds": 2.416667,
+      "runtimeDuration": 2.458333,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 2.4583332538604736,
+      "frames": 59,
+      "channels": 132,
+      "variedChannels": 86,
+      "minimumFloorY": 0.008,
+      "worstFloorPart": {
+        "part": "support0",
+        "seconds": 0.16666666666666666,
+        "value": 0.008000016212463379
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": 0,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "support0": 0,
+        "support1": 0,
+        "support2": 0
+      }
+    },
+    {
+      "name": "crabcrane_attack",
+      "seconds": 1,
+      "runtimeDuration": 1.041667,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 1.0416666269302368,
+      "frames": 25,
+      "channels": 132,
+      "variedChannels": 73,
+      "minimumFloorY": 0.015,
+      "worstFloorPart": {
+        "part": "support0",
+        "seconds": 0,
+        "value": 0.014999985694885254
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": 0,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": 3.6166,
+      "firstFloorContactS": {
+        "support0": 0,
+        "support1": 0,
+        "support2": 0
+      }
+    },
+    {
+      "name": "crabcrane_recover",
+      "seconds": 1.833333,
+      "runtimeDuration": 1.875,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 1.875,
+      "frames": 45,
+      "channels": 132,
+      "variedChannels": 81,
+      "minimumFloorY": 0.015,
+      "worstFloorPart": {
+        "part": "support0",
+        "seconds": 0,
+        "value": 0.014999985694885254
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": null,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "support0": 0,
+        "support1": 0,
+        "support2": 0
+      }
+    },
+    {
+      "name": "crabcrane_hit",
+      "seconds": 0.583333,
+      "runtimeDuration": 0.625,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 0.625,
+      "frames": 15,
+      "channels": 132,
+      "variedChannels": 85,
+      "minimumFloorY": 0.008,
+      "worstFloorPart": {
+        "part": "support2",
+        "seconds": 0.4166666666666667,
+        "value": 0.007999996056563097
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": null,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "support0": 0,
+        "support1": 0,
+        "support2": 0
+      }
+    },
+    {
+      "name": "crabcrane_death",
+      "seconds": 4.5,
+      "runtimeDuration": 4.541667,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 4.541666507720947,
+      "frames": 109,
+      "channels": 132,
+      "variedChannels": 99,
+      "minimumFloorY": -0.017267,
+      "worstFloorPart": {
+        "part": "clawArmL",
+        "seconds": 2.875,
+        "value": -0.017267317843257357
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": null,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "support0": 0,
+        "support1": 0,
+        "support2": 0,
+        "stopper": 0.25,
+        "load": 1.3333,
+        "clawL": 2.375,
+        "body": 2.625,
+        "clawArmL": 2.625
+      }
+    },
+    {
+      "name": "crabcrane_open",
+      "seconds": 3,
+      "runtimeDuration": 3.041667,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 3.0416667461395264,
+      "frames": 73,
+      "channels": 132,
+      "variedChannels": 81,
+      "minimumFloorY": 0.015,
+      "worstFloorPart": {
+        "part": "support0",
+        "seconds": 0,
+        "value": 0.014999985694885254
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": null,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "support0": 0,
+        "support1": 0,
+        "support2": 0
+      }
+    },
+    {
+      "name": "crabcrane_spawn",
+      "seconds": 1.833333,
+      "runtimeDuration": 1.875,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 1.875,
+      "frames": 45,
+      "channels": 132,
+      "variedChannels": 5,
+      "minimumFloorY": 0.015,
+      "worstFloorPart": {
+        "part": "support0",
+        "seconds": 1.625,
+        "value": 0.014999985694885254
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": null,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "support0": 1.625,
+        "support1": 1.625,
+        "support2": 1.625
+      }
+    },
+    {
+      "name": "crabcrane_anchor_set",
+      "seconds": 2.416667,
+      "runtimeDuration": 2.458333,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 2.4583332538604736,
+      "frames": 59,
+      "channels": 132,
+      "variedChannels": 86,
+      "minimumFloorY": 0.008,
+      "worstFloorPart": {
+        "part": "support0",
+        "seconds": 0.16666666666666666,
+        "value": 0.008000016212463379
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": 0,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "support0": 0,
+        "support1": 0,
+        "support2": 0
+      }
+    },
+    {
+      "name": "crabcrane_hook_windup",
+      "seconds": 1.833333,
+      "runtimeDuration": 1.875,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 1.875,
+      "frames": 45,
+      "channels": 132,
+      "variedChannels": 83,
+      "minimumFloorY": 0.015,
+      "worstFloorPart": {
+        "part": "support0",
+        "seconds": 0,
+        "value": 0.014999985694885254
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": 0,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "support0": 0,
+        "support1": 0,
+        "support2": 0
+      }
+    },
+    {
+      "name": "crabcrane_hook_swing",
+      "seconds": 1,
+      "runtimeDuration": 1.041667,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 1.0416666269302368,
+      "frames": 25,
+      "channels": 132,
+      "variedChannels": 73,
+      "minimumFloorY": 0.015,
+      "worstFloorPart": {
+        "part": "support0",
+        "seconds": 0,
+        "value": 0.014999985694885254
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": null,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "support0": 0,
+        "support1": 0,
+        "support2": 0
+      }
+    },
+    {
+      "name": "crabcrane_rage",
+      "seconds": 2,
+      "runtimeDuration": 2.041667,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 2.0416667461395264,
+      "frames": 49,
+      "channels": 132,
+      "variedChannels": 5,
+      "minimumFloorY": 0.015,
+      "worstFloorPart": {
+        "part": "support0",
+        "seconds": 0,
+        "value": 0.014999985694885254
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": null,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "support0": 0,
+        "support1": 0,
+        "support2": 0
+      }
+    }
+  ],
+  "checks": {
+    "rootUpright": true,
+    "bracedFeet": true,
+    "walkStance": true,
+    "workingGrips": true,
+    "floor": true,
+    "sixRequired": true,
+    "allRequiredHaveMotion": true
+  }
+}

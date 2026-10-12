@@ -1,0 +1,15 @@
+{
+  "created": "2026-10-12T11:01:15.620Z",
+  "statuses": {
+    "main": "",
+    "opt": "",
+    "mainHead": "4d354e33310ba3bd20272b27a90de552ccfa2732",
+    "optHead": "42613922932e37ca37a010266e9f173d650cf334"
+  },
+  "endedOwnedPreviewProcesses": [
+    79229,
+    90031,
+    28502
+  ],
+  "otherProcessesUntouched": true
+}

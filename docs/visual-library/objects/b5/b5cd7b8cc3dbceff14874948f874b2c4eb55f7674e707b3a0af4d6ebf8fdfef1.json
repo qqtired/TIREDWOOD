@@ -1,0 +1,379 @@
+{
+  "review": "TIREDWOOD server netcode read-only review, 2026-10-07",
+  "scope": "server/main.ts, hub.ts, transport/session/inputs guards, lobby/* network paths, mode snapshot writers, shared/protocol.ts, *net.ts, regatta.ts and link.ts",
+  "findings": [
+    {
+      "id": "net-01",
+      "severity": "P2",
+      "confidence": "verified offline reproduction",
+      "title": "Возврат в прятки теряет изменения предметов, прошедшие без связи",
+      "path": "server/hide/game.ts",
+      "lines": [
+        545,
+        563
+      ],
+      "related": [
+        {
+          "path": "shared/link.ts",
+          "lines": [
+            9,
+            13
+          ]
+        },
+        {
+          "path": "server/link.ts",
+          "lines": [
+            49,
+            54
+          ]
+        },
+        {
+          "path": "server/hub.ts",
+          "lines": [
+            593,
+            610
+          ]
+        }
+      ],
+      "evidence": "hide_state содержит дельту к p.sent, а не полный заменяемый снимок. view изменяет p.sent до вызова sink; SessionLink при detach выбрасывает volatile hide_state. В Hub.resume отсутствует reset sentEpoch/room full resync. Настоящие HideGame.send/SessionLink, hideSetup(2)/toSeek: initial full=true, prop x=110cm; detach; prop x+=200cm; send; attach; send => actual x310cm, resumed full=false,p=[], pending=0.",
+      "trigger": "Сеть оборвалась, за время обрыва предмет переместился и остановился либо исчез. Hub сохраняет ту же комнату/HidePlayer, затем возвращает сокет без пересоздания сцены.",
+      "consequence": "Клиент после успешного reconnect сохраняет старое место или отсутствующий предмет до следующего изменения/смены epoch. В прятках это влияет на поиск и точность выстрелов.",
+      "proposal": "Короткий room resume hook: для HidePlayer сбросить sentEpoch и отправить полный snapshot после attach. Долгосрочно — baseline generation/ack для дельт. Не добавлять слепое отбрасывание hide_state по давлению.",
+      "validationNeeded": "Два клиента: reconnect hunter, пока prop перемещается и останавливается; отдельно поймать prop во время обрыва. Проверить полный снимок после replay и отсутствие утечки скрытых предметов в blind phase. Offline воспроизведение сделано; браузер/runtime не запускались.",
+      "tradeoffs": "Полный resync коротко увеличивает payload; требуется сохранить blind/role visibility, порядок replay и server-authoritative phase. Простое внесение hide_state в reliable replay увеличит трафик и не решает произвольный baseline skip."
+    },
+    {
+      "id": "net-02",
+      "severity": "P2",
+      "confidence": "verified offline reproduction",
+      "title": "Backpressure молча теряет одноразовый reset картинга",
+      "path": "server/voice-wire.ts",
+      "lines": [
+        43,
+        52
+      ],
+      "related": [
+        {
+          "path": "server/race/race.ts",
+          "lines": [
+            740,
+            747
+          ]
+        },
+        {
+          "path": "shared/kartnet.ts",
+          "lines": [
+            145,
+            151
+          ]
+        },
+        {
+          "path": "client/race/match.ts",
+          "lines": [
+            387,
+            394
+          ]
+        }
+      ],
+      "evidence": "Защита reset признаёт только MSG_SNAPSHOT=2. Картинг использует MSG_KART_SNAPSHOT=3 с тем же flags byte9. Сервер снимает k.selfReset до отправки. Настоящие encodeKartSnapshot/encodeSnapshot и fake socket bufferedAmount=512*1024: type3 flags3 => sent0,closed[]; type2 flags3 => sent1,closed[].",
+      "trigger": "Возврат карта на КТ/телепорт/reset в момент исходящей очереди 512KiB..1MiB.",
+      "consequence": "Критический reset исчезает без fresh handshake; следующий снимок запускает обычный reconcile вместо predictor.reset/camera reset, вызывая большой сглаживаемый сдвиг и проигрывание старых вводов.",
+      "proposal": "Включить reset type3 в guard либо передавать transport explicit critical flag; ещё устойчивее — повторяемый reset generation до ack. Не считать повторяемый regatta reset counter одноразовым флагом.",
+      "validationNeeded": "Тест обоих encoder типов на 512KiB и 1MiB; race return-to-checkpoint при congestion; проверка что reset отправлен или соединение явно закрыто. Offline encoder repro выполнен; симптом в браузере не измерен.",
+      "tradeoffs": "Принудительный reconnect при reset повышает надёжность ценой разрыва гонки. Повторный reset без generation/ack может повторно сбрасывать клиент и портить плавность."
+    },
+    {
+      "id": "net-03",
+      "severity": "P2",
+      "confidence": "high static evidence; impact requires runtime measurement",
+      "title": "Набережная рассылает всех игроков каждому 30 раз в секунду",
+      "path": "server/lobby/room.ts",
+      "lines": [
+        1981,
+        2012
+      ],
+      "related": [
+        {
+          "path": "shared/lobby.ts",
+          "lines": [
+            132,
+            139
+          ]
+        },
+        {
+          "path": "shared/protocol.ts",
+          "lines": [
+            95,
+            97
+          ]
+        }
+      ],
+      "evidence": "Один общий список всех players (кроме ephemeral) упаковывается и добавляется каждому персональному снимку. Distance/zone/subscription filtering отсутствует. Формула bare snapshot =22 header+103 self+1 count+14*N+30 ball=156+14N bytes. N=64:1052 bytes/snapshot,31560 B/s/player,2019840 B/s aggregate. Это не замер реальной сети; JSON, WS/TCP/TLS overhead исключены.",
+      "trigger": "Большая компания распределена по площади/пирсу/аквапарку; значительная часть чужих аватаров далеко или за камерой.",
+      "consequence": "Трафик и snapshot copy/fanout растут O(N²), клиент декодирует и обновляет ненужные далёкие сущности. Удвоение всей комнаты до60Hz удвоит этот baseline.",
+      "proposal": "Сначала измерить visible/near peer fraction. Сохранить self ack cadence, разделить nearby динамику и far low-rate updates; spatial interest с hysteresis, отдельными despawn и roster. 60Hz рядом выбирать после budget comparison; дальние10–15Hz, крупные global события отдельно.",
+      "validationNeeded": "16/32/64 клиента и распределённые позиции: bytes/s, send count, serialize/copy ms, p95 display-age, avatar pop-in и переходы near/far. Проверить общие пары/жесты, катер, голос, таблички и spectator взгляды. Runtime не измерялось этим агентом.",
+      "tradeoffs": "Удаление из списка сейчас воспринимается клиентом как исчезновение: naive фильтр даст pop-in. Нужны lifetime/relevancy semantics; экран события/голос могут нуждаться в дальнем player metadata."
+    },
+    {
+      "id": "net-04",
+      "severity": "P2",
+      "confidence": "high static evidence",
+      "title": "512KiB guard ограничивает память, но допускает длинную очередь устаревших снимков",
+      "path": "server/voice-wire.ts",
+      "lines": [
+        23,
+        52
+      ],
+      "evidence": "Обычный binary отправляется пока bufferedAmount<512KiB; уже помещённые WS/TCP bytes нельзя заменить. После threshold новые снимки пропускаются, но старые продолжают приходить первыми. 524288/31560=16.61s plaza payload-equivalent при64 peers; это оценка размера backlog, не доказательство фактической задержки. JSON вообще допускается до1MiB.",
+      "trigger": "Короткое ухудшение download/Wi-Fi, зависшая вкладка или клиент с пропускной способностью ниже sustained state stream.",
+      "consequence": "После восстановления сети клиент может проигрывать старую очередь; новые dropped packets сами по себе freshness не возвращают. Игрок испытывает stale remotes и corrections при всё ещё живом сокете.",
+      "proposal": "Снять queue-age/bufferedAmount/drop counters; выбрать threshold по разрешённой задержке и потоку конкретного режима. Держать latest replaceable snapshot до передачи ws.send и не накапливать его при занятости; durable controls приоритетно. Для чрезмерно старой уже отправленной очереди применять согласованный reconnect/full-resync.",
+      "validationNeeded": "Throttle download, burst stall, recovery: p95/p99 state age, сколько времени drains очередь, reconnect rate, reset delivery. Не считать fake bufferedAmount полноценным TCP тестом.",
+      "tradeoffs": "Слишком низкий threshold без hysteresis вызывает needless reconnect при кратких stalls. JS latest-slot не удалит bytes, уже переданные TCP; нужны измерения, а WebRTC migration не является готовым решением."
+    },
+    {
+      "id": "net-05",
+      "severity": "P2",
+      "confidence": "high static evidence; performance magnitude unmeasured",
+      "title": "Skill snapshot каждый раз повторяет roster и заново собирает общие данные для каждого клиента",
+      "path": "server/skilltest/game.ts",
+      "lines": [
+        333,
+        361
+      ],
+      "related": [
+        {
+          "path": "server/hide/game.ts",
+          "lines": [
+            545,
+            582
+          ]
+        }
+      ],
+      "evidence": "Skill sendAll10Hz вызывает send на каждого игрока, внутри send — peers() и raceView(). peers включает pid,level,nick,outfit и динамику. Общие peer массивы и race rows клонируются P раз за snapshot; metadata повторяется P*10 раз/с. Hide уже разделяет outfit roster и delta props, но view заново sort bodies/build stains/seen/rows для каждого клиента.",
+      "trigger": "Несколько игроков в Skill/Hide; ухудшение особенно заметно при увеличение cadence ради плавности.",
+      "consequence": "Лишние object allocations/stringify/JSON parse и bytes;10Hz даёт100ms интервал remote updates ещё до interpolation. Простое JSON10→30Hz увеличит всю повторяемую нагрузку втрое.",
+      "proposal": "Общую peers/race часть собирать один раз за tick, roster/version только при изменении. Затем compact dynamic binary для Skill, сохраняя точное self состояние для reconciliation. Для Hide сохранить anonymous/blind visibility и безопасный delta baseline; не переносить его механически на full shared packet.",
+      "validationNeeded": "5 Skill/8 Hide: actual bytes, allocations/serialize/parse time, remote smoothness и p95 correction. Тест детерминизма self; nickname/outfit/role changes; hidden prop data visibility. Runtime timing не проводился.",
+      "tradeoffs": "Binary формат требует synchronized protocol release; float32/quantization self без доказательства нарушит bit-identical prediction. Общий Hide packet может раскрыть хiders blind hunters."
+    },
+    {
+      "id": "net-06",
+      "severity": "P2",
+      "confidence": "high static evidence; performance magnitude unmeasured",
+      "title": "Одинаковый JSON broadcast сериализуется заново для каждого получателя",
+      "path": "server/lobby/room.ts",
+      "lines": [
+        2040,
+        2042
+      ],
+      "related": [
+        {
+          "path": "server/link.ts",
+          "lines": [
+            49,
+            60
+          ]
+        },
+        {
+          "path": "server/voice-wire.ts",
+          "lines": [
+            27,
+            29
+          ]
+        },
+        {
+          "path": "server/hub.ts",
+          "lines": [
+            1040,
+            1045
+          ]
+        },
+        {
+          "path": "server/lobby/pirates.ts",
+          "lines": [
+            781,
+            792
+          ]
+        }
+      ],
+      "evidence": "Lobby.broadcast направляет один msg в каждую SessionLink, которая отдельно JSON.stringify reliable msg, либо вызывает socket JSON.stringify для volatile. pnow10Hz при64 lobby clients=>640 одинаковых serialize calls/s; их payload создаётся один раз, но stringify всё равно повторяется. Binary lobby/common entity buffer уже кодируется один раз — этот паттерн стоит сохранить.",
+      "trigger": "Pirates/plane/full roster/global event fanout при многолюдной набережной.",
+      "consequence": "Serialization CPU/temporary string allocations растут с fanout, хотя содержимое одинаково; могут добавлять tick jitter вместе с другими комнатами.",
+      "proposal": "Подготовленный JSON text для действительно общего immutable broadcast передавать SessionLink с сохранением личных sent/base/keep и transport guard. Не обходить SessionLink через raw ws.send. Начать с frequent pirate/plane stream после timing evidence.",
+      "validationNeeded": "Измерить stringify calls и ms в event scenario; replay/ack/resume payload идентичен прежнему, private messages не смешиваются. Учесть разные sent counters. Static hotpath найден, profiler не запускался.",
+      "tradeoffs": "Кэширование изменяемого объекта может отправить старые данные. Общая строка возможна, общий counter или shared replay state — нет."
+    },
+    {
+      "id": "net-07",
+      "severity": "P2",
+      "confidence": "verified offline retention count plus static evidence",
+      "title": "Пиратская динамика 10Hz копится в reliable replay как control events",
+      "path": "shared/link.ts",
+      "lines": [
+        4,
+        13
+      ],
+      "related": [
+        {
+          "path": "server/lobby/pirates.ts",
+          "lines": [
+            760,
+            792
+          ]
+        },
+        {
+          "path": "server/link.ts",
+          "lines": [
+            49,
+            60
+          ]
+        }
+      ],
+      "evidence": "LINK_VOLATILE не содержит pnow. Pirates отправляет полные позиции p/d каждые6 ticks, optional loot l при dirty/каждые2s. SessionLink сохраняет каждое pnow для reconnect. Offline detach+300 сообщений pnow=>pending300. Даже без disconnected состояния каждые2s ack держит около20 full pirate messages/player.",
+      "trigger": "Участник набережной теряет связь во время набега; до45s session сохранена и продолжает получать server broadcasts без сокета.",
+      "consequence": "Бесполезные historical positions удерживаются и replayваются burst после attach; они конкурируют с rewards/phase/control в768KiB replay cap и1MiB socket highwater. Риски cap/reconnect зависят от actual event payload и требуют замера.",
+      "proposal": "Разделить replaceable p/d dynamics и persistent loot state: либо full pnow включая loot с full resync on resume, либо reliable loot/version message плюс volatile motion. Не просто дописать pnow в volatile: optional l может потеряться и остаться stale.",
+      "validationNeeded": "Reconnect10/30/45s в набеге, loot theft/drop/cancel during outage; replay bytes/count, retained rewards/phase, client final loot matches authoritative state. Только synthetic SessionLink retention проверен; actual pirate payload не измерен.",
+      "tradeoffs": "Добавление l ко всем снимкам увеличит ongoing bytes; reliable loot split требует ordering/version contracts. Символы строк/UTF8 и JSON sizing необходимо мерить byteLength, не предполагать равенство string.length."
+    },
+    {
+      "id": "net-08",
+      "severity": "P2",
+      "confidence": "high static evidence; recommendation depends on measurements",
+      "title": "Карта режимов в плане оптимизации уже отстаёт: регата binary30Hz, пейнтбол60Hz",
+      "path": "docs/optimization.md",
+      "lines": [
+        56,
+        57
+      ],
+      "related": [
+        {
+          "path": "server/lobby/regatta.ts",
+          "lines": [
+            468,
+            484
+          ]
+        },
+        {
+          "path": "server/paintball/game.ts",
+          "lines": [
+            873,
+            875
+          ]
+        },
+        {
+          "path": "server/lobby/plane.ts",
+          "lines": [
+            383,
+            386
+          ]
+        },
+        {
+          "path": "docs/optimization.md",
+          "lines": [
+            132,
+            133
+          ]
+        }
+      ],
+      "evidence": "План предлагает катера JSON20→binary30Hz, но current Regatta уже encodeRegatta binary30Hz, рассылается всем lobby players; отдельного BoatRaceRoom нет. Plane уже имеет отдельные редкие view/частые position arrays15Hz, nick/outfit не в каждом motion msg. Paintball snapshots каждый60Hz step. Это static current checkout, не свидетельство production deployment.",
+      "trigger": "Выполнение этапа3 буквально по историческому документу без сверки текущих writers.",
+      "consequence": "Можно потратить работу на уже сделанную migration, неверно оценить traffic baseline и предложить metadata splitting там, где оно уже есть.",
+      "proposal": "Планировать от actual frequency/payload table: Skill/Hide10Hz JSON, Plane15Hz JSON arrays, Regatta30Hz binary; оптимизировать Regatta interest для far spectators и jitter по метрикам. Не рекомендовать hardware upgrade, blanket60Hz или transport rewrite до measurements.",
+      "validationNeeded": "Сверить snapshot type/count per mode при root local measurements и версиями production artifacts до релиза. Docs values historical; этот review не делал production requests.",
+      "tradeoffs": "Документ сохраняет полезные решения владельца и исторические baselines: обновлять подтверждённые code facts, не переписывать наблюдения как свежие measurements."
+    }
+  ],
+  "frequenciesAndPayload": {
+    "assumption": "60 simulation ticks/s; values nominal while running, bare application bytes, excludes JSON/events, ws/TCP/TLS overhead, retransmits and stalls",
+    "input": "60 packets/s nominal; 3+19*I bytes, I1..32; normal I1=>22 bytes/packet,1320B/s; epoch gate",
+    "lobby": "30Hz,156+14N bytes incl self+ball; N64=>1052bytes,31.56KB/s/client,2.02MB/s aggregate,1920snapshot sends/s",
+    "paintball": "60Hz,127+14N bytes incl self+PB tail; N16=>351bytes,21.06KB/s/client,336.96KB/s aggregate; event JSON additional",
+    "kart": "30Hz,120+14K+7T bytes with self, K carts,T traps; K6 T0=>204bytes,6.12KB/s/client",
+    "fort": "30Hz,153+14P+15Z+9W+A bytes, P players,Z enemies,W timed enemies,A arsenal extension bytes; common body computed once",
+    "fight": "30Hz, fighter154+17N bytes; spectator28+17N bytes (no self); current encodeFightTail/joinBody run per recipient",
+    "skill": "10Hz per-client JSON full state+all peers+race+progress; cannot state exact bytes without runtime values",
+    "hide": "10Hz plus transition sends; JSON exact self+hunters+rows and per-recipient anonymous prop delta; outfit roster on dirty",
+    "plane": "15Hz position JSON array plus pilot self JSON; metadata view on change",
+    "regatta": "30Hz while non-idle; common6+22R bytes to all lobby; racers additional254bytes self (31 float64+6header). R6=>138B common,4.14KB/s to each lobby spectator; 64 spectators=>264.96KB/s extra aggregate; racer11.76KB/s before lobby snapshot",
+    "pirates": "10Hz JSON pnow while actors/nonempty/lootdirty; p,d positions, optional l dirty/2s; pfx events separate"
+  },
+  "baselineSafeguards": [
+    "WSS maxPayload16KiB, perMessageDeflate false; ordinary JSON2000char budget with narrowly allowed voiceSignal exception",
+    "MsgBudget per-socket token bucket rate150/s burst1500; intentionally permits post-outage bursts; input count<=32 and exact3+19count bytes, finite angles, pitch clamp",
+    "InputQueue max24 by default, budget caps simulation speed; seq monotonic; room epoch rejects old-room inputs",
+    "60Hz scheduler four catch-up steps per callback, skips backlog beyond8 scheduler ticks; no per-room worker parallelism; rooms mostly step only with humans/busy work",
+    "stepMs health value is exponentially smoothed Hub.step time, not p95/p99 tick lateness/drop/catch-up count; scheduler catchup can issue snapshots in bursts and skipped walltime is not advanced in Hub.tick",
+    "Pulse2s,10 misses; resumed session45s; JSON replay cap4000 messages/768KiB string units; binary not replayed; reliable ack every application ping",
+    "Transport snapshot512KiB and JSON/control1MiB guards already exist; critical ordinary reset protected; do not report missing backpressure entirely",
+    "Many action rate limits exist: fishing6/s,reel60/s,billiards aim14/s/actions6/s,use4/s,plane4/2s,voice separate byte/control/signaling budgets",
+    "Billiards aim already uses near recipients; common entity encoders reused per tick; metadata separated from motion in Lobby/Kart/Fort/Fight/Plane and partly Hide"
+  ],
+  "coverage": {
+    "documentsRead": [
+      "AGENTS.md full",
+      "docs/product.md full",
+      "docs/optimization.md full",
+      "README relevant state/start/flags/network",
+      "docs/README system map",
+      "docs/STATUS state and next work",
+      "docs/design simulation/network/hub/mode sections"
+    ],
+    "sourceInspected": [
+      "server/main.ts transport and scheduler",
+      "server/hub.ts session/resume/dispatch/fanout/step",
+      "server/voice-wire.ts",
+      "server/link.ts",
+      "server/pulse.ts",
+      "server/inputs.ts",
+      "server/ratelimit.ts",
+      "server/lobby/room.ts snapshot and event bindings/guards",
+      "server/lobby/regatta.ts",
+      "server/lobby/plane.ts",
+      "server/lobby/pirates.ts",
+      "server/lobby/billiards.ts",
+      "server/lobby/ratrace.ts",
+      "server/lobby/fishing2.ts relevant cadence",
+      "server/paintball/game.ts snapshot cadence/writer",
+      "server/race/race.ts snapshot writer",
+      "server/fort/game.ts snapshot writer",
+      "server/fight/game.ts snapshot writer",
+      "server/hide/game.ts delta writer",
+      "server/hide/room.ts",
+      "server/skilltest/game.ts writer",
+      "shared/protocol.ts",
+      "shared/kartnet.ts",
+      "shared/fortnet.ts",
+      "shared/fightnet.ts",
+      "shared/regatta.ts",
+      "shared/link.ts",
+      "shared/constants.ts",
+      "shared/messages.ts type references",
+      "client/race/match.ts reset reader",
+      "client/hide/motion.ts full semantics"
+    ],
+    "freshChecks": [
+      "git status read, dirty work preserved",
+      "offline real encoder backpressure reset reproduction",
+      "offline HideGame/SessionLink delta reconnect reproduction",
+      "offline SessionLink pirate retention count",
+      "offline payload formulas/Regatta field count"
+    ],
+    "notRun": [
+      "No repo edits, commit, push, deploy",
+      "No production requests",
+      "No servers/browsers/network load",
+      "No broad test/check/build commands",
+      "No real packet loss/backpressure/runtime profiler measurements"
+    ],
+    "limits": "Findings are current local checkout static/offline evidence. Runtime magnitude, production version and browser-visible symptoms require root measurements. Strongest fixes first: hide resume delta and kart reset; optimizing rates/transport must follow display-age+payload measurements."
+  },
+  "reproductionArtifacts": [
+    "../../../../../../../unavailable.html",
+    "../../../../../../../unavailable.html",
+    "../../../../../../../unavailable.html",
+    "../../../../../../../unavailable.html"
+  ]
+}

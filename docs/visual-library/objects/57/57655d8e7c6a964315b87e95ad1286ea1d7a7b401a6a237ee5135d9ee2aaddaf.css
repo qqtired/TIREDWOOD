@@ -1,0 +1,503 @@
+/* TIREDWOOD UI kit 2.0 — компоненты `.k-*`. Только токены из tokens.css, без зависимостей от страницы.
+   Переносится в игру как есть (client/ui/kit/). Справочник разметки — kit/KIT.md (раздел «Версия 2» — в начале).
+   v2: HUD поверх игры компактный (бейдж 44, плитки .k-tile, событие в одну строку, тост 360, подсказка 42, чат 360),
+   окна, меню, Tab, итоги и ставка — прежняя раскладка с отдельным масштабом окон. */
+
+/* масштаб слоёв кита (client/ui/kit/scale.ts). #hud/#menus целиком НЕ зумить — уезжают детали в экранных пикселях */
+.k-hud { zoom: var(--hud-k, 1); }
+/* Окна на десктопе — 70% прежнего размера по просьбе владельца; zoom сохраняет раскладку и область клика. */
+.k-scrim { --window-k: calc(var(--hud-k, 1) * .7); zoom: var(--window-k); }
+/* На узких и низких экранах сохраняем доступные размеры текста и кнопок. */
+@media (max-width: 760px), (max-height: 520px) {
+  .k-scrim { --window-k: var(--hud-k, 1); }
+}
+/* детали, привязанные к точке на экране (урон, стрелки угроз, подписи над миром): без zoom, увеличиваются transform */
+.k-world { position: absolute; inset: 0; pointer-events: none; }
+/* позиционируется внешний элемент (left/top или transform: translate), а увеличивается только внутренняя обёртка —
+   иначе scale растянет и сам сдвиг */
+.k-world .k-world-in { transform-origin: center; scale: var(--hud-k, 1); }
+
+/* ============================================================ основа */
+.k-hud, .k-panel, .k-window, .k-plate, .k-badge, .k-toast, .k-event, .k-prompt, .k-chat, .k-btn, .k-pill, .k-key,
+.k-stat, .k-ctx, .k-tile, .k-tiles, .k-table, .k-hero, .k-count, .k-switch, .k-seg, .k-row, .k-online-row, .k-tabs, .k-scrim {
+  box-sizing: border-box; font-family: var(--font-text); font-variant-numeric: tabular-nums; -webkit-font-smoothing: antialiased;
+}
+.k-hud *, .k-window *, .k-panel *, .k-tile * { box-sizing: border-box; }
+/* «вывесочная» надпись: шрифт заголовков; в HUD варианта «Светлый» — Rubik 800 (токены --disp-* раздаются по контексту) */
+.k-display { font-family: var(--disp-font, var(--font-display)); font-weight: var(--disp-weight, var(--display-weight)); text-transform: var(--disp-case, var(--display-case)); word-spacing: var(--disp-word, normal); letter-spacing: var(--disp-track, var(--display-track)); }
+.k-ic { display: inline-block; width: 1.5em; height: 1.5em; object-fit: contain; vertical-align: middle; filter: drop-shadow(0 1px 1.5px rgba(20, 10, 12, .24)); }
+.k-coin { display: inline-block; width: 1.05em; height: 1.05em; vertical-align: -.16em; flex: none; }
+.k-dim { color: var(--surf-dim); }
+.k-faint { color: var(--surf-faint); font-size: var(--fs-13); }
+.k-gold { color: var(--gold-text); }
+.k-good { color: var(--good-text); }
+.k-bad { color: var(--bad-text); }
+.k-num { font-variant-numeric: tabular-nums; font-weight: 800; }
+/* цвет режима как текст: на светлой поверхности темнеет, на тёмном стекле «Заката» светлеет (--accent-k, --accent-to) */
+.k-eyebrow { margin: 0; font: 700 var(--fs-14)/1.1 var(--font-text); letter-spacing: .08em; text-transform: uppercase; color: color-mix(in srgb, var(--mode) var(--accent-k, 100%), var(--accent-to, #000)); }
+.k-mode-text { color: color-mix(in srgb, var(--mode) var(--accent-k, 100%), var(--accent-to, #000)); }
+
+/* ============================================================ сцена HUD и слоты (сцена 1440×900, поля --edge 16)
+   z внутри слоя .k-hud: слоты 10 · центр (баннер, прицел) 15 · верх-центр 20; окно + затемнение (.k-scrim) — 30 в своём слое.
+   Слои страницы (client/styles.css): #hud — HUD кита, z 10 · #menus — меню Esc, экраны входа и загрузки, z 20 ·
+   .k-hud--top — верх-центр (голосование, связь, тосты), z 25: над меню. Меню Esc опускается под плашку важного события
+   (голосование, связь — html[data-tc-event], client/ui/kit/topcenter.ts); тосты могут ненадолго лечь на его верх. */
+.k-hud { position: absolute; inset: 0; pointer-events: none; color: var(--plate-text); font-size: var(--fs-16); line-height: var(--lh); text-shadow: none; }
+.k-hud :where(button, input, label, .k-chat, .k-window) { pointer-events: auto; }
+.k-slot { position: absolute; z-index: 10; display: flex; flex-direction: column; gap: var(--slot-gap); }
+.k-slot--tl { top: var(--edge); left: var(--edge); width: 360px; align-items: flex-start; }
+.k-slot--tc { top: var(--edge); left: 50%; width: 560px; margin-left: -280px; align-items: center; z-index: 20; }
+.k-slot--tr { top: var(--edge); right: var(--edge); width: 300px; align-items: flex-end; }
+.k-slot--bl { bottom: var(--edge); left: var(--edge); width: 380px; align-items: flex-start; justify-content: flex-end; }
+.k-slot--bc { bottom: calc(var(--edge) + 8px); left: 50%; width: 560px; margin-left: -280px; align-items: center; }
+.k-slot--br { bottom: var(--edge); right: var(--edge); width: 320px; align-items: flex-end; }
+.k-slot--c { top: 32%; left: 50%; transform: translate(-50%, -50%); align-items: center; z-index: 15; }
+.k-scrim { position: absolute; inset: 0; z-index: 30; display: grid; place-items: center; padding: 40px; background: var(--scrim); }
+
+/* ============================================================ панель, ячейка, плашка */
+.k-panel { position: relative; padding: var(--sp-5); border: var(--panel-border); border-radius: var(--r-lg); background: var(--panel-bg); box-shadow: var(--panel-shadow); outline: var(--panel-outline); outline-offset: var(--panel-outline-offset); color: var(--surf-text); font-size: var(--fs-16); line-height: var(--lh); }
+.k-plate { position: relative; padding: 8px 12px; border: var(--plate-border); border-radius: var(--r-md); background: var(--plate-bg); box-shadow: var(--plate-shadow); -webkit-backdrop-filter: var(--plate-blur); backdrop-filter: var(--plate-blur); color: var(--plate-text); }
+.k-cell { position: relative; padding: var(--sp-4); border: var(--surf-2-border); border-radius: var(--r-md); background: var(--surf-2); }
+.k-well { padding: var(--sp-3); border-radius: var(--r-md); background: var(--surf-3); }
+.k-hr { height: 0; margin: var(--sp-4) 0; border: 0; border-top: 1px solid var(--line); }
+
+/* важная плашка: событие, баннер, рекорд. Ретро-парк 2.0 — тёмная кайма с редкими лампочками; Пляж — золотая обводка;
+   Закат — золотое свечение. Лампочки есть ТОЛЬКО здесь. */
+.k-lamp { box-shadow: var(--lamp-band), var(--lamp-ring) !important; }
+.k-lamp::before { content: ''; position: absolute; inset: var(--lamp-inset, -6px); z-index: 1; border: var(--lamp-dot-size, 3px) dotted var(--lamp-dot, transparent); border-radius: calc(var(--r-md) + 5px); filter: var(--lamp-dot-glow); pointer-events: none; animation: k-bulbs 1.4s steps(1) infinite; }
+
+/* ============================================================ кнопки: эмаль/плоские, тонкий нижний кант (размеры — как в v1) */
+.k-btn {
+  --tone: var(--gold); --tone-hi: var(--gold-hi); --tone-lo: var(--gold-lo); --tone-ink: var(--gold-ink);
+  position: relative; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  min-width: 112px; min-height: 52px; margin: 0 0 var(--btn-drop); padding: 8px 22px 9px;
+  border: var(--btn-border); border-radius: var(--btn-radius);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--tone-hi) var(--btn-sheen, 100%), var(--tone)), var(--tone));
+  box-shadow: 0 var(--btn-drop) 0 var(--btn-drop-ink, var(--tone-lo)), var(--btn-hl);
+  color: var(--tone-ink); font: var(--btn-weight) var(--fs-18)/1.1 var(--font-text); text-transform: var(--btn-case); letter-spacing: var(--btn-track);
+  white-space: nowrap; cursor: pointer; user-select: none; text-shadow: none;
+  transition: transform .06s, box-shadow .06s, filter .12s;
+}
+.k-btn > small { font-size: var(--fs-13); font-weight: 600; letter-spacing: 0; text-transform: none; opacity: .86; }
+.k-btn > .k-row-line { display: inline-flex; align-items: center; gap: 8px; }
+.k-btn .k-ic { width: 26px; height: 26px; }
+.k-btn:hover:not(:disabled) { filter: brightness(1.06) saturate(1.04); }
+.k-btn:active:not(:disabled), .k-btn.is-pressed { transform: translateY(calc(var(--btn-drop) - 1px)); box-shadow: 0 1px 0 var(--btn-drop-ink, var(--tone-lo)), var(--btn-hl); }
+.k-btn:focus-visible { outline: none; box-shadow: 0 var(--btn-drop) 0 var(--btn-drop-ink, var(--tone-lo)), var(--btn-hl), var(--focus); }
+.k-btn:disabled, .k-btn.is-off { opacity: .45; filter: saturate(.5); cursor: default; }
+.k-btn--gold { --tone: var(--gold); --tone-hi: var(--gold-hi); --tone-lo: var(--gold-lo); --tone-ink: var(--gold-ink); }
+.k-btn--go { --tone: var(--good); --tone-hi: var(--good-hi); --tone-lo: var(--good-lo); --tone-ink: var(--good-ink); }
+.k-btn--stop { --tone: var(--bad); --tone-hi: var(--bad-hi); --tone-lo: var(--bad-lo); --tone-ink: var(--bad-ink); }
+.k-btn--special { --tone: var(--special); --tone-hi: var(--special-hi); --tone-lo: var(--special-lo); --tone-ink: var(--special-ink); }
+.k-btn--info { --tone: var(--w-info, var(--info)); --tone-hi: var(--info-hi); --tone-lo: var(--info-lo); --tone-ink: var(--info-ink); }
+.k-btn--ghost { background: var(--ghost-bg); border: var(--ghost-border); color: var(--ghost-text); box-shadow: var(--ghost-drop, none); font-weight: 700; text-transform: none; letter-spacing: 0; }
+.k-btn--ghost:hover:not(:disabled) { background: var(--ghost-bg-hover); filter: none; }
+.k-btn--ghost:active:not(:disabled) { transform: translateY(1px); box-shadow: none; }
+.k-btn--ghost:focus-visible { box-shadow: var(--focus); }
+.k-btn--sm { --btn-drop: 2px; min-width: 0; min-height: 40px; padding: 6px 14px 7px; font-size: var(--fs-16); }
+.k-btn--lg { min-width: 160px; min-height: 62px; padding: 10px 30px 11px; font-size: var(--fs-22); }
+.k-btn--wide { width: 100%; }
+.k-btn--icon { min-width: 0; width: 52px; height: 52px; min-height: 0; padding: 0; }
+.k-btn--icon .k-ic { width: 32px; height: 32px; }
+.k-btn--icon.k-btn--sm { width: 42px; height: 42px; }
+
+/* закрыть: крестик + колпачок Esc на углу */
+.k-close { position: relative; display: inline-grid; place-items: center; flex: none; width: 44px; height: 44px; padding: 0; border: var(--ghost-border); border-radius: var(--r-sm); background: var(--ghost-bg); box-shadow: var(--ghost-drop, none); color: var(--ghost-text); cursor: pointer; transition: background .12s, transform .06s; }
+.k-close::before, .k-close::after { content: ''; position: absolute; left: 50%; top: 50%; width: 18px; height: 2.5px; margin: -1.25px 0 0 -9px; border-radius: 2px; background: currentColor; transform: rotate(45deg); }
+.k-close::after { transform: rotate(-45deg); }
+.k-close:hover { background: var(--ghost-bg-hover); }
+.k-close:active { transform: translateY(1px); }
+.k-close:focus-visible { outline: none; box-shadow: var(--focus); }
+.k-close > .k-key { position: absolute; right: -9px; bottom: -10px; }
+
+/* ============================================================ клавиша-колпачок и мышь */
+.k-key {
+  display: inline-grid; place-items: center; min-width: 26px; height: 26px; padding: 0 7px; flex: none;
+  border: var(--key-border); border-radius: var(--key-radius); background: var(--key-bg); box-shadow: var(--key-shadow);
+  color: var(--key-text); font: var(--key-weight) var(--fs-14)/1 var(--font-text); letter-spacing: 0; text-transform: none; text-shadow: none;
+  white-space: nowrap; vertical-align: middle;
+}
+.k-key--lg { min-width: 38px; height: 38px; padding: 0 10px; border-radius: calc(var(--key-radius) + 2px); font-size: var(--fs-18); }
+.k-key--sm { min-width: 22px; height: 22px; padding: 0 5px; font-size: var(--fs-13); }
+.k-key--sm.k-key--tr, .k-key--sm.k-key--tl { top: -10px; }
+/* прикрепить к углу любого элемента с position: relative (у .k-btn, .k-close, .k-ctx, .k-tile-face, .k-stat, .k-cell уже есть) */
+.k-key--tr { position: absolute; z-index: 2; top: -12px; right: -10px; }
+.k-key--tl { position: absolute; z-index: 2; top: -12px; left: -10px; }
+.k-key--br { position: absolute; z-index: 2; bottom: -11px; right: -10px; }
+.k-key--bl { position: absolute; z-index: 2; bottom: -11px; left: -10px; }
+.k-key--b { position: absolute; z-index: 2; bottom: -12px; left: 50%; transform: translateX(-50%); }
+.k-btn > .k-key--br, .k-btn > .k-key--bl { bottom: calc(-10px - var(--btn-drop)); }
+.k-keys { display: inline-flex; align-items: center; gap: 4px; }
+
+/* мышь: <i class="k-mouse k-mouse--l"></i> (--l левая, --r правая, --wheel колесо); размер = font-size */
+.k-mouse { position: relative; display: inline-block; flex: none; width: .68em; height: 1em; font-size: 26px; vertical-align: middle; border: .085em solid currentColor; border-radius: .34em .34em .36em .36em; }
+.k-mouse::before { content: ''; position: absolute; left: 50%; top: 0; width: .07em; height: .36em; margin-left: -.035em; background: currentColor; }
+.k-mouse::after { content: ''; position: absolute; top: 0; left: 0; width: 50%; height: .36em; border-radius: .26em 0 0 0; background: currentColor; opacity: .9; }
+.k-mouse--r::after { left: auto; right: 0; border-radius: 0 .26em 0 0; }
+.k-mouse--wheel::after { left: 50%; top: .1em; width: .18em; height: .28em; margin-left: -.09em; border-radius: .09em; }
+.k-mouse--wheel::before { display: none; }
+.k-mouse--move::after { display: none; }
+.k-key .k-mouse { font-size: 18px; }
+.k-key.k-key--lg .k-mouse { font-size: 24px; }
+
+/* ============================================================ пилюля */
+.k-pill { display: inline-flex; align-items: center; gap: 7px; min-height: 32px; padding: 4px 12px; border: var(--surf-2-border); border-radius: var(--r-pill); background: var(--surf-2); color: var(--surf-text); font: 700 var(--fs-16)/1 var(--font-text); white-space: nowrap; }
+.k-pill .k-ic { width: 22px; height: 22px; }
+.k-pill--lg { min-height: 42px; padding: 6px 16px; gap: 8px; font-size: var(--fs-18); font-weight: 800; }
+.k-pill--sm { min-height: 26px; padding: 3px 10px; font-size: var(--fs-14); }
+.k-pill--xs { min-height: 22px; gap: 4px; padding: 2px 8px; font-size: var(--fs-13); }
+.k-pill--xs .k-ic, .k-pill--xs .k-coin { width: 14px; height: 14px; }
+.k-pill--gold { border-color: transparent; background: var(--gold-soft); color: var(--gold-text); }
+.k-pill--good { border-color: transparent; background: var(--good-soft); color: var(--good-text); }
+.k-pill--bad { border-color: transparent; background: var(--bad-soft); color: var(--bad-text); }
+.k-pill--info { border-color: transparent; background: var(--info-soft); color: var(--info-text); }
+.k-pill--special { border-color: transparent; background: var(--special-soft); color: var(--special-text); }
+.k-pill--mode { border-color: transparent; background: var(--mode-soft); color: var(--surf-text); }
+.k-pill--solid { border: 0; background: linear-gradient(180deg, color-mix(in srgb, var(--gold-hi) var(--btn-sheen, 100%), var(--gold)), var(--gold)); color: var(--gold-ink); box-shadow: 0 2px 0 var(--btn-drop-ink, var(--gold-lo)); }
+.k-pill--plate { border: var(--plate-border); background: var(--plate-bg); box-shadow: var(--plate-shadow); -webkit-backdrop-filter: var(--plate-blur); backdrop-filter: var(--plate-blur); color: var(--plate-text); }
+
+/* ============================================================ полоса с «следом» (ghost trail)
+   style="--v:.62; --g:.8" — --v значение 0…1, --g след (по умолчанию = --v; опускается с задержкой) */
+.k-meter { --v: .5; --g: var(--v); --c: var(--gold); position: relative; display: block; height: 12px; border: var(--track-border); border-radius: var(--r-pill); background: var(--track); overflow: hidden; }
+.k-meter > .k-meter-ghost, .k-meter > .k-meter-fill { position: absolute; top: 0; bottom: 0; left: 0; border-radius: inherit; }
+.k-meter > .k-meter-ghost { width: calc(var(--g) * 100%); background: var(--trail); transition: width .55s var(--ease-out) .35s; }
+.k-meter > .k-meter-fill { width: calc(var(--v) * 100%); background: linear-gradient(180deg, color-mix(in srgb, var(--c) 74%, #fff), var(--c) 60%); transition: width .22s var(--ease-out); }
+.k-meter > .k-meter-label { position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font: 800 var(--fs-14)/1 var(--font-text); text-shadow: 0 0 2px rgba(0, 0, 0, .9), 0 1px 2px rgba(0, 0, 0, .9), 0 0 5px rgba(0, 0, 0, .5); }
+.k-meter--thin { height: 6px; }
+.k-meter--lg { height: 22px; }
+.k-meter--good { --c: var(--good); }
+.k-meter--bad { --c: var(--bad); }
+.k-meter--info { --c: var(--info); }
+.k-meter--special { --c: var(--special); }
+.k-meter--mode { --c: var(--mode); }
+.k-meter.is-hurry > .k-meter-fill { --c: var(--bad); }
+
+/* ============================================================ карточка-счётчик (в окнах): иконка + большое число + полоса + подпись */
+.k-stat { position: relative; display: grid; grid-template-columns: 60px minmax(0, 1fr); grid-template-areas: 'ic num' 'ic cap' 'bar bar'; align-items: center; gap: 2px 14px; padding: 14px 16px 16px; border: var(--surf-2-border); border-radius: var(--r-md); background: var(--surf-2); color: var(--surf-text); }
+.k-stat-ic { grid-area: ic; width: 60px; height: 60px; object-fit: contain; filter: drop-shadow(0 2px 3px rgba(20, 10, 12, .26)); }
+.k-stat-num { grid-area: num; align-self: end; font: 800 var(--fs-28)/1 var(--font-text); white-space: nowrap; }
+.k-stat-num small { margin-left: 4px; font-size: var(--fs-16); font-weight: 600; color: var(--surf-dim); }
+.k-stat-cap { grid-area: cap; align-self: start; font: 500 var(--fs-14)/1.25 var(--font-text); color: var(--surf-dim); }
+.k-stat > .k-meter { grid-area: bar; margin-top: 10px; }
+.k-stat--own { border-color: var(--gold); box-shadow: inset 0 0 0 1px var(--gold), 0 0 18px var(--gold-soft); }
+.k-stat--own .k-stat-num { color: var(--gold-text); }
+.k-stat--empty { opacity: .62; }
+.k-stat--empty .k-stat-ic { filter: grayscale(1) opacity(.5); }
+
+/* ============================================================ бейдж игрока (только в --tr): высота 44, кольцо 36, ник 14, жетоны 16 */
+.k-badge { position: relative; display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 3px 14px 3px 4px; border: var(--plate-border); border-radius: var(--r-pill); background: var(--plate-bg); box-shadow: var(--plate-shadow); -webkit-backdrop-filter: var(--plate-blur); backdrop-filter: var(--plate-blur); color: var(--plate-text); }
+.k-ring { --p: .5; position: relative; display: grid; place-items: center; flex: none; width: 60px; height: 60px; border-radius: 50%; background: conic-gradient(var(--gold) calc(var(--p) * 360deg), var(--track) 0); box-shadow: 0 0 0 1px var(--line-strong); }
+.k-ring::before { content: ''; position: absolute; inset: 5px; border-radius: 50%; background: var(--ring-face); box-shadow: inset 0 0 0 1px var(--line); }
+.k-ring > b { position: relative; font: 800 var(--fs-22)/1 var(--font-text); color: var(--surf-text); }
+.k-ring > small { position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%); padding: 2px 6px; border-radius: var(--r-pill); background: var(--gold); color: var(--gold-ink); font: 800 var(--fs-13)/1 var(--font-text); white-space: nowrap; }
+.k-ring--sm { width: 40px; height: 40px; }
+.k-ring--sm::before { inset: 3.5px; }
+.k-ring--sm > b { font-size: var(--fs-15); }
+.k-ring--mode { background: conic-gradient(var(--mode) calc(var(--p) * 360deg), var(--track) 0); }
+.k-ring--mode > small { background: var(--mode); color: var(--mode-ink); }
+.k-ring--lg { width: 112px; height: 112px; }
+.k-ring--lg::before { inset: 8px; }
+.k-ring--lg > b { font-size: var(--fs-48); }
+.k-badge > .k-ring { width: 36px; height: 36px; }
+.k-badge > .k-ring::before { inset: 3.5px; }
+.k-badge > .k-ring > b { font-size: var(--fs-15); }
+.k-badge-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.k-badge-nick { overflow: hidden; max-width: 150px; font: 600 var(--fs-14)/1.1 var(--font-text); text-overflow: ellipsis; white-space: nowrap; }
+.k-badge-tokens { display: inline-flex; align-items: center; gap: 5px; color: var(--gold-text); font: 800 var(--fs-16)/1 var(--font-text); }
+.k-badge-tokens.is-bump { animation: k-bump .35s var(--ease-pop); }
+.k-pop { position: absolute; right: 14px; top: calc(100% + 6px); z-index: 3; padding: 3px 10px; border: var(--plate-border); border-radius: var(--r-pill); background: var(--plate-bg); box-shadow: var(--plate-shadow); -webkit-backdrop-filter: var(--plate-blur); backdrop-filter: var(--plate-blur); color: var(--good-text); font: 800 var(--fs-15)/1.1 var(--font-text); white-space: nowrap; pointer-events: none; animation: k-pop 1.6s var(--ease-out) both; }
+.k-pop--bad { color: var(--bad-text); }
+.k-pop.is-still { animation: none; }
+.k-pop--xp { right: auto; left: 0; color: var(--gold-text); }
+/* под бейджем стоят плитки — всплывающее у бейджа выходит слева, а не вниз */
+.k-badge > .k-pop { top: calc(50% - 12px); right: calc(100% + 8px); left: auto; white-space: nowrap; }
+.k-badge > .k-pop + .k-pop { top: calc(50% + 16px); }
+/* кайма лампочек «Ретро-парка» выступает на 7 px — плашке события в верхнем слоте нужен отступ до тостов */
+.k-slot--tc > .k-lamp { margin-bottom: 8px; }
+
+/* ============================================================ плитки под бейджем (v2): иконка на подложке + клавиша + подпись ПОД плиткой
+   <div class="k-tiles"> — ряд справа налево (первая плитка — у края экрана). .k-tiles--left — слева направо. */
+.k-tiles { display: flex; flex-direction: row-reverse; flex-wrap: nowrap; align-items: flex-start; justify-content: flex-start; gap: 10px; }
+.k-tiles--left { flex-direction: row; }
+.k-tile { position: relative; display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 54px; color: var(--plate-text); }
+.k-tile-face { position: relative; display: grid; place-items: center; width: 54px; height: 54px; border: var(--plate-border); border-radius: var(--r-md); background: var(--plate-bg); box-shadow: var(--plate-shadow); -webkit-backdrop-filter: var(--plate-blur); backdrop-filter: var(--plate-blur); }
+.k-tile-face > img { width: 40px; height: 40px; object-fit: contain; filter: drop-shadow(0 1px 2px rgba(20, 10, 12, .28)); }
+.k-tile-face:has(> .k-meter) > img { width: 36px; height: 36px; margin-top: -6px; }
+.k-tile-face > .k-meter { position: absolute; left: 7px; right: 7px; bottom: 6px; height: 4px; border: 0; }
+.k-tile-face > .k-key--tr { top: -8px; right: -8px; }
+.k-tile-cap { display: flex; flex-direction: column; align-items: center; gap: 1px; max-width: 110px; padding: 2px 7px 3px; border-radius: var(--r-sm); background: var(--plate-bg); -webkit-backdrop-filter: var(--plate-blur); backdrop-filter: var(--plate-blur); color: var(--plate-text); font: 700 var(--fs-14)/1.15 var(--font-text); text-align: center; white-space: nowrap; }
+.k-tile-cap > small { display: inline-flex; align-items: center; gap: 3px; color: var(--surf-dim); font: 600 var(--fs-13)/1.15 var(--font-text); }
+.k-tile-cap > small .k-coin, .k-tile-cap .k-coin { width: 14px; height: 14px; }
+.k-tile--own .k-tile-face { box-shadow: var(--plate-shadow), inset 0 0 0 2px var(--gold); }
+.k-tile--own .k-tile-cap { color: var(--gold-text); }
+.k-tile--warn .k-tile-face { box-shadow: var(--plate-shadow), inset 0 0 0 2px var(--bad); }
+.k-tile--warn .k-tile-cap { color: var(--bad-text); }
+.k-tile--off { opacity: .55; }
+.k-tile--off .k-tile-face > img { filter: grayscale(1) opacity(.6); }
+.k-tile > .k-pop { top: 14px; right: calc(100% + 6px); }
+/* всплывающее под плиткой (когда слева соседняя плитка) */
+.k-tile > .k-pop.k-pop--down { top: calc(100% + 4px); left: 0; right: 0; width: max-content; margin-inline: auto; }
+/* первая строка подписи плитки — одна строка, даже если внутри разметка (<b>7</b> / 10) */
+.k-tile-cap > b, .k-tile-cap > span { display: inline-flex; align-items: baseline; gap: 3px; white-space: nowrap; }
+
+/* карточка контекста (v2 — компактная, ширина по содержимому): если без длинного текста никак (задание, ставка) */
+.k-ctx { position: relative; display: grid; grid-template-columns: 32px minmax(0, auto) auto; align-items: center; gap: 0 10px; width: auto; max-width: 100%; padding: 6px 12px 6px 6px; border: var(--plate-border); border-radius: var(--r-md); background: var(--plate-bg); box-shadow: var(--plate-shadow); -webkit-backdrop-filter: var(--plate-blur); backdrop-filter: var(--plate-blur); color: var(--plate-text); }
+.k-ctx-ic { grid-column: 1; grid-row: 1 / span 2; width: 32px; height: 32px; object-fit: contain; filter: drop-shadow(0 1px 2px rgba(20, 10, 12, .28)); }
+.k-ctx-title { grid-column: 2; grid-row: 1; align-self: end; overflow: hidden; font: 600 var(--fs-13)/1.15 var(--font-text); color: var(--surf-dim); text-overflow: ellipsis; white-space: nowrap; }
+.k-ctx-val { grid-column: 2; grid-row: 2; align-self: start; font: 700 var(--fs-15)/1.2 var(--font-text); white-space: nowrap; }
+.k-ctx-side { grid-column: 3; grid-row: 1 / span 2; display: flex; align-items: center; gap: 6px; font: 800 var(--fs-15)/1 var(--font-text); }
+.k-ctx-side > .k-key { min-width: 22px; height: 22px; padding: 0 5px; font-size: var(--fs-13); }
+.k-ctx > .k-meter { grid-column: 2 / -1; grid-row: 3; height: 4px; margin-top: 4px; border: 0; }
+.k-ctx--own { box-shadow: var(--plate-shadow), inset 0 0 0 1.5px var(--gold); }
+
+/* ============================================================ тосты (под плашкой события, максимум 3): ширина ≤ 360, иконка 28 */
+.k-toasts { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.k-toast { --tone: var(--info); --tone-soft: var(--info-soft); position: relative; display: grid; grid-template-columns: 30px minmax(0, auto); align-items: center; column-gap: 10px; min-width: 200px; max-width: 360px; min-height: 44px; padding: 6px 14px 6px 8px; overflow: hidden; border: var(--plate-border); border-radius: var(--r-md); background: var(--plate-bg); box-shadow: var(--plate-shadow); -webkit-backdrop-filter: var(--plate-blur); backdrop-filter: var(--plate-blur); color: var(--plate-text); }
+.k-toast::after { content: ''; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px; border-radius: 0 3px 3px 0; background: var(--tone); }
+.k-toast-ic { grid-column: 1; grid-row: 1 / span 2; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--tone-soft); }
+.k-toast-ic img { width: 28px; height: 28px; object-fit: contain; filter: drop-shadow(0 1px 2px rgba(20, 10, 12, .28)); }
+.k-toast-title { grid-column: 2; overflow: hidden; font: 700 var(--fs-15)/1.2 var(--font-text); text-overflow: ellipsis; white-space: nowrap; }
+.k-toast-sub { grid-column: 2; overflow: hidden; font: 500 var(--fs-13)/1.25 var(--font-text); color: var(--surf-dim); text-overflow: ellipsis; white-space: nowrap; }
+.k-toast-title:only-of-type { grid-row: span 2; }
+.k-toast--reward { --tone: var(--gold); --tone-soft: var(--gold-soft); box-shadow: var(--plate-shadow), inset 0 0 0 1.5px var(--gold); }
+.k-toast--reward .k-toast-title { color: var(--gold-text); font-size: var(--fs-16); font-weight: 800; }
+.k-toast--warn { --tone: var(--bad); --tone-soft: var(--bad-soft); }
+.k-toast--good { --tone: var(--good); --tone-soft: var(--good-soft); }
+.k-toast.is-new { animation: k-toast-in .4s var(--ease-spring) both; }
+.k-toast.is-out { animation: k-toast-out .3s ease-in both; }
+
+/* ============================================================ плашка события (верх-центр, одна за раз): одна строка, ширина по содержимому ≤ 440 */
+.k-event { --tone: var(--mode); --tone-soft: var(--mode-soft); position: relative; display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; align-items: center; gap: 0 10px; width: max-content; min-width: 0; max-width: 440px; padding: 7px 14px 7px 8px; border: var(--plate-border); border-radius: var(--r-md); background: var(--plate-bg); box-shadow: var(--plate-shadow); -webkit-backdrop-filter: var(--plate-blur); backdrop-filter: var(--plate-blur); color: var(--plate-text); }
+.k-event-ic { grid-column: 1; grid-row: 1 / span 2; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--tone-soft); box-shadow: inset 0 0 0 1.5px var(--tone); }
+.k-event-ic img { width: 26px; height: 26px; object-fit: contain; filter: drop-shadow(0 1px 2px rgba(20, 10, 12, .3)); }
+.k-event-title { grid-column: 2; grid-row: 1; overflow: hidden; font: 700 var(--fs-16)/1.2 var(--font-text); text-overflow: ellipsis; white-space: nowrap; }
+.k-event-sub { grid-column: 2; grid-row: 2; overflow: hidden; font: 500 var(--fs-13)/1.25 var(--font-text); color: var(--surf-dim); text-overflow: ellipsis; white-space: nowrap; }
+.k-event-timer { grid-column: 3; grid-row: 1 / span 2; color: var(--gold-text); font: 800 var(--fs-18)/1 var(--font-text); white-space: nowrap; }
+.k-event-timer.is-hurry { color: var(--bad-text); animation: k-hurry .9s ease-in-out infinite; }
+.k-event > .k-meter { grid-column: 1 / -1; height: 4px; margin-top: 6px; border: 0; }
+.k-event--danger { --tone: var(--bad); --tone-soft: var(--bad-soft); }
+.k-event--good { --tone: var(--good); --tone-soft: var(--good-soft); }
+.k-event--special { --tone: var(--special); --tone-soft: var(--special-soft); }
+.k-event .k-event-actions { grid-column: 1 / -1; display: flex; justify-content: center; gap: 10px; margin-top: 8px; }
+
+/* ============================================================ подсказка действия «E — …» (низ-центр, одна): высота 42, текст 16, клавиша 26 */
+.k-prompt { position: relative; display: inline-flex; align-items: center; gap: 10px; min-height: 42px; padding: 5px 16px 5px 7px; border: var(--plate-border); border-radius: var(--r-pill); background: var(--plate-bg); box-shadow: var(--plate-shadow); -webkit-backdrop-filter: var(--plate-blur); backdrop-filter: var(--plate-blur); color: var(--plate-text); font: 700 var(--fs-16)/1.2 var(--font-text); white-space: nowrap; }
+.k-prompt-sep { width: 1px; height: 20px; background: var(--line-strong); }
+.k-prompt .k-pill { margin-left: 2px; }
+.k-prompt--urgent { box-shadow: var(--plate-shadow), 0 0 0 2px var(--gold), 0 0 20px var(--gold-soft); animation: k-urgent .8s ease-in-out infinite; }
+.k-prompt--off { opacity: .7; }
+.k-prompt-note { font-size: var(--fs-14); font-weight: 500; color: var(--surf-dim); }
+
+/* ============================================================ герой-баннер (центр, 30–34% высоты) — v2 меньше: 56 */
+.k-hero { --hero-c: var(--hero-text, var(--surf-text)); --hero-lo: rgba(20, 10, 12, .5); --hero-glow: rgba(0, 0, 0, .2); display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; pointer-events: none; }
+.k-hero-title { margin: 0; color: var(--hero-c); font-family: var(--hero-font); font-weight: var(--hero-weight); font-size: calc(56px * var(--display-scale)); line-height: 1.04; letter-spacing: var(--display-track); text-transform: var(--display-case); word-spacing: var(--display-word, normal); white-space: nowrap; text-shadow: var(--hero-outline), 0 var(--hero-step) 0 var(--hero-step-ink, var(--hero-lo)), 0 0 30px var(--hero-glow); }
+.k-hero-title.is-sm { font-size: calc(40px * var(--display-scale)); }
+.k-hero-sub { display: inline-flex; align-items: center; gap: 8px; padding: 6px 16px; border: var(--plate-border); border-radius: var(--r-pill); background: var(--plate-bg); box-shadow: var(--plate-shadow); -webkit-backdrop-filter: var(--plate-blur); backdrop-filter: var(--plate-blur); color: var(--plate-text); font: 700 var(--fs-18)/1.15 var(--font-text); }
+.k-hero-sub .k-coin { width: 20px; height: 20px; }
+.k-hero--gold { --hero-c: var(--gold); --hero-lo: var(--gold-lo); --hero-glow: rgba(255, 190, 60, .45); }
+.k-hero--win { --hero-c: var(--good-hi); --hero-lo: var(--good-lo); --hero-glow: rgba(120, 240, 150, .35); }
+.k-hero--lose { --hero-c: var(--bad-hi); --hero-lo: var(--bad-lo); --hero-glow: rgba(255, 90, 90, .3); }
+.k-hero--info { --hero-c: var(--info-hi); --hero-lo: var(--info-lo); --hero-glow: rgba(150, 200, 255, .3); }
+.k-hero.is-pop { animation: k-hero-pop .7s var(--ease-pop) both; }
+.k-hero.is-play { animation: k-hero-play 3.2s ease-out both; }
+
+/* обратный отсчёт: <div class="k-count">3</div> */
+.k-count { color: var(--hero-text, var(--surf-text)); font-family: var(--hero-font); font-weight: var(--hero-weight); font-size: calc(120px * var(--display-scale)); line-height: 1; text-shadow: var(--hero-outline), 0 6px 0 var(--hero-step-ink, rgba(20, 10, 12, .55)), 0 0 40px rgba(0, 0, 0, .25); pointer-events: none; }
+.k-count--go { color: var(--gold); font-size: calc(96px * var(--display-scale)); }
+.k-count.is-tick { animation: k-count .9s var(--ease-out) both; }
+
+/* ============================================================ окно (модальное) — раскладка как в v1 */
+.k-window { position: relative; display: flex; flex-direction: column; width: min(820px, 100%); max-height: 100%; border: var(--panel-border); border-radius: var(--r-xl); background: var(--panel-bg); box-shadow: var(--panel-shadow); outline: var(--panel-outline); outline-offset: var(--panel-outline-offset); color: var(--surf-text); font-size: var(--fs-16); line-height: var(--lh); overflow: clip; }
+.k-window.is-in { animation: k-win-in .32s var(--ease-spring) both; }
+/* шапка: «Закат» — эмалевая полоса цвета режима (--head-mode-k 100%), остальные — прозрачная */
+.k-win-head { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 16px; padding: calc(var(--awning-h) * (1 + var(--awning-fest, 0)) + 16px) 22px 16px;
+  background-color: color-mix(in srgb, color-mix(in srgb, var(--mode) 86%, #120c0c) var(--head-mode-k, 0%), transparent); background-image: var(--head-bg, none);
+  border-bottom: var(--head-rule); color: var(--head-text); }
+.k-win-head .k-eyebrow { color: var(--head-eyebrow, color-mix(in srgb, var(--mode) var(--accent-k, 100%), var(--accent-to, #000))); }
+/* маркиза: узкая полоса (видна, только если --awning-h > 0: «Ретро-парк 2.0»); фестоны — если --awning-fest > 0 */
+.k-win-head::before, .k-win-side::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: var(--awning-h); background: repeating-linear-gradient(90deg, var(--awning-a, transparent) 0 var(--awning-w, 30px), var(--awning-b, transparent) var(--awning-w, 30px) calc(var(--awning-w, 30px) * 2)); box-shadow: inset 0 -1px 0 rgba(0, 0, 0, .12); }
+.k-win-head::after, .k-win-side::after { content: ''; position: absolute; left: 0; right: 0; top: var(--awning-h); height: calc(var(--awning-h) * var(--awning-fest, 0)); background: repeating-linear-gradient(90deg, var(--awning-a, transparent) 0 30px, var(--awning-b, transparent) 30px 60px); -webkit-mask: radial-gradient(circle at 15px 0, #000 14px, transparent 14.5px) 0 0 / 30px 100% repeat-x; mask: radial-gradient(circle at 15px 0, #000 14px, transparent 14.5px) 0 0 / 30px 100% repeat-x; }
+.k-win-head:not(:has(> .k-win-portrait)) { grid-template-columns: minmax(0, 1fr) auto; }
+.k-win-portrait { display: grid; place-items: center; flex: none; width: 60px; height: 60px; padding: 6px; border-radius: var(--portrait-radius); background: var(--portrait-bg); box-shadow: var(--portrait-ring); transform: rotate(var(--portrait-rotate)); }
+.k-win-portrait > img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 2px 2px rgba(20, 10, 12, .3)); }
+.k-win-titles { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.k-win-title { margin: 0; overflow: hidden; color: var(--title-color); font-family: var(--font-display); font-weight: var(--display-weight); font-size: calc(var(--fs-28) * var(--display-scale)); line-height: 1.12; letter-spacing: var(--display-track); text-transform: var(--display-case); word-spacing: var(--display-word, normal); text-overflow: ellipsis; white-space: nowrap; text-shadow: var(--title-shadow); }
+.k-win-head .k-win-title { color: var(--head-title, var(--title-color)); text-shadow: var(--head-title-shadow, var(--title-shadow)); }
+.k-win-tools { display: flex; align-items: center; gap: 12px; }
+.k-win-body { flex: 1 1 auto; min-height: 0; padding: 20px 22px; overflow: auto; scrollbar-width: thin; }
+.k-win-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 14px; padding: 14px 22px 18px; border-top: 1px solid var(--line); }
+.k-win-foot > .k-note { margin-right: auto; color: var(--surf-dim); font-size: var(--fs-14); }
+.k-window--sm { width: min(460px, 100%); }
+.k-window--lg { width: min(1100px, 100%); }
+/* окно с боковым меню (Esc): <div class="k-window k-window--split"><aside class="k-win-side">…</aside><section class="k-win-main">…</section></div> */
+.k-window--split { display: grid; grid-template-columns: 270px minmax(0, 1fr); }
+.k-win-side { position: relative; display: flex; flex-direction: column; gap: 14px; min-height: 0; padding: calc(var(--awning-h) * (1 + var(--awning-fest, 0)) + 20px) 18px 20px; border-right: 1px solid var(--line); background: var(--surf-3); }
+.k-win-side > .k-nav { min-height: 0; overflow: auto; scrollbar-width: thin; }
+.k-win-main { display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; }
+
+/* вкладки */
+.k-tabs { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 22px; border-bottom: 1px solid var(--line); }
+.k-tab { position: relative; display: inline-flex; align-items: center; gap: 8px; min-height: 48px; padding: 8px 14px; border: 0; border-radius: var(--r-sm) var(--r-sm) 0 0; background: none; color: var(--surf-dim); font: 600 var(--fs-16)/1 var(--font-text); cursor: pointer; transition: color .12s, background .12s; }
+.k-tab .k-ic { width: 28px; height: 28px; }
+.k-tab:hover { background: var(--surf-2); color: var(--surf-text); }
+.k-tab.is-on { color: var(--surf-text); font-weight: 700; }
+.k-tab.is-on::after { content: ''; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 3px; border-radius: 3px 3px 0 0; background: var(--gold); }
+.k-tab:focus-visible { outline: none; box-shadow: var(--focus); }
+.k-tab-count { min-width: 22px; padding: 3px 7px; border-radius: var(--r-pill); background: var(--surf-3); color: var(--surf-text); font: 700 var(--fs-13)/1 var(--font-text); }
+.k-tab.is-on .k-tab-count { background: var(--gold); color: var(--gold-ink); }
+
+/* меню-навигация (сайдбар) */
+.k-nav { display: flex; flex-direction: column; gap: 2px; }
+.k-nav-h { margin: 10px 0 4px 12px; color: var(--surf-faint); font: 700 var(--fs-13)/1 var(--font-text); letter-spacing: .08em; text-transform: uppercase; }
+.k-nav-item { position: relative; display: flex; align-items: center; gap: 12px; min-height: 46px; padding: 6px 12px; border: 0; border-radius: var(--r-sm); background: none; color: var(--surf-dim); font: 600 var(--fs-16)/1.1 var(--font-text); text-align: left; cursor: pointer; }
+.k-nav-item .k-ic { width: 28px; height: 28px; }
+.k-nav-item:hover { background: var(--surf-2); color: var(--surf-text); }
+.k-nav-item.is-on { background: var(--gold-soft); color: var(--surf-text); font-weight: 700; box-shadow: inset 3px 0 0 var(--gold); }
+
+/* ============================================================ таблица и экран итогов */
+.k-table { width: 100%; border-collapse: separate; border-spacing: 0 5px; color: var(--surf-text); font: 500 var(--fs-16)/1.2 var(--font-text); }
+.k-table th { padding: 2px 14px 4px; color: var(--surf-faint); font: 700 var(--fs-13)/1 var(--font-text); letter-spacing: .06em; text-align: left; text-transform: uppercase; }
+.k-table td { padding: 10px 14px; background: var(--surf-2); white-space: nowrap; }
+.k-table td:first-child { border-radius: var(--r-sm) 0 0 var(--r-sm); }
+.k-table td:last-child { border-radius: 0 var(--r-sm) var(--r-sm) 0; }
+.k-table .k-r, .k-table th.k-r { text-align: right; }
+.k-table td.k-r { font-weight: 700; }
+.k-table tr.is-own td { background: var(--gold-soft); box-shadow: inset 0 1.5px 0 var(--gold), inset 0 -1.5px 0 var(--gold); }
+.k-table tr.is-own td:first-child { box-shadow: inset 1.5px 1.5px 0 var(--gold), inset 1.5px -1.5px 0 var(--gold); }
+.k-table tr.is-own td:last-child { box-shadow: inset -1.5px 1.5px 0 var(--gold), inset -1.5px -1.5px 0 var(--gold); }
+.k-table tr.is-own td.k-r { color: var(--gold-text); }
+.k-table .k-who { display: flex; align-items: center; gap: 10px; font-weight: 700; }
+.k-place { display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--surf-3); color: var(--surf-text); font: 800 var(--fs-16)/1 var(--font-text); }
+.k-place--1 { background: linear-gradient(180deg, #ffe58a, #f2b53c); color: #3a2603; box-shadow: 0 1.5px 0 #a87612; }
+.k-place--2 { background: linear-gradient(180deg, #f1f4f8, #b9c2cf); color: #26303d; box-shadow: 0 1.5px 0 #6f7a8a; }
+.k-place--3 { background: linear-gradient(180deg, #f3c39a, #c9814b); color: #3a1d08; box-shadow: 0 1.5px 0 #7d4a22; }
+.k-results-head { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: calc(var(--awning-h) * (1 + var(--awning-fest, 0)) + 24px) 24px 6px; text-align: center; }
+.k-results-title { margin: 0; color: var(--gold-text); font-family: var(--font-display); font-weight: var(--display-weight); font-size: calc(var(--fs-48) * var(--display-scale)); line-height: 1.05; letter-spacing: var(--display-track); text-transform: var(--display-case); word-spacing: var(--display-word, normal); text-shadow: var(--title-shadow); }
+.k-results-sub { color: var(--surf-dim); font-size: var(--fs-18); }
+.k-reward { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 6px 0 2px; padding: 12px 20px; border-radius: var(--r-md); background: var(--gold-soft); color: var(--surf-text); font: 600 var(--fs-18)/1.2 var(--font-text); box-shadow: inset 0 0 0 1px var(--gold); }
+.k-reward b { color: var(--gold-text); font-size: var(--fs-28); font-weight: 800; }
+.k-reward .k-coin { width: 30px; height: 30px; }
+.k-results-actions { display: flex; align-items: center; justify-content: center; gap: 16px; padding: 14px 22px 22px; }
+
+/* ============================================================ переключатель, сегменты, ползунок, строка настроек */
+.k-switch { position: relative; display: inline-flex; align-items: center; gap: 12px; color: var(--surf-text); font: 600 var(--fs-16)/1.2 var(--font-text); cursor: pointer; }
+.k-switch > input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.k-switch-track { position: relative; flex: none; width: 52px; height: 30px; border: var(--track-border); border-radius: var(--r-pill); background: var(--track); transition: background .16s; }
+.k-switch-track::after { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #ffffff; box-shadow: 0 1px 2px rgba(0, 0, 0, .3); transition: transform .18s var(--ease-spring); }
+.k-switch > input:checked + .k-switch-track { background: var(--good); }
+.k-switch > input:checked + .k-switch-track::after { transform: translateX(22px); }
+.k-switch > input:focus-visible + .k-switch-track { box-shadow: var(--focus); }
+.k-seg { display: inline-flex; gap: 4px; padding: 4px; border-radius: var(--r-md); background: var(--surf-3); }
+.k-seg > button { min-height: 40px; padding: 6px 16px; border: 0; border-radius: calc(var(--r-md) - 3px); background: none; color: var(--surf-dim); font: 600 var(--fs-16)/1 var(--font-text); cursor: pointer; }
+.k-seg > button:hover { color: var(--surf-text); }
+.k-seg > button.is-on, .k-seg > button[aria-pressed='true'] { background: linear-gradient(180deg, color-mix(in srgb, var(--gold-hi) var(--btn-sheen, 100%), var(--gold)), var(--gold)); color: var(--gold-ink); font-weight: 700; box-shadow: 0 1.5px 0 var(--btn-drop-ink, var(--gold-lo)); }
+.k-seg > button:focus-visible { outline: none; box-shadow: var(--focus); }
+.k-slider { --v: .5; width: 220px; height: 30px; margin: 0; background: none; cursor: pointer; -webkit-appearance: none; appearance: none; }
+.k-slider::-webkit-slider-runnable-track { height: 10px; border: var(--track-border); border-radius: var(--r-pill); background: linear-gradient(90deg, var(--gold) calc(var(--v) * 100%), var(--track) 0); }
+.k-slider::-webkit-slider-thumb { width: 24px; height: 24px; margin-top: -8px; border: 2px solid var(--surf-solid); border-radius: 50%; background: #ffffff; box-shadow: 0 1px 3px rgba(0, 0, 0, .35), 0 0 0 1px var(--line-strong); -webkit-appearance: none; appearance: none; }
+.k-slider::-moz-range-track { height: 10px; border-radius: var(--r-pill); background: var(--track); }
+.k-slider::-moz-range-progress { height: 10px; border-radius: var(--r-pill); background: var(--gold); }
+.k-slider::-moz-range-thumb { width: 22px; height: 22px; border: 2px solid var(--surf-solid); border-radius: 50%; background: #fff; }
+.k-slider:focus-visible { outline: none; }
+.k-slider:focus-visible::-webkit-slider-thumb { box-shadow: var(--focus); }
+.k-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 6px 20px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.k-row:last-child { border-bottom: 0; }
+.k-row-title { font: 700 var(--fs-18)/1.2 var(--font-text); }
+.k-row-hint { margin-top: 3px; color: var(--surf-dim); font: 500 var(--fs-14)/1.3 var(--font-text); }
+.k-row-ctl { display: flex; align-items: center; gap: 12px; }
+.k-row-val { min-width: 48px; color: var(--surf-text); font: 700 var(--fs-16)/1 var(--font-text); text-align: right; }
+
+/* поле ввода */
+.k-input { min-height: 46px; padding: 8px 14px; border: var(--track-border); border-radius: var(--r-sm); background: var(--surf-3); color: var(--surf-text); font: 600 var(--fs-16)/1.2 var(--font-text); outline: none; }
+.k-input::placeholder { color: var(--surf-faint); }
+.k-input:focus { box-shadow: var(--focus); }
+
+/* ============================================================ чат и голос одним доком (низ-лево): строки 14, ширина 360, закрытый — 38 */
+.k-chat { display: flex; flex-direction: column; gap: 6px; width: 360px; color: var(--plate-text); }
+.k-chat-list { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.k-chat-line { max-width: 100%; padding: 4px 10px 5px; border: var(--chat-border); border-radius: var(--r-sm); background: var(--chat-bg); box-shadow: var(--chat-shadow); -webkit-backdrop-filter: var(--plate-blur); backdrop-filter: var(--plate-blur); color: var(--plate-text); font: 500 var(--fs-14)/1.3 var(--font-text); overflow-wrap: anywhere; }
+.k-chat-line > b { margin-right: 5px; font-weight: 700; color: var(--nick, var(--nick-1)); }
+.k-chat-line .k-ic { width: 18px; height: 18px; margin-right: 4px; vertical-align: -4px; }
+.k-chat-line.is-sys { color: var(--surf-dim); font-style: italic; }
+.k-chat-line.is-own { box-shadow: var(--chat-shadow), inset 3px 0 0 var(--gold); padding-left: 12px; }
+.k-chat-line.is-old { opacity: var(--chat-old, .55); }
+.k-nick-1 { --nick: var(--nick-1); } .k-nick-2 { --nick: var(--nick-2); } .k-nick-3 { --nick: var(--nick-3); }
+.k-nick-4 { --nick: var(--nick-4); } .k-nick-5 { --nick: var(--nick-5); } .k-nick-6 { --nick: var(--nick-6); }
+.k-chat-bar { display: flex; align-items: center; gap: 8px; }
+.k-chat-input { position: relative; display: flex; flex: 1; align-items: center; gap: 8px; min-height: 40px; padding: 4px 6px 4px 12px; border: var(--plate-border); border-radius: var(--r-pill); background: var(--plate-bg); box-shadow: var(--plate-shadow); -webkit-backdrop-filter: var(--plate-blur); backdrop-filter: var(--plate-blur); color: var(--plate-text); }
+.k-chat-input > span { color: var(--gold-text); font: 700 var(--fs-14)/1 var(--font-text); white-space: nowrap; }
+.k-chat-input > input { flex: 1; min-width: 0; height: 30px; padding: 0 4px; border: 0; background: none; color: var(--plate-text); font: 500 var(--fs-14)/1 var(--font-text); outline: none; }
+.k-chat-input > input::placeholder { color: var(--surf-faint); }
+.k-chat-input.is-typing { box-shadow: var(--plate-shadow), 0 0 0 2px var(--gold); }
+.k-chat-closed { display: inline-flex; align-items: center; gap: 8px; min-height: 38px; padding: 4px 14px 4px 6px; border: var(--plate-border); border-radius: var(--r-pill); background: var(--plate-bg); box-shadow: var(--plate-shadow); -webkit-backdrop-filter: var(--plate-blur); backdrop-filter: var(--plate-blur); color: var(--surf-dim); font: 600 var(--fs-14)/1 var(--font-text); }
+.k-caret { display: inline-block; width: 2px; height: 16px; margin-left: 1px; background: var(--gold); vertical-align: -3px; animation: k-caret 1s steps(1) infinite; }
+/* кнопка голоса, прилеплена к чату */
+.k-voice { position: relative; display: grid; place-items: center; flex: none; width: 38px; height: 38px; padding: 0; border: var(--plate-border); border-radius: 50%; background: var(--plate-bg); box-shadow: var(--plate-shadow); -webkit-backdrop-filter: var(--plate-blur); backdrop-filter: var(--plate-blur); color: var(--plate-text); cursor: pointer; }
+.k-voice > svg { width: 19px; height: 19px; }
+.k-voice > .k-key { position: absolute; right: -8px; bottom: -8px; }
+.k-voice.is-live { background: linear-gradient(180deg, var(--good-hi), var(--good)); color: var(--good-ink); box-shadow: var(--plate-shadow), 0 0 0 3px var(--good-soft); animation: k-live 1.2s ease-in-out infinite; }
+.k-voice.is-muted { color: var(--bad-text); }
+.k-voice.is-muted::after { content: ''; position: absolute; width: 24px; height: 2.5px; border-radius: 2px; background: var(--bad); transform: rotate(-45deg); }
+.k-speaking { display: flex; flex-wrap: wrap; gap: 6px; }
+.k-speaking > .k-pill { min-height: 26px; padding: 3px 10px; border: var(--chat-border); background: var(--chat-bg); box-shadow: var(--chat-shadow); color: var(--plate-text); font-size: var(--fs-14); }
+.k-eq { display: inline-flex; align-items: flex-end; gap: 2px; height: 12px; }
+.k-eq > i { width: 3px; border-radius: 2px; background: var(--good); animation: k-eq .7s ease-in-out infinite alternate; }
+.k-eq > i:nth-child(1) { height: 60%; } .k-eq > i:nth-child(2) { height: 100%; animation-delay: -.25s; } .k-eq > i:nth-child(3) { height: 45%; animation-delay: -.5s; }
+
+/* ============================================================ строка «Кто где» (Tab) */
+.k-online-row { display: grid; grid-template-columns: 42px minmax(0, 1fr) auto; align-items: center; gap: 2px 14px; padding: 8px 12px 8px 8px; border-radius: var(--r-md); background: var(--surf-2); color: var(--surf-text); }
+.k-online-row + .k-online-row { margin-top: 5px; }
+.k-online-nick { display: flex; align-items: center; gap: 8px; overflow: hidden; font: 700 var(--fs-16)/1.2 var(--font-text); white-space: nowrap; }
+.k-online-room { display: flex; align-items: center; gap: 6px; color: var(--surf-dim); font: 500 var(--fs-14)/1.2 var(--font-text); }
+.k-online-room .k-ic { width: 22px; height: 22px; }
+.k-online-act { display: flex; align-items: center; gap: 8px; }
+.k-online-row > .k-ring { grid-column: 1; grid-row: 1 / span 2; }
+.k-online-nick { grid-column: 2; grid-row: 1; }
+.k-online-room { grid-column: 2; grid-row: 2; }
+.k-online-row > .k-online-act { grid-column: 3; grid-row: 1 / span 2; }
+.k-online-row.is-me { background: var(--gold-soft); box-shadow: inset 0 0 0 1.5px var(--gold); }
+.k-online-row.is-talk .k-online-nick::after { content: ''; width: 10px; height: 10px; border-radius: 50%; background: var(--good); box-shadow: 0 0 0 3px var(--good-soft); }
+
+/* ============================================================ фишки ставки и окно ставки (блэкджек, крысиные бега, рулетка рыбака)
+   <button class="k-chip k-chip--20">20<kbd class="k-key k-key--sm k-key--br">2</kbd></button> · выбранная — .is-on */
+.k-chip { --base: #3b7fd8; --face: #5b97e6; position: relative; display: grid; place-items: center; flex: none; width: 64px; height: 64px; margin-bottom: 4px; padding: 0; border: 0; border-radius: 50%; background: radial-gradient(circle closest-side, var(--face) 0 58%, rgba(255, 255, 255, .92) 59% 63%, transparent 64%), repeating-conic-gradient(rgba(255, 255, 255, .96) 0 11deg, var(--base) 11deg 30deg); box-shadow: 0 4px 0 rgba(0, 0, 0, .32); color: #fff; font: 800 var(--fs-22)/1 var(--font-text); text-shadow: 0 1px 0 rgba(0, 0, 0, .3); cursor: pointer; transition: transform .1s, filter .12s, box-shadow .12s; }
+.k-chip:hover:not(:disabled) { transform: translateY(-5px) rotate(8deg); filter: brightness(1.08); }
+.k-chip:active:not(:disabled) { transform: translateY(1px); }
+.k-chip:focus-visible { outline: none; box-shadow: 0 4px 0 rgba(0, 0, 0, .32), var(--focus); }
+.k-chip.is-on { transform: translateY(-4px); box-shadow: 0 4px 0 rgba(0, 0, 0, .32), 0 0 0 3px var(--gold), 0 0 16px var(--gold-soft); }
+.k-chip:disabled, .k-chip.is-off { filter: grayscale(.85) brightness(.7); cursor: default; }
+.k-chip--5 { --base: #e0a229; --face: #f1bb4a; }
+.k-chip--10 { --base: #3b7fd8; --face: #5b97e6; }
+.k-chip--20 { --base: #d8453b; --face: #e5675c; }
+.k-chip--50 { --base: #2f9d5a; --face: #4cb673; }
+.k-chip--100 { --base: #2b2f3a; --face: #424857; font-size: var(--fs-18); }
+.k-chip--500 { --base: #7a45c9; --face: #9467db; font-size: var(--fs-18); }
+.k-chip--sm { width: 44px; height: 44px; font-size: var(--fs-16); }
+.k-chip--sm.k-chip--100, .k-chip--sm.k-chip--500 { font-size: var(--fs-14); }
+.k-bet { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.k-bet-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px 16px; padding-top: 6px; }
+.k-bet-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px 16px; }
+.k-bet-amount { display: inline-flex; align-items: center; gap: 10px; color: var(--surf-dim); font: 600 var(--fs-16)/1 var(--font-text); }
+.k-bet-input { width: 112px; height: 52px; padding: 0 10px; font: 800 var(--fs-22)/1 var(--font-text); text-align: center; font-variant-numeric: tabular-nums; }
+.k-bet-note { margin: 0; color: var(--surf-faint); font-size: var(--fs-13); text-align: center; }
+
+/* ============================================================ движение */
+@keyframes k-bulbs { 50% { filter: var(--lamp-dot-glow) brightness(1.25); } }
+@keyframes k-bump { 40% { transform: scale(1.18); } }
+@keyframes k-pop { 0% { opacity: 0; transform: translateY(-8px) scale(.6); } 15% { opacity: 1; transform: translateY(0) scale(1.12); } 25% { transform: scale(1); } 75% { opacity: 1; } 100% { opacity: 0; transform: translateY(14px); } }
+@keyframes k-toast-in { from { opacity: 0; transform: translateY(-12px) scale(.95); } to { opacity: 1; transform: none; } }
+@keyframes k-toast-out { to { opacity: 0; transform: translateY(-10px) scale(.96); } }
+@keyframes k-hurry { 50% { transform: scale(1.08); } }
+@keyframes k-urgent { 50% { transform: scale(1.04); } }
+@keyframes k-hero-pop { 0% { opacity: 0; transform: scale(.4); } 60% { opacity: 1; transform: scale(1.08); } 100% { transform: scale(1); } }
+@keyframes k-hero-play { 0% { opacity: 0; transform: translateY(14%) scale(.4); } 8% { opacity: 1; transform: scale(1.1); } 14% { transform: scale(1); } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(-14%) scale(.96); } }
+@keyframes k-count { 0% { opacity: 0; transform: scale(1.8); } 25% { opacity: 1; transform: scale(1); } 80% { opacity: 1; } 100% { opacity: 0; transform: scale(.8); } }
+@keyframes k-win-in { from { opacity: 0; transform: translateY(16px) scale(.97); } to { opacity: 1; transform: none; } }
+@keyframes k-caret { 50% { opacity: 0; } }
+@keyframes k-live { 50% { box-shadow: var(--plate-shadow), 0 0 0 6px var(--good-soft); } }
+@keyframes k-eq { to { transform: scaleY(.35); } }
+@media (prefers-reduced-motion: reduce) {
+  .k-lamp::before, .k-badge-tokens.is-bump, .k-pop, .k-toast.is-new, .k-toast.is-out, .k-event-timer.is-hurry, .k-prompt--urgent,
+  .k-hero.is-pop, .k-hero.is-play, .k-count.is-tick, .k-window.is-in, .k-caret, .k-voice.is-live, .k-eq > i { animation: none !important; }
+  .k-meter > .k-meter-ghost, .k-meter > .k-meter-fill, .k-switch-track::after { transition: none; }
+}

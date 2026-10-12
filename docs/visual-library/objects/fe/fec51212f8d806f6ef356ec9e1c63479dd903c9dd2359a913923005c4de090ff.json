@@ -1,0 +1,42 @@
+{
+  "revision": 2,
+  "plainDefault": true,
+  "status": "native models delivered; actual runtime acceptance pending",
+  "models": [
+    {
+      "id": "hookclaw",
+      "bytes": 132192,
+      "sha256": "b09162ef0c6aa575b461bdddb36100d9b761a254661da42045645fae0d31e79f",
+      "artifact": "./hookclaw.glb",
+      "game": "../../../../../../unavailable.html"
+    },
+    {
+      "id": "wickmole",
+      "bytes": 179060,
+      "sha256": "24c549c3ce061e7e393ff08f73b173e37e74077544ea9f6745747f34744245cb",
+      "artifact": "./wickmole.glb",
+      "game": "../../../../../../unavailable.html"
+    },
+    {
+      "id": "railhopper",
+      "bytes": 159644,
+      "sha256": "edf92d78c331f45deeee75db8a53b6e41b6df4ad9efe31857a9cdb0b99efe02f",
+      "artifact": "./railhopper.glb",
+      "game": "../../../../../../unavailable.html"
+    },
+    {
+      "id": "chainwarden",
+      "bytes": 541920,
+      "sha256": "129a73308dd0afcb3ec0c315dfde44af66b0edf5f783098a7152f1de5b5f5653",
+      "artifact": "./chainwarden.glb",
+      "game": "../../../../../../unavailable.html"
+    },
+    {
+      "id": "cauldronmaster",
+      "bytes": 1791276,
+      "sha256": "66b7e7d7b492090875add0ab7242f097b65ff33facb5eedeaea7fb88a19a6350",
+      "artifact": "./cauldronmaster.glb",
+      "game": "../../../../../../unavailable.html"
+    }
+  ]
+}

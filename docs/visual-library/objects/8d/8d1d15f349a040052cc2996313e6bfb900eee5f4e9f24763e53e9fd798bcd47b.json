@@ -1,0 +1,21 @@
+{
+  "camera": [
+    -12,
+    0.09919954198565395,
+    11.635206368426998
+  ],
+  "rows": [
+    {
+      "name": "mythic-greenland-shark",
+      "type": "Group",
+      "visible": true,
+      "keep": true,
+      "pos": [
+        -12,
+        9.349999580383301,
+        21.434999966621398
+      ],
+      "meshes": 1
+    }
+  ]
+}

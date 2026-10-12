@@ -1,0 +1,1379 @@
+{
+  "aliases": 19118,
+  "references": 62246,
+  "missingCopiedFiles": [],
+  "outsideSymlinks": [],
+  "over95MiB": [],
+  "sourceMissing": 4124,
+  "sourceExternal": 1581,
+  "redactions": [
+    {
+      "origin": "workspace/reports/tiredwood-code-review-2026-10-07/mode-network-smoke.mjs",
+      "type": "server-address",
+      "action": "Адрес скрыт в копии"
+    },
+    {
+      "origin": "workspace/.claude/worktrees/mcp-blender-integration-127bb2/reports/tiredwood-code-review-2026-10-07/mode-network-smoke.mjs",
+      "type": "server-address",
+      "action": "Адрес скрыт в копии"
+    },
+    {
+      "origin": "workspace/reports/tiredwood-code-review-2026-10-07/frozen-source/server/tgnet.ts",
+      "type": "server-address",
+      "action": "Адрес скрыт в копии"
+    },
+    {
+      "origin": "workspace/reports/tiredwood-code-review-2026-10-07/frozen-source/server/tgnet.ts",
+      "type": "server-address",
+      "action": "Адрес скрыт в копии"
+    },
+    {
+      "origin": "workspace/reports/tiredwood-code-review-2026-10-07/frozen-source/server/tgnet.ts",
+      "type": "server-address",
+      "action": "Адрес скрыт в копии"
+    },
+    {
+      "origin": "workspace/.claude/worktrees/mcp-blender-integration-127bb2/reports/tiredwood-code-review-2026-10-07/frozen-source/server/tgnet.ts",
+      "type": "server-address",
+      "action": "Адрес скрыт в копии"
+    },
+    {
+      "origin": "workspace/.claude/worktrees/mcp-blender-integration-127bb2/reports/tiredwood-code-review-2026-10-07/frozen-source/server/tgnet.ts",
+      "type": "server-address",
+      "action": "Адрес скрыт в копии"
+    },
+    {
+      "origin": "workspace/.claude/worktrees/mcp-blender-integration-127bb2/reports/tiredwood-code-review-2026-10-07/frozen-source/server/tgnet.ts",
+      "type": "server-address",
+      "action": "Адрес скрыт в копии"
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/r5-2026-10-12/index.html",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-water-study-2026-10-12/v3/index.html",
+      "type": "absolute-user-path",
+      "count": 7
+    },
+    {
+      "origin": "workspace/reports/tiredwood-water-study-2026-10-12/v2/index.html",
+      "type": "absolute-user-path",
+      "count": 7
+    },
+    {
+      "origin": "workspace/concepts_blender/art-v2/preview/index.html",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-water-study-2026-10-12/archive/pre-b2-20261012/index.html",
+      "type": "absolute-user-path",
+      "count": 7
+    },
+    {
+      "origin": "workspace/reports/tiredwood-water-study-2026-10-12/archive/pre-browser-root-fix/index.html",
+      "type": "absolute-user-path",
+      "count": 7
+    },
+    {
+      "origin": "workspace/reports/tiredwood-product-review-2026-10-07/index.html",
+      "type": "absolute-user-path",
+      "count": 127
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/archive/pre-texture-ab2-20261012/index.html",
+      "type": "absolute-user-path",
+      "count": 2
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/index.html",
+      "type": "absolute-user-path",
+      "count": 2
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/r4-2026-10-12/index.html",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/backups/workspace-cleanup-2026-10-10/duplicate-product-report.html",
+      "type": "absolute-user-path",
+      "count": 127
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/index.html",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v1/index.html",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/index.html",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-code-review-2026-10-07/report.html",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/.claude/worktrees/mcp-blender-integration-127bb2/reports/tiredwood-code-review-2026-10-07/report.html",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/.claude/worktrees/mcp-blender-integration-127bb2/reports/tiredwood-product-review-2026-10-07/index.html",
+      "type": "absolute-user-path",
+      "count": 127
+    },
+    {
+      "origin": "workspace/.claude/worktrees/mcp-blender-integration-127bb2/concepts_blender/art-v2/preview/index.html",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-quality-review-2026-10-12/evidence/waterfront-final-coverage-closed.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/r5-2026-10-12/source/calculations.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/art/PROVENANCE.md",
+      "type": "absolute-user-path",
+      "count": 5
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/source/calculate.mjs",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/source/build.mjs",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/source/calculations.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/art/PROVENANCE.md",
+      "type": "absolute-user-path",
+      "count": 5
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/source/calculate.mjs",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/source/build.mjs",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/concepts_blender/art-v2/preview/preview.mjs",
+      "type": "absolute-user-path",
+      "count": 4
+    },
+    {
+      "origin": "workspace/concepts_blender/art-v2/preview/gallery.mjs",
+      "type": "absolute-user-path",
+      "count": 5
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/art/wickmole/prompt.txt",
+      "type": "absolute-user-path",
+      "count": 2
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/art/railhopper/prompt.txt",
+      "type": "absolute-user-path",
+      "count": 2
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/art/hookclaw/prompt.txt",
+      "type": "absolute-user-path",
+      "count": 2
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/art/chainwarden/prompt.txt",
+      "type": "absolute-user-path",
+      "count": 2
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/art/cauldronmaster/prompt.txt",
+      "type": "absolute-user-path",
+      "count": 2
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/source/calculate-v2.mjs",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/archive/pre-texture-ab2-20261012/source/calculate-v2.mjs",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/archive/pre-texture-ab2-20261012/CAMERA-REVIEW.md",
+      "type": "absolute-user-path",
+      "count": 2
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/archive/pre-texture-ab2-20261012/QA-RUN-CODE.md",
+      "type": "absolute-user-path",
+      "count": 3
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/CAMERA-REVIEW.md",
+      "type": "absolute-user-path",
+      "count": 2
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/QA-RUN-CODE.md",
+      "type": "absolute-user-path",
+      "count": 3
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/r4-2026-10-12/source/calculations.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/analysis/balance-data.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v1/analysis/balance-data.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/source/progression-arithmetic.mjs",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/identity/tested-r6-freeze.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/art/wickmole/prompt.txt",
+      "type": "absolute-user-path",
+      "count": 2
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/art/railhopper/prompt.txt",
+      "type": "absolute-user-path",
+      "count": 2
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/art/hookclaw/prompt.txt",
+      "type": "absolute-user-path",
+      "count": 2
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/art/chainwarden/prompt.txt",
+      "type": "absolute-user-path",
+      "count": 2
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/art/cauldronmaster/prompt.txt",
+      "type": "absolute-user-path",
+      "count": 2
+    },
+    {
+      "origin": "workspace/reports/tiredwood-code-review-2026-10-07/quality-review.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-code-review-2026-10-07/benchmark-review.json",
+      "type": "absolute-user-path",
+      "count": 3
+    },
+    {
+      "origin": "workspace/reports/tiredwood-code-review-2026-10-07/local-stand.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-waterfront-optimization-2026-10-12/baseline-final/metrics.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-waterfront-optimization-2026-10-12/after-rathead/metrics.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-waterfront-optimization-2026-10-12/baseline/metrics.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-waterfront-optimization-2026-10-12/after/metrics.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/.claude/worktrees/mcp-blender-integration-127bb2/reports/tiredwood-code-review-2026-10-07/quality-review.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/.claude/worktrees/mcp-blender-integration-127bb2/reports/tiredwood-code-review-2026-10-07/benchmark-review.json",
+      "type": "absolute-user-path",
+      "count": 3
+    },
+    {
+      "origin": "workspace/.claude/worktrees/mcp-blender-integration-127bb2/reports/tiredwood-code-review-2026-10-07/local-stand.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/.claude/worktrees/mcp-blender-integration-127bb2/concepts_blender/art-v2/preview/preview.mjs",
+      "type": "absolute-user-path",
+      "count": 4
+    },
+    {
+      "origin": "workspace/.claude/worktrees/mcp-blender-integration-127bb2/concepts_blender/art-v2/preview/gallery.mjs",
+      "type": "absolute-user-path",
+      "count": 5
+    },
+    {
+      "origin": "workspace/reports/tiredwood-quality-review-2026-10-12/evidence/farm-independent-review.md",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-quality-review-2026-10-12/evidence/farm-second-review.md",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-quality-review-2026-10-12/evidence/product-lab-independent-review-initial.md",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-quality-review-2026-10-12/evidence/product-lab-independent-review.md",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-quality-review-2026-10-12/evidence/regatta-concept-audit.md",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-quality-review-2026-10-12/evidence/waterfront-final-coverage.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/source/encounters.mjs",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/source/generate-refs.mjs",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/source/verify.mjs",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/source/build.mjs",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/archive/pre-texture-ab2-20261012/source/build.mjs",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/identity/tested-source/client/assets/dungeon/icons/PROVENANCE.md",
+      "type": "absolute-user-path",
+      "count": 6
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/identity/tested-source/docs/superpowers/plans/2026-10-12-dungeon-expansion-v2.md",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/harness-root-successor/setup.mjs",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/game-opus/docs/farm/review/pack1-data.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/archive/pre-texture-ab2-20261012/models/evidence/jampump-r2-06-native.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/archive/pre-texture-ab2-20261012/models/evidence/foreman-r2-06-native.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/archive/pre-texture-ab2-20261012/models/evidence/crabcrane-r2-06-native.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/archive/pre-texture-ab2-20261012/models/evidence/miller-r2-06-native.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/archive/pre-texture-ab2-20261012/models/evidence/ropecrab-r2-07-native.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/archive/pre-texture-ab2-20261012/models/evidence/ropecrab-r2-07-transport.json",
+      "type": "absolute-user-path",
+      "count": 2
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/archive/pre-texture-ab2-20261012/models/evidence/canopy-r2-07-native.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/archive/pre-texture-ab2-20261012/models/evidence/canopy-r2-07-transport.json",
+      "type": "absolute-user-path",
+      "count": 2
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/archive/pre-texture-ab2-20261012/models/evidence/foreman-r2-06-canonical-transport-mcp.json",
+      "type": "absolute-user-path",
+      "count": 2
+    },
+    {
+      "origin": "workspace/reports/tiredwood-hud-five-directions-2026-10-12/archive/first-five-qa-2026-10-12/source/prepare-assets.mjs",
+      "type": "absolute-user-path",
+      "count": 2
+    },
+    {
+      "origin": "workspace/reports/tiredwood-hud-five-directions-2026-10-12/archive/ten-layouts-before-material-redesign-2026-10-12/source/prepare-assets.mjs",
+      "type": "absolute-user-path",
+      "count": 2
+    },
+    {
+      "origin": "workspace/reports/tiredwood-hud-five-directions-2026-10-12/archive/ten-materials-approved-before-11-15-2026-10-12/source/prepare-assets.mjs",
+      "type": "absolute-user-path",
+      "count": 2
+    },
+    {
+      "origin": "worktrees/game-opus-dungeon-ui3/docs/farm/review/pack1-data.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "worktrees/game-opus-farm-review3/docs/farm/review/pack1-data.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "worktrees/game-opus-fortress-approved/docs/farm/review/pack1-data.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "worktrees/game-opus-integration-review3/docs/farm/review/pack1-data.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "worktrees/game-opus-island-review2/docs/farm/review/pack1-data.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "worktrees/game-opus-park-review3/docs/farm/review/pack1-data.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "worktrees/game-opus-racing-review3/docs/farm/review/pack1-data.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "worktrees/game-opus-social-review3/docs/farm/review/pack1-data.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "worktrees/game-opus-waterfront-review3/docs/farm/review/pack1-data.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/art/evolutions-v2/embers_evo/prompt.txt",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/art/evolutions-v2/pickaxe_evo/prompt.txt",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/art/evolutions-v2/spark_evo/prompt.txt",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/art/evolutions-v2/charges_evo/prompt.txt",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/art/cauldronmaster/final.txt",
+      "type": "absolute-user-path",
+      "count": 2
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/art/cauldronmaster/orig-source.txt",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/art/cauldronmaster/source.txt",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/art/chainwarden/final.txt",
+      "type": "absolute-user-path",
+      "count": 2
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/art/chainwarden/orig-source.txt",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/art/chainwarden/source.txt",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/art/hookclaw/final.txt",
+      "type": "absolute-user-path",
+      "count": 2
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/art/hookclaw/orig-source.txt",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/art/hookclaw/source.txt",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/art/railhopper/final.txt",
+      "type": "absolute-user-path",
+      "count": 2
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/art/railhopper/orig-source.txt",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/art/railhopper/source.txt",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/art/wickmole/orig-source.txt",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/art/wickmole/source.txt",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/source/generate-refs.mjs",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/source/coverage-v2.mjs",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/source/native-canopy.test.mjs",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/source/native-model-viewer.test.mjs",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/source/native-pump.test.mjs",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/source/qa-texture-ab2.run-code.js",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/game-opus/docs/farm/pack1-2026-10-11.md",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/archive/pre-texture-ab2-20261012/source/coverage-v2.mjs",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/archive/pre-texture-ab2-20261012/source/native-canopy.test.mjs",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/archive/pre-texture-ab2-20261012/source/native-model-viewer.test.mjs",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/archive/pre-texture-ab2-20261012/source/native-pump.test.mjs",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-hud-five-directions-2026-10-12/source/extra-check.mjs",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-hud-five-directions-2026-10-12/source/prepare-assets.mjs",
+      "type": "absolute-user-path",
+      "count": 2
+    },
+    {
+      "origin": "worktrees/game-opus-dungeon-ui3/docs/farm/pack1-2026-10-11.md",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "worktrees/game-opus-farm-review3/docs/farm/pack1-2026-10-11.md",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "worktrees/game-opus-fortress-approved/docs/farm/pack1-2026-10-11.md",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "worktrees/game-opus-integration-review3/docs/farm/pack1-2026-10-11.md",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "worktrees/game-opus-island-review2/docs/farm/pack1-2026-10-11.md",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "worktrees/game-opus-park-review3/docs/farm/pack1-2026-10-11.md",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "worktrees/game-opus-racing-review3/docs/farm/pack1-2026-10-11.md",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "worktrees/game-opus-social-review3/docs/farm/pack1-2026-10-11.md",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "worktrees/game-opus-waterfront-review3/docs/farm/pack1-2026-10-11.md",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/models/scripts/verify_glb.mjs",
+      "type": "absolute-user-path",
+      "count": 1
+    }
+  ],
+  "uniqueBytes": 1047930902,
+  "devOnly": [
+    {
+      "id": "a18f0b615f4af1",
+      "title": "Гонка — песочница клиента",
+      "origins": [
+        "worktrees/game-opus-dungeon-ui3/tools/race-sandbox/index.html",
+        "worktrees/game-opus-farm-review3/tools/race-sandbox/index.html",
+        "worktrees/game-opus-fortress-approved/tools/race-sandbox/index.html",
+        "worktrees/game-opus-integration-review3/tools/race-sandbox/index.html",
+        "worktrees/game-opus-island-review2/tools/race-sandbox/index.html",
+        "worktrees/game-opus-park-review3/tools/race-sandbox/index.html",
+        "worktrees/game-opus-racing-review3/tools/race-sandbox/index.html",
+        "worktrees/game-opus-social-review3/tools/race-sandbox/index.html",
+        "worktrees/game-opus-waterfront-review3/tools/race-sandbox/index.html",
+        "workspace/game-opus/tools/race-sandbox/index.html",
+        "workspace/reports/tiredwood-code-review-2026-10-07/frozen-source/tools/race-sandbox/index.html",
+        "workspace/.claude/worktrees/mcp-blender-integration-127bb2/reports/tiredwood-code-review-2026-10-07/frozen-source/tools/race-sandbox/index.html"
+      ]
+    },
+    {
+      "id": "5deb86da5970a3",
+      "title": "Живность · стенд поз",
+      "origins": [
+        "worktrees/game-opus-dungeon-ui3/tools/critters/lab.html",
+        "worktrees/game-opus-farm-review3/tools/critters/lab.html",
+        "worktrees/game-opus-fortress-approved/tools/critters/lab.html",
+        "worktrees/game-opus-integration-review3/tools/critters/lab.html",
+        "worktrees/game-opus-island-review2/tools/critters/lab.html",
+        "worktrees/game-opus-park-review3/tools/critters/lab.html",
+        "worktrees/game-opus-racing-review3/tools/critters/lab.html",
+        "worktrees/game-opus-social-review3/tools/critters/lab.html",
+        "worktrees/game-opus-waterfront-review3/tools/critters/lab.html",
+        "workspace/game-opus/tools/critters/lab.html",
+        "workspace/reports/tiredwood-code-review-2026-10-07/frozen-source/tools/critters/lab.html",
+        "workspace/.claude/worktrees/mcp-blender-integration-127bb2/reports/tiredwood-code-review-2026-10-07/frozen-source/tools/critters/lab.html"
+      ]
+    },
+    {
+      "id": "23699fdab345bc",
+      "title": "Кальмар · стенд",
+      "origins": [
+        "worktrees/game-opus-dungeon-ui3/tools/fish/squid-lab.html",
+        "worktrees/game-opus-farm-review3/tools/fish/squid-lab.html",
+        "worktrees/game-opus-fortress-approved/tools/fish/squid-lab.html",
+        "worktrees/game-opus-integration-review3/tools/fish/squid-lab.html",
+        "worktrees/game-opus-island-review2/tools/fish/squid-lab.html",
+        "worktrees/game-opus-park-review3/tools/fish/squid-lab.html",
+        "worktrees/game-opus-racing-review3/tools/fish/squid-lab.html",
+        "worktrees/game-opus-social-review3/tools/fish/squid-lab.html",
+        "worktrees/game-opus-waterfront-review3/tools/fish/squid-lab.html",
+        "workspace/game-opus/tools/fish/squid-lab.html",
+        "workspace/reports/tiredwood-code-review-2026-10-07/frozen-source/tools/fish/squid-lab.html",
+        "workspace/.claude/worktrees/mcp-blender-integration-127bb2/reports/tiredwood-code-review-2026-10-07/frozen-source/tools/fish/squid-lab.html"
+      ]
+    },
+    {
+      "id": "55a910593922b1",
+      "title": "Крепость — контролируемое превью босса",
+      "origins": [
+        "worktrees/game-opus-dungeon-ui3/tools/fort-preview/index.html",
+        "worktrees/game-opus-farm-review3/tools/fort-preview/index.html",
+        "worktrees/game-opus-fortress-approved/tools/fort-preview/index.html",
+        "worktrees/game-opus-integration-review3/tools/fort-preview/index.html",
+        "worktrees/game-opus-island-review2/tools/fort-preview/index.html",
+        "worktrees/game-opus-park-review3/tools/fort-preview/index.html",
+        "worktrees/game-opus-racing-review3/tools/fort-preview/index.html",
+        "worktrees/game-opus-social-review3/tools/fort-preview/index.html",
+        "worktrees/game-opus-waterfront-review3/tools/fort-preview/index.html",
+        "workspace/game-opus/tools/fort-preview/index.html",
+        "workspace/reports/tiredwood-code-review-2026-10-07/frozen-source/tools/fort-preview/index.html",
+        "workspace/.claude/worktrees/mcp-blender-integration-127bb2/reports/tiredwood-code-review-2026-10-07/frozen-source/tools/fort-preview/index.html"
+      ]
+    },
+    {
+      "id": "50a69341c1da4e",
+      "title": "Крепость — одобренная осада",
+      "origins": [
+        "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v3/archive/2026-10-12T16-23-29.628Z/index.html"
+      ]
+    },
+    {
+      "id": "a351d82b9c1e8e",
+      "title": "Крепость — одобренная осада",
+      "origins": [
+        "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v3/archive/2026-10-12T16-17-35.786Z/index.html"
+      ]
+    },
+    {
+      "id": "a397a6b3ecae42",
+      "title": "Крепость — одобренная осада",
+      "origins": [
+        "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v3/archive/2026-10-12T19-33-14.574Z/index.html"
+      ]
+    },
+    {
+      "id": "af16d3d388e4bd",
+      "title": "Крепость — одобренная осада",
+      "origins": [
+        "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v3/archive/2026-10-12T16-22-50.419Z/index.html"
+      ]
+    },
+    {
+      "id": "eac8fabf0093a8",
+      "title": "Крепость — одобренная осада",
+      "origins": [
+        "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v3/index.html"
+      ]
+    },
+    {
+      "id": "75c1c84c133634",
+      "title": "Крепость — одобренная осада",
+      "origins": [
+        "worktrees/game-opus-fortress-approved/tools/fortress/index.html",
+        "worktrees/game-opus-integration-review3/tools/fortress/index.html"
+      ]
+    },
+    {
+      "id": "54fdf4fb273d95",
+      "title": "Крепость — стенд замка",
+      "origins": [
+        "worktrees/game-opus-dungeon-ui3/tools/fort-castle/index.html",
+        "worktrees/game-opus-farm-review3/tools/fort-castle/index.html",
+        "worktrees/game-opus-fortress-approved/tools/fort-castle/index.html",
+        "worktrees/game-opus-integration-review3/tools/fort-castle/index.html",
+        "worktrees/game-opus-island-review2/tools/fort-castle/index.html",
+        "worktrees/game-opus-park-review3/tools/fort-castle/index.html",
+        "worktrees/game-opus-racing-review3/tools/fort-castle/index.html",
+        "worktrees/game-opus-social-review3/tools/fort-castle/index.html",
+        "worktrees/game-opus-waterfront-review3/tools/fort-castle/index.html",
+        "workspace/game-opus/tools/fort-castle/index.html",
+        "workspace/reports/tiredwood-code-review-2026-10-07/frozen-source/tools/fort-castle/index.html",
+        "workspace/.claude/worktrees/mcp-blender-integration-127bb2/reports/tiredwood-code-review-2026-10-07/frozen-source/tools/fort-castle/index.html"
+      ]
+    },
+    {
+      "id": "c7c5b317f3a306",
+      "title": "Крепость — эффекты событий и берег",
+      "origins": [
+        "worktrees/game-opus-dungeon-ui3/tools/fort-fx/index.html",
+        "worktrees/game-opus-farm-review3/tools/fort-fx/index.html",
+        "worktrees/game-opus-fortress-approved/tools/fort-fx/index.html",
+        "worktrees/game-opus-integration-review3/tools/fort-fx/index.html",
+        "worktrees/game-opus-island-review2/tools/fort-fx/index.html",
+        "worktrees/game-opus-park-review3/tools/fort-fx/index.html",
+        "worktrees/game-opus-racing-review3/tools/fort-fx/index.html",
+        "worktrees/game-opus-social-review3/tools/fort-fx/index.html",
+        "worktrees/game-opus-waterfront-review3/tools/fort-fx/index.html",
+        "workspace/game-opus/tools/fort-fx/index.html",
+        "workspace/reports/tiredwood-code-review-2026-10-07/frozen-source/tools/fort-fx/index.html",
+        "workspace/.claude/worktrees/mcp-blender-integration-127bb2/reports/tiredwood-code-review-2026-10-07/frozen-source/tools/fort-fx/index.html"
+      ]
+    },
+    {
+      "id": "aedaab608c7f11",
+      "title": "Крепость · башни",
+      "origins": [
+        "worktrees/game-opus-dungeon-ui3/tools/fort-turrets/index.html",
+        "worktrees/game-opus-farm-review3/tools/fort-turrets/index.html",
+        "worktrees/game-opus-fortress-approved/tools/fort-turrets/index.html",
+        "worktrees/game-opus-integration-review3/tools/fort-turrets/index.html",
+        "worktrees/game-opus-island-review2/tools/fort-turrets/index.html",
+        "worktrees/game-opus-park-review3/tools/fort-turrets/index.html",
+        "worktrees/game-opus-racing-review3/tools/fort-turrets/index.html",
+        "worktrees/game-opus-social-review3/tools/fort-turrets/index.html",
+        "worktrees/game-opus-waterfront-review3/tools/fort-turrets/index.html",
+        "workspace/game-opus/tools/fort-turrets/index.html",
+        "workspace/reports/tiredwood-code-review-2026-10-07/frozen-source/tools/fort-turrets/index.html",
+        "workspace/.claude/worktrees/mcp-blender-integration-127bb2/reports/tiredwood-code-review-2026-10-07/frozen-source/tools/fort-turrets/index.html"
+      ]
+    },
+    {
+      "id": "aa2184efcf1708",
+      "title": "Крепость · мобы",
+      "origins": [
+        "worktrees/game-opus-dungeon-ui3/tools/fort-mobs/index.html",
+        "worktrees/game-opus-farm-review3/tools/fort-mobs/index.html",
+        "worktrees/game-opus-fortress-approved/tools/fort-mobs/index.html",
+        "worktrees/game-opus-integration-review3/tools/fort-mobs/index.html",
+        "worktrees/game-opus-island-review2/tools/fort-mobs/index.html",
+        "worktrees/game-opus-park-review3/tools/fort-mobs/index.html",
+        "worktrees/game-opus-racing-review3/tools/fort-mobs/index.html",
+        "worktrees/game-opus-social-review3/tools/fort-mobs/index.html",
+        "worktrees/game-opus-waterfront-review3/tools/fort-mobs/index.html",
+        "workspace/game-opus/tools/fort-mobs/index.html",
+        "workspace/reports/tiredwood-code-review-2026-10-07/frozen-source/tools/fort-mobs/index.html",
+        "workspace/.claude/worktrees/mcp-blender-integration-127bb2/reports/tiredwood-code-review-2026-10-07/frozen-source/tools/fort-mobs/index.html"
+      ]
+    },
+    {
+      "id": "5fbb5f566f6d66",
+      "title": "Крепость · Осада Варенья · TIREDWOOD",
+      "origins": [
+        "workspace/reports/tiredwood-fortress-expansion-2026-10-11/source/report.html",
+        "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v1/source/report.html"
+      ]
+    },
+    {
+      "id": "e96a33e78bd2af",
+      "title": "Крепость · Осада Варенья · TIREDWOOD",
+      "origins": [
+        "workspace/reports/tiredwood-fortress-expansion-2026-10-11/index.html",
+        "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v1/index.html"
+      ]
+    },
+    {
+      "id": "225a25f452a9ca",
+      "title": "Крепость v2 · Замок участвует в осаде",
+      "origins": [
+        "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/source/report.html"
+      ]
+    },
+    {
+      "id": "1ac52aa9ed034d",
+      "title": "Крепость v2 · Замок участвует в осаде",
+      "origins": [
+        "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/archive/pre-texture-ab2-20261012/source/report.html"
+      ]
+    },
+    {
+      "id": "bae3a42023cead",
+      "title": "Крепость v2 · Замок участвует в осаде",
+      "origins": [
+        "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/archive/pre-texture-ab2-20261012/index.html"
+      ]
+    },
+    {
+      "id": "7b9306423d3f2d",
+      "title": "Крепость v2 · Замок участвует в осаде",
+      "origins": [
+        "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/index.html"
+      ]
+    },
+    {
+      "id": "07ec8d712a58b9",
+      "title": "Лаборатория TIREDWOOD",
+      "origins": [
+        "worktrees/game-opus-dungeon-ui3/lab/index.html",
+        "worktrees/game-opus-farm-review3/lab/index.html",
+        "worktrees/game-opus-fortress-approved/lab/index.html",
+        "worktrees/game-opus-integration-review3/lab/index.html",
+        "worktrees/game-opus-island-review2/lab/index.html",
+        "worktrees/game-opus-park-review3/lab/index.html",
+        "worktrees/game-opus-racing-review3/lab/index.html",
+        "worktrees/game-opus-social-review3/lab/index.html",
+        "worktrees/game-opus-waterfront-review3/lab/index.html",
+        "workspace/game-opus/lab/index.html"
+      ]
+    },
+    {
+      "id": "da7397c34ec018",
+      "title": "Лаборатория TIREDWOOD",
+      "origins": [
+        "workspace/reports/tiredwood-code-review-2026-10-07/frozen-source/lab/index.html",
+        "workspace/.claude/worktrees/mcp-blender-integration-127bb2/reports/tiredwood-code-review-2026-10-07/frozen-source/lab/index.html"
+      ]
+    },
+    {
+      "id": "b9a01f3fa62bf2",
+      "title": "Мастерская Фонарщика — эволюции на герое",
+      "origins": [
+        "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evolutions-r8/source/index.template.html",
+        "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evolutions-r7/source/index.template.html"
+      ]
+    },
+    {
+      "id": "7c52c5c11d040f",
+      "title": "Мастерская Фонарщика — эволюции на герое",
+      "origins": [
+        "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evolutions-r8/index.html"
+      ]
+    },
+    {
+      "id": "6bb313f8562498",
+      "title": "Мастерская Фонарщика — эволюции на герое",
+      "origins": [
+        "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evolutions-r7/index.html"
+      ]
+    },
+    {
+      "id": "c7c9383710e942",
+      "title": "Музыкальный автомат — модель",
+      "origins": [
+        "worktrees/game-opus-dungeon-ui3/tools/jukebox-model/index.html",
+        "worktrees/game-opus-farm-review3/tools/jukebox-model/index.html",
+        "worktrees/game-opus-fortress-approved/tools/jukebox-model/index.html",
+        "worktrees/game-opus-integration-review3/tools/jukebox-model/index.html",
+        "worktrees/game-opus-island-review2/tools/jukebox-model/index.html",
+        "worktrees/game-opus-park-review3/tools/jukebox-model/index.html",
+        "worktrees/game-opus-racing-review3/tools/jukebox-model/index.html",
+        "worktrees/game-opus-social-review3/tools/jukebox-model/index.html",
+        "worktrees/game-opus-waterfront-review3/tools/jukebox-model/index.html",
+        "workspace/game-opus/tools/jukebox-model/index.html",
+        "workspace/reports/tiredwood-code-review-2026-10-07/frozen-source/tools/jukebox-model/index.html",
+        "workspace/.claude/worktrees/mcp-blender-integration-127bb2/reports/tiredwood-code-review-2026-10-07/frozen-source/tools/jukebox-model/index.html"
+      ]
+    },
+    {
+      "id": "7172e33fdf8829",
+      "title": "Окно автомата — стенд",
+      "origins": [
+        "worktrees/game-opus-dungeon-ui3/tools/jukebox-panel/index.html",
+        "worktrees/game-opus-farm-review3/tools/jukebox-panel/index.html",
+        "worktrees/game-opus-fortress-approved/tools/jukebox-panel/index.html",
+        "worktrees/game-opus-integration-review3/tools/jukebox-panel/index.html",
+        "worktrees/game-opus-island-review2/tools/jukebox-panel/index.html",
+        "worktrees/game-opus-park-review3/tools/jukebox-panel/index.html",
+        "worktrees/game-opus-racing-review3/tools/jukebox-panel/index.html",
+        "worktrees/game-opus-social-review3/tools/jukebox-panel/index.html",
+        "worktrees/game-opus-waterfront-review3/tools/jukebox-panel/index.html",
+        "workspace/game-opus/tools/jukebox-panel/index.html",
+        "workspace/reports/tiredwood-code-review-2026-10-07/frozen-source/tools/jukebox-panel/index.html",
+        "workspace/.claude/worktrees/mcp-blender-integration-127bb2/reports/tiredwood-code-review-2026-10-07/frozen-source/tools/jukebox-panel/index.html"
+      ]
+    },
+    {
+      "id": "671240b97ae298",
+      "title": "Песни автомата — стенд",
+      "origins": [
+        "worktrees/game-opus-dungeon-ui3/tools/jukebox-lab/index.html",
+        "worktrees/game-opus-farm-review3/tools/jukebox-lab/index.html",
+        "worktrees/game-opus-fortress-approved/tools/jukebox-lab/index.html",
+        "worktrees/game-opus-integration-review3/tools/jukebox-lab/index.html",
+        "worktrees/game-opus-island-review2/tools/jukebox-lab/index.html",
+        "worktrees/game-opus-park-review3/tools/jukebox-lab/index.html",
+        "worktrees/game-opus-racing-review3/tools/jukebox-lab/index.html",
+        "worktrees/game-opus-social-review3/tools/jukebox-lab/index.html",
+        "worktrees/game-opus-waterfront-review3/tools/jukebox-lab/index.html",
+        "workspace/game-opus/tools/jukebox-lab/index.html",
+        "workspace/reports/tiredwood-code-review-2026-10-07/frozen-source/tools/jukebox-lab/index.html",
+        "workspace/.claude/worktrees/mcp-blender-integration-127bb2/reports/tiredwood-code-review-2026-10-07/frozen-source/tools/jukebox-lab/index.html"
+      ]
+    },
+    {
+      "id": "6e44fa2f158c11",
+      "title": "Пираты · стенд моделей",
+      "origins": [
+        "worktrees/game-opus-dungeon-ui3/tools/pirate-lab/index.html",
+        "worktrees/game-opus-farm-review3/tools/pirate-lab/index.html",
+        "worktrees/game-opus-fortress-approved/tools/pirate-lab/index.html",
+        "worktrees/game-opus-integration-review3/tools/pirate-lab/index.html",
+        "worktrees/game-opus-island-review2/tools/pirate-lab/index.html",
+        "worktrees/game-opus-park-review3/tools/pirate-lab/index.html",
+        "worktrees/game-opus-racing-review3/tools/pirate-lab/index.html",
+        "worktrees/game-opus-social-review3/tools/pirate-lab/index.html",
+        "worktrees/game-opus-waterfront-review3/tools/pirate-lab/index.html",
+        "workspace/game-opus/tools/pirate-lab/index.html",
+        "workspace/reports/tiredwood-code-review-2026-10-07/frozen-source/tools/pirate-lab/index.html",
+        "workspace/.claude/worktrees/mcp-blender-integration-127bb2/reports/tiredwood-code-review-2026-10-07/frozen-source/tools/pirate-lab/index.html"
+      ]
+    },
+    {
+      "id": "75e19310fb7ea0",
+      "title": "Подземелье",
+      "origins": [
+        "worktrees/game-opus-dungeon-ui3/tools/survivors/page/src/p2-body.html",
+        "worktrees/game-opus-farm-review3/tools/survivors/page/src/p2-body.html",
+        "worktrees/game-opus-fortress-approved/tools/survivors/page/src/p2-body.html",
+        "worktrees/game-opus-integration-review3/tools/survivors/page/src/p2-body.html",
+        "worktrees/game-opus-island-review2/tools/survivors/page/src/p2-body.html",
+        "worktrees/game-opus-park-review3/tools/survivors/page/src/p2-body.html",
+        "worktrees/game-opus-racing-review3/tools/survivors/page/src/p2-body.html",
+        "worktrees/game-opus-social-review3/tools/survivors/page/src/p2-body.html",
+        "worktrees/game-opus-waterfront-review3/tools/survivors/page/src/p2-body.html",
+        "workspace/game-opus/tools/survivors/page/src/p2-body.html"
+      ]
+    },
+    {
+      "id": "2207cb168d264b",
+      "title": "Подземелье",
+      "origins": [
+        "worktrees/game-opus-dungeon-ui3/tools/survivors/page/src/p1-style.html",
+        "worktrees/game-opus-farm-review3/tools/survivors/page/src/p1-style.html",
+        "worktrees/game-opus-fortress-approved/tools/survivors/page/src/p1-style.html",
+        "worktrees/game-opus-integration-review3/tools/survivors/page/src/p1-style.html",
+        "worktrees/game-opus-island-review2/tools/survivors/page/src/p1-style.html",
+        "worktrees/game-opus-park-review3/tools/survivors/page/src/p1-style.html",
+        "worktrees/game-opus-racing-review3/tools/survivors/page/src/p1-style.html",
+        "worktrees/game-opus-social-review3/tools/survivors/page/src/p1-style.html",
+        "worktrees/game-opus-waterfront-review3/tools/survivors/page/src/p1-style.html",
+        "workspace/game-opus/tools/survivors/page/src/p1-style.html"
+      ]
+    },
+    {
+      "id": "bd48a58b81f9f9",
+      "title": "Подземелье — стенд клиента",
+      "origins": [
+        "worktrees/game-opus-dungeon-ui3/tools/survivors/stand/index.html",
+        "worktrees/game-opus-farm-review3/tools/survivors/stand/index.html",
+        "worktrees/game-opus-fortress-approved/tools/survivors/stand/index.html",
+        "worktrees/game-opus-integration-review3/tools/survivors/stand/index.html",
+        "worktrees/game-opus-island-review2/tools/survivors/stand/index.html",
+        "worktrees/game-opus-park-review3/tools/survivors/stand/index.html",
+        "worktrees/game-opus-racing-review3/tools/survivors/stand/index.html",
+        "worktrees/game-opus-social-review3/tools/survivors/stand/index.html",
+        "worktrees/game-opus-waterfront-review3/tools/survivors/stand/index.html",
+        "workspace/game-opus/tools/survivors/stand/index.html"
+      ]
+    },
+    {
+      "id": "57f7b38892acf9",
+      "title": "Подземелье · Второй ярус · Волны 16–20",
+      "origins": [
+        "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/r5-2026-10-12/index.html"
+      ]
+    },
+    {
+      "id": "a6370d383ab0b4",
+      "title": "Подземелье · Второй ярус · Волны 16–20",
+      "origins": [
+        "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/revision1-rejected/index.html",
+        "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/index.html",
+        "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/revision1-rejected/index.html"
+      ]
+    },
+    {
+      "id": "dac9c7c22a44ce",
+      "title": "Подземелье · Второй ярус · Волны 16–20",
+      "origins": [
+        "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/source/index.template.html"
+      ]
+    },
+    {
+      "id": "60f2c4d5896617",
+      "title": "Подземелье · Второй ярус · Волны 16–20",
+      "origins": [
+        "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/source/index.template.html"
+      ]
+    },
+    {
+      "id": "17e53e92533f66",
+      "title": "Подземелье · Второй ярус · Волны 16–20",
+      "origins": [
+        "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/r4-2026-10-12/index.html"
+      ]
+    },
+    {
+      "id": "e125b4eb4d8819",
+      "title": "Подземелье · Второй ярус · Волны 16–20",
+      "origins": [
+        "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/index.html"
+      ]
+    },
+    {
+      "id": "3e1f26ac930098",
+      "title": "Портовое кольцо — предпросмотр",
+      "origins": [
+        "worktrees/game-opus-dungeon-ui3/tools/race-preview/index.html",
+        "worktrees/game-opus-farm-review3/tools/race-preview/index.html",
+        "worktrees/game-opus-fortress-approved/tools/race-preview/index.html",
+        "worktrees/game-opus-integration-review3/tools/race-preview/index.html",
+        "worktrees/game-opus-island-review2/tools/race-preview/index.html",
+        "worktrees/game-opus-park-review3/tools/race-preview/index.html",
+        "worktrees/game-opus-racing-review3/tools/race-preview/index.html",
+        "worktrees/game-opus-social-review3/tools/race-preview/index.html",
+        "worktrees/game-opus-waterfront-review3/tools/race-preview/index.html",
+        "workspace/game-opus/tools/race-preview/index.html",
+        "workspace/reports/tiredwood-code-review-2026-10-07/frozen-source/tools/race-preview/index.html",
+        "workspace/.claude/worktrees/mcp-blender-integration-127bb2/reports/tiredwood-code-review-2026-10-07/frozen-source/tools/race-preview/index.html"
+      ]
+    },
+    {
+      "id": "9c04a33cfefe69",
+      "title": "Примерочная · TIREDWOOD Lab",
+      "origins": [
+        "worktrees/game-opus-dungeon-ui3/lab/fitting-room/index.html",
+        "worktrees/game-opus-farm-review3/lab/fitting-room/index.html",
+        "worktrees/game-opus-fortress-approved/lab/fitting-room/index.html",
+        "worktrees/game-opus-integration-review3/lab/fitting-room/index.html",
+        "worktrees/game-opus-island-review2/lab/fitting-room/index.html",
+        "worktrees/game-opus-park-review3/lab/fitting-room/index.html",
+        "worktrees/game-opus-racing-review3/lab/fitting-room/index.html",
+        "worktrees/game-opus-social-review3/lab/fitting-room/index.html",
+        "worktrees/game-opus-waterfront-review3/lab/fitting-room/index.html",
+        "workspace/game-opus/lab/fitting-room/index.html"
+      ]
+    },
+    {
+      "id": "44c79002273d45",
+      "title": "Радио на лодке — стенд станций",
+      "origins": [
+        "worktrees/game-opus-dungeon-ui3/tools/radio-lab/index.html",
+        "worktrees/game-opus-farm-review3/tools/radio-lab/index.html",
+        "worktrees/game-opus-fortress-approved/tools/radio-lab/index.html",
+        "worktrees/game-opus-integration-review3/tools/radio-lab/index.html",
+        "worktrees/game-opus-island-review2/tools/radio-lab/index.html",
+        "worktrees/game-opus-park-review3/tools/radio-lab/index.html",
+        "worktrees/game-opus-racing-review3/tools/radio-lab/index.html",
+        "worktrees/game-opus-social-review3/tools/radio-lab/index.html",
+        "worktrees/game-opus-waterfront-review3/tools/radio-lab/index.html",
+        "workspace/game-opus/tools/radio-lab/index.html"
+      ]
+    },
+    {
+      "id": "ad49f39c3fa6e2",
+      "title": "Способности мификов",
+      "origins": [
+        "worktrees/game-opus-dungeon-ui3/tools/fish/abilities-lab.template.html",
+        "worktrees/game-opus-farm-review3/tools/fish/abilities-lab.template.html",
+        "worktrees/game-opus-fortress-approved/tools/fish/abilities-lab.template.html",
+        "worktrees/game-opus-integration-review3/tools/fish/abilities-lab.template.html",
+        "worktrees/game-opus-island-review2/tools/fish/abilities-lab.template.html",
+        "worktrees/game-opus-park-review3/tools/fish/abilities-lab.template.html",
+        "worktrees/game-opus-racing-review3/tools/fish/abilities-lab.template.html",
+        "worktrees/game-opus-social-review3/tools/fish/abilities-lab.template.html",
+        "worktrees/game-opus-waterfront-review3/tools/fish/abilities-lab.template.html",
+        "workspace/game-opus/tools/fish/abilities-lab.template.html"
+      ]
+    },
+    {
+      "id": "931126ddd0dd0a",
+      "title": "TIREDWOOD — десять направлений HUD",
+      "origins": [
+        "workspace/reports/tiredwood-hud-five-directions-2026-10-12/source/page.html",
+        "workspace/reports/tiredwood-hud-five-directions-2026-10-12/archive/ten-materials-approved-before-11-15-2026-10-12/source/page.html"
+      ]
+    },
+    {
+      "id": "20ffe2a4327d12",
+      "title": "TIREDWOOD — десять направлений HUD",
+      "origins": [
+        "workspace/reports/tiredwood-hud-five-directions-2026-10-12/archive/ten-layouts-before-material-redesign-2026-10-12/source/page.html"
+      ]
+    },
+    {
+      "id": "48ba4e87cc92fc",
+      "title": "TIREDWOOD — пять направлений HUD",
+      "origins": [
+        "workspace/reports/tiredwood-hud-five-directions-2026-10-12/archive/first-five-qa-2026-10-12/source/page.html"
+      ]
+    },
+    {
+      "id": "17835461cc3803",
+      "title": "TIREDWOOD — сравнение рендереров",
+      "origins": [
+        "worktrees/game-opus-dungeon-ui3/tools/render-bench/index.html",
+        "worktrees/game-opus-farm-review3/tools/render-bench/index.html",
+        "worktrees/game-opus-fortress-approved/tools/render-bench/index.html",
+        "worktrees/game-opus-integration-review3/tools/render-bench/index.html",
+        "worktrees/game-opus-island-review2/tools/render-bench/index.html",
+        "worktrees/game-opus-park-review3/tools/render-bench/index.html",
+        "worktrees/game-opus-racing-review3/tools/render-bench/index.html",
+        "worktrees/game-opus-social-review3/tools/render-bench/index.html",
+        "worktrees/game-opus-waterfront-review3/tools/render-bench/index.html",
+        "workspace/game-opus/tools/render-bench/index.html"
+      ]
+    },
+    {
+      "id": "969a0656da2b38",
+      "title": "TIREDWOOD · вода от берега к морю",
+      "origins": [
+        "workspace/reports/tiredwood-water-study-2026-10-12/source/page.html",
+        "workspace/reports/tiredwood-water-study-2026-10-12/archive/pre-b2-20261012/source/page.html"
+      ]
+    },
+    {
+      "id": "27edec787c55ca",
+      "title": "TIREDWOOD · вода от берега к морю",
+      "origins": [
+        "workspace/reports/tiredwood-water-study-2026-10-12/archive/pre-b2-20261012/index.html"
+      ]
+    },
+    {
+      "id": "29a5f56363feed",
+      "title": "TIREDWOOD · вода от берега к морю",
+      "origins": [
+        "workspace/reports/tiredwood-water-study-2026-10-12/archive/pre-browser-root-fix/index.html"
+      ]
+    },
+    {
+      "id": "28445dd5bdf546",
+      "title": "TIREDWOOD · Продуктовая лаборатория",
+      "origins": [
+        "workspace/reports/tiredwood-product-lab-v2-2026-10-12/source/index.html"
+      ]
+    },
+    {
+      "id": "89dfeedf372274",
+      "title": "TIREDWOOD · Продуктовая лаборатория",
+      "origins": [
+        "workspace/reports/tiredwood-product-lab-v2-2026-10-12/index.html"
+      ]
+    },
+    {
+      "id": "c3c0fd4098fae0",
+      "title": "TIREDWOOD · Продуктовая лаборатория",
+      "origins": [
+        "workspace/reports/tiredwood-product-lab-v2-2026-10-12/evidence/history/product-lab-before-farm-cosmetic-fix/index.html"
+      ]
+    },
+    {
+      "id": "a2acba9d6996e3",
+      "title": "TIREDWOOD · Продуктовая лаборатория",
+      "origins": [
+        "workspace/reports/tiredwood-product-lab-v2-2026-10-12/evidence/history/product-lab-before-inspector-fit/index.html"
+      ]
+    },
+    {
+      "id": "d58ad3706eddc2",
+      "title": "TIREDWOOD · Шесть мини-режимов",
+      "origins": [
+        "workspace/reports/tiredwood-minigames-concepts-2026-10-12/source/report.html"
+      ]
+    },
+    {
+      "id": "800cd4fb1d59c6",
+      "title": "TIREDWOOD · B2: широкая объёмная волна",
+      "origins": [
+        "workspace/reports/tiredwood-water-study-2026-10-12/v2/source/page.html"
+      ]
+    },
+    {
+      "id": "ed04b6e70ea8ba",
+      "title": "TIREDWOOD · B2: широкая объёмная волна",
+      "origins": [
+        "workspace/reports/tiredwood-water-study-2026-10-12/v2/index.html"
+      ]
+    },
+    {
+      "id": "015fec22b382b0",
+      "title": "TIREDWOOD · B3: волна рядом с лодкой",
+      "origins": [
+        "workspace/reports/tiredwood-water-study-2026-10-12/v3/source/page.html"
+      ]
+    },
+    {
+      "id": "caeee96eeca76c",
+      "title": "TIREDWOOD · B3: волна рядом с лодкой",
+      "origins": [
+        "workspace/reports/tiredwood-water-study-2026-10-12/v3/index.html"
+      ]
+    }
+  ]
+}

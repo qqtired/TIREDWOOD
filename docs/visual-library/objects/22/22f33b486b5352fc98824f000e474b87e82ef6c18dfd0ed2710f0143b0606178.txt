@@ -1,0 +1,5 @@
+Original generated file: [LOCAL_PATH]
+Tool used: built-in image_gen.imagegen (image_gen__imagegen)
+Model: not exposed by the built-in tool
+Generation: exactly one image; two local images supplied as style references
+Copy: original PNG copied unchanged, with no crop, resizing, conversion, retouch or compression

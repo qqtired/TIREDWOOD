@@ -1,0 +1,317 @@
+{
+  "scope": "Native mechanical counter QA using existing two browser clients and supported /wave W 1 setup; not two-player balance acceptance",
+  "cases": [
+    {
+      "name": "tower",
+      "file": "fort-tower-native3.json",
+      "id": 797,
+      "wave": 10,
+      "debugDefenders": 1,
+      "nativeBursts": 4,
+      "counterCancelled": true,
+      "bodyDied": true,
+      "hpAfter": 12,
+      "afterTarget": null,
+      "peerCancellationSame": true,
+      "cancelTick": 72584,
+      "eventsAfterCancellation": [
+        {
+          "t": "fev",
+          "tick": 72584,
+          "e": [
+            "siege",
+            797,
+            0,
+            0,
+            4,
+            52
+          ]
+        },
+        {
+          "t": "fev",
+          "tick": 72584,
+          "e": [
+            "warnend",
+            797
+          ]
+        },
+        {
+          "t": "fev",
+          "tick": 72584,
+          "e": [
+            "warnend",
+            797
+          ]
+        },
+        {
+          "t": "fev",
+          "tick": 72584,
+          "e": [
+            "zdie",
+            797,
+            2,
+            -12.44,
+            0,
+            -18.89,
+            26,
+            0
+          ]
+        },
+        {
+          "t": "fev",
+          "tick": 72584,
+          "e": [
+            "siege",
+            797,
+            0,
+            0,
+            4,
+            54
+          ]
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "battery",
+      "file": "fort-battery-native3.json",
+      "id": 848,
+      "wave": 16,
+      "debugDefenders": 1,
+      "nativeBursts": 4,
+      "counterCancelled": true,
+      "bodyDied": true,
+      "hpAfter": 100,
+      "afterTarget": null,
+      "peerCancellationSame": true,
+      "cancelTick": 74940,
+      "eventsAfterCancellation": [
+        {
+          "t": "fev",
+          "tick": 74940,
+          "e": [
+            "siege",
+            848,
+            0,
+            0,
+            4,
+            52
+          ]
+        },
+        {
+          "t": "fev",
+          "tick": 74940,
+          "e": [
+            "warnend",
+            848
+          ]
+        },
+        {
+          "t": "fev",
+          "tick": 74940,
+          "e": [
+            "warnend",
+            848
+          ]
+        },
+        {
+          "t": "fev",
+          "tick": 74940,
+          "e": [
+            "zdie",
+            848,
+            2,
+            9.91,
+            0,
+            -30.27,
+            27,
+            0
+          ]
+        },
+        {
+          "t": "fev",
+          "tick": 74940,
+          "e": [
+            "siege",
+            848,
+            0,
+            0,
+            4,
+            54
+          ]
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "spring",
+      "file": "fort-spring-native3.json",
+      "id": 869,
+      "wave": 15,
+      "debugDefenders": 1,
+      "nativeBursts": 3,
+      "counterCancelled": true,
+      "bodyDied": false,
+      "hpAfter": 100,
+      "afterTarget": {
+        "id": 869,
+        "kind": 28,
+        "state": 53,
+        "hp": 0.8509803921568627,
+        "x": -12.43,
+        "y": 0,
+        "z": -17.88,
+        "tx": -12.5,
+        "ty": 3.4,
+        "tz": -14.3,
+        "stage": 0
+      },
+      "peerCancellationSame": true,
+      "cancelTick": 76886,
+      "eventsAfterCancellation": [
+        {
+          "t": "fev",
+          "tick": 76886,
+          "e": [
+            "siege",
+            869,
+            0,
+            0,
+            3,
+            52
+          ]
+        },
+        {
+          "t": "fev",
+          "tick": 76886,
+          "e": [
+            "warnend",
+            869
+          ]
+        },
+        {
+          "t": "fev",
+          "tick": 76886,
+          "e": [
+            "siege",
+            869,
+            0,
+            0,
+            3,
+            53
+          ]
+        },
+        {
+          "t": "fev",
+          "tick": 76886,
+          "e": [
+            "siegephase",
+            869,
+            28,
+            53,
+            76885,
+            77125
+          ]
+        },
+        {
+          "t": "fev",
+          "tick": 76886,
+          "e": [
+            "siegephase",
+            869,
+            28,
+            53,
+            76885,
+            77124
+          ]
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "anchor-retry",
+      "file": "fort-anchor-retry-native3.json",
+      "id": 912,
+      "wave": 13,
+      "debugDefenders": 1,
+      "nativeBursts": 3,
+      "counterCancelled": true,
+      "bodyDied": false,
+      "hpAfter": 100,
+      "afterTarget": {
+        "id": 912,
+        "kind": 14,
+        "state": 53,
+        "hp": 1,
+        "x": -13.05,
+        "y": -1.25,
+        "z": 27.52,
+        "tx": -12.5,
+        "ty": 3.4,
+        "tz": 12.3,
+        "stage": 4
+      },
+      "peerCancellationSame": true,
+      "cancelTick": 80386,
+      "eventsAfterCancellation": [
+        {
+          "t": "fev",
+          "tick": 80386,
+          "e": [
+            "siege",
+            912,
+            1,
+            0,
+            3,
+            50
+          ]
+        },
+        {
+          "t": "fev",
+          "tick": 80386,
+          "e": [
+            "warnend",
+            912
+          ]
+        },
+        {
+          "t": "fev",
+          "tick": 80386,
+          "e": [
+            "siege",
+            912,
+            1,
+            0,
+            3,
+            53
+          ]
+        },
+        {
+          "t": "fev",
+          "tick": 80386,
+          "e": [
+            "siegephase",
+            912,
+            14,
+            53,
+            80385,
+            80565
+          ]
+        },
+        {
+          "t": "fev",
+          "tick": 80386,
+          "e": [
+            "siegephase",
+            912,
+            14,
+            53,
+            80385,
+            80564
+          ]
+        }
+      ],
+      "errors": []
+    }
+  ]
+}

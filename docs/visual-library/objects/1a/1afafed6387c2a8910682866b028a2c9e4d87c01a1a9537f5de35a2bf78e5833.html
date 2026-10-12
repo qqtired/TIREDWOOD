@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="ru" data-skin="retro2" data-hud="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="referrer" content="no-referrer" />
+    <title>Интерфейс TIREDWOOD 2.0</title>
+    <meta name="description" content="Версия 2.0 нового интерфейса игры: компактный HUD поверх игры, три новых стиля и выбор шрифта заголовков" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M32 6c-13 0-22 13-22 30 0 13 9 22 22 22s22-9 22-22C54 19 45 6 32 6z' fill='%23ff8a1c'/%3E%3Ccircle cx='25' cy='30' r='5' fill='%23fff'/%3E%3Ccircle cx='39' cy='30' r='5' fill='%23fff'/%3E%3Ccircle cx='26' cy='31' r='2.4' fill='%23222'/%3E%3Ccircle cx='40' cy='31' r='2.4' fill='%23222'/%3E%3C/svg%3E" />
+    <script>
+      // шкурка и шрифт заголовков до первой отрисовки — без мигания (свои ключи, чтобы не задевать первую версию)
+      try {
+        var s = localStorage.getItem('tw-ui2-skin');
+        if (s === 'retro2' || s === 'beach' || s === 'dusk') document.documentElement.dataset.skin = s;
+        var f = localStorage.getItem('tw-ui2-font');
+        if (f === 'rubik' || f === 'unbounded' || f === 'dela' || f === 'mono' || f === 'russo') document.documentElement.dataset.font = f;
+        // HUD поверх игры у «Ретро-парка 2.0»: light (по умолчанию) или enamel
+        if (localStorage.getItem('tw-ui2-hud') === 'enamel') document.documentElement.dataset.hud = 'enamel';
+      } catch (e) {}
+    </script>
+    <!-- заголовочные шрифты (все с кириллицей) + Rubik 600/800 (400/500/700/900 — локально). Для игры их надо положить локально. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="../../../../../vendor/2bd09d1e113bcd95.css" />
+    <link rel="stylesheet" href="./kit/tokens.css" />
+    <link rel="stylesheet" href="./kit/kit.css" />
+    <!-- боевые детали (стрелки угроз, панель бойца) — см. kit/KIT-combat.md -->
+    <link rel="stylesheet" href="./kit/combat.css" />
+    <link rel="stylesheet" href="./page/page.css" />
+    <!-- стили групп экранов: файл может отсутствовать — страница от этого не ломается -->
+    <link rel="stylesheet" href="./screens/entry.css" />
+    <link rel="stylesheet" href="./screens/plaza.css" />
+    <link rel="stylesheet" href="./screens/fishing.css" />
+    <link rel="stylesheet" href="./screens/farm.css" />
+    <link rel="stylesheet" href="./screens/fort.css" />
+    <link rel="stylesheet" href="./screens/modes.css" />
+    <link rel="stylesheet" href="./screens/icons.css" />
+  </head>
+  <body>
+    <main class="pg">
+      <!-- ========================================================== шапка -->
+      <header class="pg-top">
+        <div class="pg-brand"><span class="pg-jelly" aria-hidden="true"></span>TIREDWOOD · лаборатория<span class="pg-ver">версия 2.0</span></div>
+        <h1 class="pg-title">Новый интерфейс 2.0</h1>
+        <p class="pg-intro">
+          Раскладка, окна, меню Esc и «Кто где» — как в первой версии: они понравились, их не трогали.<br />
+          Что поменяли: всё, что висит поверх игры, стало в 2–3 раза меньше и легче. Бейдж — тонкая полоска, рюкзак и пиво — плитки с подписью снизу,
+          событие — одна строка, панель бойца — отдельными блоками.<br />
+          И три новых стиля: нажми на карточку — вся страница переоденется. Шрифт заголовков меняется кнопками ниже.
+        </p>
+        <p class="pg-v1"><a href="https://tired.solutions/tech/tiredwood-ui/" target="_blank" rel="noopener">Первая версия — по ссылке</a><span>там стили А–В: Вечерняя веранда, Курортная открытка, Ретро-парк</span></p>
+
+        <div class="pg-skins" role="radiogroup" aria-label="Стиль интерфейса">
+          <button class="pg-skin" data-skin="retro2" role="radio" aria-checked="false" data-pick="retro2">
+            <span class="pg-skin-art" aria-hidden="true">
+              <span class="pg-skin-hud"><span class="k-badge"><span class="k-ring" style="--p:.64"><b>12</b></span><span class="k-badge-body"><span class="k-badge-nick">Кракозябра</span><span class="k-badge-tokens"><img class="k-coin" src="./img/icons/coin.svg" alt="" />1 250</span></span></span></span>
+              <span class="pg-skin-win">
+                <span class="pg-skin-head"><img src="./img/icons/beer.webp" alt="" /><b>Кафе «Чайка»</b></span>
+                <span class="pg-skin-row"><span class="k-btn k-btn--go k-btn--sm">Да<kbd class="k-key k-key--sm k-key--tr">Y</kbd></span><span class="k-btn k-btn--sm">Ставка</span></span>
+              </span>
+            </span>
+            <span class="pg-skin-name">Г · Ретро-парк 2.0</span>
+            <span class="pg-skin-desc">Бирюзовая эмаль, крем и коралл — как Ретро-парк, но тоньше: узкая маркиза в шапке, лампочки только у важного.</span>
+            <span class="pg-skin-mark">Выбрано</span>
+          </button>
+          <button class="pg-skin" data-skin="beach" role="radio" aria-checked="false" data-pick="beach">
+            <span class="pg-skin-art" aria-hidden="true">
+              <span class="pg-skin-hud"><span class="k-badge"><span class="k-ring" style="--p:.64"><b>12</b></span><span class="k-badge-body"><span class="k-badge-nick">Кракозябра</span><span class="k-badge-tokens"><img class="k-coin" src="./img/icons/coin.svg" alt="" />1 250</span></span></span></span>
+              <span class="pg-skin-win">
+                <span class="pg-skin-head"><img src="./img/icons/beer.webp" alt="" /><b>Кафе «Чайка»</b></span>
+                <span class="pg-skin-row"><span class="k-btn k-btn--go k-btn--sm">Да<kbd class="k-key k-key--sm k-key--tr">Y</kbd></span><span class="k-btn k-btn--sm">Ставка</span></span>
+              </span>
+            </span>
+            <span class="pg-skin-name">Д · Пляжный день</span>
+            <span class="pg-skin-desc">Светлый: поверх игры — белое матовое стекло, окна — тёплый белый. Морская бирюза, коралл, солнечное золото.</span>
+            <span class="pg-skin-mark">Выбрано</span>
+          </button>
+          <button class="pg-skin" data-skin="dusk" role="radio" aria-checked="false" data-pick="dusk">
+            <span class="pg-skin-art" aria-hidden="true">
+              <span class="pg-skin-hud"><span class="k-badge"><span class="k-ring" style="--p:.64"><b>12</b></span><span class="k-badge-body"><span class="k-badge-nick">Кракозябра</span><span class="k-badge-tokens"><img class="k-coin" src="./img/icons/coin.svg" alt="" />1 250</span></span></span></span>
+              <span class="pg-skin-win">
+                <span class="pg-skin-head"><img src="./img/icons/beer.webp" alt="" /><b>Кафе «Чайка»</b></span>
+                <span class="pg-skin-row"><span class="k-btn k-btn--go k-btn--sm">Да<kbd class="k-key k-key--sm k-key--tr">Y</kbd></span><span class="k-btn k-btn--sm">Ставка</span></span>
+              </span>
+            </span>
+            <span class="pg-skin-name">Е · Закат</span>
+            <span class="pg-skin-desc">Смесь: поверх игры — тёмное дымчатое стекло (читается на яркой сцене), окна — светлые, с цветной эмалевой шапкой.</span>
+            <span class="pg-skin-mark">Выбрано</span>
+          </button>
+        </div>
+
+        <div class="pg-hud" role="group" aria-label="HUD поверх игры">
+          <span class="pg-fonts-h">HUD поверх игры:</span>
+          <div class="k-seg pg-hud-seg">
+            <button type="button" data-hud="enamel">Эмаль (как в Ретро)</button>
+            <button type="button" data-hud="light">Светлый (как в Пляжном дне)</button>
+          </div>
+          <span class="pg-hud-note">Меню и окна — всегда Ретро-парк 2.0; меняется только то, что поверх игры.</span>
+        </div>
+
+        <div class="pg-fonts" role="group" aria-label="Шрифт заголовков">
+          <span class="pg-fonts-h">Шрифт заголовков:</span>
+          <div class="k-seg pg-fonts-seg">
+            <button type="button" data-font="">как в стиле</button>
+            <button type="button" data-font="rubik" style="font-family: Rubik">Rubik</button>
+            <button type="button" data-font="unbounded" style="font-family: Unbounded">Unbounded</button>
+            <button type="button" data-font="dela" style="font-family: 'Dela Gothic One'">Dela Gothic One</button>
+            <button type="button" data-font="mono" style="font-family: 'Rubik Mono One'">Rubik Mono One</button>
+            <button type="button" data-font="russo" style="font-family: 'Russo One'">Russo One</button>
+          </div>
+        </div>
+
+        <div class="pg-compare" id="pg-compare" aria-label="Одни и те же детали в трёх стилях"></div>
+
+        <div class="pg-tools">
+          <label class="k-switch pg-sound"><input type="checkbox" id="pg-sound" checked /><span class="k-switch-track"></span>Звуки интерфейса</label>
+          <nav class="pg-toc" aria-label="Разделы">
+            <a href="#grid">Сетка экрана</a>
+            <a href="#details">Детали</a>
+            <a href="#screens-entry">Вход в игру</a>
+            <a href="#screens-plaza">Набережная</a>
+            <a href="#screens-fishing">Рыбалка</a>
+            <a href="#screens-farm">Ферма</a>
+            <a href="#screens-fort">Крепость</a>
+            <a href="#screens-modes">Режимы</a>
+            <a href="#icons">Иконки</a>
+          </nav>
+        </div>
+      </header>
+
+      <!-- ========================================================== 1. сетка -->
+      <section class="pg-sec" id="grid">
+        <div class="pg-sec-head">
+          <p class="pg-sec-num">1</p>
+          <div>
+            <h2 class="pg-sec-title">Сетка экрана</h2>
+            <p class="pg-sec-lead">Семь мест, как в первой версии. Но теперь в них живут маленькие детали: весь HUD вместе занимает меньше восьмой части экрана, центр свободен для игры.</p>
+          </div>
+        </div>
+        <div class="pg-sec-body" id="grid-body"></div>
+      </section>
+
+      <!-- ========================================================== 2. детали -->
+      <section class="pg-sec" id="details">
+        <div class="pg-sec-head">
+          <p class="pg-sec-num">2</p>
+          <div>
+            <h2 class="pg-sec-title">Детали</h2>
+            <p class="pg-sec-lead">Из этих деталей собран каждый экран. Всё живое: нажимай кнопки — они звучат, тосты всплывают, полосы двигаются.</p>
+          </div>
+        </div>
+        <div class="pg-sec-body" id="details-body"></div>
+      </section>
+
+      <!-- ========================================================== 3. экраны (группы заполняют свои разделы) -->
+      <section class="pg-sec pg-screens" id="screens-entry" data-group="entry">
+        <div class="pg-sec-head"><p class="pg-sec-num">3</p><div><h2 class="pg-sec-title">Вход в игру</h2><p class="pg-sec-lead">Первая загрузка, вход по нику и экран загрузки между комнатами.</p></div></div>
+        <div class="pg-sec-body screens-body"><p class="pg-wait">Этот раздел ещё рисуется.</p></div>
+      </section>
+      <section class="pg-sec pg-screens" id="screens-plaza" data-group="plaza">
+        <div class="pg-sec-head"><p class="pg-sec-num">4</p><div><h2 class="pg-sec-title">Набережная</h2><p class="pg-sec-lead">Обычный экран, чат, «Кто где», меню и праздничные моменты.</p></div></div>
+        <div class="pg-sec-body screens-body"><p class="pg-wait">Этот раздел ещё рисуется.</p></div>
+      </section>
+      <section class="pg-sec pg-screens" id="screens-fishing" data-group="fishing">
+        <div class="pg-sec-head"><p class="pg-sec-num">5</p><div><h2 class="pg-sec-title">Рыбалка</h2><p class="pg-sec-lead">Подход к месту, поклёвка, вываживание, улов, журнал и Дед Семён.</p></div></div>
+        <div class="pg-sec-body screens-body"><p class="pg-wait">Этот раздел ещё рисуется.</p></div>
+      </section>
+      <section class="pg-sec pg-screens" id="screens-farm" data-group="farm">
+        <div class="pg-sec-head"><p class="pg-sec-num">6</p><div><h2 class="pg-sec-title">Ферма</h2><p class="pg-sec-lead">Грядки, посадка, усадьба и покупатели.</p></div></div>
+        <div class="pg-sec-body screens-body"><p class="pg-wait">Этот раздел ещё рисуется.</p></div>
+      </section>
+      <section class="pg-sec pg-screens" id="screens-fort" data-group="fort">
+        <div class="pg-sec-head"><p class="pg-sec-num">7</p><div><h2 class="pg-sec-title">Крепость</h2><p class="pg-sec-lead">Бой с волной, прилавок перед боем и итоги.</p></div></div>
+        <div class="pg-sec-body screens-body"><p class="pg-wait">Этот раздел ещё рисуется.</p></div>
+      </section>
+      <section class="pg-sec pg-screens" id="screens-modes" data-group="modes">
+        <div class="pg-sec-head"><p class="pg-sec-num">8</p><div><h2 class="pg-sec-title">Режимы</h2><p class="pg-sec-lead">Картинг, пейнтбол, прятки, регата, пираты, «Выше облаков» и общие итоги.</p></div></div>
+        <div class="pg-sec-body screens-body"><p class="pg-wait">Этот раздел ещё рисуется.</p></div>
+      </section>
+      <section class="pg-sec pg-screens" id="icons" data-group="icons">
+        <div class="pg-sec-head"><p class="pg-sec-num">9</p><div><h2 class="pg-sec-title">Иконки</h2><p class="pg-sec-lead">Нарисованные предметы вместо эмодзи — один набор на всю игру.</p></div></div>
+        <div class="pg-sec-body screens-body"><p class="pg-wait">Этот раздел ещё рисуется.</p></div>
+      </section>
+
+      <footer class="pg-foot">
+        <p>Версия 2.0. Шрифт текста — Rubik во всех стилях. Самый мелкий текст — 13 px, и только для третичных подписей. Звуки тихие и выключаются переключателем наверху.
+          <a href="https://tired.solutions/tech/tiredwood-ui/" target="_blank" rel="noopener">Первая версия — по ссылке</a>.</p>
+      </footer>
+    </main>
+
+    <script type="module" src="./page/page.js"></script>
+    <!-- группы экранов: каждая — отдельный модуль; если файла нет, остальные работают -->
+    <script type="module" src="./screens/entry.js"></script>
+    <script type="module" src="./screens/plaza.js"></script>
+    <script type="module" src="./screens/fishing.js"></script>
+    <script type="module" src="./screens/farm.js"></script>
+    <script type="module" src="./screens/fort.js"></script>
+    <script type="module" src="./screens/modes.js"></script>
+    <script type="module" src="./screens/icons.js"></script>
+  </body>
+</html>

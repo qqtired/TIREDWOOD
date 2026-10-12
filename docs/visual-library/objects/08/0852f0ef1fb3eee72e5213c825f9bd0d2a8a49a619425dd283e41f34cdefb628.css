@@ -1,0 +1,69 @@
+/* Свои лодки на ките UI 2.0 (client/boat/boatui.ts, boatbar.ts). Только раскладка поверх компонентов .k-*; готовые правила
+   лодки (.fi-boat .fi-spec .fi-chips .fi-boat-ic .fi-speed .fi-nav .fi-boatbar) — в client/lobby/fishkit.css.
+   Цвета — токены кита. Синее с жёлтым на лодках не сочетаем: фото лодок рисуем без рамок цвета режима. */
+
+/* ------------------------------------------------------------------ ряд кнопок Z G R: справа внизу, под карточкой улова и панелью радио */
+.k-slot--br > .fi-boatbar { order: 9; }
+.fi-boatbar > [hidden] { display: none; }
+.fi-boatbar:not(:has(> :not([hidden]))) { display: none; }
+.fi-boatbar > .ob-b-anchor { order: 1; }
+.fi-boatbar > .ob-b-sell { order: 2; }
+.fi-boatbar > .br-chip { order: 3; }
+.fi-boatbar .k-btn small { white-space: nowrap; }
+
+/* ------------------------------------------------------------------ плитки «куда плыть» под бейджем */
+.k-tile.ob-tile[hidden] { display: none; }
+.ob-tiles:not(:has(> :not([hidden]))) { display: none; }
+
+/* ------------------------------------------------------------------ окно вызова лодки */
+.ob-summon { width: min(760px, 100%); }
+/* окно ниже экрана — не вылезает, а прокручивается внутри (дорожка сетки не растёт за содержимым) */
+dialog.fi-dlg:has(> .ob-summon) { grid-template-rows: minmax(0, 1fr); }
+.ob-summon .k-win-body { gap: 12px; }
+.ob-summon .fi-h { margin-top: 2px; }
+.ob-boats { display: flex; flex-wrap: wrap; gap: 10px; }
+.ob-boats > .fi-empty { flex: 1 1 100%; }
+.ob-boatpick { display: grid; grid-template-columns: 84px minmax(0, 1fr); grid-template-rows: auto auto; align-content: center; gap: 2px 12px; align-items: center; min-width: 250px; padding: 8px 14px 8px 8px; color: var(--surf-text); font: inherit; text-align: left; cursor: pointer; }
+.ob-boatpick:hover { background: var(--surf-3); }
+.ob-boatpick-ph { grid-row: 1 / 3; width: 84px; height: 56px; border-radius: var(--r-sm); background: center / cover no-repeat; }
+.ob-boatpick b { align-self: end; font: 800 var(--fs-18)/1.1 var(--font-text); }
+.ob-boatpick span:last-child { align-self: start; color: var(--surf-dim); font: 500 var(--fs-14)/1.2 var(--font-text); }
+.ob-boatpick.is-on { background: var(--gold-soft); box-shadow: inset 0 0 0 2px var(--gold); }
+.ob-boatpick:focus-visible, .ob-slip:focus-visible { outline: none; box-shadow: var(--focus); }
+
+/* схема пирса: слева места 1–5, справа 6–10, посередине мостик; причал острова — одной сеткой */
+.ob-map { display: grid; grid-template-columns: minmax(0, 1fr) 46px minmax(0, 1fr); gap: 8px; padding: 12px; }
+.ob-map.is-isle { grid-template-columns: minmax(0, 1fr); }
+.ob-col { display: flex; flex-direction: column; gap: 6px; }
+.ob-map.is-isle .ob-col { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.ob-walk { border-radius: var(--r-xs); background: repeating-linear-gradient(180deg, var(--surf-2) 0 9px, var(--line-strong) 9px 11px); }
+.ob-slip { display: flex; align-items: center; gap: 12px; min-height: 46px; padding: 6px 14px; color: var(--surf-text); font: inherit; text-align: left; cursor: pointer; }
+.ob-slip b { min-width: 22px; font: 900 var(--fs-22)/1 var(--font-text); }
+.ob-slip span { overflow: hidden; color: var(--surf-dim); font: 600 var(--fs-14)/1.2 var(--font-text); text-overflow: ellipsis; white-space: nowrap; }
+.ob-slip:hover:not(:disabled) { background: var(--surf-3); }
+/* выбранное свободное место — зелёным («вперёд»); чужая лодка — приглушена; своя — золотом */
+.ob-slip.is-on { background: var(--good-soft); box-shadow: inset 0 0 0 2px var(--good); }
+.ob-slip.is-on span { color: var(--good-text); }
+.ob-slip.is-busy { opacity: .6; cursor: default; }
+.ob-slip.is-mine { opacity: 1; background: var(--gold-soft); box-shadow: inset 0 0 0 2px var(--gold); }
+.ob-slip.is-mine b, .ob-slip.is-mine span { color: var(--gold-text); }
+.ob-note { margin: 0; line-height: 1.35; }
+.ob-summon .k-win-foot { justify-content: flex-end; }
+.ob-go { min-width: 320px; }
+.ob-go:disabled > .k-key { display: none; }
+
+/* ------------------------------------------------------------------ вкладка «Лодки» у Семёна */
+.ob-intro { margin: 0; font-style: normal; }
+.ob-shop { display: flex; flex-direction: column; gap: 14px; }
+.ob-shop[hidden] { display: none; }
+.fi-boat.is-own { background: var(--gold-soft); box-shadow: inset 0 0 0 2px var(--gold); }
+.fi-boat.is-lock .fi-boat-ph { filter: grayscale(.6) opacity(.8); }
+.fi-boat .fi-why[hidden], .fi-boat .ob-own-note[hidden] { display: none; }
+.fi-boat > p.fi-why { margin: 0; color: var(--bad-text); font-weight: 700; }
+.fi-boat .fi-why .k-coin { width: 16px; height: 16px; vertical-align: -3px; }
+.fi-boat .ob-own-note { margin: 0; color: var(--surf-dim); font: 500 var(--fs-14)/1.3 var(--font-text); }
+.fi-boat > .ob-own-pill { align-self: flex-start; margin-top: auto; }
+.fi-boat > .k-btn { justify-content: center; }
+.fi-boat > .k-btn[hidden], .fi-boat > .k-pill[hidden] { display: none; }
+.fi-chips .k-pill .k-ic { width: 20px; height: 20px; }
+.fi-boat .k-row-line .k-coin { width: 18px; height: 18px; }

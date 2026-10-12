@@ -1,0 +1,434 @@
+/* Награды рыбалки: вкладка «Награды» журнала рыбака (fishrewards.ts) и темы окна вываживания — data-fr-theme на окне
+   шкалы (fishgame.ts) или на миниатюре в журнале. Без темы окно деревянное (fish2.css). */
+
+/* ---------------------------------------------------------------- вкладки журнала */
+
+.fb-tabs {
+  display: flex;
+  gap: 6px;
+}
+
+.fb-tabs button {
+  padding: 5px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 240, 220, 0.06);
+  color: var(--cream-2);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.fb-tabs button.on {
+  background: rgba(255, 211, 90, 0.18);
+  border-color: rgba(255, 211, 90, 0.55);
+  color: var(--gold);
+}
+
+/* ---------------------------------------------------------------- вкладка «Награды» */
+
+.frw {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.frw-h {
+  font-size: 15px;
+  font-weight: 900;
+  color: var(--cream);
+}
+
+.frw-gear {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 14px;
+  background: rgba(255, 240, 220, 0.05);
+  border: 1px solid var(--line);
+}
+
+.frw-row {
+  display: grid;
+  grid-template-columns: 128px 1fr;
+  align-items: center;
+  gap: 10px;
+}
+
+.frw-row-h {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--cream-dim);
+}
+
+.frw-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.frw-chip {
+  display: grid;
+  grid-template-columns: auto auto;
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 8px;
+  min-width: 132px;
+  padding: 4px 10px 4px 4px;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  background: rgba(255, 240, 220, 0.08);
+  color: var(--cream);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.frw-chip > :first-child {
+  grid-row: 1 / 3;
+}
+
+.frw-chip:hover:not(:disabled) {
+  background: rgba(255, 240, 220, 0.16);
+}
+
+.frw-chip.on {
+  border-color: var(--gold);
+  background: rgba(255, 211, 90, 0.14);
+}
+
+.frw-chip.locked {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.frw-chip.locked .frw-ic,
+.frw-chip.locked .frw-win {
+  filter: grayscale(0.85);
+}
+
+.frw-chip-name {
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.frw-chip small {
+  font-size: 11px;
+  color: var(--cream-dim);
+}
+
+.frw-chip.on small {
+  color: var(--gold);
+}
+
+.frw-ic {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  font-size: 22px;
+}
+
+.frw-ic.empty {
+  color: var(--cream-dim);
+}
+
+/* миниатюра окна вываживания: та же рамка и вода, только маленькая */
+.frw-win {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 46px;
+}
+
+.frw-win .fr-bar {
+  display: block;
+  width: 26px;
+  height: 44px;
+  border-width: 3px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(10, 5, 8, 0.4), inset 0 0 0 1px #a8754a;
+}
+
+.frw-win .fr-zone {
+  left: 2px;
+  right: 2px;
+  bottom: 30%;
+  height: 32%;
+  border-width: 1px;
+  border-radius: 4px;
+}
+
+.frw-win .fr-water::after {
+  background-size: 100% 8px;
+}
+
+/* лестница: карточки порогов, следующая светится, финал — золотой и шире */
+.frw-ladder {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  gap: 8px;
+}
+
+.frw-step {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 14px;
+  background: rgba(255, 240, 220, 0.05);
+  border: 1px solid var(--line);
+  opacity: 0.72;
+}
+
+.frw-step.got {
+  opacity: 1;
+  background: rgba(123, 216, 143, 0.1);
+  border-color: rgba(123, 216, 143, 0.4);
+}
+
+.frw-step.next {
+  opacity: 1;
+  border: 2px solid var(--gold);
+  box-shadow: 0 0 16px rgba(255, 211, 90, 0.35);
+}
+
+.frw-step.final {
+  grid-column: span 2;
+  opacity: 1;
+  background: linear-gradient(135deg, rgba(255, 211, 90, 0.2), rgba(176, 120, 0, 0.18));
+  border-color: rgba(255, 211, 90, 0.6);
+}
+
+.frw-need {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.frw-need b {
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--gold);
+}
+
+.frw-need span {
+  font-size: 12px;
+  color: var(--cream-dim);
+}
+
+.frw-set {
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 138, 28, 0.2);
+  color: var(--orange-soft);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.frw-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+
+.frw-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--cream-2);
+}
+
+.frw-item svg {
+  width: 30px;
+  height: 30px;
+  flex: none;
+}
+
+.frw-state {
+  margin-top: auto;
+  font-size: 12px;
+  font-weight: 900;
+  color: var(--cream-dim);
+}
+
+.frw-step.got .frw-state {
+  color: var(--mint);
+}
+
+.frw-step.next .frw-state {
+  color: var(--gold);
+}
+
+.frw-note {
+  font-size: 12px;
+  color: var(--cream-dim);
+}
+
+@media (max-width: 640px) {
+  .frw-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .frw-step.final {
+    grid-column: auto;
+  }
+}
+
+/* ---------------------------------------------------------------- темы окна вываживания */
+
+/* Морская карта: пергамент, сетка и роза ветров; зона — пунктир проложенного курса */
+[data-fr-theme='chart'] .fr-bar {
+  border-color: #a7834b;
+  background: #ead7a6;
+  box-shadow:
+    0 14px 34px rgba(10, 5, 8, 0.5),
+    inset 0 0 0 2px #f6e8c2;
+}
+
+[data-fr-theme='chart'] .fr-water {
+  background:
+    radial-gradient(circle at 70% 90%, transparent 0 7px, rgba(122, 74, 30, 0.6) 7px 8px, transparent 8px 12px, rgba(122, 74, 30, 0.35) 12px 13px, transparent 13px),
+    linear-gradient(#e2efdc, #b6dad2 50%, #8cbcc4);
+}
+
+[data-fr-theme='chart'] .fr-water::after {
+  background:
+    repeating-linear-gradient(90deg, transparent 0 13px, rgba(70, 90, 110, 0.2) 13px 14px),
+    repeating-linear-gradient(transparent 0 13px, rgba(70, 90, 110, 0.2) 13px 14px);
+}
+
+[data-fr-theme='chart'] .fr-zone {
+  background: rgba(200, 70, 50, 0.14);
+  border: 2px dashed rgba(170, 40, 30, 0.9);
+  box-shadow: none;
+}
+
+.fr[data-fr-theme='chart'].in .fr-zone {
+  background: rgba(200, 70, 50, 0.3);
+  box-shadow: 0 0 12px rgba(200, 70, 50, 0.45);
+}
+
+[data-fr-theme='chart'] .fr-prog i {
+  background: #2c4a6e;
+}
+
+/* Ночной клёв: звёзды, луна и лунная дорожка; зона — тёплый свет фонаря */
+[data-fr-theme='night'] .fr-bar {
+  border-color: #2b3566;
+  background: #141a38;
+  box-shadow:
+    0 14px 34px rgba(5, 5, 20, 0.6),
+    inset 0 0 0 2px #4a5598;
+}
+
+[data-fr-theme='night'] .fr-water {
+  background:
+    radial-gradient(circle at 68% 9%, #fff6d6 0 5px, rgba(255, 240, 190, 0.35) 6px 10px, transparent 11px),
+    linear-gradient(90deg, transparent 58%, rgba(255, 228, 150, 0.16) 62% 74%, transparent 78%),
+    linear-gradient(#22346a, #13224a 55%, #0a1430);
+}
+
+[data-fr-theme='night'] .fr-water::after {
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, 0.9) 0 1px, transparent 1.6px) 0 0 / 17px 23px,
+    radial-gradient(circle, rgba(255, 255, 255, 0.6) 0 0.8px, transparent 1.4px) 8px 11px / 13px 19px;
+}
+
+[data-fr-theme='night'] .fr-zone {
+  background: rgba(255, 200, 90, 0.22);
+  border-color: rgba(255, 220, 140, 0.95);
+  box-shadow:
+    0 0 12px rgba(255, 190, 80, 0.45),
+    inset 0 0 10px rgba(255, 230, 160, 0.3);
+}
+
+.fr[data-fr-theme='night'].in .fr-zone {
+  background: rgba(255, 210, 110, 0.45);
+  box-shadow:
+    0 0 20px rgba(255, 200, 90, 0.8),
+    inset 0 0 12px rgba(255, 240, 190, 0.45);
+}
+
+[data-fr-theme='night'] .fr-prog i {
+  background: #ffd27a;
+}
+
+/* Золото: золочёная рама с сиянием, бирюзовая вода в искрах, золотая зона */
+[data-fr-theme='gold'] .fr-bar {
+  border-color: #d4a93a;
+  background: #8a6414;
+  box-shadow:
+    0 14px 34px rgba(60, 40, 0, 0.5),
+    0 0 18px rgba(255, 210, 90, 0.45),
+    inset 0 0 0 2px #ffe69a;
+}
+
+[data-fr-theme='gold'] .fr-water {
+  background: linear-gradient(#3cc0c4, #1e7f96 55%, #0f4a63);
+}
+
+[data-fr-theme='gold'] .fr-water::after {
+  background:
+    radial-gradient(circle, rgba(255, 230, 150, 0.95) 0 1.2px, transparent 1.8px) 0 0 / 15px 21px,
+    radial-gradient(circle, rgba(255, 255, 255, 0.7) 0 0.8px, transparent 1.4px) 7px 10px / 11px 17px;
+}
+
+[data-fr-theme='gold'] .fr-zone {
+  background: linear-gradient(rgba(255, 225, 120, 0.45), rgba(230, 170, 40, 0.4));
+  border-color: #fff0b0;
+  box-shadow:
+    0 0 12px rgba(255, 210, 90, 0.55),
+    inset 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+.fr[data-fr-theme='gold'].in .fr-zone {
+  background: linear-gradient(rgba(255, 235, 140, 0.7), rgba(240, 185, 50, 0.65));
+  box-shadow:
+    0 0 22px rgba(255, 215, 100, 0.9),
+    inset 0 0 12px rgba(255, 255, 255, 0.45);
+}
+
+[data-fr-theme='gold'] .fr-prog i {
+  background: linear-gradient(90deg, #f5d36b, #e0a520, #fff1a8);
+}
+
+/* ---------------------------------------------------------------- карточка улова: награда или сколько до неё */
+
+.frw-catch {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 4px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  background: rgba(123, 216, 143, 0.14);
+  border: 1px solid rgba(123, 216, 143, 0.45);
+  color: var(--cream);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.frw-catch.full {
+  background: linear-gradient(135deg, rgba(255, 211, 90, 0.26), rgba(176, 120, 0, 0.2));
+  border-color: rgba(255, 211, 90, 0.7);
+  color: var(--gold);
+}
+
+.frw-catch small {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--cream-dim);
+}
+
+.frw-next {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--cream-dim);
+}

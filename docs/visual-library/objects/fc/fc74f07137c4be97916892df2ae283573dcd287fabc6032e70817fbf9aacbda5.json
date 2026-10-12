@@ -1,0 +1,98 @@
+[
+  {
+    "game": "Hades",
+    "url": "https://store.steampowered.com/app/1145360/",
+    "image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1145360/ss_c0fed447426b69981cf1721756acf75369801b31.1920x1080.jpg?t=1758127023",
+    "file": "./hades-0.jpg"
+  },
+  {
+    "game": "Hades",
+    "url": "https://store.steampowered.com/app/1145360/",
+    "image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1145360/ss_8a9f0953e8a014bd3df2789c2835cb787cd3764d.1920x1080.jpg?t=1758127023",
+    "file": "./hades-1.jpg"
+  },
+  {
+    "game": "Deep Rock Galactic",
+    "url": "https://store.steampowered.com/app/548430/",
+    "image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/548430/49a57d16c55b74a6f835c590421d299d417af4f8/ss_49a57d16c55b74a6f835c590421d299d417af4f8.1920x1080.jpg?t=1791554128",
+    "file": "./drg-0.jpg"
+  },
+  {
+    "game": "Deep Rock Galactic",
+    "url": "https://store.steampowered.com/app/548430/",
+    "image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/548430/5ffa803484da48da16db9006d7f4313db8999c2a/ss_5ffa803484da48da16db9006d7f4313db8999c2a.1920x1080.jpg?t=1791554128",
+    "file": "./drg-1.jpg"
+  },
+  {
+    "game": "Dota 2",
+    "url": "https://store.steampowered.com/app/570/",
+    "image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/570/ss_ad8eee787704745ccdecdfde3a5cd2733704898d.1920x1080.jpg?t=1791407503",
+    "file": "./dota-0.jpg"
+  },
+  {
+    "game": "Dota 2",
+    "url": "https://store.steampowered.com/app/570/",
+    "image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/570/ss_7ab506679d42bfc0c0e40639887176494e0466d9.1920x1080.jpg?t=1791407503",
+    "file": "./dota-1.jpg"
+  },
+  {
+    "game": "Stardew Valley",
+    "url": "https://store.steampowered.com/app/413150/",
+    "image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/413150/ss_b887651a93b0525739049eb4194f633de2df75be.1920x1080.jpg?t=1786554168",
+    "file": "./stardew-0.jpg"
+  },
+  {
+    "game": "Stardew Valley",
+    "url": "https://store.steampowered.com/app/413150/",
+    "image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/413150/ss_9ac899fe2cda15d48b0549bba77ef8c4a090a71c.1920x1080.jpg?t=1786554168",
+    "file": "./stardew-1.jpg"
+  },
+  {
+    "game": "Slime Rancher",
+    "url": "https://store.steampowered.com/app/433340/",
+    "image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/433340/ss_5339a74c4563d40a1d8a5638db2a9ed59c5b883b.1920x1080.jpg?t=1758651509",
+    "file": "./slime-0.jpg"
+  },
+  {
+    "game": "Slime Rancher",
+    "url": "https://store.steampowered.com/app/433340/",
+    "image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/433340/ss_d0e6a30325a9f7ff4fb3d6ba344c4131bb5f98cb.1920x1080.jpg?t=1758651509",
+    "file": "./slime-1.jpg"
+  },
+  {
+    "game": "Terraria",
+    "url": "https://store.steampowered.com/app/105600/",
+    "image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/105600/ss_8c03886f214d2108cafca13845533eaa3d87d83f.1920x1080.jpg?t=1769844435",
+    "file": "./terraria-0.jpg"
+  },
+  {
+    "game": "Terraria",
+    "url": "https://store.steampowered.com/app/105600/",
+    "image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/105600/ss_ae168a00ab08104ba266dc30232654d4b3c919e5.1920x1080.jpg?t=1769844435",
+    "file": "./terraria-1.jpg"
+  },
+  {
+    "game": "Hollow Knight",
+    "url": "https://store.steampowered.com/app/367520/",
+    "image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/367520/ss_5384f9f8b96a0b9934b2bc35a4058376211636d2.1920x1080.jpg?t=1776125684",
+    "file": "./hollow-0.jpg"
+  },
+  {
+    "game": "Hollow Knight",
+    "url": "https://store.steampowered.com/app/367520/",
+    "image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/367520/ss_d5b6edd94e77ba6db31c44d8a3c09d807ab27751.1920x1080.jpg?t=1776125684",
+    "file": "./hollow-1.jpg"
+  },
+  {
+    "game": "Don't Starve Together",
+    "url": "https://store.steampowered.com/app/322330/",
+    "image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/322330/ss_d053a7220a03ab689da9312c6d15fe8211401f55.1920x1080.jpg?t=1790287771",
+    "file": "./dontstarve-0.jpg"
+  },
+  {
+    "game": "Don't Starve Together",
+    "url": "https://store.steampowered.com/app/322330/",
+    "image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/322330/ss_37e30c4cf8c945f1958890c8fa7346af6bea547d.1920x1080.jpg?t=1790287771",
+    "file": "./dontstarve-1.jpg"
+  }
+]

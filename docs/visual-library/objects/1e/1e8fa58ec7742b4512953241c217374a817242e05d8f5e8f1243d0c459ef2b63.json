@@ -1,0 +1,29 @@
+{
+  "tick": 14,
+  "hash": 943743428,
+  "initialHash": 3131326005,
+  "room": {
+    "seed": 704311,
+    "tick": 14,
+    "stage": "wave",
+    "upto": 14,
+    "received": 2,
+    "coins": 0,
+    "over": false,
+    "paused": true
+  },
+  "mismatches": 0,
+  "bad": 0,
+  "result": {
+    "waves": 17,
+    "ms": 0,
+    "kills": 0,
+    "level": 1,
+    "bosses": 0,
+    "killedBy": "",
+    "dmg": {
+      "pickaxe": 38
+    },
+    "end": "running"
+  }
+}

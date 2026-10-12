@@ -1,0 +1,97 @@
+{
+  "camera_elevation_deg": 62,
+  "order_left_to_right": [
+    "rat",
+    "beetle",
+    "cooper",
+    "hero",
+    "hookclaw",
+    "wickmole",
+    "railhopper",
+    "chainwarden",
+    "cauldronmaster"
+  ],
+  "models": [
+    {
+      "id": "rat",
+      "source": "../../../../../game-opus/docs/survivors/models/rat.glb",
+      "size": [
+        0.28249359130859375,
+        0.9944486618041992,
+        0.3550500273704529
+      ]
+    },
+    {
+      "id": "beetle",
+      "source": "../../../../../game-opus/docs/survivors/models/beetle.glb",
+      "size": [
+        1.178456425666809,
+        1.379880666732788,
+        0.7753009796142578
+      ]
+    },
+    {
+      "id": "cooper",
+      "source": "../../../../../game-opus/docs/survivors/models/cooper.glb",
+      "size": [
+        2.223057746887207,
+        1.8381621837615967,
+        2.692286491394043
+      ]
+    },
+    {
+      "id": "hero",
+      "source": "../../../../../game-opus/docs/survivors/models/hero.glb",
+      "size": [
+        0.9251790046691895,
+        0.5318200588226318,
+        1.5389281511306763
+      ]
+    },
+    {
+      "id": "hookclaw",
+      "source": "../../../models/hookclaw.glb",
+      "size": [
+        2.0954747200012207,
+        1.9130561351776123,
+        1.3768913745880127
+      ]
+    },
+    {
+      "id": "wickmole",
+      "source": "../../../models/wickmole.glb",
+      "size": [
+        1.0812228918075562,
+        1.126017689704895,
+        1.7681453227996826
+      ]
+    },
+    {
+      "id": "railhopper",
+      "source": "../../../models/railhopper.glb",
+      "size": [
+        1.3056621551513672,
+        1.9593651294708252,
+        1.2498610019683838
+      ]
+    },
+    {
+      "id": "chainwarden",
+      "source": "../../../models/chainwarden.glb",
+      "size": [
+        1.544198989868164,
+        1.246999979019165,
+        2.430326223373413
+      ]
+    },
+    {
+      "id": "cauldronmaster",
+      "source": "../../../models/cauldronmaster.glb",
+      "size": [
+        3.866401195526123,
+        3.8007445335388184,
+        4.795444488525391
+      ]
+    }
+  ]
+}

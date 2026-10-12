@@ -1,0 +1,207 @@
+/* «Кто где» (Tab): окно кита — client/ui/online.ts. Строка — .k-online-row, окно — .k-window--sm шире (620), затемнение лёгкое
+   (как .pz-scrim-light на странице lab/ui): за списком идёт игра. Само затемнение мышь не ловит — только окно. */
+
+.ol-scrim {
+  display: none;
+  background: radial-gradient(70% 70% at 50% 45%, rgba(16, 10, 12, 0.2), rgba(16, 10, 12, 0.45));
+  pointer-events: none;
+}
+
+.ol-scrim.show {
+  display: grid;
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+}
+
+.ol-scrim [hidden] {
+  display: none !important;
+}
+
+.ol-window {
+  width: min(620px, 100%);
+  pointer-events: auto;
+}
+
+/* с мышью (ПКМ): кайма золотая — видно, что кнопки работают */
+.ol-scrim.pinned .ol-window {
+  border-color: var(--gold);
+  box-shadow: var(--panel-shadow), 0 0 0 3px var(--gold-soft);
+}
+
+.ol-window .k-win-body {
+  padding-top: 14px;
+  padding-bottom: 14px;
+  color: var(--surf-dim);
+}
+
+.ol-window .k-online-row {
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+}
+
+.ol-eyebrow:empty {
+  display: none;
+}
+
+/* кольцо уровня — цветом рамки ника (--tc): опыт других игроков сервер не присылает */
+.ol-ring {
+  background: conic-gradient(var(--tc, var(--gold)) 360deg, var(--track) 0);
+}
+
+.ol-nick {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ol-mic {
+  display: inline-flex;
+  flex: none;
+  opacity: 0.6;
+}
+
+.ol-mic .k-ic {
+  width: 20px;
+  height: 20px;
+}
+
+.k-online-row.is-talk .ol-mic {
+  opacity: 1;
+}
+
+/* комната: кружок с куском картины экрана загрузки (или значок) и название */
+.ol-mark {
+  display: inline-block;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--surf-3) no-repeat;
+  background-size: 260% auto;
+  box-shadow: 0 0 0 1.5px var(--line-strong);
+}
+
+.ol-mark--ic {
+  display: inline-grid;
+  place-items: center;
+  background-image: none;
+}
+
+.ol-mark--ic > img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+
+/* громкость: − 100% + (и «заглушить», «выгнать»), как в lab */
+.ol-window .k-online-act {
+  gap: 6px;
+}
+
+.ol-step {
+  font-size: var(--fs-22);
+  line-height: 1;
+}
+
+.ol-val {
+  min-width: 52px;
+  font: 800 var(--fs-16)/1 var(--font-text);
+  text-align: center;
+}
+
+.ol-mute > svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* «выгнать»: значок и короткая подпись, высота как у соседних кнопок строки */
+.ol-kick {
+  min-height: 42px;
+  padding-inline: 10px 12px;
+  font-size: var(--fs-14);
+  white-space: nowrap;
+}
+
+.ol-kick .k-ic {
+  width: 24px;
+  height: 24px;
+}
+
+.ol-kick:hover:not(:disabled) {
+  background: var(--bad-soft);
+  border-color: var(--bad);
+}
+
+.k-online-row.muted .ol-mute {
+  background: var(--bad-soft);
+  color: var(--bad-text);
+}
+
+.k-online-row.asking {
+  box-shadow: inset 0 0 0 2px var(--bad);
+}
+
+/* «Выгнать <ник>?» под списком */
+.ol-ask {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  padding: 12px 22px;
+  border-top: 1px solid var(--bad);
+  background: var(--bad-soft);
+  font-size: var(--fs-14);
+  line-height: 1.35;
+}
+
+.ol-ask-text {
+  flex: 1 1 260px;
+}
+
+.ol-ask-btns {
+  display: flex;
+  gap: 10px;
+}
+
+/* строка «ПКМ — взять мышь» — видимая подсказка внизу окна */
+.ol-foot {
+  justify-content: flex-start;
+}
+
+.ol-foot .k-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+/* телефон и низкий экран: окно без масштаба кита, на всю ширину; комнату — только кружком */
+@media (max-width: 760px), (max-height: 520px) {
+  .ol-scrim {
+    zoom: 1;
+    padding: 8px;
+  }
+
+  .ol-window {
+    width: 100%;
+  }
+
+  .ol-window .k-online-room {
+    font-size: 0;
+  }
+
+  /* заголовок на узком экране: «в голосе N» уходит (у каждого в строке свой значок микрофона), название не режется */
+  .ol-window .k-win-tools {
+    display: none;
+  }
+
+  /* кнопки строки не влезают рядом с ником: уходят на вторую строку, справа */
+  .ol-window .k-online-row {
+    grid-template-columns: 42px minmax(0, 1fr);
+  }
+
+  .ol-window .k-online-row > .k-online-act {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    justify-content: flex-end;
+    padding-top: 6px;
+  }
+}

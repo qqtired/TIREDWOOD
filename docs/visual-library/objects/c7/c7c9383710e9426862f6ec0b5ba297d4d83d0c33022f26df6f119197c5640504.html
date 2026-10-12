@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Музыкальный автомат — модель</title>
+    <style>
+      html, body { margin: 0; height: 100%; overflow: hidden; background: #9cc3ec; color: #fff5e5; font: 14px/1.4 Rubik, system-ui, sans-serif; }
+      canvas { display: block; width: 100vw; height: 100vh; }
+      #qa { position: fixed; right: 12px; top: 12px; width: 250px; padding: 12px 14px; border-radius: 10px; background: rgba(36, 24, 18, 0.86); }
+      #qa b { display: block; margin-bottom: 6px; }
+      #qa label { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 6px 0; }
+      #qa input[type='range'] { width: 120px; }
+      #qa .views { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+      #qa button { padding: 4px 8px; border: 1px solid #a07850; border-radius: 5px; color: #fff5e5; background: #5a3a28; font: inherit; cursor: pointer; }
+      #stats { display: block; margin-top: 8px; white-space: pre; font-size: 12px; color: #f2dcb8; }
+    </style>
+  </head>
+  <body>
+    <canvas id="c"></canvas>
+    <aside id="qa" aria-label="Проверка модели">
+      <b>Музыкальный автомат</b>
+      <label>Играет <input type="checkbox" id="play" checked /></label>
+      <label>Темп <input type="range" id="bpm" min="60" max="180" step="1" value="112" /> <span id="bpmv">112</span></label>
+      <label>Коробка-коллайдер <input type="checkbox" id="box" /></label>
+      <div class="views">
+        <button data-v="front">спереди</button><button data-v="side">сбоку</button><button data-v="back">сзади</button>
+        <button data-v="window">окошко</button><button data-v="three">¾</button><button data-v="far">издали</button>
+      </div>
+      <output id="stats"></output>
+    </aside>
+    <!-- Только для сервера разработки: в сборку не входит -->
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

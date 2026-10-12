@@ -1,0 +1,9 @@
+{
+  "ok": true,
+  "renders": 132,
+  "artifact": "./index.html",
+  "offlineBytes": 4373520,
+  "inlineAssets": 35,
+  "errors": [],
+  "verificationKind": "structural-only"
+}

@@ -1,0 +1,552 @@
+{
+  "checks": [
+    {
+      "name": "ropecrab actual clip advances",
+      "pass": true,
+      "evidence": {
+        "before": 0,
+        "after": 0.18239999999850987
+      }
+    },
+    {
+      "name": "ropecrab death ends and holds actual ports",
+      "pass": true,
+      "evidence": {
+        "end": {
+          "id": "ropecrab",
+          "mode": "clip",
+          "time": 2.458333,
+          "total": 2.458333,
+          "clip": "ropecrab_death",
+          "suffix": "death",
+          "clipTime": 2.458333,
+          "runtimeDuration": 2.458333,
+          "inputStart": 0.041667,
+          "keySpan": 2.416667,
+          "ended": true,
+          "loop": false,
+          "phase": null,
+          "ready": true,
+          "loading": false,
+          "error": null,
+          "variant": "A",
+          "holdWalk": false,
+          "showPorts": false,
+          "height": 1.2327,
+          "width": 2.5667,
+          "triangles": 3922,
+          "materials": 5,
+          "rootMotionNode": "ropecrab",
+          "restMinY": 0.013269960880279541,
+          "phaseRu": null
+        },
+        "held": {
+          "id": "ropecrab",
+          "mode": "clip",
+          "time": 2.458333,
+          "total": 2.458333,
+          "clip": "ropecrab_death",
+          "suffix": "death",
+          "clipTime": 2.458333,
+          "runtimeDuration": 2.458333,
+          "inputStart": 0.041667,
+          "keySpan": 2.416667,
+          "ended": true,
+          "loop": false,
+          "phase": null,
+          "ready": true,
+          "loading": false,
+          "error": null,
+          "variant": "A",
+          "holdWalk": false,
+          "showPorts": false,
+          "height": 1.2327,
+          "width": 2.5667,
+          "triangles": 3922,
+          "materials": 5,
+          "rootMotionNode": "ropecrab",
+          "restMinY": 0.013269960880279541,
+          "phaseRu": null
+        },
+        "portsStable": true
+      }
+    },
+    {
+      "name": "jampump actual clip advances",
+      "pass": true,
+      "evidence": {
+        "before": 0,
+        "after": 0.1832999999970198
+      }
+    },
+    {
+      "name": "jampump death ends and holds actual ports",
+      "pass": true,
+      "evidence": {
+        "end": {
+          "id": "jampump",
+          "mode": "clip",
+          "time": 2.25,
+          "total": 2.25,
+          "clip": "jampump_death",
+          "suffix": "death",
+          "clipTime": 2.25,
+          "runtimeDuration": 2.25,
+          "inputStart": 0.041667,
+          "keySpan": 2.208333,
+          "ended": true,
+          "loop": false,
+          "phase": null,
+          "ready": true,
+          "loading": false,
+          "error": null,
+          "variant": "A",
+          "holdWalk": false,
+          "showPorts": false,
+          "height": 1.7496,
+          "width": 1.6462,
+          "triangles": 3950,
+          "materials": 5,
+          "rootMotionNode": "jampump",
+          "restMinY": 0.0040000006556510925,
+          "phaseRu": null
+        },
+        "held": {
+          "id": "jampump",
+          "mode": "clip",
+          "time": 2.25,
+          "total": 2.25,
+          "clip": "jampump_death",
+          "suffix": "death",
+          "clipTime": 2.25,
+          "runtimeDuration": 2.25,
+          "inputStart": 0.041667,
+          "keySpan": 2.208333,
+          "ended": true,
+          "loop": false,
+          "phase": null,
+          "ready": true,
+          "loading": false,
+          "error": null,
+          "variant": "A",
+          "holdWalk": false,
+          "showPorts": false,
+          "height": 1.7496,
+          "width": 1.6462,
+          "triangles": 3950,
+          "materials": 5,
+          "rootMotionNode": "jampump",
+          "restMinY": 0.0040000006556510925,
+          "phaseRu": null
+        },
+        "portsStable": true
+      }
+    },
+    {
+      "name": "canopy actual clip advances",
+      "pass": true,
+      "evidence": {
+        "before": 0,
+        "after": 0.18429999999701974
+      }
+    },
+    {
+      "name": "canopy death ends and holds actual ports",
+      "pass": true,
+      "evidence": {
+        "end": {
+          "id": "canopy",
+          "mode": "clip",
+          "time": 2.875,
+          "total": 2.875,
+          "clip": "canopy_death",
+          "suffix": "death",
+          "clipTime": 2.875,
+          "runtimeDuration": 2.875,
+          "inputStart": 0.041667,
+          "keySpan": 2.833333,
+          "ended": true,
+          "loop": false,
+          "phase": null,
+          "ready": true,
+          "loading": false,
+          "error": null,
+          "variant": "A",
+          "holdWalk": false,
+          "showPorts": false,
+          "height": 1.84,
+          "width": 2.224,
+          "triangles": 2860,
+          "materials": 5,
+          "rootMotionNode": "canopy",
+          "restMinY": 0.015994273126125336,
+          "phaseRu": null
+        },
+        "held": {
+          "id": "canopy",
+          "mode": "clip",
+          "time": 2.875,
+          "total": 2.875,
+          "clip": "canopy_death",
+          "suffix": "death",
+          "clipTime": 2.875,
+          "runtimeDuration": 2.875,
+          "inputStart": 0.041667,
+          "keySpan": 2.833333,
+          "ended": true,
+          "loop": false,
+          "phase": null,
+          "ready": true,
+          "loading": false,
+          "error": null,
+          "variant": "A",
+          "holdWalk": false,
+          "showPorts": false,
+          "height": 1.84,
+          "width": 2.224,
+          "triangles": 2860,
+          "materials": 5,
+          "rootMotionNode": "canopy",
+          "restMinY": 0.015994273126125336,
+          "phaseRu": null
+        },
+        "portsStable": true
+      }
+    },
+    {
+      "name": "foreman actual clip advances",
+      "pass": true,
+      "evidence": {
+        "before": 0,
+        "after": 0.1837999999970198
+      }
+    },
+    {
+      "name": "foreman death ends and holds actual ports",
+      "pass": true,
+      "evidence": {
+        "end": {
+          "id": "foreman",
+          "mode": "clip",
+          "time": 3.041667,
+          "total": 3.041667,
+          "clip": "foreman_death",
+          "suffix": "death",
+          "clipTime": 3.041667,
+          "runtimeDuration": 3.041667,
+          "inputStart": 0.041667,
+          "keySpan": 3,
+          "ended": true,
+          "loop": false,
+          "phase": "Beaver recoils, tail brakes its slide, sits and drops hammer; mechanism rattles later",
+          "ready": true,
+          "loading": false,
+          "error": null,
+          "variant": "A",
+          "holdWalk": false,
+          "showPorts": false,
+          "height": 1.9647,
+          "width": 1.7418,
+          "triangles": 3970,
+          "materials": 5,
+          "rootMotionNode": "foreman",
+          "restMinY": 0.004759997129440308,
+          "phaseRu": "Хвост тормозит; бобр садится, роняет молоток"
+        },
+        "held": {
+          "id": "foreman",
+          "mode": "clip",
+          "time": 3.041667,
+          "total": 3.041667,
+          "clip": "foreman_death",
+          "suffix": "death",
+          "clipTime": 3.041667,
+          "runtimeDuration": 3.041667,
+          "inputStart": 0.041667,
+          "keySpan": 3,
+          "ended": true,
+          "loop": false,
+          "phase": "Beaver recoils, tail brakes its slide, sits and drops hammer; mechanism rattles later",
+          "ready": true,
+          "loading": false,
+          "error": null,
+          "variant": "A",
+          "holdWalk": false,
+          "showPorts": false,
+          "height": 1.9647,
+          "width": 1.7418,
+          "triangles": 3970,
+          "materials": 5,
+          "rootMotionNode": "foreman",
+          "restMinY": 0.004759997129440308,
+          "phaseRu": "Хвост тормозит; бобр садится, роняет молоток"
+        },
+        "portsStable": true
+      }
+    },
+    {
+      "name": "crabcrane actual clip advances",
+      "pass": true,
+      "evidence": {
+        "before": 0,
+        "after": 0.18330000000447033
+      }
+    },
+    {
+      "name": "crabcrane death ends and holds actual ports",
+      "pass": true,
+      "evidence": {
+        "end": {
+          "id": "crabcrane",
+          "mode": "clip",
+          "time": 4.541667,
+          "total": 4.541667,
+          "clip": "crabcrane_death",
+          "suffix": "death",
+          "clipTime": 4.541667,
+          "runtimeDuration": 4.541667,
+          "inputStart": 0.041667,
+          "keySpan": 4.5,
+          "ended": true,
+          "loop": false,
+          "phase": "Free pulley sways after the shell stops; rope and eyes lose activity",
+          "ready": true,
+          "loading": false,
+          "error": null,
+          "variant": "A",
+          "holdWalk": false,
+          "showPorts": false,
+          "height": 3.4774,
+          "width": 6.3883,
+          "triangles": 6552,
+          "materials": 5,
+          "rootMotionNode": "crabcrane",
+          "restMinY": 0.004900435663396374,
+          "phaseRu": "Свободный блок качается после остановки тела"
+        },
+        "held": {
+          "id": "crabcrane",
+          "mode": "clip",
+          "time": 4.541667,
+          "total": 4.541667,
+          "clip": "crabcrane_death",
+          "suffix": "death",
+          "clipTime": 4.541667,
+          "runtimeDuration": 4.541667,
+          "inputStart": 0.041667,
+          "keySpan": 4.5,
+          "ended": true,
+          "loop": false,
+          "phase": "Free pulley sways after the shell stops; rope and eyes lose activity",
+          "ready": true,
+          "loading": false,
+          "error": null,
+          "variant": "A",
+          "holdWalk": false,
+          "showPorts": false,
+          "height": 3.4774,
+          "width": 6.3883,
+          "triangles": 6552,
+          "materials": 5,
+          "rootMotionNode": "crabcrane",
+          "restMinY": 0.004900435663396374,
+          "phaseRu": "Свободный блок качается после остановки тела"
+        },
+        "portsStable": true
+      }
+    },
+    {
+      "name": "miller actual clip advances",
+      "pass": true,
+      "evidence": {
+        "before": 0,
+        "after": 0.18280000000447036
+      }
+    },
+    {
+      "name": "miller death ends and holds actual ports",
+      "pass": true,
+      "evidence": {
+        "end": {
+          "id": "miller",
+          "mode": "clip",
+          "time": 4.041667,
+          "total": 4.041667,
+          "clip": "miller_death",
+          "suffix": "death",
+          "clipTime": 4.041667,
+          "runtimeDuration": 4.041667,
+          "inputStart": 0.041667,
+          "keySpan": 4,
+          "ended": true,
+          "loop": false,
+          "phase": "Scarf falls over face; sack deflates; crank makes its final independent turn",
+          "ready": true,
+          "loading": false,
+          "error": null,
+          "variant": "A",
+          "holdWalk": false,
+          "showPorts": false,
+          "height": 4.2017,
+          "width": 2.9712,
+          "triangles": 5286,
+          "materials": 5,
+          "rootMotionNode": "miller",
+          "restMinY": 0.009800001978874207,
+          "phaseRu": "Платок падает, рукоять останавливается последней"
+        },
+        "held": {
+          "id": "miller",
+          "mode": "clip",
+          "time": 4.041667,
+          "total": 4.041667,
+          "clip": "miller_death",
+          "suffix": "death",
+          "clipTime": 4.041667,
+          "runtimeDuration": 4.041667,
+          "inputStart": 0.041667,
+          "keySpan": 4,
+          "ended": true,
+          "loop": false,
+          "phase": "Scarf falls over face; sack deflates; crank makes its final independent turn",
+          "ready": true,
+          "loading": false,
+          "error": null,
+          "variant": "A",
+          "holdWalk": false,
+          "showPorts": false,
+          "height": 4.2017,
+          "width": 2.9712,
+          "triangles": 5286,
+          "materials": 5,
+          "rootMotionNode": "miller",
+          "restMinY": 0.009800001978874207,
+          "phaseRu": "Платок падает, рукоять останавливается последней"
+        },
+        "portsStable": true
+      }
+    },
+    {
+      "name": "canonical atlas same real ports and calls",
+      "pass": true,
+      "evidence": {
+        "A": {
+          "ports": {
+            "weaknessPort": {
+              "node": "foreman_weaknessPort",
+              "world": [
+                0.20411080437613066,
+                0.9700000286102295,
+                0.746384859085083
+              ]
+            },
+            "actuatorPort": {
+              "node": "foreman_actuatorPort",
+              "world": [
+                0.6741108180851989,
+                1.3799999952316284,
+                0.6063848435878754
+              ]
+            }
+          },
+          "calls": 72,
+          "state": {
+            "id": "foreman",
+            "mode": "clip",
+            "time": 0.6,
+            "total": 2.041667,
+            "clip": "foreman_idle",
+            "suffix": "idle",
+            "clipTime": 0.6,
+            "runtimeDuration": 2.041667,
+            "inputStart": 0.041667,
+            "keySpan": 2,
+            "ended": false,
+            "loop": true,
+            "phase": null,
+            "ready": true,
+            "loading": false,
+            "error": null,
+            "variant": "A",
+            "holdWalk": false,
+            "showPorts": false,
+            "height": 1.9647,
+            "width": 1.7418,
+            "triangles": 3970,
+            "materials": 5,
+            "rootMotionNode": "foreman",
+            "restMinY": 0.004759997129440308,
+            "phaseRu": null
+          }
+        },
+        "B": {
+          "ports": {
+            "weaknessPort": {
+              "node": "foreman_weaknessPort",
+              "world": [
+                0.20411080437613066,
+                0.9700000286102295,
+                0.746384859085083
+              ]
+            },
+            "actuatorPort": {
+              "node": "foreman_actuatorPort",
+              "world": [
+                0.6741108180851989,
+                1.3799999952316284,
+                0.6063848435878754
+              ]
+            }
+          },
+          "calls": 72,
+          "state": {
+            "id": "foreman",
+            "mode": "clip",
+            "time": 0.6,
+            "total": 2.041667,
+            "clip": "foreman_idle",
+            "suffix": "idle",
+            "clipTime": 0.6,
+            "runtimeDuration": 2.041667,
+            "inputStart": 0.041667,
+            "keySpan": 2,
+            "ended": false,
+            "loop": true,
+            "phase": null,
+            "ready": true,
+            "loading": false,
+            "error": null,
+            "variant": "B",
+            "holdWalk": false,
+            "showPorts": false,
+            "height": 1.9647,
+            "width": 1.7418,
+            "triangles": 3970,
+            "materials": 5,
+            "rootMotionNode": "foreman",
+            "restMinY": 0.004759997129440308,
+            "phaseRu": null
+          }
+        }
+      }
+    }
+  ],
+  "shots": [
+    "/tmp/tiredwood-farm-pack1.NNujvo/fortress-r2-model-canvas/ropecrab-attack.png",
+    "/tmp/tiredwood-farm-pack1.NNujvo/fortress-r2-model-canvas/ropecrab-death.png",
+    "/tmp/tiredwood-farm-pack1.NNujvo/fortress-r2-model-canvas/jampump-attack.png",
+    "/tmp/tiredwood-farm-pack1.NNujvo/fortress-r2-model-canvas/jampump-death.png",
+    "/tmp/tiredwood-farm-pack1.NNujvo/fortress-r2-model-canvas/canopy-attack.png",
+    "/tmp/tiredwood-farm-pack1.NNujvo/fortress-r2-model-canvas/canopy-death.png",
+    "/tmp/tiredwood-farm-pack1.NNujvo/fortress-r2-model-canvas/foreman-attack.png",
+    "/tmp/tiredwood-farm-pack1.NNujvo/fortress-r2-model-canvas/foreman-death.png",
+    "/tmp/tiredwood-farm-pack1.NNujvo/fortress-r2-model-canvas/crabcrane-attack.png",
+    "/tmp/tiredwood-farm-pack1.NNujvo/fortress-r2-model-canvas/crabcrane-death.png",
+    "/tmp/tiredwood-farm-pack1.NNujvo/fortress-r2-model-canvas/miller-attack.png",
+    "/tmp/tiredwood-farm-pack1.NNujvo/fortress-r2-model-canvas/miller-death.png",
+    "/tmp/tiredwood-farm-pack1.NNujvo/fortress-r2-model-canvas/foreman-atlas-A.png",
+    "/tmp/tiredwood-farm-pack1.NNujvo/fortress-r2-model-canvas/foreman-atlas-B.png"
+  ],
+  "errors": [],
+  "passed": true
+}

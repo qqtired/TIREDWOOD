@@ -1,0 +1,26 @@
+/* «Выше облаков» на ките 2.0: свои части — в слотах HUD (client/skilltest/hud.ts), вид — классы кита (.k-*, .mo-*).
+   Здесь — только акцент режима, строка живой подсказки, отсчёт со строкой под ним и метки высотомера. */
+
+html[data-room='skill'] { --mode-w: var(--m-skill); --mode-h: var(--mh-skill); }
+/* части в общих слотах — только на каланче */
+html:not([data-room='skill']) .sk-only { display: none !important; }
+.sk-only[hidden], .sk-count-sub[hidden], .sk-live[hidden] { display: none !important; }
+
+/* участок: живая подсказка лестницы — строкой золотом под правилом */
+.sk-live { margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--line); color: var(--gold-text); font-weight: 700; }
+
+/* высотомер: чужие одиночные подъёмы — бледнее, дошедшие — с флажком */
+.mo-alt-mark.is-solo { opacity: .7; }
+.mo-alt-mark.is-done { font-weight: 800; }
+.mo-alt-fill { transition: height .25s ease-out; }
+.mo-alt-mark { transition: bottom .25s ease-out; }
+
+/* центр: крупный отсчёт и строка под ним («Забег! Старт через 6 с») */
+.sk-center { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.sk-count:empty { display: none; }
+
+/* телефон: справа внизу — кнопки управления пальцами, высотомер там не помещается */
+@media (max-width: 900px), (pointer: coarse) {
+  .sk-alt { display: none !important; }
+}
+@media (prefers-reduced-motion: reduce) { .mo-alt-fill, .mo-alt-mark { transition: none; } }

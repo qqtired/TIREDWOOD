@@ -1,0 +1,103 @@
+{
+  "errors": [],
+  "water": [
+    {
+      "key": "variant",
+      "value": "current",
+      "actual": "current",
+      "errors": []
+    },
+    {
+      "key": "variant",
+      "value": "proposed",
+      "actual": "proposed",
+      "errors": []
+    },
+    {
+      "key": "view",
+      "value": "open",
+      "actual": "open",
+      "errors": []
+    },
+    {
+      "key": "weather",
+      "value": "rain",
+      "actual": "rain",
+      "errors": []
+    }
+  ],
+  "dungeon": {
+    "headline": "Подземелье\nВторой ярус · 16–20\n01\nЧто есть сейчас\n02\nПять волн\n03\nНовые враги / 3D\n04\nБурдюк, три фазы\n05\nОружие и эволюции\n06\nБаланс и сборки\n07\nГраницы и исходники\nR6 · 12.10.2026\nЛокальная реализация · 4d354e3\nОбновлено 12.10.2026, 12:26:50 МСК\n\nСценарии боя проверены\n\nПолная прогрессия — отдельная граница.\n\nTIREDWOOD · РАСШИРЕНИЕ R2 · ЛОКАЛЬНАЯ РЕАЛИЗАЦИЯ\nВторой ярус\n\nПосле 15-й волны знакомая орда остаётся. Четыре новых противника проверяют маршрут и сборку, а на 20-й приходит Казанщик Бурдюк.\n\nРеализовано в рабочей ветке\nРеальный бой проверяет root\n\nГлавное: новые роли добавляют решения, а не иммунитеты к оружию.\n\nПосле босса — 21-я вол",
+    "canvas": 1
+  },
+  "report": {
+    "conceptRows": 4,
+    "allRows": 15,
+    "dialog": 1,
+    "closed": true
+  },
+  "waterFinal": {
+    "started": true,
+    "state": {
+      "variant": "proposed",
+      "view": "open",
+      "weather": "rain",
+      "time": 18.283338000000004,
+      "paused": true,
+      "fixtures": true,
+      "fog": "off",
+      "look": 2,
+      "isle": true,
+      "waterOnly": false
+    },
+    "camera": {
+      "position": [
+        -470,
+        3,
+        350
+      ],
+      "yaw": -0.6947382761967031,
+      "pitch": -0.010882705149151734
+    },
+    "water": {
+      "vertices": 4,
+      "triangles": 2,
+      "y": -1.25,
+      "transparent": false,
+      "depthWrite": true,
+      "samplers": 0,
+      "normalWaveCos": 5,
+      "activeSeaMaterials": 1
+    },
+    "render": {
+      "calls": 19,
+      "triangles": 7986,
+      "programs": 7,
+      "textures": 1
+    },
+    "viewport": {
+      "width": 1270,
+      "height": 714,
+      "dpr": 1,
+      "resizeVersion": 1
+    },
+    "backend": {
+      "api": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+      "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Pro, Unspecified Version)",
+      "timerAvailable": true
+    },
+    "climate": {
+      "near": 47.17721739456721,
+      "far": 340.82964233656435,
+      "tint": 0.8384342155999551,
+      "haze": 0.911926829553101,
+      "sun": 0.14447750517605817,
+      "isle": 0.8384342155999551,
+      "rainMute": 0.9076683559942764
+    },
+    "revision": 7,
+    "draws": 33,
+    "errors": [],
+    "costStatus": "Shader ALU higher; GPU neutral unverified; standalone scene is not whole-game acceptance"
+  }
+}

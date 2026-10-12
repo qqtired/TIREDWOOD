@@ -1,0 +1,259 @@
+{
+  "id": "foreman",
+  "file": "../glb/foreman-r2-06-textureB-canonical.glb",
+  "sha256": "a15c76ba0364a3af5e60be7005e55634f590a3f09a69989894a58e9e13bcbbec",
+  "binSHA256": "02f7567406a65809bb9d73b30cf9d4f890b387a85021dc49f0b6b58443fef7ff",
+  "triangles": 3970,
+  "materials": 5,
+  "textures": 1,
+  "images": 1,
+  "primitives": 35,
+  "bytes": 1003408,
+  "clips": [
+    {
+      "name": "foreman_idle",
+      "seconds": 2,
+      "runtimeDuration": 2.041667,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 2.0416667461395264,
+      "frames": 49,
+      "channels": 81,
+      "variedChannels": 35,
+      "minimumFloorY": 0.00476,
+      "worstFloorPart": {
+        "part": "footL",
+        "seconds": 0,
+        "value": 0.004759997129440308
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": null,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "footL": 0,
+        "footR": 0
+      }
+    },
+    {
+      "name": "foreman_walk",
+      "seconds": 1,
+      "runtimeDuration": 1.041667,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 1.0416666269302368,
+      "frames": 25,
+      "channels": 81,
+      "variedChannels": 37,
+      "minimumFloorY": 0.00476,
+      "worstFloorPart": {
+        "part": "footL",
+        "seconds": 0,
+        "value": 0.004759997129440308
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": null,
+      "walkStanceDriftM": 0,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "footL": 0,
+        "footR": 0
+      }
+    },
+    {
+      "name": "foreman_windup",
+      "seconds": 4,
+      "runtimeDuration": 4.041667,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 4.041666507720947,
+      "frames": 97,
+      "channels": 81,
+      "variedChannels": 37,
+      "minimumFloorY": 0.00476,
+      "worstFloorPart": {
+        "part": "footL",
+        "seconds": 0,
+        "value": 0.004759997129440308
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": 0,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": 0,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "braceL": 0,
+        "braceR": 0,
+        "footL": 0,
+        "footR": 0
+      }
+    },
+    {
+      "name": "foreman_attack",
+      "seconds": 0.833333,
+      "runtimeDuration": 0.875,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 0.875,
+      "frames": 21,
+      "channels": 81,
+      "variedChannels": 40,
+      "minimumFloorY": 0.00476,
+      "worstFloorPart": {
+        "part": "footL",
+        "seconds": 0,
+        "value": 0.004759997129440308
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": 0,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": 0,
+      "weaponGeometryMaxRadiusM": 1.2351,
+      "firstFloorContactS": {
+        "footL": 0,
+        "footR": 0
+      }
+    },
+    {
+      "name": "foreman_recover",
+      "seconds": 1.833333,
+      "runtimeDuration": 1.875,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 1.875,
+      "frames": 45,
+      "channels": 81,
+      "variedChannels": 7,
+      "minimumFloorY": 0.00476,
+      "worstFloorPart": {
+        "part": "footL",
+        "seconds": 0,
+        "value": 0.004759997129440308
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": null,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "footL": 0,
+        "footR": 0
+      }
+    },
+    {
+      "name": "foreman_hit",
+      "seconds": 0.583333,
+      "runtimeDuration": 0.625,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 0.625,
+      "frames": 15,
+      "channels": 81,
+      "variedChannels": 38,
+      "minimumFloorY": 0.00476,
+      "worstFloorPart": {
+        "part": "footL",
+        "seconds": 0,
+        "value": 0.004759997129440308
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": null,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "footL": 0,
+        "footR": 0
+      }
+    },
+    {
+      "name": "foreman_death",
+      "seconds": 3,
+      "runtimeDuration": 3.041667,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 3.0416667461395264,
+      "frames": 73,
+      "channels": 81,
+      "variedChannels": 51,
+      "minimumFloorY": 0.00476,
+      "worstFloorPart": {
+        "part": "footL",
+        "seconds": 0,
+        "value": 0.004759997129440308
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": null,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "footL": 0,
+        "footR": 0,
+        "pin": 0.1667,
+        "ratchet": 0.1667,
+        "braceL": 0.6667,
+        "braceR": 0.7083,
+        "tail": 2.2083,
+        "body": 2.2917,
+        "hammer": 2.5833
+      }
+    },
+    {
+      "name": "foreman_open",
+      "seconds": 2,
+      "runtimeDuration": 2.041667,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 2.0416667461395264,
+      "frames": 49,
+      "channels": 81,
+      "variedChannels": 0,
+      "minimumFloorY": 0.00476,
+      "worstFloorPart": {
+        "part": "footL",
+        "seconds": 0,
+        "value": 0.004759997129440308
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": null,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "footL": 0,
+        "footR": 0
+      }
+    },
+    {
+      "name": "foreman_device_set",
+      "seconds": 4,
+      "runtimeDuration": 4.041667,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 4.041666507720947,
+      "frames": 97,
+      "channels": 81,
+      "variedChannels": 37,
+      "minimumFloorY": 0.00476,
+      "worstFloorPart": {
+        "part": "footL",
+        "seconds": 0,
+        "value": 0.004759997129440308
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": 0,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": 0,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "braceL": 0,
+        "braceR": 0,
+        "footL": 0,
+        "footR": 0
+      }
+    }
+  ],
+  "checks": {
+    "rootUpright": true,
+    "bracedFeet": true,
+    "walkStance": true,
+    "workingGrips": true,
+    "floor": true,
+    "sixRequired": true,
+    "allRequiredHaveMotion": true
+  }
+}

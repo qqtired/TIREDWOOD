@@ -1,0 +1,353 @@
+{
+  "id": "miller",
+  "file": "../glb/miller-r2-06.glb",
+  "sha256": "572bd02f66b44077150f9150880f9c34b03a16efc227cfe470f03357537ceeb3",
+  "binSHA256": "2ec1288b8fe503447bc4f21bd50a4c295d5c4dfd6a4395a61ed0726a97f70a76",
+  "triangles": 5286,
+  "materials": 5,
+  "textures": 0,
+  "images": 0,
+  "primitives": 40,
+  "bytes": 998468,
+  "clips": [
+    {
+      "name": "miller_idle",
+      "seconds": 2,
+      "runtimeDuration": 2.041667,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 2.0416667461395264,
+      "frames": 49,
+      "channels": 93,
+      "variedChannels": 41,
+      "minimumFloorY": 0.0098,
+      "worstFloorPart": {
+        "part": "footL",
+        "seconds": 0,
+        "value": 0.009800001978874207
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": null,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "footL": 0,
+        "footR": 0
+      }
+    },
+    {
+      "name": "miller_walk",
+      "seconds": 1,
+      "runtimeDuration": 1.041667,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 1.0416666269302368,
+      "frames": 25,
+      "channels": 93,
+      "variedChannels": 52,
+      "minimumFloorY": 0.0098,
+      "worstFloorPart": {
+        "part": "footL",
+        "seconds": 0,
+        "value": 0.009800001978874207
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": null,
+      "walkStanceDriftM": 0,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "footL": 0,
+        "footR": 0
+      }
+    },
+    {
+      "name": "miller_windup",
+      "seconds": 2.416667,
+      "runtimeDuration": 2.458333,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 2.4583332538604736,
+      "frames": 59,
+      "channels": 93,
+      "variedChannels": 39,
+      "minimumFloorY": 0.0098,
+      "worstFloorPart": {
+        "part": "footL",
+        "seconds": 0,
+        "value": 0.009800001978874207
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": 0,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": 0,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "footL": 0,
+        "footR": 0
+      }
+    },
+    {
+      "name": "miller_attack",
+      "seconds": 3,
+      "runtimeDuration": 3.041667,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 3.0416667461395264,
+      "frames": 73,
+      "channels": 93,
+      "variedChannels": 45,
+      "minimumFloorY": 0.0098,
+      "worstFloorPart": {
+        "part": "footL",
+        "seconds": 0,
+        "value": 0.009800001978874207
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": 0,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": 0,
+      "weaponGeometryMaxRadiusM": 1.9275,
+      "firstFloorContactS": {
+        "footL": 0,
+        "footR": 0
+      }
+    },
+    {
+      "name": "miller_recover",
+      "seconds": 1.833333,
+      "runtimeDuration": 1.875,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 1.875,
+      "frames": 45,
+      "channels": 93,
+      "variedChannels": 7,
+      "minimumFloorY": 0.0098,
+      "worstFloorPart": {
+        "part": "footL",
+        "seconds": 0,
+        "value": 0.009800001978874207
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": null,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "footL": 0,
+        "footR": 0
+      }
+    },
+    {
+      "name": "miller_hit",
+      "seconds": 0.583333,
+      "runtimeDuration": 0.625,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 0.625,
+      "frames": 15,
+      "channels": 93,
+      "variedChannels": 48,
+      "minimumFloorY": 0.0098,
+      "worstFloorPart": {
+        "part": "footL",
+        "seconds": 0,
+        "value": 0.009800001978874207
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": null,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "footL": 0,
+        "footR": 0
+      }
+    },
+    {
+      "name": "miller_death",
+      "seconds": 4,
+      "runtimeDuration": 4.041667,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 4.041666507720947,
+      "frames": 97,
+      "channels": 93,
+      "variedChannels": 63,
+      "minimumFloorY": 0.008,
+      "worstFloorPart": {
+        "part": "wheel",
+        "seconds": 3,
+        "value": 0.007999833260712075
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": null,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "footL": 0,
+        "footR": 0,
+        "coupling": 0.2917,
+        "frame": 2,
+        "wheel": 2.5417,
+        "body": 2.6667,
+        "blade2": 3
+      }
+    },
+    {
+      "name": "miller_open",
+      "seconds": 3,
+      "runtimeDuration": 3.041667,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 3.0416667461395264,
+      "frames": 73,
+      "channels": 93,
+      "variedChannels": 7,
+      "minimumFloorY": 0.0098,
+      "worstFloorPart": {
+        "part": "footL",
+        "seconds": 0,
+        "value": 0.009800001978874207
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": null,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "footL": 0,
+        "footR": 0
+      }
+    },
+    {
+      "name": "miller_spawn",
+      "seconds": 1.833333,
+      "runtimeDuration": 1.875,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 1.875,
+      "frames": 45,
+      "channels": 93,
+      "variedChannels": 1,
+      "minimumFloorY": 0.0098,
+      "worstFloorPart": {
+        "part": "footL",
+        "seconds": 1.625,
+        "value": 0.009800001978874207
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": null,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "footL": 1.4583,
+        "footR": 1.4583
+      }
+    },
+    {
+      "name": "miller_crank",
+      "seconds": 2.416667,
+      "runtimeDuration": 2.458333,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 2.4583332538604736,
+      "frames": 59,
+      "channels": 93,
+      "variedChannels": 39,
+      "minimumFloorY": 0.0098,
+      "worstFloorPart": {
+        "part": "footL",
+        "seconds": 0,
+        "value": 0.009800001978874207
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": 0,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": 0,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "footL": 0,
+        "footR": 0
+      }
+    },
+    {
+      "name": "miller_gust",
+      "seconds": 3,
+      "runtimeDuration": 3.041667,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 3.0416667461395264,
+      "frames": 73,
+      "channels": 93,
+      "variedChannels": 45,
+      "minimumFloorY": 0.0098,
+      "worstFloorPart": {
+        "part": "footL",
+        "seconds": 0,
+        "value": 0.009800001978874207
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": null,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "footL": 0,
+        "footR": 0
+      }
+    },
+    {
+      "name": "miller_jammed",
+      "seconds": 3,
+      "runtimeDuration": 3.041667,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 3.0416667461395264,
+      "frames": 73,
+      "channels": 93,
+      "variedChannels": 7,
+      "minimumFloorY": 0.0098,
+      "worstFloorPart": {
+        "part": "footL",
+        "seconds": 0,
+        "value": 0.009800001978874207
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": null,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "footL": 0,
+        "footR": 0
+      }
+    },
+    {
+      "name": "miller_rage",
+      "seconds": 2,
+      "runtimeDuration": 2.041667,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 2.0416667461395264,
+      "frames": 49,
+      "channels": 93,
+      "variedChannels": 1,
+      "minimumFloorY": 0.0098,
+      "worstFloorPart": {
+        "part": "footL",
+        "seconds": 0,
+        "value": 0.009800001978874207
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": null,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "footL": 0,
+        "footR": 0
+      }
+    }
+  ],
+  "checks": {
+    "rootUpright": true,
+    "bracedFeet": true,
+    "walkStance": true,
+    "workingGrips": true,
+    "floor": true,
+    "sixRequired": true,
+    "allRequiredHaveMotion": true
+  }
+}

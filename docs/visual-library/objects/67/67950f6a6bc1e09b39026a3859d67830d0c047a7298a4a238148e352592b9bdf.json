@@ -1,0 +1,51 @@
+{
+  "date": "2026-10-12",
+  "browser": "existing headless Chrome session tw-round2",
+  "viewport": {
+    "width": 1488,
+    "height": 1250
+  },
+  "passed": [
+    "A/B current",
+    "A/B paper",
+    "90 percent",
+    "100 percent",
+    "damage 72 to 54",
+    "heal 54 to 72",
+    "chat Enter",
+    "shotgun selected",
+    "reload completed 8",
+    "connection priority",
+    "voice toggles",
+    "emote feedback",
+    "prompt feedback",
+    "Dungeon independent",
+    "focus opens",
+    "focus exits"
+  ],
+  "failed": [],
+  "console": {
+    "errors": 0,
+    "warnings": 0
+  },
+  "screenshots": [
+    "research/materials-v2-final-passport-fort.png",
+    "research/materials-v2-final-passport-busy.png",
+    "research/materials-v2-final-edge-fort.png",
+    "research/materials-v2-final-edge-busy.png",
+    "research/materials-v2-final-chronicle-fort.png",
+    "research/materials-v2-final-chronicle-busy.png",
+    "research/materials-v2-final-deck-fort.png",
+    "research/materials-v2-final-deck-busy.png",
+    "research/materials-v2-final-instrument-fort.png",
+    "research/materials-v2-final-instrument-busy.png"
+  ],
+  "fixes": [
+    "wrap long radio/paper event text away from timer",
+    "unclip paper level label",
+    "prevent chat row compression and fit paper busy log"
+  ],
+  "firstAttemptHarnessIssue": "Unquoted numeric CSS attribute selector; corrected and rerun successfully",
+  "sha256": "d4b3083aba3179bc69f08b43195586c5c9ba2c003eb46162588e53d232d2187c",
+  "acceptance": "internal prototype review; owner selection and game implementation not done"
+}

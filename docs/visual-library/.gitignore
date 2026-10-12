@@ -1,0 +1,10 @@
+.cache/
+!/files/
+!/files/**/
+!/files/**
+!/objects/
+!/objects/**
+!/previews/
+!/previews/**
+!/verification/
+!/verification/**

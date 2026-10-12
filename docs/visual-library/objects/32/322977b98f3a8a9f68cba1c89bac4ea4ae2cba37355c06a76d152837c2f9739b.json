@@ -1,0 +1,296 @@
+{
+  "id": "ropecrab",
+  "file": "../glb/ropecrab-r2-07.glb",
+  "sha256": "8cad56396653cfa2b49aa9885cc6d42949a782be2927e0cd61ded48b36c712c0",
+  "binSHA256": "5142e20fa331674ee0932d30a0f0202082e91449b51861f17480217824c55555",
+  "triangles": 3922,
+  "materials": 5,
+  "textures": 0,
+  "images": 0,
+  "primitives": 51,
+  "bytes": 1096300,
+  "clips": [
+    {
+      "name": "ropecrab_idle",
+      "seconds": 2,
+      "runtimeDuration": 2.041667,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 2.0416667461395264,
+      "frames": 49,
+      "channels": 132,
+      "variedChannels": 96,
+      "minimumFloorY": 0.01327,
+      "worstFloorPart": {
+        "part": "footL0",
+        "seconds": 0,
+        "value": 0.013269960880279541
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": null,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "footL0": 0,
+        "footL1": 0,
+        "footL2": 0,
+        "footR0": 0,
+        "footR1": 0,
+        "footR2": 0
+      }
+    },
+    {
+      "name": "ropecrab_walk",
+      "seconds": 1,
+      "runtimeDuration": 1.041667,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 1.0416666269302368,
+      "frames": 25,
+      "channels": 132,
+      "variedChannels": 100,
+      "minimumFloorY": 0.01327,
+      "worstFloorPart": {
+        "part": "footL0",
+        "seconds": 0,
+        "value": 0.013269960880279541
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": null,
+      "walkStanceDriftM": 0,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "footL0": 0,
+        "footL1": 0,
+        "footL2": 0,
+        "footR0": 0,
+        "footR1": 0,
+        "footR2": 0
+      }
+    },
+    {
+      "name": "ropecrab_windup",
+      "seconds": 4,
+      "runtimeDuration": 4.041667,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 4.041666507720947,
+      "frames": 97,
+      "channels": 132,
+      "variedChannels": 96,
+      "minimumFloorY": 0.01327,
+      "worstFloorPart": {
+        "part": "footL0",
+        "seconds": 0,
+        "value": 0.013269960880279541
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": 0,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "footL0": 0,
+        "footL1": 0,
+        "footL2": 0,
+        "footR0": 0,
+        "footR1": 0,
+        "footR2": 0
+      }
+    },
+    {
+      "name": "ropecrab_attack",
+      "seconds": 0.833333,
+      "runtimeDuration": 0.875,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 0.875,
+      "frames": 21,
+      "channels": 132,
+      "variedChannels": 90,
+      "minimumFloorY": 0.01327,
+      "worstFloorPart": {
+        "part": "footL0",
+        "seconds": 0,
+        "value": 0.013269960880279541
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": 0,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": 1.4662,
+      "firstFloorContactS": {
+        "footL0": 0,
+        "footL1": 0,
+        "footL2": 0,
+        "footR0": 0,
+        "footR1": 0,
+        "footR2": 0
+      }
+    },
+    {
+      "name": "ropecrab_recover",
+      "seconds": 1.833333,
+      "runtimeDuration": 1.875,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 1.875,
+      "frames": 45,
+      "channels": 132,
+      "variedChannels": 94,
+      "minimumFloorY": 0.01327,
+      "worstFloorPart": {
+        "part": "footL0",
+        "seconds": 0,
+        "value": 0.013269960880279541
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": null,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "footL0": 0,
+        "footL1": 0,
+        "footL2": 0,
+        "footR0": 0,
+        "footR1": 0,
+        "footR2": 0
+      }
+    },
+    {
+      "name": "ropecrab_hit",
+      "seconds": 0.583333,
+      "runtimeDuration": 0.625,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 0.625,
+      "frames": 15,
+      "channels": 132,
+      "variedChannels": 96,
+      "minimumFloorY": 0.01327,
+      "worstFloorPart": {
+        "part": "footL0",
+        "seconds": 0,
+        "value": 0.013269960880279541
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": null,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "footL0": 0,
+        "footL1": 0,
+        "footL2": 0,
+        "footR0": 0,
+        "footR1": 0,
+        "footR2": 0
+      }
+    },
+    {
+      "name": "ropecrab_death",
+      "seconds": 2.416667,
+      "runtimeDuration": 2.458333,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 2.4583332538604736,
+      "frames": 59,
+      "channels": 132,
+      "variedChannels": 104,
+      "minimumFloorY": 0.007196,
+      "worstFloorPart": {
+        "part": "rope1",
+        "seconds": 1.125,
+        "value": 0.00719614909935928
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": null,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "footL0": 0,
+        "footL1": 0,
+        "footL2": 0,
+        "footR0": 0,
+        "footR1": 0,
+        "footR2": 0,
+        "stopper": 0.125,
+        "rope0": 1.0833,
+        "rope1": 1.125,
+        "rope2": 1.125,
+        "rope3": 1.1667,
+        "rope4": 1.1667,
+        "rope5": 1.2083,
+        "rope6": 1.2083,
+        "rope7": 1.25,
+        "rope8": 1.2917,
+        "rope9": 1.2917,
+        "hook": 1.5833
+      }
+    },
+    {
+      "name": "ropecrab_open",
+      "seconds": 2,
+      "runtimeDuration": 2.041667,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 2.0416667461395264,
+      "frames": 49,
+      "channels": 132,
+      "variedChannels": 94,
+      "minimumFloorY": 0.01327,
+      "worstFloorPart": {
+        "part": "footL0",
+        "seconds": 0,
+        "value": 0.013269960880279541
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": null,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "footL0": 0,
+        "footL1": 0,
+        "footL2": 0,
+        "footR0": 0,
+        "footR1": 0,
+        "footR2": 0
+      }
+    },
+    {
+      "name": "ropecrab_route_attach",
+      "seconds": 4,
+      "runtimeDuration": 4.041667,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 4.041666507720947,
+      "frames": 97,
+      "channels": 132,
+      "variedChannels": 96,
+      "minimumFloorY": 0.01327,
+      "worstFloorPart": {
+        "part": "footL0",
+        "seconds": 0,
+        "value": 0.013269960880279541
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": null,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "footL0": 0,
+        "footL1": 0,
+        "footL2": 0,
+        "footR0": 0,
+        "footR1": 0,
+        "footR2": 0
+      }
+    }
+  ],
+  "checks": {
+    "rootUpright": true,
+    "bracedFeet": true,
+    "walkStance": true,
+    "workingGrips": true,
+    "floor": true,
+    "sixRequired": true,
+    "allRequiredHaveMotion": true
+  }
+}

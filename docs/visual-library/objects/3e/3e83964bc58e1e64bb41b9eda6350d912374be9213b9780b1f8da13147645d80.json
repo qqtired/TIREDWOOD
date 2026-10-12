@@ -1,0 +1,32 @@
+{
+  "pass": true,
+  "client": {
+    "waves": 0,
+    "ms": 0,
+    "kills": 85,
+    "level": 2,
+    "bosses": 0,
+    "killedBy": "rat",
+    "dmg": {
+      "lantern": 1176,
+      "q": 80,
+      "charges": 520
+    },
+    "end": "death"
+  },
+  "server": {
+    "waves": 0,
+    "ms": 0,
+    "kills": 85,
+    "level": 2,
+    "bosses": 0,
+    "killedBy": "rat",
+    "dmg": {
+      "lantern": 1176,
+      "q": 80,
+      "charges": 520
+    },
+    "end": "death"
+  },
+  "scope": "Actual first run natural death before restart; no simulation setup hooks"
+}

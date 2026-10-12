@@ -1,0 +1,36 @@
+{
+  "recordedAt": "2026-10-12T05:30:46.213Z",
+  "revision": "R5",
+  "sourceFreeze": "b12d6ba10abf8af04a6689463ec7e7f3fe35f017b47c6ef230315026b605f4bf",
+  "base": "41b91a8",
+  "previousR4HtmlSHA": "17e53e92533f6638aa5f9592a8d4837fc74632b998cefb34c5d229d050ba23cd",
+  "htmlSHA256": "57f7b38892acf940d0a6c1898142c68e00f973f2882a44315b3e53bc0f7a3177",
+  "htmlBytes": 31389190,
+  "inlineSnapshotChanged": [
+    "client/dungeon/simview.ts"
+  ],
+  "gameChanges": [
+    "client/dungeon/simview.ts",
+    "test/dungeon-expansion.test.ts"
+  ],
+  "viewerBundleUnchanged": true,
+  "viewerBundleSHA": "cda5e1ebf6e2985c083b346d7cb3ae24efa8682e913e7cfbcc3969664cb719ef",
+  "metadataOnly": true,
+  "ranBundle": false,
+  "ranBrowser": false,
+  "ranTests": false,
+  "priorStructuralChecks": {
+    "revision": "R4",
+    "count": 1014,
+    "receipt": "../../r4-2026-10-12/source/verification.json"
+  },
+  "freshChecks": {
+    "embeddedJSONParses": true,
+    "inlineSourceHashesMatch": true,
+    "viewerBundleEqualR4": true
+  },
+  "fullGate": {
+    "owner": "root",
+    "status": "running"
+  }
+}

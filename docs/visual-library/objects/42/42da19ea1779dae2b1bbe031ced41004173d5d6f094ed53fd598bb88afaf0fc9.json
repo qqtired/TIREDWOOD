@@ -1,0 +1,35 @@
+{
+  "partialProfileCorruption": {
+    "profilesBefore": 2,
+    "profilesAfter": 1,
+    "backupProfiles": 2,
+    "primaryProfiles": 1
+  },
+  "ratBusyBeforeDisconnect": {
+    "trackBusy": true,
+    "hubActive": true,
+    "healthBusy": 0,
+    "escrow": 20
+  },
+  "ratBusyAfterDisconnect": {
+    "trackBusy": true,
+    "hubActive": false,
+    "healthBusy": 0,
+    "phase": "open",
+    "escrow": 20
+  },
+  "primaryWriteFailure": {
+    "error": "Хранилище: запись не завершена",
+    "tokensInMemory": 80,
+    "escrowInMemory": {
+      "round": "offline-round",
+      "amount": 20
+    },
+    "tokensOnDisk": 100
+  },
+  "temporaryDataDirs": [
+    "/var/folders/2b/pm5qjpwd4dsccy28fwctvgq00000gn/T/tiredwood-audit-xYUrps",
+    "/var/folders/2b/pm5qjpwd4dsccy28fwctvgq00000gn/T/tiredwood-audit-qbCoGc",
+    "/var/folders/2b/pm5qjpwd4dsccy28fwctvgq00000gn/T/tiredwood-audit-MxSINZ"
+  ]
+}

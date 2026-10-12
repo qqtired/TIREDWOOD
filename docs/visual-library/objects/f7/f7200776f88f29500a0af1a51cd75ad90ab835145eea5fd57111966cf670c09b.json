@@ -1,0 +1,27 @@
+{
+  "case": "hook-contact",
+  "type": "contactFixture",
+  "seed": 704309,
+  "accelerated": true,
+  "initialHash": 695938761,
+  "edits": [
+    "skip to wave16",
+    "assume previous 15 waves for local fixture counters",
+    "isolated fixture: no director background/props/map pickups; actual map collision stays",
+    "one real enemy at measured distance; spd0, HPmul6 and damageMul1 for clear registration; normal hero100HP",
+    "auto lantern cooldown delayed, use genuine Q/input to trigger damage"
+  ],
+  "seconds": 7,
+  "normalHP": false,
+  "heroHp": 100,
+  "weapons": [
+    {
+      "id": "lantern",
+      "lv": 1,
+      "evo": 0
+    }
+  ],
+  "passives": [],
+  "source": "original game.d.makeRun returned actual run; setup before first view/hash",
+  "receivedAt": 347748.69999999553
+}

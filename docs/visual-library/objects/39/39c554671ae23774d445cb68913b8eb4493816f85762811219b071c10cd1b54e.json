@@ -1,0 +1,106 @@
+[
+  {
+    "run": "run-1791788563458-C",
+    "id": "hook-contact",
+    "case": "hook-contact",
+    "error": "Error: semantic capture condition not observed\n    at http://127.0.0.1:5317/__dungeon_qa/client.mjs:76:127",
+    "status": "FAIL",
+    "classification": "Earlier external harness/capture/fixture failure retained"
+  },
+  {
+    "run": "run-1791788667297-C",
+    "id": "hook-contact",
+    "case": "hook-contact",
+    "error": "Actual scene input contract unavailable",
+    "status": "FAIL",
+    "classification": "Earlier external harness/capture/fixture failure retained"
+  },
+  {
+    "run": "run-1791788762531-C",
+    "id": "hook-contact",
+    "case": "hook-contact",
+    "error": "Error: semantic capture condition not observed\n    at http://127.0.0.1:5317/__dungeon_qa/client.mjs:76:127",
+    "status": "FAIL",
+    "classification": "Earlier external harness/capture/fixture failure retained"
+  },
+  {
+    "run": "run-1791788912099-C",
+    "id": "boss-phases",
+    "case": "boss-phases",
+    "error": "Error: real UI target absent\n    at <anonymous>:1:162\n    at <anonymous>:1:273",
+    "status": "FAIL",
+    "classification": "Earlier external harness/capture/fixture failure retained"
+  },
+  {
+    "run": "run-1791788912099-C",
+    "id": "chain-twohits",
+    "case": "atlas",
+    "error": "EEXIST: file already exists, mkdir '/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/chain-twohits'",
+    "status": "FAIL",
+    "classification": "Earlier external harness/capture/fixture failure retained"
+  },
+  {
+    "run": "run-1791788912099-C",
+    "id": "distinct-deaths",
+    "case": "distinct-deaths",
+    "error": "Error: semantic capture condition not observed\n    at http://127.0.0.1:5317/__dungeon_qa/client.mjs:76:127",
+    "status": "FAIL",
+    "classification": "Earlier external harness/capture/fixture failure retained"
+  },
+  {
+    "run": "run-1791788912099-C",
+    "id": "timer20-to21",
+    "case": "timer20-to21",
+    "error": "Boss disappeared at timer",
+    "status": "FAIL",
+    "classification": "Earlier external harness/capture/fixture failure retained"
+  },
+  {
+    "run": "run-1791789380183-C",
+    "id": "atlas",
+    "case": "atlas",
+    "error": "TypeError: Cannot read properties of undefined (reading 'scene')\n    at jc (http://127.0.0.1:5317/assets/scene-qxw6dDxs.js:152:18696)\n    at new Hc (http://127.0.0.1:5317/assets/scene-qxw6dDxs.js:204:300)\n    at Object.atlas (http://127.0.0.1:5317/__dungeon_qa/client.mjs:88:40)",
+    "status": "FAIL",
+    "classification": "Earlier external harness/capture/fixture failure retained"
+  },
+  {
+    "run": "run-1791789653175-C",
+    "id": "atlas",
+    "case": "atlas",
+    "error": "Missing registration: softMapBound",
+    "status": "FAIL",
+    "classification": "Production CSP image load blocked; atlas NOT ACCEPTED"
+  },
+  {
+    "run": "run-1791789872798-B",
+    "id": "recipes-guard",
+    "case": "recipes-guard",
+    "error": "Recipe route died",
+    "status": "FAIL",
+    "classification": "Earlier external harness/capture/fixture failure retained"
+  },
+  {
+    "run": "run-1791789872798-B",
+    "id": "recipes-kite",
+    "case": "recipes-kite",
+    "error": "Recipe route died",
+    "status": "FAIL",
+    "classification": "Earlier external harness/capture/fixture failure retained"
+  },
+  {
+    "run": "run-1791790167971-A",
+    "id": "boss20-guard",
+    "case": "boss20-guard",
+    "error": "Normal-HP policy died; no survival PASS",
+    "status": "FAIL",
+    "classification": "Actual unsafe tactic died"
+  },
+  {
+    "run": "run-1791790637376-A",
+    "id": "boss20-guard",
+    "case": "boss20-guard",
+    "error": "Normal-HP policy died; no survival PASS",
+    "status": "FAIL",
+    "classification": "Harness held Q; qHold1517 in failure snapshot"
+  }
+]

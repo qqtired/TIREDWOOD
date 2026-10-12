@@ -1,0 +1,28 @@
+{
+  "nativeMCP": true,
+  "background": true,
+  "sessionPid": 87358,
+  "exportOptimizeAnimationKeepAnimObject": true,
+  "plainDefaultUnchanged": true,
+  "variant": "models/chainwarden-atlas-soft.glb",
+  "plain": "models/chainwarden.glb",
+  "sha256": "2636c003be7aba00de57dd7a6dd1e3be4db8495e3d436ee991019aa4ba69a00f",
+  "plainSha256": "129a73308dd0afcb3ec0c315dfde44af66b0edf5f783098a7152f1de5b5f5653",
+  "bytes": 1493264,
+  "textureSha256": "ecc80789e882bad7b7ad77e70ec0c6fa24bb40c424df695f21e590c9bf9ee566",
+  "scriptSha256": "fa2e44392fca6cc6b9dfb53fd8e595b90858b90df5640cd9284579eadc29f9ed",
+  "clips": 7,
+  "channelsPerClip": 108,
+  "geometryPositionAndNormalsMaxDelta": 0,
+  "restTransformMaxDelta": 0,
+  "actualPoseMaxDelta": 0,
+  "images": 1,
+  "textures": 1,
+  "texCoord": 0,
+  "unchangedNormalizationBIN": true,
+  "previewsRetained": true,
+  "reason": "UV/map/color/light unchanged; only constant animation channel retention flag corrected",
+  "pending": [
+    "built game VAT atlas A/B and performance"
+  ]
+}

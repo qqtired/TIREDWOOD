@@ -1,0 +1,17 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+const dir=path.dirname(fileURLToPath(import.meta.url)),root=path.dirname(dir);
+const read=(p)=>fs.readFileSync(path.join(root,p),'utf8');
+const manifest=JSON.parse(read('./assets.json'));
+const mime=(p)=>({'.jpg':'image/jpeg','.png':'image/png','.webp':'image/webp','.svg':'image/svg+xml','.woff2':'font/woff2'}[path.extname(p)]);
+const url=(p)=>`data:${mime(p)};base64,${fs.readFileSync(path.join(root,p)).toString('base64')}`;
+const assets=Object.fromEntries(Object.entries(manifest).map(([k,p])=>[k,url(p)]));
+const fonts=JSON.parse(read('./fonts.json')).map(f=>`@font-face{font-family:'${f.family}';font-style:normal;font-weight:${f.weight};font-display:swap;src:url('${url(f.path)}') format('woff2');unicode-range:${f.subset==='cyrillic'?'U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116':'U+0000-00FF,U+0100-024F,U+2000-206F,U+20A0-20CF'}}`).join('\n');
+const backgroundNote=fs.existsSync(path.join(dir,'./background-note.txt'))?read('./background-note.txt').trim():'';
+const replacements={FAVICON:assets.coin,FONTS:fonts,KIT:['tokens','kit','combat','dungeon'].map(n=>read(`source/${n}.css`)).join('\n'),STYLES:`:root{--background:url('${assets.background}')}`+read('./styles.css')+'\n'+read('./next.css'),ASSETS:`const ASSETS=${JSON.stringify(assets)};const AVATAR=${JSON.stringify(read('../assets/avatar.svg'))};const BACKGROUND_NOTE=${JSON.stringify(backgroundNote)};`,DATA:read('./data.js')+'\n'+read('./next-data.js'),APP:read('./next.js')+'\n'+read('./app.js')};
+let html=read('./page.html');for(const [k,v]of Object.entries(replacements))html=html.replace(`/*__${k}__*/`,()=>v);
+const output=process.argv[2]||'../index.html';
+if(path.basename(output)!==output||!output.endsWith('.html'))throw new Error('Output must be a local HTML filename');
+fs.writeFileSync(path.join(root,output),html);
+console.log(`Built offline ${output}: ${html.length.toLocaleString('en-US')} bytes; ${Object.keys(assets).length} inline assets.`);

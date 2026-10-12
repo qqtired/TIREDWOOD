@@ -1,0 +1,33 @@
+{
+  "tick": 509,
+  "hash": 1716668629,
+  "initialHash": 4139154799,
+  "room": {
+    "seed": 704313,
+    "tick": 509,
+    "stage": "boss",
+    "upto": 509,
+    "received": 53,
+    "coins": 0,
+    "over": false,
+    "paused": true
+  },
+  "mismatches": 0,
+  "bad": 0,
+  "result": {
+    "waves": 19,
+    "ms": 0,
+    "kills": 0,
+    "level": 1,
+    "bosses": 0,
+    "killedBy": "",
+    "dmg": {
+      "lantern": 2618,
+      "fireflies": 1034,
+      "beam": 1940,
+      "embers": 10032,
+      "stalactites": 6318
+    },
+    "end": "running"
+  }
+}

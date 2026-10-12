@@ -1,0 +1,98 @@
+{
+  "status": "PASS",
+  "terminal": [
+    {
+      "id": "ropecrab",
+      "version": "r2-06",
+      "lastTwoIntervalsIdentical": true,
+      "maxComponentDelta": 0,
+      "residual": []
+    },
+    {
+      "id": "jampump",
+      "version": "r2-06",
+      "lastTwoIntervalsIdentical": true,
+      "maxComponentDelta": 0,
+      "residual": []
+    },
+    {
+      "id": "foreman",
+      "version": "r2-06",
+      "lastTwoIntervalsIdentical": true,
+      "maxComponentDelta": 0,
+      "residual": []
+    },
+    {
+      "id": "canopy",
+      "version": "r2-06",
+      "lastTwoIntervalsIdentical": true,
+      "maxComponentDelta": 0,
+      "residual": []
+    },
+    {
+      "id": "crabcrane",
+      "version": "r2-06",
+      "lastTwoIntervalsIdentical": true,
+      "maxComponentDelta": 0,
+      "residual": []
+    },
+    {
+      "id": "miller",
+      "version": "r2-06",
+      "lastTwoIntervalsIdentical": true,
+      "maxComponentDelta": 0,
+      "residual": []
+    }
+  ],
+  "pumpRays": [
+    {
+      "clip": "windup",
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 1.875,
+      "keySpan": 1.83333333209157,
+      "maxRayTargetDistanceM": 2.946944148065407e-7,
+      "visibleSampleWindow": null
+    },
+    {
+      "clip": "attack",
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 0.875,
+      "keySpan": 0.8333333320915699,
+      "maxRayTargetDistanceM": 3.0606727738786317e-7,
+      "visibleSampleWindow": [
+        0.3750000012417634,
+        0.5833333345750967
+      ]
+    },
+    {
+      "clip": "pump",
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 1.875,
+      "keySpan": 1.83333333209157,
+      "maxRayTargetDistanceM": 2.946944148065407e-7,
+      "visibleSampleWindow": [
+        0.0416666679084301,
+        1.8750000012417634
+      ]
+    },
+    {
+      "clip": "redirect_windup",
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 3.0416667461395264,
+      "keySpan": 3.0000000782310963,
+      "maxRayTargetDistanceM": 3.319733829114976e-7,
+      "visibleSampleWindow": null
+    },
+    {
+      "clip": "redirect_attack",
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 6.041666507720947,
+      "keySpan": 5.999999839812517,
+      "maxRayTargetDistanceM": 3.419584317994671e-7,
+      "visibleSampleWindow": [
+        0.0416666679084301,
+        6.04166666790843
+      ]
+    }
+  ]
+}

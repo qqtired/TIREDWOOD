@@ -1,0 +1,666 @@
+[
+  {
+    "case": "A0",
+    "label": "Clean RAF/CPU; no GPU instrumentation",
+    "variant": "current",
+    "view": "open",
+    "weather": "day",
+    "frozenTime": 18,
+    "warmMs": 1000,
+    "durationMs": 8000,
+    "frames": 481,
+    "frame": {
+      "medianMs": 16.69999999999709,
+      "p95Ms": 16.700000000004366,
+      "fps": 60.00199590838785,
+      "cpuMedianMs": 0.19999999925494194,
+      "cpuP95Ms": 0.30000000074505806
+    },
+    "gpu": null,
+    "start": {
+      "started": true,
+      "state": {
+        "variant": "current",
+        "view": "open",
+        "weather": "day",
+        "time": 18,
+        "paused": true,
+        "fixtures": false,
+        "fog": "game",
+        "look": 2,
+        "isle": true,
+        "waterOnly": true,
+        "width": 1440,
+        "height": 900,
+        "dpr": 1
+      },
+      "camera": {
+        "position": [
+          -470,
+          3,
+          350
+        ],
+        "yaw": -0.6947382761967031,
+        "pitch": -0.010882705149151734
+      },
+      "water": {
+        "vertices": 4,
+        "triangles": 2,
+        "y": -1.25,
+        "transparent": false,
+        "depthWrite": true,
+        "samplers": 0,
+        "normalWaveCos": 5,
+        "displaced": false,
+        "vertexWaveSin": 0,
+        "activeSeaMaterials": 1
+      },
+      "fixtures": {
+        "boatY": -1.2670511079361177,
+        "floatY": -1.2386478490084771
+      },
+      "render": {
+        "calls": 1,
+        "triangles": 2,
+        "programs": 7,
+        "textures": 1
+      },
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "dpr": 1,
+        "resizeVersion": 3
+      },
+      "backend": {
+        "api": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+        "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Pro, Unspecified Version)",
+        "timerAvailable": true
+      },
+      "climate": {
+        "near": 47.17721739456721,
+        "far": 340.82964233656435,
+        "tint": 0.8384342155999551,
+        "haze": 0.911926829553101,
+        "sun": 0.14447750517605817,
+        "isle": 0.8384342155999551,
+        "rainMute": 0.9076683559942764
+      },
+      "revision": 3,
+      "draws": 1965,
+      "errors": [],
+      "costStatus": "B2 adds grid vertices and vertex waves; GPU/CPU cost unverified; standalone scene is not whole-game acceptance"
+    },
+    "end": {
+      "started": true,
+      "state": {
+        "variant": "current",
+        "view": "open",
+        "weather": "day",
+        "time": 18,
+        "paused": true,
+        "fixtures": false,
+        "fog": "game",
+        "look": 2,
+        "isle": true,
+        "waterOnly": true,
+        "width": 1440,
+        "height": 900,
+        "dpr": 1
+      },
+      "camera": {
+        "position": [
+          -470,
+          3,
+          350
+        ],
+        "yaw": -0.6947382761967031,
+        "pitch": -0.010882705149151734
+      },
+      "water": {
+        "vertices": 4,
+        "triangles": 2,
+        "y": -1.25,
+        "transparent": false,
+        "depthWrite": true,
+        "samplers": 0,
+        "normalWaveCos": 5,
+        "displaced": false,
+        "vertexWaveSin": 0,
+        "activeSeaMaterials": 1
+      },
+      "fixtures": {
+        "boatY": -1.2670511079361177,
+        "floatY": -1.2386478490084771
+      },
+      "render": {
+        "calls": 1,
+        "triangles": 2,
+        "programs": 7,
+        "textures": 1
+      },
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "dpr": 1,
+        "resizeVersion": 3
+      },
+      "backend": {
+        "api": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+        "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Pro, Unspecified Version)",
+        "timerAvailable": true
+      },
+      "climate": {
+        "near": 47.17721739456721,
+        "far": 340.82964233656435,
+        "tint": 0.8384342155999551,
+        "haze": 0.911926829553101,
+        "sun": 0.14447750517605817,
+        "isle": 0.8384342155999551,
+        "rainMute": 0.9076683559942764
+      },
+      "revision": 3,
+      "draws": 2506,
+      "errors": [],
+      "costStatus": "B2 adds grid vertices and vertex waves; GPU/CPU cost unverified; standalone scene is not whole-game acceptance"
+    },
+    "scope": "Sea only; 1 draw/2 triangles; not whole-game FPS"
+  },
+  {
+    "case": "A1",
+    "label": "Clean RAF/CPU; no GPU instrumentation",
+    "variant": "current",
+    "view": "open",
+    "weather": "day",
+    "frozenTime": 18,
+    "warmMs": 1000,
+    "durationMs": 8000,
+    "frames": 481,
+    "frame": {
+      "medianMs": 16.69999999999709,
+      "p95Ms": 16.799999999995634,
+      "fps": 60.00199590838785,
+      "cpuMedianMs": 0.10000000149011612,
+      "cpuP95Ms": 0.30000000074505806
+    },
+    "gpu": null,
+    "start": {
+      "started": true,
+      "state": {
+        "variant": "current",
+        "view": "open",
+        "weather": "day",
+        "time": 18,
+        "paused": true,
+        "fixtures": false,
+        "fog": "game",
+        "look": 2,
+        "isle": true,
+        "waterOnly": true,
+        "width": 1440,
+        "height": 900,
+        "dpr": 1
+      },
+      "camera": {
+        "position": [
+          -470,
+          3,
+          350
+        ],
+        "yaw": -0.6947382761967031,
+        "pitch": -0.010882705149151734
+      },
+      "water": {
+        "vertices": 4,
+        "triangles": 2,
+        "y": -1.25,
+        "transparent": false,
+        "depthWrite": true,
+        "samplers": 0,
+        "normalWaveCos": 5,
+        "displaced": false,
+        "vertexWaveSin": 0,
+        "activeSeaMaterials": 1
+      },
+      "fixtures": {
+        "boatY": -1.2670511079361177,
+        "floatY": -1.2386478490084771
+      },
+      "render": {
+        "calls": 1,
+        "triangles": 2,
+        "programs": 7,
+        "textures": 1
+      },
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "dpr": 1,
+        "resizeVersion": 4
+      },
+      "backend": {
+        "api": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+        "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Pro, Unspecified Version)",
+        "timerAvailable": true
+      },
+      "climate": {
+        "near": 47.17721739456721,
+        "far": 340.82964233656435,
+        "tint": 0.8384342155999551,
+        "haze": 0.911926829553101,
+        "sun": 0.14447750517605817,
+        "isle": 0.8384342155999551,
+        "rainMute": 0.9076683559942764
+      },
+      "revision": 4,
+      "draws": 2507,
+      "errors": [],
+      "costStatus": "B2 adds grid vertices and vertex waves; GPU/CPU cost unverified; standalone scene is not whole-game acceptance"
+    },
+    "end": {
+      "started": true,
+      "state": {
+        "variant": "current",
+        "view": "open",
+        "weather": "day",
+        "time": 18,
+        "paused": true,
+        "fixtures": false,
+        "fog": "game",
+        "look": 2,
+        "isle": true,
+        "waterOnly": true,
+        "width": 1440,
+        "height": 900,
+        "dpr": 1
+      },
+      "camera": {
+        "position": [
+          -470,
+          3,
+          350
+        ],
+        "yaw": -0.6947382761967031,
+        "pitch": -0.010882705149151734
+      },
+      "water": {
+        "vertices": 4,
+        "triangles": 2,
+        "y": -1.25,
+        "transparent": false,
+        "depthWrite": true,
+        "samplers": 0,
+        "normalWaveCos": 5,
+        "displaced": false,
+        "vertexWaveSin": 0,
+        "activeSeaMaterials": 1
+      },
+      "fixtures": {
+        "boatY": -1.2670511079361177,
+        "floatY": -1.2386478490084771
+      },
+      "render": {
+        "calls": 1,
+        "triangles": 2,
+        "programs": 7,
+        "textures": 1
+      },
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "dpr": 1,
+        "resizeVersion": 4
+      },
+      "backend": {
+        "api": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+        "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Pro, Unspecified Version)",
+        "timerAvailable": true
+      },
+      "climate": {
+        "near": 47.17721739456721,
+        "far": 340.82964233656435,
+        "tint": 0.8384342155999551,
+        "haze": 0.911926829553101,
+        "sun": 0.14447750517605817,
+        "isle": 0.8384342155999551,
+        "rainMute": 0.9076683559942764
+      },
+      "revision": 4,
+      "draws": 3048,
+      "errors": [],
+      "costStatus": "B2 adds grid vertices and vertex waves; GPU/CPU cost unverified; standalone scene is not whole-game acceptance"
+    },
+    "scope": "Sea only; 1 draw/2 triangles; not whole-game FPS"
+  },
+  {
+    "case": "B2",
+    "label": "Clean RAF/CPU; no GPU instrumentation",
+    "variant": "swell",
+    "view": "open",
+    "weather": "day",
+    "frozenTime": 18,
+    "warmMs": 1000,
+    "durationMs": 8000,
+    "frames": 481,
+    "frame": {
+      "medianMs": 16.69999999999709,
+      "p95Ms": 16.700000000004366,
+      "fps": 60.003492926823206,
+      "cpuMedianMs": 0.10000000149011612,
+      "cpuP95Ms": 0.30000000074505806
+    },
+    "gpu": null,
+    "start": {
+      "started": true,
+      "state": {
+        "variant": "swell",
+        "view": "open",
+        "weather": "day",
+        "time": 18,
+        "paused": true,
+        "fixtures": false,
+        "fog": "game",
+        "look": 2,
+        "isle": true,
+        "waterOnly": true,
+        "width": 1440,
+        "height": 900,
+        "dpr": 1
+      },
+      "camera": {
+        "position": [
+          -470,
+          3,
+          350
+        ],
+        "yaw": -0.6947382761967031,
+        "pitch": -0.010882705149151734
+      },
+      "water": {
+        "vertices": 41209,
+        "triangles": 81608,
+        "y": -1.25,
+        "transparent": false,
+        "depthWrite": true,
+        "samplers": 0,
+        "normalWaveCos": 5,
+        "displaced": true,
+        "vertexWaveSin": 2,
+        "activeSeaMaterials": 1
+      },
+      "fixtures": {
+        "boatY": -1.25,
+        "floatY": -1.25
+      },
+      "render": {
+        "calls": 1,
+        "triangles": 81608,
+        "programs": 7,
+        "textures": 1
+      },
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "dpr": 1,
+        "resizeVersion": 5
+      },
+      "backend": {
+        "api": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+        "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Pro, Unspecified Version)",
+        "timerAvailable": true
+      },
+      "climate": {
+        "near": 47.17721739456721,
+        "far": 340.82964233656435,
+        "tint": 0.8384342155999551,
+        "haze": 0.911926829553101,
+        "sun": 0.14447750517605817,
+        "isle": 0.8384342155999551,
+        "rainMute": 0.9076683559942764
+      },
+      "revision": 5,
+      "draws": 3049,
+      "errors": [],
+      "costStatus": "B2 adds grid vertices and vertex waves; GPU/CPU cost unverified; standalone scene is not whole-game acceptance"
+    },
+    "end": {
+      "started": true,
+      "state": {
+        "variant": "swell",
+        "view": "open",
+        "weather": "day",
+        "time": 18,
+        "paused": true,
+        "fixtures": false,
+        "fog": "game",
+        "look": 2,
+        "isle": true,
+        "waterOnly": true,
+        "width": 1440,
+        "height": 900,
+        "dpr": 1
+      },
+      "camera": {
+        "position": [
+          -470,
+          3,
+          350
+        ],
+        "yaw": -0.6947382761967031,
+        "pitch": -0.010882705149151734
+      },
+      "water": {
+        "vertices": 41209,
+        "triangles": 81608,
+        "y": -1.25,
+        "transparent": false,
+        "depthWrite": true,
+        "samplers": 0,
+        "normalWaveCos": 5,
+        "displaced": true,
+        "vertexWaveSin": 2,
+        "activeSeaMaterials": 1
+      },
+      "fixtures": {
+        "boatY": -1.25,
+        "floatY": -1.25
+      },
+      "render": {
+        "calls": 1,
+        "triangles": 81608,
+        "programs": 7,
+        "textures": 1
+      },
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "dpr": 1,
+        "resizeVersion": 5
+      },
+      "backend": {
+        "api": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+        "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Pro, Unspecified Version)",
+        "timerAvailable": true
+      },
+      "climate": {
+        "near": 47.17721739456721,
+        "far": 340.82964233656435,
+        "tint": 0.8384342155999551,
+        "haze": 0.911926829553101,
+        "sun": 0.14447750517605817,
+        "isle": 0.8384342155999551,
+        "rainMute": 0.9076683559942764
+      },
+      "revision": 5,
+      "draws": 3591,
+      "errors": [],
+      "costStatus": "B2 adds grid vertices and vertex waves; GPU/CPU cost unverified; standalone scene is not whole-game acceptance"
+    },
+    "scope": "Sea only; 1 draw/81608 triangles; not whole-game FPS"
+  },
+  {
+    "case": "A2",
+    "label": "Clean RAF/CPU; no GPU instrumentation",
+    "variant": "current",
+    "view": "open",
+    "weather": "day",
+    "frozenTime": 18,
+    "warmMs": 1000,
+    "durationMs": 8000,
+    "frames": 481,
+    "frame": {
+      "medianMs": 16.69999999999709,
+      "p95Ms": 16.799999999995634,
+      "fps": 60.002744408268185,
+      "cpuMedianMs": 0.10000000149011612,
+      "cpuP95Ms": 0.30000000074505806
+    },
+    "gpu": null,
+    "start": {
+      "started": true,
+      "state": {
+        "variant": "current",
+        "view": "open",
+        "weather": "day",
+        "time": 18,
+        "paused": true,
+        "fixtures": false,
+        "fog": "game",
+        "look": 2,
+        "isle": true,
+        "waterOnly": true,
+        "width": 1440,
+        "height": 900,
+        "dpr": 1
+      },
+      "camera": {
+        "position": [
+          -470,
+          3,
+          350
+        ],
+        "yaw": -0.6947382761967031,
+        "pitch": -0.010882705149151734
+      },
+      "water": {
+        "vertices": 4,
+        "triangles": 2,
+        "y": -1.25,
+        "transparent": false,
+        "depthWrite": true,
+        "samplers": 0,
+        "normalWaveCos": 5,
+        "displaced": false,
+        "vertexWaveSin": 0,
+        "activeSeaMaterials": 1
+      },
+      "fixtures": {
+        "boatY": -1.2670511079361177,
+        "floatY": -1.2386478490084771
+      },
+      "render": {
+        "calls": 1,
+        "triangles": 2,
+        "programs": 7,
+        "textures": 1
+      },
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "dpr": 1,
+        "resizeVersion": 6
+      },
+      "backend": {
+        "api": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+        "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Pro, Unspecified Version)",
+        "timerAvailable": true
+      },
+      "climate": {
+        "near": 47.17721739456721,
+        "far": 340.82964233656435,
+        "tint": 0.8384342155999551,
+        "haze": 0.911926829553101,
+        "sun": 0.14447750517605817,
+        "isle": 0.8384342155999551,
+        "rainMute": 0.9076683559942764
+      },
+      "revision": 6,
+      "draws": 3592,
+      "errors": [],
+      "costStatus": "B2 adds grid vertices and vertex waves; GPU/CPU cost unverified; standalone scene is not whole-game acceptance"
+    },
+    "end": {
+      "started": true,
+      "state": {
+        "variant": "current",
+        "view": "open",
+        "weather": "day",
+        "time": 18,
+        "paused": true,
+        "fixtures": false,
+        "fog": "game",
+        "look": 2,
+        "isle": true,
+        "waterOnly": true,
+        "width": 1440,
+        "height": 900,
+        "dpr": 1
+      },
+      "camera": {
+        "position": [
+          -470,
+          3,
+          350
+        ],
+        "yaw": -0.6947382761967031,
+        "pitch": -0.010882705149151734
+      },
+      "water": {
+        "vertices": 4,
+        "triangles": 2,
+        "y": -1.25,
+        "transparent": false,
+        "depthWrite": true,
+        "samplers": 0,
+        "normalWaveCos": 5,
+        "displaced": false,
+        "vertexWaveSin": 0,
+        "activeSeaMaterials": 1
+      },
+      "fixtures": {
+        "boatY": -1.2670511079361177,
+        "floatY": -1.2386478490084771
+      },
+      "render": {
+        "calls": 1,
+        "triangles": 2,
+        "programs": 7,
+        "textures": 1
+      },
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "dpr": 1,
+        "resizeVersion": 6
+      },
+      "backend": {
+        "api": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+        "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Pro, Unspecified Version)",
+        "timerAvailable": true
+      },
+      "climate": {
+        "near": 47.17721739456721,
+        "far": 340.82964233656435,
+        "tint": 0.8384342155999551,
+        "haze": 0.911926829553101,
+        "sun": 0.14447750517605817,
+        "isle": 0.8384342155999551,
+        "rainMute": 0.9076683559942764
+      },
+      "revision": 6,
+      "draws": 4133,
+      "errors": [],
+      "costStatus": "B2 adds grid vertices and vertex waves; GPU/CPU cost unverified; standalone scene is not whole-game acceptance"
+    },
+    "scope": "Sea only; 1 draw/2 triangles; not whole-game FPS"
+  }
+]

@@ -1,0 +1,33 @@
+{
+  "at": "2026-10-12T07:39:20.015Z",
+  "sourceOnly": true,
+  "physicalStatesUnchanged": 3150,
+  "geometryFrames": 864,
+  "geometryRays": 3076,
+  "geometryFailures": 0,
+  "narrowTests": 12,
+  "narrowTestsStatus": "PASS",
+  "domTargets": "PASS",
+  "qaSyntax": "PASS",
+  "chapters": {
+    "forge": "preparation→exterior at10s",
+    "stores": "local→water route→local on arrival; late failed route stays visible",
+    "anchor": "entire actual boat and rope"
+  },
+  "bundleUnchanged": "a2062f164c0a1b04745b03723fc5ee1bae1b065776a15391581085a6fb95e05e",
+  "mainV1Preserved": true,
+  "gameEdited": false,
+  "modelsEdited": false,
+  "newBuild": false,
+  "newBrowser": false,
+  "visualAcceptancePending": true,
+  "sourceHashes": {
+    "../source/scenarios.mjs": "f4f1b6eed745fc1251436634a51c5225f6e59dc672c5704f474b8d441e472d58",
+    "../source/event-lab.js": "33f83f14f4d55eb07dad1daeae5c9663311ed17bd7f2323dbf073b285da9cbac",
+    "../source/report.html": "1ac52aa9ed034d6facce8474f1150752b2464802ef2f594ef0985dee8dd5729c",
+    "../source/event-camera.mjs": "d09ed341fbfabd87b73012e65fe775d9b4d1764c7690e111990f8d3467d2ec90",
+    "../source/native-model-timeline.mjs": "36e77f340724564eab357e16503443ba789dde8a66b46796d7a7c1937039bc95",
+    "../source/camera-geometry.mjs": "678ec4ec4229d1c9061c7c3dcf357e001df737319f8bce8b678d886dd518101c",
+    "./roster-v2.json": "426cab1cac7a967ba37aca7ed5128782295934fcaae7a55c6e757eac3a37fb63"
+  }
+}

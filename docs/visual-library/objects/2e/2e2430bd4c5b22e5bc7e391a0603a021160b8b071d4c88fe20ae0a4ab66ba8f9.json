@@ -1,0 +1,26 @@
+{
+  "case": "rail-KB",
+  "type": "contactFixture",
+  "seed": 704311,
+  "accelerated": true,
+  "initialHash": 3131326005,
+  "edits": [
+    "skip to wave18",
+    "assume previous 17 waves for local fixture counters",
+    "isolated fixture: no director background/props/map pickups; actual map collision stays",
+    "one real enemy at measured distance; spd0, HPmul6 and damageMul1 for clear registration; normal hero100HP"
+  ],
+  "seconds": 8,
+  "normalHP": false,
+  "heroHp": 100,
+  "weapons": [
+    {
+      "id": "pickaxe",
+      "lv": 7,
+      "evo": 0
+    }
+  ],
+  "passives": [],
+  "source": "original game.d.makeRun returned actual run; setup before first view/hash",
+  "receivedAt": 425362.799999997
+}

@@ -1,0 +1,198 @@
+/* TIREDWOOD UI kit 2.0 — общие детали режимов (префикс .mo-): картинг, регата, пейнтбол, прятки, «Выше облаков», пираты,
+   крысиные бега. Перенесено из lab/ui/screens/modes.css (страница «Режимы»), без раскладки самой страницы.
+   Цвета, тени, радиусы — только токены кита. Разметку собирает client/ui/kit/modes.ts. */
+
+/* ---------------------------------------------------------------- цвета команд пейнтбола (как в игре: shared/constants.ts TEAM_CSS)
+   Полоса — --team0/--team1. Текст — светлая основа, которая сама темнеет на светлом HUD и окнах (color-mix с --accent-k/--accent-to:
+   в HUD «Светлый» — 64 % к почти чёрному, в окнах retro2 — как есть). В 3D цвета команд не меняются. */
+:root { --team0: #4a63ff; --team0-tx: #8b9bff; --team1: #ff8a1c; --team1-tx: #ffa04a; }
+.mo-name.t0, .mo-t0 .mo-team-name { color: color-mix(in srgb, var(--team0-tx) var(--accent-k, 100%), var(--accent-to, #000)); font-weight: 800; }
+.mo-name.t1, .mo-t1 .mo-team-name { color: color-mix(in srgb, var(--team1-tx) var(--accent-k, 100%), var(--accent-to, #000)); font-weight: 800; }
+/* ник в чате — цветом команды, читаемым на плашке чата (client/chat.ts: .k-team-0 / .k-team-1) */
+.k-chat-line.k-team-0 { --nick: color-mix(in srgb, var(--team0-tx) var(--accent-k, 100%), var(--accent-to, #000)); }
+.k-chat-line.k-team-1 { --nick: color-mix(in srgb, var(--team1-tx) var(--accent-k, 100%), var(--accent-to, #000)); }
+
+/* ---------------------------------------------------------------- мелочи */
+.mo-dot { display: inline-block; flex: none; width: 14px; height: 14px; border-radius: 50%; box-shadow: 0 0 0 2px var(--line-strong); }
+.mo-ghost { width: 36px; height: 36px; opacity: .35; filter: grayscale(1); }
+.mo-ic { width: 36px; height: 36px; filter: drop-shadow(0 1px 2px rgba(20, 10, 12, .35)); }
+.mo-noshrink { flex: none; width: max-content; max-width: none; }
+
+/* ---------------------------------------------------------------- карточка места (ВЛ): «4/6 · Круг 1/3 · 0:21.0» одной плашкой ~200×56 */
+.mo-stand { width: auto; padding: 6px 14px 7px 12px; }
+.mo-stand-main { display: flex; align-items: center; gap: 12px; }
+.mo-place { color: var(--gold-text); font: 800 calc(var(--fs-36) + 2px)/.95 var(--font-text); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.mo-place small { margin-left: 2px; color: var(--surf-dim); font-size: var(--fs-16); font-weight: 700; letter-spacing: 0; }
+.mo-stand-side { display: flex; flex-direction: column; gap: 3px; padding-left: 12px; border-left: 1px solid var(--line); }
+.mo-lap { color: var(--surf-dim); font: 600 var(--fs-13)/1.1 var(--font-text); }
+.mo-lap b { color: var(--plate-text); font-weight: 800; }
+.mo-time { font: 800 var(--fs-18)/1 var(--font-text); font-variant-numeric: tabular-nums; }
+.mo-stand-foot { display: flex; align-items: center; gap: 6px; margin-top: 5px; padding-top: 5px; border-top: 1px solid var(--line); color: var(--surf-dim); font: 600 var(--fs-13)/1.1 var(--font-text); }
+.mo-stand-foot b { color: var(--plate-text); font-weight: 800; }
+.mo-stand-foot .k-ic { width: 18px; height: 18px; }
+
+/* ---------------------------------------------------------------- мини-карта и список гонщиков (под бейджем): карта 180, строки 14 */
+.mo-map { width: 180px; padding: 5px; }
+.mo-map > canvas, .mo-map > svg { display: block; width: 100%; height: auto; border-radius: var(--r-sm); }
+.mo-list { display: flex; flex-direction: column; gap: 1px; width: 210px; padding: 5px 6px; }
+.mo-list .k-eyebrow { margin: 2px 4px 2px; font-size: var(--fs-13); }
+.mo-row { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; align-items: center; gap: 7px; min-height: 26px; padding: 1px 8px 1px 2px; border-radius: var(--r-sm); font: 600 var(--fs-14)/1.1 var(--font-text); }
+.mo-row .k-place { width: 22px; height: 22px; font-size: var(--fs-13); }
+.mo-row b { display: flex; align-items: center; gap: 6px; overflow: hidden; font-weight: 600; white-space: nowrap; }
+.mo-row b > span { overflow: hidden; text-overflow: ellipsis; }
+.mo-row b .k-pill--sm { min-height: 18px; padding: 1px 6px; font-size: var(--fs-13); }
+.mo-row-side { color: var(--surf-dim); font-weight: 700; font-variant-numeric: tabular-nums; }
+.mo-row.is-own { background: var(--gold-soft); box-shadow: inset 0 0 0 1.5px var(--gold); }
+.mo-row.is-own b, .mo-row.is-own .mo-row-side { color: var(--gold-text); font-weight: 800; }
+
+/* ---------------------------------------------------------------- скорость, бонус, заряд заноса, ряд клавиш (низ) */
+.mo-speed { display: flex; align-items: baseline; gap: 5px; padding: 5px 12px 6px; }
+.mo-speed b { min-width: 2ch; font: 800 var(--fs-28)/1 var(--font-text); font-variant-numeric: tabular-nums; text-align: right; }
+.mo-speed span { color: var(--surf-dim); font: 600 var(--fs-13)/1 var(--font-text); }
+.mo-keys { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px 12px; max-width: 760px; padding: 5px 12px; border-radius: var(--r-pill); }
+.mo-key { display: inline-flex; align-items: center; gap: 5px; font: 600 var(--fs-14)/1 var(--font-text); white-space: nowrap; }
+.mo-key .k-key { min-width: 26px; height: 26px; padding: 0 6px; font-size: var(--fs-13); }
+.mo-key .k-key .k-mouse { font-size: 16px; }
+.mo-key em { color: var(--surf-dim); font-style: normal; font-weight: 600; }
+.mo-item { display: flex; align-items: center; gap: 10px; margin: 0; padding: 5px 14px 5px 5px; border-radius: var(--r-md); color: var(--plate-text); font: inherit; text-align: left; cursor: pointer; }
+.mo-item.is-empty { cursor: default; }
+.mo-item-ic { display: grid; place-items: center; flex: none; width: 46px; height: 46px; border-radius: var(--r-sm); background: var(--surf-3); box-shadow: inset 0 0 0 1.5px var(--line-strong); }
+.mo-item.is-ready .mo-item-ic { box-shadow: inset 0 0 0 2px var(--gold), 0 0 12px var(--gold-soft); }
+.mo-item-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.mo-item-txt b { font: 800 var(--fs-16)/1.1 var(--font-text); }
+.mo-item-txt small { max-width: 220px; overflow: hidden; color: var(--surf-dim); font: 500 var(--fs-13)/1.2 var(--font-text); text-overflow: ellipsis; white-space: nowrap; }
+.mo-item-keys { position: absolute; top: -10px; right: 10px; z-index: 2; }
+.mo-item-keys .k-key { min-width: 24px; height: 24px; font-size: var(--fs-13); }
+.mo-item-keys .k-key .k-mouse { font-size: 16px; }
+.mo-charge { position: relative; width: 240px; }
+.mo-charge .k-meter { height: 18px; }
+.mo-charge .k-meter-label { font-size: var(--fs-13); }
+.mo-tick { position: absolute; top: 3px; bottom: 3px; width: 2px; border-radius: 2px; background: rgba(255, 255, 255, .6); }
+
+/* ---------------------------------------------------------------- итоги (одно окно для всех режимов — ModeResults в modes.ts) */
+.mo-results { width: min(820px, 100%); }
+.mo-results.k-window--lg { width: min(1100px, 100%); }
+.mo-results .k-win-body { padding-top: 6px; }
+.mo-results .k-results-title.is-lose { color: var(--bad-text); }
+.mo-results .k-reward[hidden], .mo-note[hidden] { display: none; }
+.mo-note { display: flex; flex-direction: column; gap: 8px; align-items: center; margin-top: 12px; color: var(--surf-dim); font: 600 var(--fs-16)/1.2 var(--font-text); }
+.mo-note .k-meter { width: 220px; }
+.mo-note .k-meter[hidden] { display: none; }
+.mo-results .k-table .k-who { gap: 8px; }
+.mo-results .k-table td.is-dnf, .mo-results .k-table tr.is-dnf td { color: var(--surf-dim); }
+.k-scrim.mo-scrim { pointer-events: auto; }
+.k-scrim.mo-scrim[hidden] { display: none; }
+
+/* ---------------------------------------------------------------- счёт команд (ВЦ): 300×48 — «ЧЕРНИКА 5 · 4:42 · 6 МАНДАРИН», тонкие полосы */
+.mo-score { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: stretch; width: 300px; padding: 0; overflow: hidden; }
+.mo-team { display: flex; flex-direction: column; justify-content: center; gap: 4px; padding: 5px 10px 6px; }
+.mo-team-top { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; }
+.mo-team-top b { font: 800 var(--fs-22)/1 var(--font-text); font-variant-numeric: tabular-nums; }
+.mo-team-name { overflow: hidden; font: 800 var(--fs-13)/1.1 var(--font-text); text-overflow: ellipsis; white-space: nowrap; }
+.mo-team .k-meter { height: 4px; border: 0; }
+.mo-t0 .k-meter { --c: var(--team0); } .mo-t1 .k-meter { --c: var(--team1); }
+.mo-clock { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; min-width: 58px; padding: 4px 8px; background: var(--surf-2); border-inline: 1px solid var(--line); }
+.mo-clock small { color: var(--surf-dim); font: 700 var(--fs-13)/1 var(--font-text); }
+.mo-clock b { font: 800 var(--fs-18)/1 var(--font-text); font-variant-numeric: tabular-nums; }
+.mo-clock b.is-hurry { color: var(--bad-text); animation: k-hurry .9s ease-in-out infinite; }
+
+/* ---------------------------------------------------------------- лента (сбитые, новости режима — ВЛ): мелкие строки, тают сами */
+.mo-feed { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.mo-feed:empty { display: none; }
+.mo-feed-line { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 3px 10px; border-radius: var(--r-pill); font: 600 var(--fs-14)/1.1 var(--font-text); white-space: nowrap; transition: opacity .6s; }
+.mo-feed-line .k-ic { width: 18px; height: 18px; }
+.mo-feed-line.is-own { box-shadow: var(--plate-shadow), inset 0 0 0 1.5px var(--gold); }
+.mo-feed-line.is-big { color: var(--gold-text); font-weight: 800; }
+.mo-feed-line.is-out { opacity: 0; }
+.k-slot--tl > .mo-feed { margin-top: 2px; }
+
+/* ---------------------------------------------------------------- панель бойца: три действия с подписью, щит строкой в блоке здоровья */
+.k-vitals-arms.mo-acts3 { gap: 14px; }
+.mo-armor { gap: 6px; }
+.mo-armor .k-vitals-ic { width: 18px; height: 18px; }
+.mo-armor .k-meter { flex: 1; height: 4px; border: 0; }
+.mo-armor .k-vitals-cap { min-width: 46px; }
+
+/* ---------------------------------------------------------------- таблица боя и итоги: две команды рядом */
+.mo-board { width: min(980px, 100%); }
+.mo-board-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.mo-board-head { display: flex; align-items: baseline; justify-content: space-between; padding: 0 6px; font: 900 var(--fs-22)/1 var(--font-text); }
+.mo-board-head b { font-size: var(--fs-36); }
+.mo-board-team .k-table { margin-top: -2px; }
+.mo-board-team.t0 .mo-board-head { box-shadow: inset 0 -3px 0 var(--team0); padding-bottom: 8px; }
+.mo-board-team.t1 .mo-board-head { box-shadow: inset 0 -3px 0 var(--team1); padding-bottom: 8px; }
+.mo-mvp { display: flex; justify-content: center; margin-bottom: 14px; }
+.mo-mvp b { font-weight: 900; }
+
+/* ---------------------------------------------------------------- прятки: роль ~230×50 (цвет — акцент режима или роли) */
+.mo-role { display: flex; align-items: center; gap: 9px; padding: 5px 14px 5px 5px; box-shadow: var(--plate-shadow), inset 3px 0 0 var(--mode); }
+.mo-role-ic { display: grid; place-items: center; flex: none; width: 38px; height: 38px; border-radius: 50%; background: var(--mode-soft); box-shadow: inset 0 0 0 1.5px var(--mode); }
+.mo-role-ic img { width: 28px; height: 28px; object-fit: contain; }
+.mo-role b { display: block; font: 800 var(--fs-16)/1.15 var(--font-text); }
+.mo-role small { display: block; margin-top: 1px; color: var(--surf-dim); font: 500 var(--fs-13)/1.2 var(--font-text); }
+
+/* ---------------------------------------------------------------- «Выше облаков»: участок (≈240×64), высотомер (≈150×250), кнопки, медали */
+.mo-sec { max-width: 260px; padding: 6px 12px 7px; }
+.mo-sec .k-eyebrow { font-size: var(--fs-13); }
+.mo-sec-name { display: block; margin-top: 2px; font: 800 var(--fs-18)/1.1 var(--font-text); }
+.mo-sec-rule { margin: 2px 0 0; color: var(--surf-dim); font: 500 var(--fs-14)/1.25 var(--font-text); }
+.mo-alt { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 150px; height: 250px; padding: 8px 10px; }
+.mo-alt .k-ic { width: 26px; height: 26px; }
+.mo-alt-track { position: relative; flex: 1; width: 10px; margin-left: 56px; border-radius: var(--r-pill); background: var(--track); box-shadow: inset 0 0 0 1px var(--line-strong); }
+.mo-alt-fill { position: absolute; left: 0; right: 0; bottom: 0; border-radius: var(--r-pill); background: linear-gradient(0deg, var(--gold), var(--gold-hi)); }
+.mo-alt-mark { position: absolute; right: calc(100% + 8px); max-width: 72px; overflow: hidden; transform: translateY(50%); color: var(--surf-dim); font: 600 var(--fs-13)/1 var(--font-text); text-overflow: ellipsis; white-space: nowrap; }
+.mo-alt-mark::after { content: ''; position: absolute; left: calc(100% + 3px); top: 50%; width: 5px; height: 5px; margin-top: -2.5px; border-radius: 50%; background: var(--surf-dim); }
+.mo-alt-mark.is-own { color: var(--gold-text); font-weight: 800; }
+.mo-alt-mark.is-own::after { background: var(--gold); box-shadow: 0 0 0 2px var(--surf-solid); width: 8px; height: 8px; margin-top: -4px; }
+.mo-alt-place { font: 800 var(--fs-18)/1 var(--font-text); color: var(--gold-text); }
+.mo-acts { display: flex; gap: 22px; }
+.mo-med { width: 26px; height: 26px; margin-right: 8px; vertical-align: -7px; }
+.mo-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 4px 0 12px; }
+
+/* ---------------------------------------------------------------- пираты: задачи защитника, ≈ 300×100 */
+.mo-tasks { display: flex; flex-direction: column; gap: 5px; padding: 7px 14px 7px 8px; }
+.mo-task { display: flex; align-items: center; gap: 9px; font: 500 var(--fs-14)/1.2 var(--font-text); white-space: nowrap; }
+.mo-task b { font-weight: 800; }
+.mo-task .k-key { flex: none; min-width: 28px; height: 26px; padding: 0 6px; }
+.mo-task .k-key .k-mouse { font-size: 16px; }
+.mo-task .k-key--wide { display: inline-flex; align-items: center; gap: 5px; min-width: 0; padding: 0 8px; font-size: var(--fs-13); }
+.mo-task-ic { width: 20px; height: 20px; object-fit: contain; }
+
+/* ---------------------------------------------------------------- ставки: окно (крысиные бега) */
+.mo-bet-win { width: min(860px, 100%); }
+.mo-bet-win .k-win-body { padding: 16px 22px 12px; }
+.mo-step { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; color: var(--surf-text); font: 800 var(--fs-18)/1.2 var(--font-text); }
+.mo-step b { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--gold); color: var(--gold-ink); font-size: var(--fs-16); }
+.mo-step ~ .mo-step { margin-top: 16px; }
+.mo-saddle { display: inline-grid; place-items: center; flex: none; width: 36px; height: 36px; border-radius: 50%; background: var(--sd); color: #fff; font: 900 var(--fs-16)/1 var(--font-text); text-shadow: 0 1px 2px rgba(0, 0, 0, .55); box-shadow: 0 2px 0 rgba(0, 0, 0, .35), inset 0 0 0 2px rgba(255, 255, 255, .55); }
+.mo-rats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.mo-rat { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; gap: 2px 10px; padding: 10px 12px; color: var(--surf-text); font: inherit; text-align: left; cursor: pointer; transition: transform .1s; }
+.mo-rat:hover { transform: translateY(-2px); }
+.mo-rat.is-on { border-color: transparent; background: var(--gold-soft); box-shadow: inset 0 0 0 2px var(--gold), 0 0 18px var(--gold-soft); }
+.mo-rat-name { font: 800 var(--fs-18)/1.1 var(--font-text); }
+.mo-rat-x { color: var(--gold-text); font: 900 var(--fs-28)/1 var(--font-text); }
+.mo-rat-trait { grid-column: 1 / -1; min-height: 38px; color: var(--surf-dim); font: 500 var(--fs-14)/1.3 var(--font-text); }
+.mo-rat-foot { grid-column: 1 / 3; color: var(--surf-dim); font: 700 var(--fs-13)/1.2 var(--font-text); }
+.mo-rat-who { grid-column: 1 / -1; min-height: 16px; color: var(--surf-faint); font: 600 var(--fs-13)/1.2 var(--font-text); }
+.mo-bet-win .k-bet { gap: 10px; }
+.mo-bet-win .k-bet-chips { padding-top: 0; }
+.mo-bet-win .k-btn--lg small { font-size: var(--fs-13); }
+/* список крыс в забеге (под бейджем): строки 14, седло 22 */
+.mo-ratlist { width: 220px; }
+.mo-ratlist .mo-row { grid-template-columns: 22px minmax(0, 1fr) auto; min-height: 30px; padding: 2px 8px 2px 3px; }
+.mo-ratlist.has-places .mo-row { grid-template-columns: 14px 22px minmax(0, 1fr) auto; gap: 6px; }
+.mo-ratlist .mo-saddle { width: 22px; height: 22px; font-size: var(--fs-13); box-shadow: 0 1px 0 rgba(0, 0, 0, .35), inset 0 0 0 1.5px rgba(255, 255, 255, .55); }
+.mo-ratlist .mo-row b { flex-direction: column; align-items: flex-start; gap: 0; font-size: var(--fs-14); }
+.mo-ratlist .mo-row small { color: var(--surf-dim); font: 600 var(--fs-13)/1.1 var(--font-text); }
+.mo-ratlist .mo-row-side { color: var(--gold-text); font-weight: 800; font-size: var(--fs-15); }
+.mo-pl { color: var(--surf-dim); font: 800 var(--fs-13)/1 var(--font-text); text-align: center; }
+.mo-pl.is-lead { color: var(--gold-text); }
+
+@media (prefers-reduced-motion: reduce) {
+  .mo-clock b.is-hurry { animation: none !important; }
+  .mo-feed-line { transition: none; }
+}
+
+/* окно итогов обновляется на месте (ModeResults.show): обёртка таблицы не меняет раскладку */
+.mo-res-main { display: contents; }
+.mo-results .k-results-sub[hidden] { display: none; }

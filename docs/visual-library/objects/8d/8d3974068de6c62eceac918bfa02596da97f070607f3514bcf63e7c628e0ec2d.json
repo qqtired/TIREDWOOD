@@ -1,0 +1,49 @@
+{
+  "base": "41b91a842ce1367edde22d165705fc811365b37e",
+  "originalBase": "bd182c285f2ac5c8186b4d4eb5dc1af9532c78f0",
+  "branch": "mode/waterfront-opt-pack1",
+  "owned": {
+    "client/lobby/plaza3/npc.ts": "45bc12fcfcd99e54d4635af74774dcb7ce3c6b8dda5396fe28dcb45f165ffb77",
+    "client/lobby/plaza3/perf.ts": "efe61cc1ea895362e8da80d2327fb9288f7dd8a23e89cfa680019db15e9d106d",
+    "client/lobby/plaza3/rathead-batch.ts": "63e701724f7055e047a7ad850a957d0588ec12315d5df316ffa1f396aec68d95",
+    "client/lobby/plaza3/rat-rigid-instances.ts": "fc7ad5faf7774c134ad92e1f6dab92ef0913c3f8896899ee7d100a208bb24754",
+    "client/lobby/ratrace3d.ts": "6d4d182d61691aed4dd4ded0db8bce0f3ca5b25916a919f18f8d27c5cf540d3e",
+    "client/lobby/scene.ts": "f133a1631b719eceb6714eb9f8fa2f41e41d35ecc462c6f1e953414d0e094984",
+    "docs/README.md": "f622ccdc5f66deaf11cecae89c7b649d75d8ac0b0a5f7321c4ab13bd6b2611ca",
+    "test/plaza3-rathead-batch.test.ts": "3d1704ff336f6908bd9c9d2991fc460fd2bd04efe4d69bfb23952306433b5410",
+    "test/plaza3-rat-rigid-instances.test.ts": "a330f8d32cec9f099134ac6511f3ed4ddc8d8198b1f02aa8c4d243f6012d806c",
+    "test/plaza3-shadow-scope.test.ts": "92144a438fc9545db7202875b275b4143f9643fffaf90b117ec9101424d3936b",
+    "test/plaza3-update-cost.test.ts": "d55cb31de1ac9ba6185b580aa3d95d81c54afa376cb9fa77b9e6f1274ae51fe4"
+  },
+  "distIndexSHA": "1d9c4519513e0b84052b91d714b578a85760bd70a0ab9bc32a2d01f86ae4723f",
+  "gate": {
+    "check": 0,
+    "pass": 1929,
+    "fail": 0,
+    "skip": 1,
+    "total": 1930,
+    "build": 0
+  },
+  "actual": {
+    "before": {
+      "main": 385,
+      "shadow": 115
+    },
+    "after": {
+      "main": 345,
+      "shadow": 110
+    },
+    "ratMain": [
+      71,
+      28
+    ],
+    "ratShadow": [
+      7,
+      2
+    ]
+  },
+  "visual": "root independent acceptance; no visible regression; sleep camera differs",
+  "budget": "NO-GO",
+  "nativeDepthBytesRead": false,
+  "released": "10:55 UTC"
+}

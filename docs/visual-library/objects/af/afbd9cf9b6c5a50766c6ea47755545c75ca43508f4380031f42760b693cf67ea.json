@@ -1,0 +1,11 @@
+{
+  "id": "01-mobs",
+  "code": 0,
+  "thread": "01a12cc6-3695-7190-ba08-f5f01877b146",
+  "seconds": 54,
+  "original": "../../../../../../../unavailable.html",
+  "copied": "../../originals/01-mobs.png",
+  "tool": "Codex CLI built-in image_gen",
+  "model": "gpt-6.1-sol",
+  "created": "2026-10-11T21:03:24.227Z"
+}

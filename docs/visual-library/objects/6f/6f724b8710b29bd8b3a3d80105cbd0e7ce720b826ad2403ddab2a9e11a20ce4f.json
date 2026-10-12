@@ -1,0 +1,677 @@
+{
+  "status": "Authored R2 storyboard; geometry, export and measured acceptance pending native MCP slot",
+  "fps": 24,
+  "rootRule": "World root remains upright. Body, supports and props use individual pivots; no shared diagonal root death.",
+  "models": [
+    {
+      "id": "ropecrab",
+      "windup": 4,
+      "attack": 0.8,
+      "death": 2.4,
+      "silhouette": "Low flattened shell, six anatomical legs, strapped spool, serious brow, separate hook and visible ratchet",
+      "events": [
+        [
+          0,
+          "stopper_release"
+        ],
+        [
+          0.35,
+          "spool_runaway"
+        ],
+        [
+          0.65,
+          "ground_rope_unwind"
+        ],
+        [
+          0.9,
+          "rear_legs_buckle"
+        ],
+        [
+          1.2,
+          "shell_settle"
+        ],
+        [
+          1.65,
+          "hook_drop"
+        ],
+        [
+          2.05,
+          "spool_brake"
+        ],
+        [
+          2.4,
+          "rest"
+        ]
+      ],
+      "deathStages": [
+        [
+          0,
+          0.35,
+          "Ratchet leaves its bracket; spool accelerates independently"
+        ],
+        [
+          0.35,
+          1.2,
+          "Rope extends across ground; six legs buckle with staggered phases"
+        ],
+        [
+          1.2,
+          2.4,
+          "Shell settles upright; hook drops; spool coasts to a separate stop"
+        ]
+      ],
+      "attackEvents": [
+        [
+          0,
+          "rear_feet_brace"
+        ],
+        [
+          0.16,
+          "rope_tension"
+        ],
+        [
+          0.28,
+          "hook_pull_contact"
+        ],
+        [
+          0.48,
+          "claw_recoil"
+        ],
+        [
+          0.8,
+          "stopper_open"
+        ]
+      ],
+      "measure": {
+        "planting": "rear legs during all 4s warning",
+        "plantDriftMaxM": 0.02,
+        "minimumFloorY": -0.025,
+        "ropeGroundBandM": [
+          0,
+          0.05
+        ],
+        "spoolMustMoveAfterShellRest": true
+      },
+      "reviewSeconds": [
+        0,
+        0.35,
+        0.9,
+        1.2,
+        1.65,
+        2.4
+      ]
+    },
+    {
+      "id": "jampump",
+      "windup": 1.8,
+      "attack": 0.8,
+      "death": 2.2,
+      "silhouette": "Stocky badger, long muzzle, weighted hips, stitched apron, two actual grip contacts, flexible segmented hose",
+      "events": [
+        [
+          0,
+          "valve_release"
+        ],
+        [
+          0.3,
+          "hose_whip_first"
+        ],
+        [
+          0.65,
+          "hose_whip_second"
+        ],
+        [
+          1,
+          "jam_residue_up"
+        ],
+        [
+          1.1,
+          "tank_deflate"
+        ],
+        [
+          1.45,
+          "seat_hips"
+        ],
+        [
+          1.8,
+          "body_roll_toward_tank"
+        ],
+        [
+          2.05,
+          "nozzle_land"
+        ],
+        [
+          2.2,
+          "rest"
+        ]
+      ],
+      "deathStages": [
+        [
+          0,
+          0.3,
+          "Valve ejects with body still supported"
+        ],
+        [
+          0.3,
+          1.1,
+          "Two short hose loops and a harmless upward residue splash"
+        ],
+        [
+          1.1,
+          2.2,
+          "Tank deflates; badger sits then rests on its side; nozzle settles last"
+        ]
+      ],
+      "attackEvents": [
+        [
+          0,
+          "two_feet_braced"
+        ],
+        [
+          0.14,
+          "lever_contact"
+        ],
+        [
+          0.25,
+          "nozzle_recoil"
+        ],
+        [
+          0.3,
+          "stream_start_at_nozzle"
+        ],
+        [
+          0.55,
+          "cheek_recoil"
+        ],
+        [
+          0.8,
+          "valve_open"
+        ]
+      ],
+      "measure": {
+        "plantDriftMaxM": 0.02,
+        "handGripErrorMaxM": 0.025,
+        "minimumFloorY": -0.025,
+        "hoseWhips": 2,
+        "nozzleMustLandAfterBody": true
+      },
+      "reviewSeconds": [
+        0,
+        0.3,
+        0.65,
+        1.1,
+        1.8,
+        2.2
+      ]
+    },
+    {
+      "id": "canopy",
+      "windup": 1.8,
+      "attack": 0.8,
+      "death": 2.8,
+      "silhouette": "Crooked organic stem, uneven heavy cap, real underside ribs and hinge lock, root boots",
+      "events": [
+        [
+          0,
+          "frame_lock_snap"
+        ],
+        [
+          0.4,
+          "rib_fold_1"
+        ],
+        [
+          0.65,
+          "rib_fold_2"
+        ],
+        [
+          0.9,
+          "rib_fold_3"
+        ],
+        [
+          1.15,
+          "rib_fold_4"
+        ],
+        [
+          1.4,
+          "stem_spring_compress"
+        ],
+        [
+          1.9,
+          "stem_retract"
+        ],
+        [
+          2.25,
+          "jam_drops_settle"
+        ],
+        [
+          2.8,
+          "root_boots_remain"
+        ]
+      ],
+      "deathStages": [
+        [
+          0,
+          0.4,
+          "Hinged underside lock snaps free"
+        ],
+        [
+          0.4,
+          1.4,
+          "Ribs fold sequentially; heavy cap lowers as an umbrella"
+        ],
+        [
+          1.4,
+          2.8,
+          "Stem compresses and retreats below cap; root boots and settling drops remain"
+        ]
+      ],
+      "attackEvents": [
+        [
+          0,
+          "roots_brace"
+        ],
+        [
+          0.16,
+          "cap_front_tilt"
+        ],
+        [
+          0.26,
+          "ribs_spread"
+        ],
+        [
+          0.36,
+          "canopy_push_contact"
+        ],
+        [
+          0.64,
+          "rib_recoil"
+        ],
+        [
+          0.8,
+          "lock_exposed"
+        ]
+      ],
+      "measure": {
+        "plantDriftMaxM": 0.02,
+        "minimumFloorY": -0.025,
+        "sequentialRibDelayMinS": 0.16,
+        "bootsMustRemainAtEnd": true,
+        "capAboveBootsAtRest": true
+      },
+      "reviewSeconds": [
+        0,
+        0.4,
+        0.9,
+        1.4,
+        1.9,
+        2.8
+      ],
+      "livingCoverStages": [
+        [
+          0,
+          0.55,
+          "Lock visibly unlatched; cover hub settles onto upper carrier support; carrier stays alive"
+        ],
+        [
+          0.1,
+          2.3,
+          "Eight real rib hinges invert cap sectors into a narrow broken cover"
+        ],
+        [
+          2.3,
+          2.833333,
+          "Broken cover holds; living carrier is preserved"
+        ],
+        [
+          2.833333,
+          "loop2s",
+          "cover_disabled keeps narrow cover with carrier blinking; right group is unchanged"
+        ]
+      ],
+      "livingCoverContract": {
+        "coverBreak": "canopy_canopy_break",
+        "coverDisabled": "canopy_cover_disabled",
+        "requestedBreakSeconds": 2.8,
+        "expectedKeySpanSeconds": 2.833333,
+        "disabledLoopKeySeconds": 2,
+        "coverageLost": "start of coverBreak after one-second player shot",
+        "status": "SOURCE ONLY; native07 export and checks pending",
+        "jointProof": "Actual individual rib hinges remain attached to moving hub port"
+      }
+    },
+    {
+      "id": "foreman",
+      "windup": 4,
+      "attack": 0.8,
+      "death": 3,
+      "silhouette": "Heavy carpenter beaver, flat planted tail, clear teeth and brow, left shield, free lever hand, real A-frame and pin",
+      "events": [
+        [
+          0,
+          "ratchet_strip"
+        ],
+        [
+          0.5,
+          "side_support_fold"
+        ],
+        [
+          0.9,
+          "shield_face_first"
+        ],
+        [
+          1.4,
+          "beaver_recoil_from_lever"
+        ],
+        [
+          1.7,
+          "tail_brake_slide"
+        ],
+        [
+          2.15,
+          "seat_hips"
+        ],
+        [
+          2.55,
+          "hammer_drop"
+        ],
+        [
+          3,
+          "machine_rattle_stop"
+        ]
+      ],
+      "deathStages": [
+        [
+          0,
+          0.5,
+          "Ratchet strips separately from body"
+        ],
+        [
+          0.5,
+          1.4,
+          "A-frame supports fold inward; shield falls face first"
+        ],
+        [
+          1.4,
+          3,
+          "Beaver recoils, tail brakes its slide, sits and drops hammer; mechanism rattles later"
+        ]
+      ],
+      "attackEvents": [
+        [
+          0,
+          "tail_and_feet_brace"
+        ],
+        [
+          0.12,
+          "hand_on_lever"
+        ],
+        [
+          0.25,
+          "shoulder_drive"
+        ],
+        [
+          0.36,
+          "brace_gate_contact"
+        ],
+        [
+          0.52,
+          "lever_recoil"
+        ],
+        [
+          0.8,
+          "pin_exposed"
+        ]
+      ],
+      "measure": {
+        "plantDriftMaxM": 0.02,
+        "handGripErrorMaxM": 0.025,
+        "minimumFloorY": -0.025,
+        "tailContactDuringBrake": true,
+        "shieldFloorContactBeforeBodySeat": true,
+        "machineMustSettleLast": true
+      },
+      "reviewSeconds": [
+        0,
+        0.5,
+        0.9,
+        1.4,
+        2.15,
+        3
+      ],
+      "textureAB": "Same geometry/UV/clips/material count; B adds one 512px ImageGen colour atlas"
+    },
+    {
+      "id": "crabcrane",
+      "windup": 2.4,
+      "attack": 1,
+      "hookWindup": 1.8,
+      "open": 3,
+      "death": 4.5,
+      "silhouette": "Asymmetric massive old crab, low rock-like shell, one crane claw, articulated boom, rear winch, three load-bearing supports",
+      "events": [
+        [
+          0,
+          "winch_brake_fail"
+        ],
+        [
+          0.3,
+          "support_1_sag"
+        ],
+        [
+          0.55,
+          "support_2_sag"
+        ],
+        [
+          0.8,
+          "boom_elbow_fold"
+        ],
+        [
+          1.4,
+          "load_ground_contact"
+        ],
+        [
+          2,
+          "body_side_settle"
+        ],
+        [
+          2.6,
+          "legs_spread"
+        ],
+        [
+          3.5,
+          "free_block_swing"
+        ],
+        [
+          4,
+          "rope_slack"
+        ],
+        [
+          4.5,
+          "eyes_dim"
+        ]
+      ],
+      "deathStages": [
+        [
+          0,
+          0.8,
+          "Winch brake fails; three supports sag in different phases"
+        ],
+        [
+          0.8,
+          2,
+          "Articulated boom places the load onto safe ground"
+        ],
+        [
+          2,
+          3.5,
+          "Heavy shell rests on its side; legs open and lose tension"
+        ],
+        [
+          3.5,
+          4.5,
+          "Free pulley sways after the shell stops; rope and eyes lose activity"
+        ]
+      ],
+      "attackEvents": [
+        [
+          0,
+          "three_supports_seated"
+        ],
+        [
+          0.16,
+          "boom_tension"
+        ],
+        [
+          0.3,
+          "load_lift"
+        ],
+        [
+          0.48,
+          "sweep_contact_sector"
+        ],
+        [
+          0.76,
+          "load_recoil"
+        ],
+        [
+          1,
+          "winch_open"
+        ]
+      ],
+      "measure": {
+        "plantDriftMaxM": 0.035,
+        "minimumFloorY": -0.035,
+        "loadGroundContactByS": 2,
+        "supportPhasesDistinct": true,
+        "pulleyMustMoveAfterBodyRest": true,
+        "unsafeDeathDamage": false
+      },
+      "reviewSeconds": [
+        0,
+        0.55,
+        1.4,
+        2,
+        3.5,
+        4.5
+      ]
+    },
+    {
+      "id": "miller",
+      "windup": 2.4,
+      "attack": 3,
+      "jammed": 3,
+      "death": 4,
+      "silhouette": "Old boar miller, heavy neck/shoulders, separated hoof toes, thick chipped four-blade wheel, genuine shaft/coupling/frame, held by both hands, cloth scarf",
+      "events": [
+        [
+          0,
+          "coupling_strip"
+        ],
+        [
+          0.25,
+          "wheel_stutter"
+        ],
+        [
+          0.6,
+          "blade_break"
+        ],
+        [
+          1.1,
+          "flour_soft_puff"
+        ],
+        [
+          1.8,
+          "frame_release"
+        ],
+        [
+          2.2,
+          "lean_on_wheel"
+        ],
+        [
+          2.6,
+          "seat_on_sack"
+        ],
+        [
+          2.9,
+          "wheel_half_roll"
+        ],
+        [
+          3,
+          "scarf_over_face"
+        ],
+        [
+          3.5,
+          "sack_deflate"
+        ],
+        [
+          4,
+          "crank_last_turn"
+        ]
+      ],
+      "deathStages": [
+        [
+          0,
+          0.6,
+          "Coupling strips and wheel decelerates in pulses"
+        ],
+        [
+          0.6,
+          1.8,
+          "One blade breaks; harmless flour puff; supporting frame detaches"
+        ],
+        [
+          1.8,
+          3,
+          "Boar leans on wheel, sits on sack, wheel rolls half a turn sideways"
+        ],
+        [
+          3,
+          4,
+          "Scarf falls over face; sack deflates; crank makes its final independent turn"
+        ]
+      ],
+      "attackEvents": [
+        [
+          0,
+          "hooves_and_frame_brace"
+        ],
+        [
+          0.3,
+          "wheel_accelerate"
+        ],
+        [
+          0.7,
+          "gust_start"
+        ],
+        [
+          1.4,
+          "cloth_follows_gust"
+        ],
+        [
+          2.6,
+          "wheel_recoil"
+        ],
+        [
+          3,
+          "coupling_exposed"
+        ]
+      ],
+      "measure": {
+        "plantDriftMaxM": 0.035,
+        "handGripErrorMaxM": 0.03,
+        "minimumFloorY": -0.035,
+        "brokenBlades": 1,
+        "wheelRollRadians": 3.141592653589793,
+        "scarfMustSettleAfterSeat": true
+      },
+      "reviewSeconds": [
+        0,
+        0.6,
+        1.1,
+        1.8,
+        2.9,
+        4
+      ]
+    }
+  ]
+}

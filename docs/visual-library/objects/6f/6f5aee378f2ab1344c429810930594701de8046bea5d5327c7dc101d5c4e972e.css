@@ -1,0 +1,69 @@
+/* «Набег пиратов» на ките 2.0 (client/lobby/piratehud.ts): панель набега, задачи защитника, прицел, стрелки, «Огонь», итоги.
+   Только токены и классы кита; цвет своей краски на прицеле — данные игры (--pr-c). */
+.pr-hud[hidden], .pr-hud [hidden], .pr-tasks[hidden], .pr-panel[hidden] { display: none !important; }
+
+/* плашка «Пираты на горизонте!» и «Волна N» — событие в верх-центре HUD (client/ui/kit/topcenter.ts) */
+
+/* панель набега: корабль, добыча, волна — плашка кита (.k-plate) в слоте под стопкой верх-центра (.k-slot--tc-under):
+   плашка волны и тосты сверху её не закрывают, она съезжает ниже. */
+.pr-panel {
+  width: 440px;
+  padding: 8px 14px 10px;
+  font: 500 var(--fs-14)/1.25 var(--font-text);
+  animation: k-toast-in 0.25s var(--ease-out) both;
+}
+.pr-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.pr-title { display: inline-flex; flex: 1; align-items: center; gap: 6px; font: 800 var(--fs-15)/1.2 var(--font-text); }
+.pr-title-ic { width: 22px; height: 22px; object-fit: contain; }
+.pr-wave { font: 700 var(--fs-14)/1.2 var(--font-text); color: var(--surf-dim); }
+.pr-time { min-width: 38px; text-align: right; font: 800 var(--fs-16)/1.2 var(--font-text); color: var(--gold-text); }
+.pr-row { display: flex; align-items: center; gap: 8px; min-height: 22px; }
+.pr-row + .pr-row { margin-top: 5px; }
+.pr-lab { flex: none; width: 64px; font-size: var(--fs-14); font-weight: 700; }
+.pr-bar { position: relative; flex: 1; height: 12px; border: var(--track-border); border-radius: var(--r-pill); background: var(--track); overflow: hidden; }
+.pr-fill { --c: var(--gold); position: absolute; inset: 0 auto 0 0; width: 100%; border-radius: inherit; background: linear-gradient(180deg, color-mix(in srgb, var(--c) 74%, #fff), var(--c) 60%); transition: width 0.35s ease; }
+.pr-fill.low { --c: var(--bad); }
+.pr-val { min-width: 46px; text-align: right; font-size: var(--fs-15); font-weight: 800; }
+.pr-have { min-width: 20px; font-size: var(--fs-16); font-weight: 900; color: var(--gold-text); text-align: center; }
+.pr-sub { font-size: var(--fs-13); font-weight: 600; color: var(--surf-dim); white-space: nowrap; }
+.pr-slots { display: flex; flex: none; gap: 3px; margin-left: auto; }
+.pr-slots i { display: block; width: 14px; height: 14px; border-radius: var(--r-xs); background: var(--track); border: 2px solid var(--line-strong); transition: background 0.25s ease, transform 0.25s ease; }
+.pr-slots i.on { background: var(--bad); border-color: var(--bad-hi); transform: scale(1.08); }
+.pr-slots i.warn { animation: pr-warn 0.6s ease-in-out infinite; }
+@keyframes pr-warn { 50% { background: var(--bad-soft); } }
+
+/* задачи защитника (низ-центр, пока пираты на горизонте): над подсказкой набережной */
+.pr-tasks { animation: k-toast-in 0.25s var(--ease-out) both; }
+.pr-tasks .k-key:has(> .mo-task-ic) { padding: 0 3px; }
+
+/* прицел — крест кита в слое без zoom; точка — цвет своей краски (маркер) */
+.pr-cross { scale: var(--hud-k, 1); transition: scale 0.08s ease-out; }
+.pr-cross::before { width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; background: var(--pr-c, #fff); }
+.pr-cross.is-kick { scale: calc(var(--hud-k, 1) * 0.82); }
+/* у пушки: большое пунктирное кольцо; цвет — можно ли стрелять (зелёное — готово, красное — нет цели, бледное — заряжается) */
+.pr-ring { display: none; position: absolute; left: 50%; top: 50%; width: 68px; height: 68px; margin: -34px 0 0 -34px; border: 3px dashed #fff; border-radius: 50%; filter: drop-shadow(0 0 1.5px rgba(20, 10, 12, 0.85)); }
+.pr-cross.is-cannon .pr-ring { display: block; }
+.pr-cross.is-good .pr-ring { border-color: var(--good); }
+.pr-cross.is-bad .pr-ring { border-color: var(--bad); }
+.pr-cross.is-wait .pr-ring { opacity: 0.55; }
+.pr-ret-txt { position: absolute; left: 50%; top: 66px; transform: translateX(-50%); }
+.pr-cross.is-bad .pr-ret-txt { color: var(--bad-text); }
+.pr-cross.is-good .pr-ret-txt { color: var(--good-text); }
+/* попадание: косой крестик кита; сбил (ko) — золотом и крупнее */
+.pr-cross.is-head::after { inset: -2px; }
+
+/* стрелки к угрозам у края экрана (.k-edge) — увеличиваются масштабом HUD, как в крепости */
+.pr-hud .k-edge { scale: var(--hud-k, 1); }
+
+/* телефон: кнопка огня (держать) — круглая красная кнопка кита */
+.pr-fire {
+  position: absolute; right: 20px; bottom: 190px; width: 84px; height: 84px; min-width: 0; min-height: 0; padding: 0; border-radius: 50%;
+  pointer-events: auto; touch-action: none;
+}
+
+/* итоги — окно кита (ModeResults): никто не защищал — строка вместо таблицы */
+.pr-nobody { margin: 6px 0 4px; color: var(--surf-dim); font: 600 var(--fs-16)/1.35 var(--font-text); text-align: center; }
+
+@media (max-width: 640px), (pointer: coarse) {
+  .pr-panel { width: min(440px, calc(100vw - 24px)); padding: 7px 10px 9px; }
+}

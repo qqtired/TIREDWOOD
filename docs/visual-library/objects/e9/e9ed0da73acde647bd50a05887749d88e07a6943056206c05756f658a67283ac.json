@@ -1,0 +1,262 @@
+{
+  "revision": "R6",
+  "recordedAt": "2026-10-12T07:34:34.883Z",
+  "sourceFreeze": "79c7aa9061682aefdbf130d1fcc03e5689c7ecfd3dde341bcc65a9eac089b332",
+  "previousR5HTMLSHA": "57f7b38892acf940d0a6c1898142c68e00f973f2882a44315b3e53bc0f7a3177",
+  "htmlSHA256": "e125b4eb4d881985064907d8e4a9d2a0a30b17f5c4ff45be9bb0bbafb8f1b79e",
+  "htmlBytes": 38526969,
+  "metadataOnly": true,
+  "viewerBundleUnchanged": true,
+  "inlineSourceAdded": [
+    "client/dungeon/game.ts"
+  ],
+  "gameChanges": [
+    "client/dungeon/game.ts"
+  ],
+  "rootOwnedFix": true,
+  "earlierRuntimeAttempts": [
+    {
+      "id": "rawChromeWrongDocumentError",
+      "status": "FAILED_NOT_PASS",
+      "reason": "Wrong-document raw Chrome attempt; not valid game evidence",
+      "evidence": [
+        "runtime-harness/browser-observer-raw-launch.json",
+        "runtime-harness/browser-observer.json"
+      ],
+      "shaderFailureClaim": false
+    },
+    {
+      "id": "normal-v3-actualIntroEnterChat",
+      "status": "FAILED_NOT_PASS",
+      "reason": "Actual intro HUD prompts Enter; game did not consume it, common chat opened and blocked input. Root identified one-line fix.",
+      "evidence": [
+        "dungeon-r5-normal-v3.log",
+        "runtime-harness/captures-normal-v3"
+      ],
+      "shaderFailureClaim": false
+    },
+    {
+      "id": "r6-hook-loading-cover-and-dead-hero",
+      "status": "FAIL_CAPTURE",
+      "reason": "enter returned during loading cover; hero died before later generic hp<100 capture. Zero hash mismatches did not make the image valid.",
+      "evidence": [
+        "dungeon-runtime-r6/captures-late/hook-contact-entry.png",
+        "dungeon-runtime-r6/captures-late/hook-impact.png"
+      ],
+      "shaderFailureClaim": false
+    },
+    {
+      "id": "r6-hook-overlapping-room-transition",
+      "status": "FAIL_CAPTURE",
+      "reason": "Repeated /go before lobby.hasSelf and transition idle caused fresh run null; timeout was not game acceptance.",
+      "evidence": [
+        "dungeon-r6-hook-atomic.log",
+        "dungeon-r6-hook-enter.log"
+      ],
+      "shaderFailureClaim": false
+    }
+  ],
+  "normalScript": "dungeon-runtime-r6/capture-normal.mjs",
+  "pointerLockRequired": false,
+  "ranBundle": false,
+  "ranBrowser": false,
+  "ranTests": false,
+  "fullGate": {
+    "owner": "root",
+    "revision": "R6",
+    "status": "PASS root-reported; logs independently inspected",
+    "check": true,
+    "test": {
+      "total": 1962,
+      "passed": 1961,
+      "failed": 0,
+      "skipped": 1
+    },
+    "build": true,
+    "evidence": [
+      {
+        "path": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-r6-check.log",
+        "sha256": "f853a6a0cc82020063ad07caf3ff2d4bb74cac7cf21a899165813cc77a48876b"
+      },
+      {
+        "path": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-r6-test.log",
+        "sha256": "b6836761b41d4260af80b7162785a0949124a39b33184643a1ba1659e01f88ba"
+      },
+      {
+        "path": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-r6-build.log",
+        "sha256": "abe5a3bf7cc1efc2e30e6e28a0d5c273bd2cce8e07cf4f26dd7beb1bfb7c3562"
+      }
+    ],
+    "ranByThisAgent": false
+  },
+  "normalRuntime": {
+    "owner": "root",
+    "status": "Actual no-hook first run and restart/exit journal result parity captured; visual acceptance belongs to root",
+    "introEnter": "root observed consumed Enter with chat closed after R6 one-line fix",
+    "death": {
+      "passed": true,
+      "kills": 85,
+      "level": 2,
+      "clientServerEqual": true
+    },
+    "exit": {
+      "passed": true,
+      "scope": "normal no-hook run result after actual exit"
+    },
+    "evidence": [
+      "captures-normal/normal-death-parity.json",
+      "captures-normal/normal-result-parity.json"
+    ],
+    "visualAcceptedByThisAgent": false
+  },
+  "lateRuntime": {
+    "status": "source-only atomic A/B/C prepared; not executed by this agent",
+    "helper": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-batches.mjs",
+    "freeze": "79c7aa9061682aefdbf130d1fcc03e5689c7ecfd3dde341bcc65a9eac089b332",
+    "manualAcceptance": "pending root"
+  },
+  "embeddedModelHashes": {
+    "old_rat": "1ab016a07fab797b15b450eba0e459a30b24e34db62d9e4fd4b9072affc834dc",
+    "old_beetle": "03c892798a5ca4d7b17d068ac8b43d72949085b681a7c71a6f39fe82a1e461dc",
+    "old_cooper": "cd5bc0964948483862cff80e0b7191ba0b1fa741df04ef1c33b6a6de8a7fcc34",
+    "old_boss": "3f3922c3d08702ed3c9100b031754bbd9e69092f694435b384b0dfcd97fdafc4",
+    "old_hero": "107a479700a65663a31fb137d4a81319ea38878d17c0ab3e902b3441c47939bd",
+    "hookclaw": "b09162ef0c6aa575b461bdddb36100d9b761a254661da42045645fae0d31e79f",
+    "wickmole": "24c549c3ce061e7e393ff08f73b173e37e74077544ea9f6745747f34744245cb",
+    "railhopper": "edf92d78c331f45deeee75db8a53b6e41b6df4ad9efe31857a9cdb0b99efe02f",
+    "chainwarden": "129a73308dd0afcb3ec0c315dfde44af66b0edf5f783098a7152f1de5b5f5653",
+    "cauldronmaster": "66b7e7d7b492090875add0ab7242f097b65ff33facb5eedeaea7fb88a19a6350",
+    "chainwarden_soft": "2636c003be7aba00de57dd7a6dd1e3be4db8495e3d436ee991019aa4ba69a00f"
+  },
+  "atlasCSP": {
+    "recordedAt": "2026-10-12T07:34:34.551Z",
+    "status": "BLOCKED_NOT_ACCEPTED",
+    "default": "plain",
+    "plainDefaultChanged": false,
+    "rootObserved": {
+      "policy": "production CSP connect-src self wss://game.tired.solutions; blob fetch rejected",
+      "loaderError": "GLTFLoader could not load embedded texture and returned map=null"
+    },
+    "sourceVerified": {
+      "threeVersion": "0.186.1",
+      "dungeonLoader": "client/dungeon/assets.ts:61 ordinary GLTFLoader",
+      "chromeBitmapSelection": "node_modules/three/examples/jsm/loaders/GLTFLoader.js:2653-2661",
+      "embeddedBlobURL": "node_modules/three/examples/jsm/loaders/GLTFLoader.js:3359-3369",
+      "bitmapFetch": "node_modules/three/src/loaders/ImageBitmapLoader.js:173",
+      "nullTextureFallback": "node_modules/three/examples/jsm/loaders/GLTFLoader.js:3331",
+      "CSP": "tools/release/csp-proxy.mjs:8",
+      "embeddedPNGBytes": 919127,
+      "pngSize": [
+        1024,
+        1024
+      ],
+      "images": 1,
+      "textures": 1,
+      "texCoord": 0
+    },
+    "actualEvidence": {
+      "result": "../evidence/runtime-r6-root/failures/run-1791789653175-C/atlas/result.json",
+      "resultSHA256": "8089b86fa832d2abc7f446f72ccbddfa59accf20643391e93603c66dfb28cc4b",
+      "snapshot": "../../../../../unavailable.html",
+      "snapshotSHA256": "30a5bbac6f37132f36f57956b8d02dff26dc548f24c43baa1d847938632ce82a",
+      "automated": "FAIL",
+      "visual": "NOT_ACCEPTED",
+      "serverParity": true,
+      "sameActualRendererPose": true,
+      "softShaderLinked": true,
+      "softMapBound": false,
+      "defaultRestored": true,
+      "failedPrograms": [],
+      "liveMaterialsWithMap": 0,
+      "originalResult": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791789653175-C/atlas/result.json",
+      "originalSnapshot": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791789653175-C/atlas/soft-same-pose.json"
+    },
+    "interpretation": "Shader link success here is an untextured shader; live atlas/VAT texture acceptance under production CSP is not established. Native structure/brightness/exact-motion proofs remain valid.",
+    "necessity": "No loader/CSP change needed for current plain-default delivery; optional atlas remains a separate unaccepted experiment.",
+    "futureMinimalProposal": {
+      "preferred": "Scoped GLTFLoader plugin decodes already loaded embedded PNG/JPEG bufferView with createImageBitmap(new Blob(bytes)) directly, avoiding fetch(blob). Preserve standard GLTF sampler/flipY/colorSpace and existing UV/map factor path.",
+      "alternative": "Scoped TextureLoader with data URI made from embedded bytes; current img-src data: permits that image path. TextureLoader alone with the existing blob URL is not claimed compatible without a CSP test.",
+      "notApplied": true,
+      "CSPRelaxation": false,
+      "acceptance": "Same production CSP, no texture load/CSP violations, actual merged live material map and UV0 bound with positive image dimensions, shader link, same-pose A/B and performance before accepting."
+    },
+    "runtimeHelpersOwnedByRoot": true,
+    "runtimeHelpersEditedByThisAgent": false,
+    "gameSourceEdited": false,
+    "ranChrome": false,
+    "ranServer": false,
+    "ranBuild": false,
+    "rebundled": false,
+    "sourceFreeze": "79c7aa9061682aefdbf130d1fcc03e5689c7ecfd3dde341bcc65a9eac089b332",
+    "durableEvidence": true
+  },
+  "externalHelpersAfterHandoff": "Root corrected preflight/atomic predicates and full13-model constructor after initial handoff; original fingerprints are historical, not refreshed here.",
+  "currentFinalAcceptanceReceipt": "./r6-final-local-acceptance-receipt.json",
+  "rootGameplayAcceptedLocally": true,
+  "docOnlySuccessor": {
+    "revision": "R6 doc-only successor",
+    "commit": "4d354e33310ba3bd20272b27a90de552ccfa2732",
+    "testedSourceSHA": "79c7aa9061682aefdbf130d1fcc03e5689c7ecfd3dde341bcc65a9eac089b332",
+    "testedBase": "41b91a8",
+    "testedFiles": 40,
+    "currentExactTestedFiles": 39,
+    "changedAfterGameplay": [
+      {
+        "path": "docs/survivors/expansion-v2.md",
+        "testedSHA": "26312b3265d657e785ecc53f7807744e51264ef3c91387a7be88cff59ceb64ab",
+        "currentSHA": "be1e3533c9102a86b67ee024cae80ec847cb8196f0ee6f9934b12b03de360dc1",
+        "reason": "Root report/handoff doc only after actual acceptance"
+      }
+    ],
+    "gameCodeAndGLBUntouched": true,
+    "mainMerged": false,
+    "pushed": false,
+    "deployed": false,
+    "phoneVerified": false,
+    "htmlBrowserSmoke": "pending root after Product Lab window"
+  },
+  "progressionContext": {
+    "status": "POWERED_UPPER_FIXTURE_NOT_TYPICAL_PROGRESSION",
+    "receipt": "./progression-arithmetic.json",
+    "review": "./progression-context.md",
+    "totalUpgradeChoices": [
+      61,
+      64,
+      64
+    ],
+    "xpOnlyRequired": [
+      19520,
+      21440,
+      21440
+    ],
+    "evoChestsEach": 5,
+    "plannedXpThrough15": 8430,
+    "maxSweepThrough15": 600,
+    "plannedXpThrough19": 12429,
+    "maxSweepThrough19": 950,
+    "neededChestUpgradesBefore16": [
+      16,
+      23,
+      19
+    ],
+    "neededChestUpgradesBefore20": [
+      6,
+      14,
+      9
+    ],
+    "minimumRecipeReady": {
+      "upgradeChoices": 39,
+      "xpOnly": 8190,
+      "evoChests": 5
+    },
+    "conclusion": "Full fixture builds are a powered upper comparison requiring active chest collection/favorable choices, not typical or guaranteed at16/20. XP alone is insufficient. Arithmetic does not show impossibility with active chest route; three wins validate full-build functions/tactics, not progression or statistical balance."
+  },
+  "progressionArithmeticReceiptSHA256": "390e213689d89c7090a06f272e712cfe9d98ac5555b0c2a0ec08233b21bc7f36",
+  "topStatusUpdatedAt": "2026-10-12T09:26:50.479Z",
+  "topStatus": {
+    "localCommit": "4d354e33310ba3bd20272b27a90de552ccfa2732",
+    "combatScenarios": "root accepted locally",
+    "fullProgression": "separate boundary",
+    "metadataOnly": true
+  }
+}

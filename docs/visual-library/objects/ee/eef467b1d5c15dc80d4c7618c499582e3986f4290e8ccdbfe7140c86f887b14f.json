@@ -1,0 +1,26 @@
+{
+  "case": "crowd-beetles",
+  "type": "crowdFixture",
+  "seed": 704316,
+  "accelerated": true,
+  "initialHash": 3498989214,
+  "edits": [
+    "skip to wave19",
+    "assume previous 18 waves for local fixture counters",
+    "isolated fixture: no director background/props/map pickups; actual map collision stays",
+    "300 real models at narrow visible grid; invT1e9/auto cooldown99999 prevent early death; performance/cap fixture only"
+  ],
+  "seconds": 10,
+  "normalHP": false,
+  "heroHp": 100,
+  "weapons": [
+    {
+      "id": "lantern",
+      "lv": 1,
+      "evo": 0
+    }
+  ],
+  "passives": [],
+  "source": "original game.d.makeRun returned actual run; setup before first view/hash",
+  "receivedAt": 466510.3999999985
+}

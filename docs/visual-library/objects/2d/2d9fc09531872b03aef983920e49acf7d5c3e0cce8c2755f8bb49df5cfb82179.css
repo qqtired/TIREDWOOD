@@ -1,0 +1,464 @@
+/* «Портовая регата»: интерфейс гонщика (client/lobby/regattahud.ts) */
+.rg-hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.rg-hud[hidden] {
+  display: none;
+}
+
+.rg-stand {
+  position: absolute;
+  top: 34px;
+  left: 16px;
+  min-width: 170px;
+  padding: 10px 18px 12px;
+  border-radius: 20px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  color: var(--cream);
+}
+
+.rg-place {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--cream-dim);
+}
+
+.rg-place b {
+  font-size: 50px;
+  font-weight: 900;
+  color: var(--gold);
+  -webkit-text-stroke: 4px rgba(34, 20, 26, 0.55);
+  paint-order: stroke fill;
+}
+
+.rg-place:empty {
+  display: none;
+}
+
+.rg-lap {
+  margin-top: 6px;
+  font-size: 19px;
+  font-weight: 800;
+}
+
+.rg-time {
+  margin-top: 2px;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.rg-best {
+  font-size: 13px;
+  color: var(--cream-dim);
+}
+
+.rg-best:empty {
+  display: none;
+}
+
+.rg-speed {
+  margin-top: 4px;
+  font-size: 14px;
+  color: var(--cream-2);
+}
+
+.rg-speed b {
+  font-size: 24px;
+  font-weight: 900;
+  color: var(--cream);
+}
+
+.rg-list {
+  position: absolute;
+  top: 62px;
+  right: 18px;
+  min-width: 200px;
+  padding: 8px 10px;
+  border-radius: 18px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  color: var(--cream);
+  font-size: 15px;
+}
+
+.rg-list:empty,
+.rg-stand.hide,
+.rg-list.hide {
+  display: none;
+}
+
+.rg-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 6px;
+  border-radius: 10px;
+}
+
+.rg-row b {
+  width: 18px;
+  text-align: center;
+  font-weight: 900;
+  color: var(--gold);
+}
+
+.rg-row span {
+  flex: 1;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rg-row i {
+  font-style: normal;
+  color: var(--cream-dim);
+}
+
+.rg-row.me {
+  background: rgba(255, 211, 90, 0.2);
+}
+
+.rg-count {
+  position: absolute;
+  left: 50%;
+  top: 38%;
+  transform: translate(-50%, -50%);
+  font-size: 124px;
+  font-weight: 900;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--cream);
+  -webkit-text-stroke: 10px rgba(34, 20, 26, 0.7);
+  paint-order: stroke fill;
+  opacity: 0;
+}
+
+.rg-count.show {
+  animation: rg-count 1s ease-out both;
+}
+
+.rg-count.go {
+  font-size: 104px;
+  color: var(--gold);
+  animation-duration: 1.4s;
+}
+
+@keyframes rg-count {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.9);
+  }
+  14% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  72% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.86);
+  }
+}
+
+.rg-banner {
+  position: absolute;
+  left: 50%;
+  top: 17%;
+  transform: translateX(-50%);
+  padding: 10px 26px;
+  border-radius: 999px;
+  background: var(--panel-strong);
+  border: 1px solid rgba(255, 236, 205, 0.3);
+  color: var(--cream);
+  font-size: 26px;
+  font-weight: 900;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.35s;
+}
+
+.rg-banner.show {
+  opacity: 1;
+  animation: rg-pop 0.35s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+
+.rg-banner.gold {
+  background: var(--gold);
+  color: var(--ink);
+  text-shadow: none;
+}
+
+.rg-banner small {
+  margin-left: 8px;
+  font-size: 17px;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+@keyframes rg-pop {
+  0% {
+    transform: translateX(-50%) scale(0.7);
+  }
+  100% {
+    transform: translateX(-50%) scale(1);
+  }
+}
+
+.rg-wrong {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  transform: translate(-50%, -50%);
+  padding: 10px 28px;
+  border-radius: 18px;
+  background: rgba(224, 40, 58, 0.92);
+  box-shadow: var(--shadow);
+  color: #fff;
+  font-size: 30px;
+  font-weight: 900;
+  white-space: nowrap;
+  visibility: hidden;
+}
+
+.rg-wrong.show {
+  visibility: visible;
+  animation: rg-throb 0.7s ease-in-out infinite;
+}
+
+@keyframes rg-throb {
+  50% {
+    transform: translate(-50%, -50%) scale(1.06);
+  }
+}
+
+.rg-tip,
+.rg-help {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 18px;
+  border-radius: 14px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--cream);
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+
+.rg-tip {
+  top: 26%;
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--gold);
+}
+
+.rg-help {
+  bottom: 92px;
+  font-size: 15px;
+}
+
+.rg-tip.show,
+.rg-help.show {
+  opacity: 1;
+}
+
+.rg-results {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(20, 12, 16, 0.25);
+}
+
+.rg-results.show {
+  display: flex;
+}
+
+.rg-res-card {
+  width: min(620px, 92vw);
+  padding: 18px 22px 20px;
+  border-radius: 24px;
+  background: var(--panel-strong);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  color: var(--cream);
+  text-align: center;
+  animation: rg-res-in 0.4s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+
+@keyframes rg-res-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.9) translateY(14px);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.rg-res-title {
+  font-size: 36px;
+  font-weight: 900;
+}
+
+.rg-res-title.win {
+  color: var(--gold);
+}
+
+.rg-res-sub {
+  margin-top: 2px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--gold);
+}
+
+.rg-res-sub:empty {
+  display: none;
+}
+
+.rg-res-body table {
+  width: 100%;
+  margin-top: 10px;
+  border-collapse: collapse;
+  font-size: 16px;
+}
+
+.rg-res-body th {
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--cream-dim);
+  text-align: right;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.rg-res-body td {
+  padding: 6px 8px;
+  text-align: right;
+  border-top: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.rg-res-body .pl {
+  width: 30px;
+  text-align: center;
+  font-weight: 900;
+  color: var(--gold);
+}
+
+.rg-res-body .n {
+  text-align: left;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rg-res-body em {
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--mint);
+}
+
+.rg-res-body tr.me td {
+  background: rgba(255, 211, 90, 0.16);
+}
+
+.rg-res-body tr.dim td {
+  color: var(--cream-dim);
+}
+
+.rg-res-foot {
+  margin-top: 12px;
+  font-size: 15px;
+  color: var(--cream-2);
+}
+
+.rg-again {
+  margin-top: 12px;
+  padding: 10px 26px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--gold);
+  color: var(--ink);
+  font: inherit;
+  font-size: 18px;
+  font-weight: 900;
+  pointer-events: auto;
+  cursor: pointer;
+  animation: rg-throb-btn 1.2s ease-in-out infinite;
+}
+
+@keyframes rg-throb-btn {
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+@media (max-width: 700px) {
+  .rg-stand {
+    top: 46px;
+    left: 8px;
+    min-width: 120px;
+    padding: 6px 12px 8px;
+  }
+
+  .rg-place b {
+    font-size: 36px;
+  }
+
+  .rg-list {
+    top: 52px;
+    right: 8px;
+    min-width: 140px;
+    font-size: 13px;
+  }
+
+  .rg-count {
+    font-size: 84px;
+  }
+
+  .rg-help {
+    display: none;
+  }
+
+  .rg-tip {
+    font-size: 15px;
+    white-space: normal;
+    width: 80vw;
+    text-align: center;
+  }
+}
+
+/* телефоны: место и круг — под верхними кнопками (как у картинга), таблица — под жетонами, подсказка по клавишам не нужна */
+.touch .rg-stand {
+  top: calc(62px + env(safe-area-inset-top, 0px));
+  left: calc(10px + env(safe-area-inset-left, 0px));
+  transform: scale(0.78);
+  transform-origin: 0 0;
+}
+
+.touch .rg-list {
+  top: calc(62px + env(safe-area-inset-top, 0px));
+  right: calc(12px + env(safe-area-inset-right, 0px));
+  transform: scale(0.85);
+  transform-origin: 100% 0;
+}
+
+.touch .rg-help {
+  display: none;
+}

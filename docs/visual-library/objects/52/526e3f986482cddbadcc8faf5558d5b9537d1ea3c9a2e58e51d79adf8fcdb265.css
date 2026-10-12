@@ -1,0 +1,216 @@
+/* Группа «Режимы» — только раскладка и детали режимов (префикс mo-). Цвета, тени, радиусы — токены кита. */
+
+/* ---------------------------------------------------------------- страница: подзаголовки и витрина «одни детали» */
+.mo-group { margin: 54px 0 22px; padding-top: 6px; scroll-margin-top: 20px; }
+.screens-body > .mo-group:first-of-type { margin-top: 18px; }
+.mo-group-title { margin: 0; color: var(--title-color); font-family: var(--font-display); font-weight: var(--display-weight); font-size: calc(32px * var(--display-scale)); line-height: 1.12; letter-spacing: var(--display-track); text-transform: var(--display-case); word-spacing: var(--display-word, normal); text-shadow: var(--title-shadow); }
+.mo-group-text { max-width: 820px; margin: 8px 0 0; color: var(--pg-dim); font-size: 17px; }
+.mo-same { margin-bottom: 8px; }
+.mo-same-lead { max-width: 820px; margin: 0 0 18px; color: var(--pg-dim); font-size: 18px; }
+.mo-same-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.mo-same-card { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 14px; align-items: start; color: var(--surf-text); }
+.mo-same-card .k-ic { width: 56px; height: 56px; }
+.mo-same-card b { font: 800 var(--fs-18)/1.2 var(--font-text); }
+.mo-same-card p { margin: 3px 0 8px; color: var(--surf-dim); font-size: var(--fs-14); line-height: 1.3; }
+.mo-same-modes { display: flex; flex-wrap: wrap; gap: 6px; }
+@media (max-width: 900px) { .mo-same-grid { grid-template-columns: 1fr; } }
+
+/* ---------------------------------------------------------------- общие детали в сцене */
+.mo-dot { display: inline-block; flex: none; width: 14px; height: 14px; border-radius: 50%; box-shadow: 0 0 0 2px var(--line-strong); }
+.mo-ghost { width: 36px; height: 36px; opacity: .35; filter: grayscale(1); }
+.mo-ic { width: 36px; height: 36px; filter: drop-shadow(0 1px 2px rgba(20, 10, 12, .35)); }
+
+/* карточка места (ВЛ), v2: «4/6 · Круг 1/3 · 0:21.0» одной плашкой ~200×56 */
+.mo-stand { width: auto; padding: 6px 14px 7px 12px; }
+.mo-stand-main { display: flex; align-items: center; gap: 12px; }
+.mo-place { color: var(--gold-text); font: 800 calc(var(--fs-36) + 2px)/.95 var(--font-text); letter-spacing: -.02em; }
+.mo-place small { margin-left: 2px; color: var(--surf-dim); font-size: var(--fs-16); font-weight: 700; letter-spacing: 0; }
+.mo-stand-side { display: flex; flex-direction: column; gap: 3px; padding-left: 12px; border-left: 1px solid var(--line); }
+.mo-lap { color: var(--surf-dim); font: 600 var(--fs-13)/1.1 var(--font-text); }
+.mo-lap b { color: var(--plate-text); font-weight: 800; }
+.mo-time { font: 800 var(--fs-18)/1 var(--font-text); font-variant-numeric: tabular-nums; }
+.mo-stand-foot { display: flex; align-items: center; gap: 6px; margin-top: 5px; padding-top: 5px; border-top: 1px solid var(--line); color: var(--surf-dim); font: 600 var(--fs-13)/1.1 var(--font-text); }
+.mo-stand-foot b { color: var(--plate-text); font-weight: 800; }
+.mo-stand-foot .k-ic { width: 18px; height: 18px; }
+
+/* мини-карта и список гонщиков (под бейджем), v2: карта 180, строки 14 */
+.mo-map { width: 180px; padding: 5px; }
+.mo-map-svg { display: block; width: 100%; height: auto; }
+.mo-road-edge { fill: none; stroke: var(--line-strong); stroke-width: 20; stroke-linejoin: round; stroke-linecap: round; }
+.mo-road { fill: none; stroke: var(--surf-text); stroke-opacity: .9; stroke-width: 12; stroke-linejoin: round; stroke-linecap: round; }
+.mo-road-pad { fill: none; stroke: #f2a60c; stroke-width: 12; }
+.mo-start rect { fill: var(--surf-solid); }
+.mo-me { fill: var(--gold); stroke: var(--surf-text); stroke-width: 3; }
+.mo-list { display: flex; flex-direction: column; gap: 1px; width: 210px; padding: 5px 6px; }
+.mo-list .k-eyebrow { margin: 2px 4px 2px; font-size: var(--fs-13); }
+.mo-row { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; align-items: center; gap: 7px; min-height: 26px; padding: 1px 8px 1px 2px; border-radius: var(--r-sm); font: 600 var(--fs-14)/1.1 var(--font-text); }
+.mo-row .k-place { width: 22px; height: 22px; font-size: var(--fs-13); }
+.mo-row b { display: flex; align-items: center; gap: 6px; overflow: hidden; font-weight: 600; white-space: nowrap; }
+.mo-row b .k-pill--sm { min-height: 18px; padding: 1px 6px; font-size: var(--fs-13); }
+.mo-row-side { color: var(--surf-dim); font-weight: 700; }
+.mo-row.is-own { background: var(--gold-soft); box-shadow: inset 0 0 0 1.5px var(--gold); }
+.mo-row.is-own b, .mo-row.is-own .mo-row-side { color: var(--gold-text); font-weight: 800; }
+
+/* скорость, бонус, заряд заноса, ряд клавиш (низ) */
+.mo-speed { display: flex; align-items: baseline; gap: 5px; padding: 5px 12px 6px; }
+.mo-speed b { font: 800 var(--fs-28)/1 var(--font-text); font-variant-numeric: tabular-nums; }
+.mo-speed span { color: var(--surf-dim); font: 600 var(--fs-13)/1 var(--font-text); }
+.mo-keys { display: flex; align-items: center; gap: 4px 12px; padding: 5px 12px; border-radius: var(--r-pill); }
+.mo-key { display: inline-flex; align-items: center; gap: 5px; font: 600 var(--fs-14)/1 var(--font-text); white-space: nowrap; }
+.mo-key .k-key { min-width: 26px; height: 26px; padding: 0 6px; font-size: var(--fs-13); }
+.mo-key em { color: var(--surf-dim); font-style: normal; font-weight: 600; }
+.mo-item { display: flex; align-items: center; gap: 10px; margin: 0; padding: 5px 14px 5px 5px; border-radius: var(--r-md); color: var(--plate-text); font: inherit; text-align: left; cursor: pointer; }
+.mo-item.is-empty { cursor: default; }
+.mo-item-ic { display: grid; place-items: center; flex: none; width: 46px; height: 46px; border-radius: var(--r-sm); background: var(--surf-3); box-shadow: inset 0 0 0 1.5px var(--line-strong); }
+.mo-item.is-ready .mo-item-ic { box-shadow: inset 0 0 0 2px var(--gold), 0 0 12px var(--gold-soft); }
+.mo-item-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.mo-item-txt b { font: 800 var(--fs-16)/1.1 var(--font-text); }
+.mo-item-txt small { max-width: 220px; overflow: hidden; color: var(--surf-dim); font: 500 var(--fs-13)/1.2 var(--font-text); text-overflow: ellipsis; white-space: nowrap; }
+.mo-item-keys { position: absolute; top: -10px; right: 10px; z-index: 2; }
+.mo-item-keys .k-key { min-width: 24px; height: 24px; font-size: var(--fs-13); }
+.mo-item-keys .k-key .k-mouse { font-size: 16px; }
+.mo-charge { position: relative; width: 240px; }
+.mo-charge .k-meter { height: 18px; }
+.mo-charge .k-meter-label { font-size: var(--fs-13); }
+.mo-tick { position: absolute; top: 3px; bottom: 3px; width: 2px; border-radius: 2px; background: rgba(255, 255, 255, .6); }
+
+/* итоги: общий вид, кнопки, строка про «через N с» */
+.mo-results { width: min(820px, 100%); }
+.mo-results .k-win-body { padding-top: 6px; }
+.mo-results .k-results-title.is-lose { color: var(--bad-text); }
+.mo-note { display: flex; flex-direction: column; gap: 8px; align-items: center; margin-top: 12px; color: var(--surf-dim); font: 600 var(--fs-16)/1.2 var(--font-text); }
+.mo-note .k-meter { width: 220px; }
+
+/* ---------------------------------------------------------------- команды пейнтбола (цвета — как в игре: shared/constants.ts)
+   Цвет полосы — --team0/--team1. Текст — светлая основа, которая сама темнеет на светлом (окна, «Пляж») и светлеет на тёмном
+   стекле «Заката»: color-mix с --accent-k/--accent-to прямо в color (переменные шкурки читаются на месте). */
+[data-mode='paintball'], .k-scrim { --team0: #4a63ff; --team0-tx: #8b9bff; --team1: #ff8a1c; --team1-tx: #ffa04a; }
+.mo-name.t0, .mo-t0 .mo-team-name { color: color-mix(in srgb, var(--team0-tx) var(--accent-k, 100%), var(--accent-to, #000)); font-weight: 800; }
+.mo-name.t1, .mo-t1 .mo-team-name { color: color-mix(in srgb, var(--team1-tx) var(--accent-k, 100%), var(--accent-to, #000)); font-weight: 800; }
+/* счёт (ВЦ), v2: 300×48 (было 520×90) — «ЧЕРНИКА 5 · 4:42 · 6 МАНДАРИН», числа 22, тонкие полосы */
+.mo-score { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: stretch; width: 300px; padding: 0; overflow: hidden; }
+.mo-team { display: flex; flex-direction: column; justify-content: center; gap: 4px; padding: 5px 10px 6px; }
+.mo-team-top { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; }
+.mo-team-top b { font: 800 var(--fs-22)/1 var(--font-text); font-variant-numeric: tabular-nums; }
+.mo-team-name { overflow: hidden; font: 800 var(--fs-13)/1.1 var(--font-text); text-overflow: ellipsis; white-space: nowrap; }
+.mo-team .k-meter { height: 4px; border: 0; }
+.mo-t0 .k-meter { --c: var(--team0); } .mo-t1 .k-meter { --c: var(--team1); }
+.mo-clock { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; min-width: 58px; padding: 4px 8px; background: var(--surf-2); border-inline: 1px solid var(--line); }
+.mo-clock small { color: var(--surf-dim); font: 700 var(--fs-13)/1 var(--font-text); }
+.mo-clock b { font: 800 var(--fs-18)/1 var(--font-text); font-variant-numeric: tabular-nums; }
+/* лента убийств и новости режима (ВЛ) — мелкие строки */
+.mo-feed { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.mo-feed-line { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: var(--r-pill); font: 600 var(--fs-14)/1.1 var(--font-text); }
+.mo-feed-line .k-ic { width: 18px; height: 18px; }
+.mo-feed-line.is-own { box-shadow: var(--plate-shadow), inset 0 0 0 1.5px var(--gold); }
+.mo-feed-line.is-big { color: var(--gold-text); font-weight: 800; }
+/* прятки: три действия с подписью под ячейкой — шире шаг, чтобы подписи не налезали */
+.k-vitals-arms.mo-acts3 { gap: 14px; }
+.mo-armor { gap: 6px; }
+.mo-armor .k-vitals-ic { width: 18px; height: 18px; }
+.mo-armor .k-meter { flex: 1; height: 4px; border: 0; }
+.mo-armor .k-vitals-cap { min-width: 46px; }
+/* таблица боя и итоги: две команды рядом */
+.mo-board { width: min(980px, 100%); }
+.mo-board-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.mo-board-head { display: flex; align-items: baseline; justify-content: space-between; padding: 0 6px; font: 900 var(--fs-22)/1 var(--font-text); }
+.mo-board-head b { font-size: var(--fs-36); }
+.mo-board-team .k-table { margin-top: -2px; }
+.mo-board-team.t0 .mo-board-head { box-shadow: inset 0 -3px 0 var(--team0); padding-bottom: 8px; }
+.mo-board-team.t1 .mo-board-head { box-shadow: inset 0 -3px 0 var(--team1); padding-bottom: 8px; }
+.mo-mvp { display: flex; justify-content: center; margin-bottom: 14px; }
+.mo-mvp b { font-weight: 900; }
+
+/* прятки: роль, v2 ~230×50 */
+.mo-role { display: flex; align-items: center; gap: 9px; padding: 5px 14px 5px 5px; box-shadow: var(--plate-shadow), inset 3px 0 0 var(--mode); }
+.mo-role-ic { display: grid; place-items: center; flex: none; width: 38px; height: 38px; border-radius: 50%; background: var(--mode-soft); box-shadow: inset 0 0 0 1.5px var(--mode); }
+.mo-role-ic img { width: 28px; height: 28px; }
+.mo-role b { display: block; font: 800 var(--fs-16)/1.15 var(--font-text); }
+.mo-role small { display: block; margin-top: 1px; color: var(--surf-dim); font: 500 var(--fs-13)/1.2 var(--font-text); }
+.k-slot--tl > .mo-feed { margin-top: 2px; }
+
+/* «Выше облаков»: участок (≈240×64), высотомер (≈150×250), кнопки, значки медалей */
+.mo-sec { max-width: 260px; padding: 6px 12px 7px; }
+.mo-sec .k-eyebrow { font-size: var(--fs-13); }
+.mo-sec-name { display: block; margin-top: 2px; font: 800 var(--fs-18)/1.1 var(--font-text); }
+.mo-sec-rule { margin: 2px 0 0; color: var(--surf-dim); font: 500 var(--fs-14)/1.25 var(--font-text); }
+.mo-alt { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 150px; height: 250px; padding: 8px 10px; }
+.mo-alt .k-ic { width: 26px; height: 26px; }
+.mo-alt-track { position: relative; flex: 1; width: 10px; margin-left: 56px; border-radius: var(--r-pill); background: var(--track); box-shadow: inset 0 0 0 1px var(--line-strong); }
+.mo-alt-fill { position: absolute; left: 0; right: 0; bottom: 0; border-radius: var(--r-pill); background: linear-gradient(0deg, var(--gold), var(--gold-hi)); }
+.mo-alt-mark { position: absolute; right: calc(100% + 8px); transform: translateY(50%); color: var(--surf-dim); font: 600 var(--fs-13)/1 var(--font-text); white-space: nowrap; }
+.mo-alt-mark::after { content: ''; position: absolute; left: calc(100% + 3px); top: 50%; width: 5px; height: 5px; margin-top: -2.5px; border-radius: 50%; background: var(--surf-dim); }
+.mo-alt-mark.is-own { color: var(--gold-text); font-weight: 800; }
+.mo-alt-mark.is-own::after { background: var(--gold); box-shadow: 0 0 0 2px var(--surf-solid); width: 8px; height: 8px; margin-top: -4px; }
+.mo-alt-place { font: 800 var(--fs-18)/1 var(--font-text); color: var(--gold-text); }
+.mo-acts { display: flex; gap: 22px; }
+.mo-med { width: 26px; height: 26px; margin-right: 8px; vertical-align: -7px; }
+.mo-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 4px 0 12px; }
+
+/* пираты: задачи защитника (вместо трёх разных подсказок), v2 ≈ 300×100 */
+.mo-tasks { display: flex; flex-direction: column; gap: 5px; padding: 7px 14px 7px 8px; }
+.mo-task { display: flex; align-items: center; gap: 9px; font: 500 var(--fs-14)/1.2 var(--font-text); white-space: nowrap; }
+.mo-task b { font-weight: 800; }
+.mo-task .k-key { flex: none; min-width: 28px; height: 26px; padding: 0 6px; }
+.mo-task .k-key .k-mouse { font-size: 16px; }
+.mo-task .k-key--wide { display: inline-flex; align-items: center; gap: 5px; min-width: 0; padding: 0 8px; font-size: var(--fs-13); }
+.mo-task-ic { width: 20px; height: 20px; }
+
+/* ---------------------------------------------------------------- ставки: окно (крысы и рулетка) */
+.mo-bet-win { width: min(860px, 100%); }
+.mo-bet-win .k-win-body { padding: 16px 22px 12px; }
+.mo-step { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; color: var(--surf-text); font: 800 var(--fs-18)/1.2 var(--font-text); }
+.mo-step b { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--gold); color: var(--gold-ink); font-size: var(--fs-16); }
+.mo-step ~ .mo-step { margin-top: 16px; }
+.mo-saddle { display: inline-grid; place-items: center; flex: none; width: 36px; height: 36px; border-radius: 50%; background: var(--sd); color: #fff; font: 900 var(--fs-16)/1 var(--font-text); text-shadow: 0 1px 2px rgba(0, 0, 0, .55); box-shadow: 0 2px 0 rgba(0, 0, 0, .35), inset 0 0 0 2px rgba(255, 255, 255, .55); }
+.mo-rats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.mo-rat { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; gap: 2px 10px; padding: 10px 12px; color: var(--surf-text); font: inherit; text-align: left; cursor: pointer; transition: transform .1s; }
+.mo-rat:hover { transform: translateY(-2px); }
+.mo-rat.is-on { border-color: transparent; background: var(--gold-soft); box-shadow: inset 0 0 0 2px var(--gold), 0 0 18px var(--gold-soft); }
+.mo-rat-name { font: 800 var(--fs-18)/1.1 var(--font-text); }
+.mo-rat-x { color: var(--gold-text); font: 900 var(--fs-28)/1 var(--font-text); }
+.mo-rat-trait { grid-column: 1 / -1; min-height: 38px; color: var(--surf-dim); font: 500 var(--fs-14)/1.3 var(--font-text); }
+.mo-rat-foot { grid-column: 1 / 3; color: var(--surf-dim); font: 700 var(--fs-13)/1.2 var(--font-text); }
+.mo-rat-who { grid-column: 1 / -1; min-height: 16px; color: var(--surf-faint); font: 600 var(--fs-13)/1.2 var(--font-text); }
+.mo-bet-win .k-bet { gap: 10px; }
+.mo-bet-win .k-bet-chips { padding-top: 0; }
+.mo-bet-win .k-btn--lg small { font-size: var(--fs-13); }
+/* список крыс в забеге (под бейджем), v2: строки 14, седло 22 */
+.mo-ratlist { width: 220px; }
+.mo-ratlist .mo-row { grid-template-columns: 22px minmax(0, 1fr) auto; min-height: 30px; padding: 2px 8px 2px 3px; }
+.mo-ratlist.has-places .mo-row { grid-template-columns: 14px 22px minmax(0, 1fr) auto; gap: 6px; }
+.mo-ratlist .mo-saddle { width: 22px; height: 22px; font-size: var(--fs-13); box-shadow: 0 1px 0 rgba(0, 0, 0, .35), inset 0 0 0 1.5px rgba(255, 255, 255, .55); }
+.mo-ratlist .mo-row b { flex-direction: column; align-items: flex-start; gap: 0; font-size: var(--fs-14); }
+.mo-ratlist .mo-row small { color: var(--surf-dim); font: 600 var(--fs-13)/1.1 var(--font-text); }
+.mo-ratlist .mo-row-side { color: var(--gold-text); font-weight: 800; font-size: var(--fs-15); }
+.mo-pl { color: var(--surf-dim); font: 800 var(--fs-13)/1 var(--font-text); text-align: center; }
+.mo-pl.is-lead { color: var(--gold-text); }
+/* рулетка: поля, ставка-улов, последние ставки */
+.mo-ball { display: inline-grid; place-items: center; flex: none; width: 34px; height: 34px; border-radius: 50%; color: #fff; font: 900 var(--fs-16)/1 var(--font-text); box-shadow: 0 2px 0 rgba(0, 0, 0, .35), inset 0 0 0 2px rgba(255, 255, 255, .6); }
+.k-event-ic .mo-ball { width: 30px; height: 30px; font-size: var(--fs-14); }
+.mo-ball.is-red { background: #b3262b; } .mo-ball.is-black { background: #2a2a31; } .mo-ball.is-green { background: #1e7a3d; }
+.mo-stake { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.mo-fish { display: inline-flex; align-items: center; gap: 8px; padding: 4px 12px 4px 6px; border-radius: var(--r-md); background: var(--surf-2); border: var(--surf-2-border); font: 600 var(--fs-14)/1.1 var(--font-text); }
+.mo-fish > img { width: 40px; height: 40px; object-fit: contain; filter: drop-shadow(0 2px 2px rgba(20, 10, 12, .3)); }
+.mo-fish b { font-weight: 700; } .mo-fish > span { color: var(--gold-text); font-weight: 800; }
+.mo-fish.is-more { padding-left: 12px; }
+.mo-stake-sum { margin-left: auto; color: var(--surf-dim); font: 600 var(--fs-16)/1 var(--font-text); }
+.mo-stake-sum b { color: var(--gold-text); font-size: var(--fs-22); font-weight: 900; }
+.mo-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding-top: 6px; }
+.mo-field { --f: #c4263f; --f-hi: #e5475c; --f-lo: #7d1424; position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; margin-bottom: 5px; padding: 12px 8px 12px; border: 0; border-radius: var(--r-lg); background: linear-gradient(180deg, var(--f-hi), var(--f)); box-shadow: 0 5px 0 var(--f-lo), inset 0 2px 0 rgba(255, 255, 255, .35); color: #fff; font: inherit; text-shadow: 0 1px 2px rgba(0, 0, 0, .45); cursor: pointer; transition: transform .08s; }
+.mo-field.is-black { --f: #2a2a31; --f-hi: #484852; --f-lo: #101014; }
+.mo-field.is-green { --f: #1e7a3d; --f-hi: #33a85a; --f-lo: #0d4a22; }
+.mo-field:hover { transform: translateY(-2px); }
+.mo-field.is-on { transform: translateY(-3px); box-shadow: 0 5px 0 var(--f-lo), 0 0 0 4px var(--gold), 0 0 22px var(--gold-soft); }
+.mo-field-name { font: 900 var(--fs-22)/1.1 var(--font-text); }
+.mo-field-x { font: 900 var(--fs-36)/1 var(--font-text); }
+.mo-field-ch { font: 600 var(--fs-14)/1.2 var(--font-text); opacity: .9; }
+.mo-field-win { font: 800 var(--fs-16)/1.2 var(--font-text); }
+.mo-go { margin-top: 14px; }
+.mo-last { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; padding: 10px 14px; }
+.mo-last .k-eyebrow { margin: 0 0 2px; color: var(--surf-faint); }
+.mo-last-row { display: grid; grid-template-columns: 34px 120px 1fr auto; align-items: center; gap: 12px; font: 600 var(--fs-16)/1.1 var(--font-text); }
+.mo-last-row b { font-weight: 700; } .mo-last-row > span:nth-child(3) { color: var(--surf-dim); } .mo-last-row > span:last-child { font-weight: 900; }
+/* «как есть»: куски того же снимка поверх старых деталей */
+.mo-patch { position: absolute; z-index: 1; background-size: 1440px 900px; background-repeat: no-repeat; }
+.mo-noshrink { flex: none; width: max-content; max-width: none; }

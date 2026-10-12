@@ -1,0 +1,11 @@
+{
+  "case": "hook-contact",
+  "automated": "FAIL",
+  "visual": "NOT_ACCEPTED",
+  "error": "Actual scene input contract unavailable",
+  "flags": {
+    "ticksAdvanced": false
+  },
+  "elapsedMs": 3485,
+  "sourceFreeze": "79c7aa9061682aefdbf130d1fcc03e5689c7ecfd3dde341bcc65a9eac089b332"
+}

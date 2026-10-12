@@ -1,0 +1,47 @@
+/* Прятки «Рыбный двор» на ките 2.0: свои части — в слотах HUD (client/hide/hud.ts), вид — классы кита (.k-*, .mo-*).
+   Здесь — только акцент режима, цвет роли, точка прицела предмета, красные края финала и кнопки телефона. */
+
+html[data-room='hide'] { --mode-w: var(--m-hide); --mode-h: var(--mh-hide); }
+/* части в общих слотах — только в прятках */
+html:not([data-room='hide']) .hd-only { display: none !important; }
+.hd-only[hidden], .hd-vitals [hidden], .hd-board[hidden] { display: none !important; }
+
+/* --- роль: полоса и кружок — цветом роли (ловец — акцент режима, предмет — золото, пойман — красный, зритель — инфо) */
+.hd-role[data-role='prop'] { --mode: var(--gold); --mode-soft: var(--gold-soft); }
+.hd-role[data-role='caught'] { --mode: var(--bad); --mode-soft: var(--bad-soft); }
+.hd-role[data-role='spectator'] { --mode: var(--info); --mode-soft: var(--info-soft); }
+.hd-role { max-width: 340px; }
+
+/* --- низ: подсказка «ЛКМ Стать: …»; по клику на то, чем не стать, — вздрагивает */
+.hd-prompt.is-shake { animation: hd-shake .32s ease-in-out; }
+@keyframes hd-shake { 20% { transform: translateX(-7px); } 40% { transform: translateX(6px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(2px); } }
+.hd-vitals .k-vitals-ammo .k-vitals-cap { line-height: 1.35; }
+.hd-vitals .k-vitals-ammo .k-vitals-cap b { color: var(--plate-text); font-weight: 800; }
+
+/* --- прицел: предмет — одна точка (серая, если этим не стать) */
+.hd-world { z-index: 1; }
+.hd-cross.hd-dot > i { display: none; }
+.hd-cross.hd-dot::before { width: 6px; height: 6px; margin: -3px 0 0 -3px; }
+.hd-cross.hd-dot.is-no::before { width: 10px; height: 10px; margin: -5px 0 0 -5px; background: var(--surf-faint); }
+.hd-float { left: 50%; }
+
+/* --- финал: края экрана краснеют */
+.hd-glow { position: absolute; inset: 0; box-shadow: inset 0 0 90px color-mix(in srgb, var(--bad) 32%, transparent); animation: hd-glow 1s ease-in-out infinite; }
+@keyframes hd-glow { 50% { opacity: .4; } }
+
+/* --- окна: итоги раунда закрываются сами (кнопок нет); таблица Tab — только смотреть */
+.k-scrim[data-mode='hide'] .k-results-actions:empty { display: none; }
+.hd-board { pointer-events: none; }
+.hd-board-win { width: min(560px, 100%); }
+.hd-board-role { color: var(--surf-dim); font-size: var(--fs-14); }
+
+/* --- телефон: кнопки прячущегося */
+.hd-touch { position: absolute; right: 150px; bottom: 120px; display: none; gap: 10px; pointer-events: auto; }
+.hd-world.prop-touch .hd-touch { display: flex; }
+.hd-tb { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; width: 64px; height: 64px; padding: 0; border-radius: 50%; color: var(--plate-text); font: 700 var(--fs-13)/1 var(--font-text); }
+.hd-tb img { width: 28px; height: 28px; object-fit: contain; }
+
+@media (max-width: 520px) {
+  .hd-touch { left: 8px; right: auto; bottom: 150px; width: 140px; flex-wrap: wrap; }
+}
+@media (prefers-reduced-motion: reduce) { .hd-glow, .hd-prompt.is-shake { animation: none; } }

@@ -1,0 +1,148 @@
+{
+  "findings": [
+    {
+      "id": "R1",
+      "severity": "P2",
+      "confidence": "high",
+      "title": "Начальный вход строит весь мир и впервые компилирует его в одном блокирующем проходе",
+      "path": "../../game-opus/client/lobby/scene.ts",
+      "lines": [
+        402,
+        602
+      ],
+      "observedCode": "App:263 синхронно new LobbyScene; scene:404 new LobbyWorld; world:271–281 генерирует две PMREM через fromScene, world:312–352 последовательно строит карту/декор/город/look; scene:439–598 строит системы событий/игр/аватары. startup.ts:31 await paint, затем await game.start; startup-game.ts:27 new App(...).start() не разбивает конструкторы. compileAsync найден только transition.ts:481, initial join idle идёт в App:1447.",
+      "trigger": "Холодное открытие страницы, особенно слабый CPU/GPU или непустой кэш с холодными шейдерами.",
+      "consequence": "Экран загрузки успевает появиться, но основной поток затем занят до завершения всех конструкторов, а первый idle/render запускает синхронную компиляцию. Продолжительность текущего состояния не измерена; 4–5 с из optimization.md — исторический замер.",
+      "proposal": "Сохранить единый graph и все миры/кэши согласно решению владельца. Разбить построение на небольшие задания с yield по кадрам; на начальном loading прогреть фактические материалы/варианты и PMREM до первого пользовательского кадра.",
+      "validationNeeded": "Измерить startup long tasks и p95 максимальной блокировки на cold/warm cache, CPU×4; проверить первый кадр join и первый переход, лимит 1,5 с из optimization.md."
+    },
+    {
+      "id": "R2",
+      "severity": "P2",
+      "confidence": "high",
+      "title": "Авто-качество навсегда остаётся на ступени, до которой упало",
+      "path": "../../game-opus/client/render/quality.ts",
+      "lines": [
+        19,
+        22
+      ],
+      "observedCode": "nextAutoQuality возвращает тот же ratio для быстрых окон; единственная ветка его изменения вычитает 0.25. App:1399–1406 сохраняет autoRatio и раздаёт новый tier.",
+      "trigger": "Игрок пережил несколько медленных окон (толпа/шторм/другой режим), потом оказался в лёгкой сцене.",
+      "consequence": "Разрешение и tier продолжают оставаться пониженными при свободном бюджете; возврат на набережную не восстанавливает их. Выполненная read-only Node-проверка: шесть медленных окон довели 1.5→0.75; двадцать быстрых окон по 8 мс оставили 0.75.",
+      "proposal": "Добавить ограниченный подъём после нескольких устойчиво быстрых окон с отдельным порогом и задержкой, верхняя граница autoStart; не менять загрузку/кэш миров.",
+      "validationNeeded": "Unit: медленные→быстрые окна, hysteresis и отсутствие колебаний; runtime: тяжёлое событие→спокойная сцена, наблюдать ratio/tier и стабильность FPS."
+    },
+    {
+      "id": "R3",
+      "severity": "P2",
+      "confidence": "high",
+      "title": "Авто-качество принимает меню и переходы за производительность игры",
+      "path": "../../game-opus/client/app.ts",
+      "lines": [
+        1387,
+        1406
+      ],
+      "observedCode": "trackPerf игнорирует только document.hidden и perfWait. frame:1419 вызывает его до screen/active/transition проверок; frame:1435 вместо active.frame может выполняться transition.frame; frame:1447 join/connecting/lost рисует lobby.idle.",
+      "trigger": "Долгое ожидание в меню на фоне облёта, повторные переходы с capture/compile/upload, зависание GPU при загрузке.",
+      "consequence": "Окна RAF за меню/прогрев могут понизить autoRatio перед реальной игрой. perfWait=3 только откладывает первоначальное измерение, последующие переходы не исключаются. R2 делает последствия долгими.",
+      "proposal": "Разделить статистику и решения auto: сбрасывать накопление/slowWindows вне стабильного игрового кадра, во время transition.busy и короткого grace после него; показывать общей статистике свои выборки отдельно при необходимости.",
+      "validationNeeded": "Unit/интеграция: в join/connecting/transition ratio не меняется; после перехода стабильные игровые окна по-прежнему понижают качество."
+    },
+    {
+      "id": "R4",
+      "severity": "P2",
+      "confidence": "high",
+      "title": "Пониженный фактический tier не доходит до части эффектов и пиратской толпы",
+      "path": "../../game-opus/client/lobby/scene.ts",
+      "lines": [
+        718,
+        722
+      ],
+      "observedCode": "LobbyScene.setQuality обновляет лишь world/fx/kraken. scene:470 Pirates hooks.quality и scene:568 regatta low читают исходные settings.quality; scene:2315 storm3d и 2322 fishJumps тоже читают settings.quality. lobbyQuality('auto', false):127–130 всегда high на desktop. Pirates3D:155 crowd создаётся с hooks.quality(); PirateCrowd.setQuality:115–123 имеет работающий low-budget, но повторных вызовов crowd.setQuality нет.",
+      "trigger": "Auto уже упал до low либо выбран «Своё» с effects less/shadows low при сохранённом quality='high'/'auto'; ручная смена пресета после старта тоже не обновляет PirateCrowd.",
+      "consequence": "Солнце/дождь/общие частицы понижаются, но шторм, прыжки рыбы, след регаты и разнообразие/receiveShadow толпы используют прежний бюджет. Меню обещает применение настроек на лету, часть тяжёлых эффектов его не выполняет.",
+      "proposal": "Сохранить effective tier в LobbyScene и использовать его во всех callback/update; прокинуть setQuality в Pirates3D→crowd, включая текущие инстансы.",
+      "validationNeeded": "Проверить debug число инстансов/вариантов, receiveShadow и budget в auto low, custom low, ручных low→high→low во время набега/регаты."
+    },
+    {
+      "id": "R5",
+      "severity": "P2",
+      "confidence": "high",
+      "title": "Гашение обычных PointLight меняет ключи шейдеров во время игры",
+      "path": "../../game-opus/client/lobby/world.ts",
+      "lines": [
+        1266,
+        1268
+      ],
+      "observedCode": "Четыре обычных PointLight создаются world:297–301; setQuality:1268 ставит visible, setStormClimate:1307 тоже ставит visible. Установленный three WebGLRenderer.js:1408/1426 использует traverseVisible для света; WebGLPrograms.js:342 и 478 включают numPointLights в ключ программы. shadowMap.type уже стабилен PCFShadowMap (renderer.ts:49).",
+      "trigger": "Первая смена high↔medium/low или первое выключение света штормом.",
+      "consequence": "Количество lights 4↔0 меняется; освещённым материалам нужны новые варианты программ, впервые запрашиваемые прямо в кадре события/авто-понижения. Актуальную длительность зависания требуется измерить.",
+      "proposal": "Сохранить набор обычных lights, гасить intensity=0 или заменить их эмиссивом/пятнами при перестройке площади. Для точного light-count budget сначала замерить итоговую стоимость; памятник/его lights не менять.",
+      "validationNeeded": "Снять programs до/после первой смены и Performance long tasks/p95 в high→low, шторм выключает/включает свет. Проверить визуальное погасание всех обычных ламп."
+    },
+    {
+      "id": "R6",
+      "severity": "P2",
+      "confidence": "high",
+      "title": "Дальние живые аватары сохраняют все отдельные меши и полную анимацию",
+      "path": "../../game-opus/client/render/avatar.ts",
+      "lines": [
+        1069,
+        1083
+      ],
+      "observedCode": "Avatar.shown определяется alive/hidden/local proximity, без дистанционного LOD. Constructor:555–633 создаёт отдельные body, глаза, зрачки, веки, face, attachments, gear, mittens, tag; costume/pet детали остаются до всей scene culling. updateTag:1529–1531 ограничивает только nick. LobbyScene.updateRemotes:2559 проходит всех и :2619 вызывает Avatar.update; low preset gfx.ts:105–108 оставляет viewDistance='far'. Touts имеют общий hide после 46 м (touts.ts:14/134), но без переходного LOD между 25–46 м.",
+      "trigger": "На площади несколько десятков игроков видимы в кадре, часть на 30–100 м; low/auto low на CPU-bound компьютере.",
+      "consequence": "Снижение resolution не сокращает основной submission workload от аватаров; количество отдельных draw calls растёт с числом игроков и одеждой. Величина FPS/640 calls из старого docs не воспроизводилась и не объявляется текущей.",
+      "proposal": "Сначала замерить 1/16/32/64 игроков. Добавить простой far tier: сохранять тело/силуэт, скрывать мелкие детали/таблички, обновлять косметическую анимацию реже; общие статические части группировать/инстансить только там, где замер оправдывает сложность.",
+      "validationNeeded": "Draw calls/CPU кадра и читаемость живых игроков на 30/60/100 м при 1/16/32/64; проверить PvP идентификацию, анимации и отсутствие исчезновения тела."
+    },
+    {
+      "id": "R7",
+      "severity": "P2",
+      "confidence": "medium",
+      "title": "После восстановления WebGL context нет пути повторного построения PMREM окружений",
+      "path": "../../game-opus/client/render/renderer.ts",
+      "lines": [
+        62,
+        67
+      ],
+      "observedCode": "Единственный webglcontextrestored handler в client обновляет timer и static shadows. LobbyWorld:272–281 берёт pmrem.fromScene(...).texture и хранит envClear/envRain один раз; LobbyLook:109 и lookbake.ts:221–229 так же строят custom env один раз. world:1409–1410 и look.ts:153 повторно назначают старые texture. Установленный three renderer:1123–1141 пересоздаёт GL context internals, но не повторяет application fromScene.",
+      "trigger": "WebGL context lost/restored (перегрузка GPU, сон/возврат, драйвер).",
+      "consequence": "Вероятно окружения в render-target textures остаются пустыми после restore, ломая блики/мокрый настил; source отсутствие rebuild подтверждено, визуальная поломка пока гипотеза до loss/restore smoke.",
+      "proposal": "Добавить один app/world restore hook, который регенерирует процедурные render targets/PMREM и перевязывает материалы; не выгружать миры в обычных переходах. Учитывать сцены, удерживаемые в памяти.",
+      "validationNeeded": "Через WEBGL_lose_context выполнить loss/restore до и после дождя, сравнить мокрый настил/блики на тех же камерах; проверить cached режимы, texture/program counts и отсутствие перманентного black env."
+    }
+  ],
+  "coverage": {
+    "reviewed": [
+      "AGENTS.md и docs/product.md/docs/optimization.md полностью; relevant rendering/startup/status/map sections README.md/docs/design.md/docs/README.md/docs/STATUS.md",
+      "client/render/renderer.ts, quality.ts, gfx.ts; avatar.ts construction/update/tag/disposal; kit.ts merge/static helpers; effects.ts pooled geometry/lifecycle; lookface.ts/voice-presence.ts/outfitfish.ts/awp.ts shared resources",
+      "client/lobby/scene.ts constructor/setQuality/frame/idle/updateRemotes; world.ts constructor/light/quality/weather/render; look.ts/lookbake.ts paint/bake/env paths",
+      "startup.ts/startup-game.ts; app.ts constructors/applyQuality/trackPerf/frame; transition.ts capture/compile/collect",
+      "narrow lifecycle cross-checks paintball/race/fort/fight/hide scenes/matches; pirates.ts/piratecrowd.ts/regatta.ts/plaza/touts.ts",
+      "installed three source WebGLRenderer/WebGLPrograms/WebGLEnvironments to verify shader/cache/context mechanisms"
+    ],
+    "notReviewed": [
+      "No browser/server/production login; no fresh FPS/draw/GPU/long-task/network measurements",
+      "No full deep review of all 3D modes or every procedural geometry builder",
+      "No assets/STATUE/statue files, secrets, deploy/runtime data",
+      "No implementation edits, commits, build or full tests"
+    ],
+    "verification": [
+      "git status inspected: existing user changes preserved",
+      "Read-only Node import of quality.ts reproduced 1.5→0.75 after six slow windows and unchanged 0.75 after twenty fast windows"
+    ],
+    "correctedHistoricalClaims": [
+      "Avatar nick rendering already caches tagKey (avatar.ts:1538–1544)",
+      "Sound/settings changes no longer blindly call scene.setQuality (app.ts:1356–1366)",
+      "shadowMap type already remains PCFShadowMap (renderer.ts:49), not switched per quality",
+      "Pirates update early-returns when idle (pirates.ts:255–263)",
+      "compileAsync includes hidden meshes in installed three (scene.traverse), only lights depend on visibility"
+    ],
+    "constraints": [
+      "World retention/all-mode download is accepted owner policy; not treated as leak",
+      "Statue untouched",
+      "Performance impact source-based where explicitly marked; historical docs metrics not current proof"
+    ]
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "created": "2026-10-12T10:34:46.580Z",
+  "visual": {
+    "status": "All18 final fixed-size images independently reviewed by root; darker open sea, preserved pale shore/island colour; nearby ripple pattern differs; exact1440×900 snapshots retained.",
+    "evidence": "evidence/2026-10-12T10-17-34-869Z-visual/result.json",
+    "firstCapture": "The earlier10:15 shore-day pair resized during capture and is excluded from exact A/B."
+  },
+  "cpu": {
+    "status": "No additional median CPU observed beyond control range",
+    "evidence": "evidence/2026-10-12T10-22-39-538Z-cpu/result.json",
+    "wholeGameFPS": false
+  },
+  "gpu": {
+    "status": "INCONCLUSIVE; no cost-neutral acceptance",
+    "evidence": [
+      "evidence/2026-10-12T10-18-12-253Z-gpu/result.json",
+      "evidence/paired-gpu-single-query-noisy.json",
+      "evidence/paired-gpu-batched-root.json"
+    ],
+    "note": "Interleaved raw scope label initially said one draw per query; batched result explicitly uses64 drawsPerSample and reports normalized durations. Repeated A/A controls are too noisy to attribute the difference to shader B."
+  },
+  "gameIntegrated": false,
+  "packagingFix": {
+    "reason": "String.replace replacement tokens corrupted embedded bundle",
+    "change": "Callback replacements plus vm.Script validation",
+    "archive": "archive/pre-browser-root-fix"
+  },
+  "nativeUi": {
+    "variantClicks": 2,
+    "view": true,
+    "weather": true,
+    "pause": true,
+    "fog": true,
+    "fixtures": true,
+    "pageErrors": []
+  },
+  "finalHtmlSha256": "27edec787c55ca6893080cb3a6276444a1c04ef20f6fb35839217e4c644a4f3b"
+}

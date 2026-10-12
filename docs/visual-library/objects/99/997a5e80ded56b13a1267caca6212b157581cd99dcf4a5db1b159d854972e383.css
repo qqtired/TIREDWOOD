@@ -1,0 +1,115 @@
+/* Примерочная на ките 2.0 (client/ui/wardrobe.ts): окно .k-window справа в своём слое .k-scrim — без затемнения и не модальное:
+   сцена слева — это примерка (желейка в зеркале, мышью её крутят). Образцы — «Хозяйство» фермы и окна рыбалки: шапка с
+   портретом, вкладки .k-tabs, ячейки .k-cell, цены монеткой кита, своё — золотом. Цвета и тени — только токены кита. */
+
+.k-scrim.wd-scrim {
+  /* Боковая панель остаётся в масштабе HUD: её верх привязан к бейджу, это не центральное окно. */
+  --window-k: var(--hud-k, 1);
+  /* слой окна: клики мимо окна уходят сцене (поворот желейки); сверху — под бейджем (поле 16 + бейдж 44 + зазор 6) */
+  display: flex;
+  justify-content: flex-end;
+  align-items: stretch;
+  padding: 66px var(--edge) var(--edge);
+  background: transparent;
+  pointer-events: none;
+  text-shadow: none;
+}
+.k-scrim.wd-scrim[hidden], .wd-win [hidden], .wd-inspect[hidden] { display: none !important; }
+
+.wd-win { width: min(520px, 100%); max-height: 100%; pointer-events: auto; }
+.wd-win .k-tabs { flex-wrap: nowrap; gap: 2px; padding: 0 16px; }
+.wd-win .k-tab { padding: 8px 11px; }
+.wd-win .k-win-body { padding: 16px 20px 20px; }
+.wd-win .k-win-foot { padding: 14px 20px 16px; }
+
+/* заголовок группы и пояснение под ним */
+.wd-h { margin: 22px 2px 6px; }
+.wd-h:first-child { margin-top: 2px; }
+.wd-lead { margin: 0 2px 12px; color: var(--surf-dim); font: 500 var(--fs-14)/1.35 var(--font-text); }
+.wd-lead b { color: var(--surf-text); }
+
+/* ячейки вещей: 3 в ряд */
+.wd-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.wd-h + .wd-grid { margin-top: 10px; }
+.wd-item {
+  display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 0; padding: 12px 6px 10px;
+  color: var(--surf-text); font: inherit; text-align: center; cursor: pointer; transition: background .12s, box-shadow .12s;
+}
+.wd-item:hover { background: var(--surf-3); box-shadow: inset 0 0 0 1.5px var(--line-strong); }
+.wd-item:focus-visible { outline: none; box-shadow: var(--focus); }
+/* надето (своё или примерка) — золотая рамка; примерка чужого — пунктиром */
+.wd-item.is-on { background: var(--gold-soft); box-shadow: inset 0 0 0 2px var(--gold); }
+.wd-item.is-trial { box-shadow: none; outline: 2px dashed var(--gold); outline-offset: -2px; }
+.wd-art { display: grid; place-items: center; height: 48px; font-size: 36px; line-height: 1; }
+.wd-art > img, .wd-art > svg { width: 48px; height: 48px; object-fit: contain; }
+.wd-art.is-none { color: var(--surf-faint); font: 400 var(--fs-36)/1 var(--font-text); }
+.wd-name { max-width: 100%; font: 700 var(--fs-15)/1.2 var(--font-text); overflow-wrap: break-word; hyphens: auto; }
+.wd-meta { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-height: 20px; font: 700 var(--fs-14)/1.2 var(--font-text); }
+.wd-meta .k-coin { width: 17px; height: 17px; }
+.wd-meta .k-ic { width: 18px; height: 18px; }
+.wd-meta .k-dim { font-weight: 500; }
+
+/* редкость — точка в углу ячейки (обычная, редкая, эпическая — как категории рыбы) */
+.wd-tier { position: absolute; top: 8px; right: 8px; width: 9px; height: 9px; border-radius: 50%; background: var(--tc, transparent); }
+.wd-item.tier-common { --tc: var(--good); }
+.wd-item.tier-rare { --tc: var(--tier-rare); }
+.wd-item.tier-epic { --tc: var(--tier-epic); }
+.wd-item.tier-premium { --tc: var(--tier-divine); }
+.wd-item.tier-jackpot { --tc: var(--gold); }
+.wd-item.tier-system { --tc: var(--tier-legend); }
+.wd-item.tier-trophy { --tc: var(--tier-divine); }
+.wd-item.tier-promo { --tc: var(--bad); }
+
+/* образец ткани узора (фон — из палитры наряда) */
+.wd-cloth { display: block; width: 44px; height: 44px; margin: 2px 0; border-radius: 50% 50% 46% 46%; box-shadow: inset 0 -5px 9px rgba(0, 0, 0, .28), inset 0 4px 6px rgba(255, 255, 255, .25), 0 0 0 1.5px var(--line-strong); }
+
+/* цвета: на вкладке «Цвет» — с именами, 4 в ряд; второй цвет узора — 8 в ряд */
+.wd-swatches { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px; }
+.wd-swatches.is-named { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px 6px; }
+.wd-sw { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; padding: 6px 0; border: 0; border-radius: var(--r-md); background: none; color: var(--surf-dim); font: 600 var(--fs-14)/1.2 var(--font-text); cursor: pointer; }
+.wd-swatches.is-named .wd-sw { padding: 10px 0 8px; }
+.wd-sw:hover { background: var(--surf-2); color: var(--surf-text); }
+.wd-sw:focus-visible { outline: none; box-shadow: var(--focus); }
+.wd-sw > span:not(.wd-dot) { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wd-dot { width: 32px; height: 32px; border-radius: 50%; box-shadow: inset 0 -4px 7px rgba(0, 0, 0, .25), inset 0 3px 5px rgba(255, 255, 255, .25), 0 0 0 1.5px var(--line-strong); }
+.wd-swatches.is-named .wd-dot { width: 44px; height: 44px; }
+.wd-sw.is-on { color: var(--surf-text); font-weight: 800; }
+.wd-sw.is-on .wd-dot { box-shadow: inset 0 -4px 7px rgba(0, 0, 0, .25), inset 0 3px 5px rgba(255, 255, 255, .25), 0 0 0 2.5px var(--surf-solid), 0 0 0 5px var(--gold); }
+
+/* покупка примеренного: картинка, имя · редкость, пояснение, кнопка; причина «нельзя» — отдельной строкой */
+.wd-buy { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; align-items: center; gap: 4px 14px; margin: 12px 20px 0; padding: 12px 14px; box-shadow: inset 0 0 0 1.5px var(--gold); }
+.wd-buy-art { display: grid; place-items: center; width: 52px; height: 52px; }
+.wd-buy-text { min-width: 0; }
+.wd-buy-name { font: 800 var(--fs-16)/1.2 var(--font-text); }
+.wd-buy-name .k-dim { font-weight: 600; }
+.wd-buy-note { margin: 3px 0 0; color: var(--surf-dim); font: 500 var(--fs-14)/1.3 var(--font-text); }
+.wd-buy-note:empty { display: none; }
+.wd-why { display: flex; align-items: center; gap: 6px; margin: 4px 0 0; color: var(--surf-dim); font: 700 var(--fs-14)/1.25 var(--font-text); }
+.wd-why.is-bad { color: var(--bad-text); }
+.wd-why .k-ic { width: 20px; height: 20px; }
+.wd-why .k-coin { width: 16px; height: 16px; }
+.wd-buy-btn .k-coin { width: 18px; height: 18px; }
+
+/* подарочный код — та же ячейка, что в меню (Профиль → Подарки и коды): .mn-box, форма GiftForm */
+.wd-gift { margin: 12px 20px 0; }
+.wd-gift-btn { margin-right: auto; }
+.wd-gift-btn .k-ic { width: 24px; height: 24px; }
+.wd-gift-btn.is-pressed { background: var(--ghost-bg-hover); }
+
+/* под желейкой: стрелки поворота и «Спереди» — светлый HUD (.k-hudctx), размер сцены × --hud-k */
+.lobby-hud .wd-inspect { position: absolute; bottom: 12px; left: 35%; transform: translateX(-50%); pointer-events: none; }
+.wd-inspect-in { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 252px; transform-origin: 50% 100%; scale: var(--hud-k, 1); }
+.wd-orbit { position: relative; width: 100%; height: 68px; pointer-events: auto; touch-action: none; }
+.wd-orbit img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; user-select: none; }
+.wd-orbit button { position: absolute; top: 0; width: 50%; height: 100%; padding: 0; border: 0; border-radius: 50%; background: transparent; cursor: ew-resize; touch-action: none; }
+.wd-orbit [data-turn='-1'] { left: 0; }
+.wd-orbit [data-turn='1'] { right: 0; }
+.wd-orbit button:focus-visible { outline: none; box-shadow: var(--focus); }
+.wd-inspect-reset { pointer-events: auto; }
+
+/* телефон стоя: окно — во всю ширину снизу, желейка — над ним */
+@media (max-width: 560px) {
+  .k-scrim.wd-scrim { align-items: flex-end; padding: 0 8px 8px; }
+  .wd-win { width: 100%; max-height: 58%; }
+  .wd-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

@@ -1,0 +1,58 @@
+{
+  "revision": "R5",
+  "recordedAt": "2026-10-12T06:06:01.287Z",
+  "sourceFreeze": "b12d6ba10abf8af04a6689463ec7e7f3fe35f017b47c6ef230315026b605f4bf",
+  "sourceArchive": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-source-r5-archive",
+  "files": [
+    {
+      "path": "./index.html",
+      "bytes": 31389190,
+      "sha256": "57f7b38892acf940d0a6c1898142c68e00f973f2882a44315b3e53bc0f7a3177"
+    },
+    {
+      "path": "./design-data.json",
+      "bytes": 35637,
+      "sha256": "9e5e177f44df77a3c91c5c70e5f64435ea3de72c93c249114a84a05c20cdf20a"
+    },
+    {
+      "path": "./brief.md",
+      "bytes": 18364,
+      "sha256": "0c4f7a19e63f14257ed08e1b33f9083000722dac62563fb52f03477631e1764b"
+    },
+    {
+      "path": "./source/calculations.json",
+      "bytes": 30295,
+      "sha256": "c296d9889ccb2b179b708d376668587a62740fd0ea56063f3ae13375d44ec5e3"
+    },
+    {
+      "path": "./source/encounters.json",
+      "bytes": 10940,
+      "sha256": "951d96b2aeff8b25963eb6e5cbce10f6460b00a4a6f6589c8b3d9c55e5cdc214"
+    },
+    {
+      "path": "./source/runtime-design-data.json",
+      "bytes": 90636,
+      "sha256": "932a6775825747f3126c596dea0143cf5b34b1b040e87c3e05e45a20f5965849"
+    },
+    {
+      "path": "./source/build-receipt.json",
+      "bytes": 659,
+      "sha256": "efede65f6b27e379542b407d891c6de48da84b5310ac0a440a1b102b80025e41"
+    },
+    {
+      "path": "./source/verification.json",
+      "bytes": 121745,
+      "sha256": "18647c2d8911165c77598390cd780c5c78491283461c7f777da11e72e03974c2"
+    },
+    {
+      "path": "./source/r5-evidence-receipt.json",
+      "bytes": 1068,
+      "sha256": "ef49e6a3d38c363da9544b86fb55d423564b8da737fb043229c4b35dc095f189"
+    },
+    {
+      "path": "./viewer/bundle.js",
+      "bytes": 695530,
+      "sha256": "cda5e1ebf6e2985c083b346d7cb3ae24efa8682e913e7cfbcc3969664cb719ef"
+    }
+  ]
+}

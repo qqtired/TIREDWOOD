@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="ru" data-skin="retro2" data-hud="light">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TIREDWOOD — десять направлений HUD</title><link rel="icon" href="/*__FAVICON__*/"><style>/*__FONTS__*/
+/*__KIT__*/
+/*__STYLES__*/</style></head>
+<body>
+<main class="review">
+  <header class="review-head"><div><h1>Десять направлений HUD</h1><p>Новые 6–10 меняют систему подачи. Первые пять сохранены для сравнения.</p></div><span class="local-mark">TIREDWOOD · локальный прототип</span></header>
+  <nav class="directions" aria-label="Направление HUD" id="directions"></nav>
+  <section class="controls" aria-label="Условия сравнения">
+    <label>Сцена<select id="scenario"><option value="plaza">Набережная · спокойно</option><option value="fort">Крепость · бой</option><option value="busy">Набережная · много событий</option><option value="dungeon">Подземелье · неизменный эталон</option></select></label>
+    <label>Фон<select id="lighting"><option value="day">Светлая сцена</option><option value="dusk">Тёмная сцена</option></select></label>
+    <label>Кадр<select id="background"><option value="background">Текущая набережная</option><option value="background-lab">Лаборатория UI 2.0</option></select></label>
+    <label>Размер HUD<select id="ui-scale"><option value="90">90 %</option><option value="100" selected>100 %</option></select></label>
+    <label>Уведомления<select id="load"><option value="auto">По сценарию</option><option value="0">Нет</option><option value="1">Одно</option><option value="3">Три сразу</option></select></label>
+    <label>Сравнить с<select id="compare"><option value="current">Текущий · main</option><option value="clean">1 · Воздух</option><option value="enamel">2 · Эмаль</option><option value="lantern">3 · Кованый фонарь</option><option value="ribbon">4 · Курортная лента</option><option value="ledger">5 · Полевой блокнот</option></select></label>
+    <button id="ab" class="control-button" aria-pressed="false">A / B</button><button id="focus" class="control-button">Во весь экран</button>
+  </section>
+  <p id="scenario-guard" class="scenario-guard">Подземелье сохраняет свой отдельный HUD. Ни один из десяти вариантов его не переоформляет; сцена только для просмотра.</p>
+  <section class="stage-section" aria-label="Игровой экран для сравнения">
+    <div class="stage-caption"><span id="stage-title"></span><span id="stage-subtitle"></span></div>
+    <div id="stage-frame" class="stage-frame"><div id="focus-chrome" class="focus-chrome"><button id="exit-focus" class="exit-focus" aria-label="Выйти из полноэкранного просмотра">Вернуться к вариантам · Esc</button></div><div class="artboard" id="artboard"><div class="world-bg"></div><div class="world-shade"></div><div id="hud" class="hud-overlay"></div><div id="world-effects" class="world-effects"></div></div></div>
+  </section>
+  <section class="under-stage"><div class="concept-note" id="concept-note"></div><div class="demo-actions"><span>Проиграть отклик</span><button data-action="toast">Уведомление +45</button><button data-action="hit">Урон −18</button><button data-action="heal">Лечение +18</button><button data-action="hero">Новый уровень</button><button id="priority-demo" data-action="priority">Важное: связь</button><button data-action="reset">Сбросить сцену</button></div></section>
+  <div class="selection-row"><span id="selection-note" role="status">Выбор здесь не меняет игру.</span><button id="choose" class="choose">Выбрать для доработки</button></div>
+  <details class="evidence"><summary>Основа сравнения и границы</summary><p>Десять вариантов — предложения, которые ещё не внедрены. «Текущий · main» — контрольная схема основных элементов из исходников main 62f814f: Светлый HUD, текущий бейдж с ником, общий чат и боевая панель. Подземелье всегда показано своим отдельным неизменным эталоном; редизайн к нему не применяется. Это схема на общих постановочных данных; она не является снимком запуска игры.</p><p>Новые бейджи используют портрет из локального пакета farm-pack1. Размер 90 % — отдельное условие сравнения. Эти изменения не выданы за выпущенные. Числа — одинаковый набор для каждого варианта; клавиши, валюта, оружие и типы событий взяты из существующей игры.</p><p id="background-note">Фон — чистый кадр лаборатории UI 2.0; тёмная сцена моделируется затемнением этого же кадра. Игровая сцена статична, клики проигрывают только локальные примеры.</p><p>Источники: client/ui/kit/{badge,slots,topcenter,combat}.ts/css · client/chat.ts · client/fort/ui/vitals.ts · client/dungeon/{hud,hudtypes,data}.ts, dungeon.css · lab/ui/kit/KIT.md · lab/ui/screens/plaza.js. Редактируемые файлы — в source/, ресурсы — в assets/.</p></details>
+</main>
+<script>/*__ASSETS__*/</script><script>/*__DATA__*/</script><script>/*__APP__*/</script>
+</body></html>

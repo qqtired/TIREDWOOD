@@ -1,0 +1,59 @@
+{
+  "recordedAt": "2026-10-12T06:42:27.948Z",
+  "rootReported": true,
+  "accepted": false,
+  "attempts": [
+    {
+      "id": "rawChromeWrongDocumentError",
+      "status": "FAILED_NOT_PASS",
+      "reason": "Wrong-document raw Chrome attempt; not valid game evidence",
+      "evidence": [
+        "runtime-harness/browser-observer-raw-launch.json",
+        "runtime-harness/browser-observer.json"
+      ],
+      "shaderFailureClaim": false
+    },
+    {
+      "id": "normal-v3-actualIntroEnterChat",
+      "status": "FAILED_NOT_PASS",
+      "reason": "Actual intro HUD prompts Enter; game did not consume it, common chat opened and blocked input. Root identified one-line fix.",
+      "evidence": [
+        "dungeon-r5-normal-v3.log",
+        "runtime-harness/captures-normal-v3"
+      ],
+      "shaderFailureClaim": false
+    },
+    {
+      "id": "r6-hook-loading-cover-and-dead-hero",
+      "status": "FAIL_CAPTURE",
+      "reason": "enter returned during loading cover; hero died before later generic hp<100 capture. Zero hash mismatches did not make the image valid.",
+      "evidence": [
+        "dungeon-runtime-r6/captures-late/hook-contact-entry.png",
+        "dungeon-runtime-r6/captures-late/hook-impact.png"
+      ],
+      "shaderFailureClaim": false
+    },
+    {
+      "id": "r6-hook-overlapping-room-transition",
+      "status": "FAIL_CAPTURE",
+      "reason": "Repeated /go before lobby.hasSelf and transition idle caused fresh run null; timeout was not game acceptance.",
+      "evidence": [
+        "dungeon-r6-hook-atomic.log",
+        "dungeon-r6-hook-enter.log"
+      ],
+      "shaderFailureClaim": false
+    }
+  ],
+  "logs": [
+    {
+      "path": "dungeon-r5-normal-v2.log",
+      "bytes": 1233,
+      "sha256": "ac311776d0ca45eb981eecf4e37017deb165c5cb40a4efd1ca970a13de141e6d"
+    },
+    {
+      "path": "dungeon-r5-normal-v3.log",
+      "bytes": 803,
+      "sha256": "8a67e5732f17eae0182ae53754e2a7f01935ece2c125baae5dd4880a19b86036"
+    }
+  ]
+}

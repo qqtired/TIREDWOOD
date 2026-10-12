@@ -1,0 +1,79 @@
+{
+  "date": "2026-10-12",
+  "browser": "headless Chrome session round3-review",
+  "cwd": "/tmp/tw-island-review3",
+  "viewport": {
+    "width": 1490,
+    "height": 1350
+  },
+  "passed": [
+    "pins folds details",
+    "pins restores details",
+    "help opens and pins",
+    "pinned help survives direction switch",
+    "help closes",
+    "damage ghost 72 to 54",
+    "damage ghost expires",
+    "heal restores 72",
+    "ready signal on",
+    "ready signal off",
+    "expanded rewards under priority",
+    "critical event survives fold",
+    "context moves once toward action",
+    "context returns to profile",
+    "HP zones open",
+    "HP zones close",
+    "90 percent",
+    "100 percent",
+    "Enter chat",
+    "weapon and reload",
+    "A/B to preserved wood",
+    "A/B returns new theme",
+    "Dungeon remains independent",
+    "focus returns"
+  ],
+  "failed": [],
+  "console": {
+    "errors": 0,
+    "warnings": 0
+  },
+  "screenshots": [
+    "research/concepts-r3-pins-fort.png",
+    "research/concepts-r3-pins-busy.png",
+    "research/concepts-r3-bearing-fort.png",
+    "research/concepts-r3-bearing-busy.png",
+    "research/concepts-r3-jelly-fort.png",
+    "research/concepts-r3-jelly-busy.png",
+    "research/concepts-r3-umbra-fort.png",
+    "research/concepts-r3-umbra-busy.png",
+    "research/concepts-r3-mosaic-fort.png",
+    "research/concepts-r3-mosaic-busy.png"
+  ],
+  "featureScreenshots": [
+    "research/concepts-r3-feature-bearing-help.png",
+    "research/concepts-r3-feature-jelly-damage.png",
+    "research/concepts-r3-feature-umbra-priority.png",
+    "research/concepts-r3-feature-mosaic-pinned.png"
+  ],
+  "visualReview": "All ten overview screenshots and four feature screenshots personally inspected. No clipping or HUD overlap requiring a correction observed.",
+  "sha256": "5c55281890738d0bd4297ea5bb2bf97872062277b58c78ae1db512b053e9d82c",
+  "indexMatchesRevision": true,
+  "acceptance": "Internal prototype review. Owner acceptance and game implementation not claimed.",
+  "runnerHandoff": {
+    "session": "round3-review",
+    "cwd": "/tmp/tw-island-review3",
+    "driverPid": 70372,
+    "chromePid": 70373,
+    "profile": "/var/folders/2b/pm5qjpwd4dsccy28fwctvgq00000gn/T/playwright_chromiumdev_profile-FljYl6",
+    "page": "about:blank"
+  },
+  "mainUrlSmoke": {
+    "title": "TIREDWOOD — пятнадцать направлений HUD",
+    "directions": 16,
+    "newDefault": "pins"
+  },
+  "screenshotDimensions": {
+    "width": 1440,
+    "height": 901
+  }
+}

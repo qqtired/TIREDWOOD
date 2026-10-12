@@ -1,0 +1,68 @@
+{
+  "case": "boss-phases",
+  "type": "registrationOnly",
+  "seed": 704313,
+  "accelerated": true,
+  "initialHash": 4139154799,
+  "edits": [
+    "skip to wave20",
+    "assume previous 19 waves for local fixture counters",
+    "finished legal5+5 inventory and temper5 supplied by setup, not earned",
+    "isolated fixture: no director background/props/map pickups; actual map collision stays",
+    "boss at2.6m, damageMul1 and hero10000HP to register all phase attack families; not survival/balance evidence"
+  ],
+  "seconds": 100,
+  "normalHP": false,
+  "heroHp": 10000,
+  "weapons": [
+    {
+      "id": "lantern",
+      "lv": 7,
+      "evo": 1
+    },
+    {
+      "id": "embers",
+      "lv": 7,
+      "evo": 1
+    },
+    {
+      "id": "fireflies",
+      "lv": 7,
+      "evo": 1
+    },
+    {
+      "id": "stalactites",
+      "lv": 7,
+      "evo": 1
+    },
+    {
+      "id": "beam",
+      "lv": 7,
+      "evo": 1
+    }
+  ],
+  "passives": [
+    {
+      "id": "might",
+      "lv": 5
+    },
+    {
+      "id": "maxhp",
+      "lv": 5
+    },
+    {
+      "id": "armor",
+      "lv": 5
+    },
+    {
+      "id": "cooldown",
+      "lv": 5
+    },
+    {
+      "id": "area",
+      "lv": 5
+    }
+  ],
+  "source": "original game.d.makeRun returned actual run; setup before first view/hash",
+  "receivedAt": 904259.6999999955
+}

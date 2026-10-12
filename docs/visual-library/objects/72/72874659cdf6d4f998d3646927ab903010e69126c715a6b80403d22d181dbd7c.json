@@ -1,0 +1,47 @@
+{
+  "frozenAt": "2026-10-12T02:00:19.372Z",
+  "files": [
+    {
+      "source": "../../../../game-opus/client/render/sky.ts",
+      "snapshot": "./source/upstream/render/sky.ts",
+      "sha256": "f9fcd7ef72886ea5b1ac0d581f697a8d2a07841cc1166f0771221cac64fac0e1"
+    },
+    {
+      "source": "../../../../game-opus/client/render/looksky.ts",
+      "snapshot": "./source/upstream/render/looksky.ts",
+      "sha256": "26efdf83ffc171dddcd1b1fa55b6a5f9d1b41818924621279f865f8d6b7ba7ee"
+    },
+    {
+      "source": "../../../../game-opus/client/render/lookpaint.ts",
+      "snapshot": "./source/upstream/render/lookpaint.ts",
+      "sha256": "f1e6c6df2f5139e00684e5ce14f09924fb2802242aeb655734d7bfb6be8503ba"
+    },
+    {
+      "source": "../../../../game-opus/shared/constants.ts",
+      "snapshot": "./source/upstream/shared/constants.ts",
+      "sha256": "a6c82ebed9f2e622ebccb930891b41307c4d9c32258061d012e49aee9917fb76"
+    },
+    {
+      "source": "../../../../../../unavailable.html",
+      "snapshot": "./source/upstream/lobby/isle/sky.ts",
+      "sha256": "acf010446c9397384fbd562d1b42d8f7f460a429a4bd7f89c6c772a05d86f231"
+    },
+    {
+      "source": "../../../../../../unavailable.html",
+      "snapshot": "./source/upstream/shared/isle.ts",
+      "sha256": "6a597dd247a42268cb4e9912135deda00887a0d03f4101844f482700e4447d5e"
+    },
+    {
+      "source": "../../../../../../unavailable.html",
+      "sha256": "6405441d66d12ce4cfda288858e78f3ba45332c0a4a9d8c7016e91740f879158",
+      "snapshot": "./source/upstream/shared/maps/isle.ts",
+      "selection": "ISLE_CENTER and isleDist only"
+    },
+    {
+      "source": "../../../../game-opus/client/assets/ownboats/volzhanka.glb",
+      "sha256": "7b407eecb6a73977727072fc3e20014d03b7138a3f1c378177c866997f18839e",
+      "snapshot": "./source/boat-data.mjs",
+      "selection": "base64 GLB bytes"
+    }
+  ]
+}

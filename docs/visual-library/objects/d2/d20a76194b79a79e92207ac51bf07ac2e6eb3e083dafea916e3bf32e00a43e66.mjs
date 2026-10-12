@@ -1,0 +1,12 @@
+import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import {pathToFileURL} from 'node:url';
+const GAME='[LOCAL_PATH]',threeUrl=pathToFileURL(GAME+'../../../../game-opus/node_modules/three/build/three.module.js').href,loaderUrl=pathToFileURL(GAME+'../../../../game-opus/node_modules/three/examples/jsm/loaders/GLTFLoader.js').href,THREE=await import(threeUrl);
+const code=fs.readFileSync(new URL('./native-pump-actor.js',import.meta.url),'utf8').replace("'three'",JSON.stringify(threeUrl)).replace("'three/addons/loaders/GLTFLoader.js'",JSON.stringify(loaderUrl)).replace("'./pump-pose-contract.mjs'",JSON.stringify(new URL('./pump-pose-contract.mjs',import.meta.url).href));const {NativePumpActor}=await import('data:text/javascript;base64,'+Buffer.from(code).toString('base64'));
+test('actual native R2 pump aligns forward/reverse rays and obeys firing windows without a renderer',async()=>{
+ const root=new URL('../',import.meta.url),manifest=JSON.parse(fs.readFileSync(new URL('../models/manifest.json',root))),entry=manifest.models.find(m=>m.id==='jampump');assert(entry.sceneClips?.redirectPrepare&&entry.sceneClips?.redirectContact,'R2 aimed counter clips required');const bytes=fs.readFileSync(new URL(entry.glb,root));entry.asset={glb:'data:model/gltf-binary;base64,'+bytes.toString('base64')};const actor=new NativePumpActor(new THREE.Scene(),{ready:true,models:[entry]});assert(await actor.load());
+ actor.update({id:'pump',t:3,choice:null,choiceAt:null});assert.equal(actor.status.emitting,false);
+ actor.update({id:'pump',t:4.1,choice:null,choiceAt:null});assert(actor.status.emitting);assert(actor.status.ray.hitsTarget);assert(actor.status.ray.error<1e-5);assert.deepEqual(actor.status.ray.from,actor.status.tip);const modelPort=actor.tip.getWorldPosition(new THREE.Vector3()).toArray();assert.deepEqual(actor.status.tip,modelPort);assert(actor.status.tip[1]>1.3);
+ actor.update({id:'pump',t:4.3,choice:null,choiceAt:null});assert.equal(actor.status.emitting,false);
+ actor.update({id:'pump',t:7.9,choice:'redirect',choiceAt:5});assert.equal(actor.status.emitting,false);
+ actor.update({id:'pump',t:10,choice:'redirect',choiceAt:5});assert(actor.status.emitting);assert.equal(actor.status.direction,'reverse');assert(Math.hypot(actor.status.ray.to[0]+4.55,actor.status.ray.to[2]+25.1)<1e-5);
+ actor.update({id:'pump',t:14,choice:'redirect',choiceAt:5});assert.equal(actor.status.emitting,false);actor.hide();assert.equal(actor.flow.visible,false);assert.equal(actor.root.visible,false);
+});

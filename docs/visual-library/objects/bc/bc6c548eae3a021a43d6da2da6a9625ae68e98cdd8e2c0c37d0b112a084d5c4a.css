@@ -1,0 +1,8 @@
+/* Телефон с удочкой (рыбалка 2.0 на ките, client/lobby/fishkit.css): вода и поплавок по центру должны быть видны —
+   карточка рыбалки слева сверху без легенды шансов и строки бонуса (полоса шансов остаётся, подробно — в журнале). */
+@media (max-width: 640px), (max-height: 480px) {
+  html.touch[data-fishing] .fi-mode .fi-odds-legend,
+  html.touch[data-fishing] .fi-mode .fi-perk { display: none; }
+  /* под кнопками ☰ 💬 👥 😊 слева сверху (client/touch.ts .tc-bar: 44 px от 10 px) — карточка ниже, кнопки нажимаются */
+  html.touch[data-fishing] .fi-mode { width: 210px; margin-top: calc(58px / var(--hud-k, 1)); }
+}

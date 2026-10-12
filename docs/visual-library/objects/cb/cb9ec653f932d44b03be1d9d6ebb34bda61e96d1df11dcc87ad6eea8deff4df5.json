@@ -1,0 +1,17 @@
+{
+  "at": "2026-10-12T14:19:27.847Z",
+  "scriptSyntax": "PASS",
+  "domTargets": "PASS",
+  "states": 3150,
+  "pressureCaps": "PASS",
+  "finiteTransforms": "PASS",
+  "tacticRows": 4410,
+  "sourceCoverageCheckpoints": 14,
+  "finiteGrenadeBudget": "PASS",
+  "allEightChoicesMapped": true,
+  "externalAssetUrls": 0,
+  "newModelsV2": true,
+  "nativeModels": 6,
+  "browserChecked": false,
+  "notPlaytest": true
+}

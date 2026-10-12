@@ -1,0 +1,27 @@
+{
+  "id": "railhopper",
+  "tris": 2478,
+  "parts": 9,
+  "clips": [
+    "railhopper_idle",
+    "railhopper_walk",
+    "railhopper_windup",
+    "railhopper_attack",
+    "railhopper_hit",
+    "railhopper_death"
+  ],
+  "bbox": [
+    [
+      -0.6528310775756836,
+      -0.923567533493042,
+      0.011564195156097412
+    ],
+    [
+      0.6528310775756836,
+      1.0357975959777832,
+      1.261425256729126
+    ]
+  ],
+  "background": true,
+  "fps": 24
+}

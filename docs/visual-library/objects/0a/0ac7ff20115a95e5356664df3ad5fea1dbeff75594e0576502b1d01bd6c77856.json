@@ -1,0 +1,283 @@
+{
+  "id": "ropecrab",
+  "background": true,
+  "blender": "5.2.2 LTS",
+  "pid": 87358,
+  "transport": "native MCP execute_blender_code; existing unchanged command handlers",
+  "summary": {
+    "triangles": 3922,
+    "materials": 5,
+    "meshPrimitives": 51,
+    "textures": 0,
+    "images": 0,
+    "clips": [
+      {
+        "name": "ropecrab_idle",
+        "seconds": 2.0,
+        "runtimeDuration": 2.041667,
+        "inputStart": 0.041667,
+        "inputEnd": 2.041667,
+        "channels": 132
+      },
+      {
+        "name": "ropecrab_walk",
+        "seconds": 1.0,
+        "runtimeDuration": 1.041667,
+        "inputStart": 0.041667,
+        "inputEnd": 1.041667,
+        "channels": 132
+      },
+      {
+        "name": "ropecrab_windup",
+        "seconds": 4.0,
+        "runtimeDuration": 4.041667,
+        "inputStart": 0.041667,
+        "inputEnd": 4.041667,
+        "channels": 132
+      },
+      {
+        "name": "ropecrab_attack",
+        "seconds": 0.833333,
+        "runtimeDuration": 0.875,
+        "inputStart": 0.041667,
+        "inputEnd": 0.875,
+        "channels": 132
+      },
+      {
+        "name": "ropecrab_recover",
+        "seconds": 1.833333,
+        "runtimeDuration": 1.875,
+        "inputStart": 0.041667,
+        "inputEnd": 1.875,
+        "channels": 132
+      },
+      {
+        "name": "ropecrab_hit",
+        "seconds": 0.583333,
+        "runtimeDuration": 0.625,
+        "inputStart": 0.041667,
+        "inputEnd": 0.625,
+        "channels": 132
+      },
+      {
+        "name": "ropecrab_death",
+        "seconds": 2.416667,
+        "runtimeDuration": 2.458333,
+        "inputStart": 0.041667,
+        "inputEnd": 2.458333,
+        "channels": 132
+      },
+      {
+        "name": "ropecrab_open",
+        "seconds": 2.0,
+        "runtimeDuration": 2.041667,
+        "inputStart": 0.041667,
+        "inputEnd": 2.041667,
+        "channels": 132
+      },
+      {
+        "name": "ropecrab_route_attach",
+        "seconds": 4.0,
+        "runtimeDuration": 4.041667,
+        "inputStart": 0.041667,
+        "inputEnd": 4.041667,
+        "channels": 132
+      }
+    ],
+    "nodes": 91,
+    "bytes": 1096300,
+    "sha256": "8cad56396653cfa2b49aa9885cc6d42949a782be2927e0cd61ded48b36c712c0",
+    "binSHA256": "adbbb60bd87504d7d37b085665536efac238df27f5a03417a07a662401ed7eea"
+  },
+  "authored": [
+    {
+      "name": "ropecrab_idle",
+      "requestedSeconds": 2,
+      "keySeconds": 2.0,
+      "frames": 49
+    },
+    {
+      "name": "ropecrab_walk",
+      "requestedSeconds": 1,
+      "keySeconds": 1.0,
+      "frames": 25
+    },
+    {
+      "name": "ropecrab_windup",
+      "requestedSeconds": 4,
+      "keySeconds": 4.0,
+      "frames": 97
+    },
+    {
+      "name": "ropecrab_attack",
+      "requestedSeconds": 0.8,
+      "keySeconds": 0.8333333333333334,
+      "frames": 21
+    },
+    {
+      "name": "ropecrab_recover",
+      "requestedSeconds": 1.8,
+      "keySeconds": 1.8333333333333333,
+      "frames": 45
+    },
+    {
+      "name": "ropecrab_hit",
+      "requestedSeconds": 0.55,
+      "keySeconds": 0.5833333333333334,
+      "frames": 15
+    },
+    {
+      "name": "ropecrab_death",
+      "requestedSeconds": 2.4,
+      "keySeconds": 2.4166666666666665,
+      "frames": 59
+    },
+    {
+      "name": "ropecrab_open",
+      "requestedSeconds": 2,
+      "keySeconds": 2.0,
+      "frames": 49
+    },
+    {
+      "name": "ropecrab_route_attach",
+      "requestedSeconds": 4,
+      "keySeconds": 4.0,
+      "frames": 97
+    }
+  ],
+  "source": "[LOCAL_PATH]",
+  "sourceSHA256": "0aa37fc043055f0279150135e573b9e68f78fd283aadd4064f16ab2842c0d6df",
+  "storyboardSHA256": "805a4ecbd88d0e7464de32348cdec00a50544878d82e20941a38dbdf199db0f0",
+  "reference": "../../../../../v1/art/originals/01-mobs.png",
+  "referenceSHA256": "c6df3db8168aad218b9006c165210c9bab2c2ccf3b43c485512b567b56f8a64c",
+  "anchors": {
+    "footL0": [
+      -1.149999976158142,
+      -0.5799999833106995,
+      0.054999999701976776
+    ],
+    "footL1": [
+      -1.149999976158142,
+      -0.07000000029802322,
+      0.054999999701976776
+    ],
+    "footL2": [
+      -1.149999976158142,
+      0.4399999976158142,
+      0.054999999701976776
+    ],
+    "footR0": [
+      1.149999976158142,
+      -0.5799999833106995,
+      0.054999999701976776
+    ],
+    "footR1": [
+      1.149999976158142,
+      -0.07000000029802322,
+      0.054999999701976776
+    ],
+    "footR2": [
+      1.149999976158142,
+      0.4399999976158142,
+      0.054999999701976776
+    ]
+  },
+  "storyboard": {
+    "id": "ropecrab",
+    "windup": 4,
+    "attack": 0.8,
+    "death": 2.4,
+    "silhouette": "Low flattened shell, six anatomical legs, strapped spool, serious brow, separate hook and visible ratchet",
+    "events": [
+      [
+        0,
+        "stopper_release"
+      ],
+      [
+        0.35,
+        "spool_runaway"
+      ],
+      [
+        0.65,
+        "ground_rope_unwind"
+      ],
+      [
+        0.9,
+        "rear_legs_buckle"
+      ],
+      [
+        1.2,
+        "shell_settle"
+      ],
+      [
+        1.65,
+        "hook_drop"
+      ],
+      [
+        2.05,
+        "spool_brake"
+      ],
+      [
+        2.4,
+        "rest"
+      ]
+    ],
+    "deathStages": [
+      [
+        0,
+        0.35,
+        "Ratchet leaves its bracket; spool accelerates independently"
+      ],
+      [
+        0.35,
+        1.2,
+        "Rope extends across ground; six legs buckle with staggered phases"
+      ],
+      [
+        1.2,
+        2.4,
+        "Shell settles upright; hook drops; spool coasts to a separate stop"
+      ]
+    ],
+    "attackEvents": [
+      [
+        0,
+        "rear_feet_brace"
+      ],
+      [
+        0.16,
+        "rope_tension"
+      ],
+      [
+        0.28,
+        "hook_pull_contact"
+      ],
+      [
+        0.48,
+        "claw_recoil"
+      ],
+      [
+        0.8,
+        "stopper_open"
+      ]
+    ],
+    "measure": {
+      "planting": "rear legs during all 4s warning",
+      "plantDriftMaxM": 0.02,
+      "minimumFloorY": -0.025,
+      "ropeGroundBandM": [
+        0,
+        0.05
+      ],
+      "spoolMustMoveAfterShellRest": true
+    },
+    "reviewSeconds": [
+      0,
+      0.35,
+      0.9,
+      1.2,
+      1.65,
+      2.4
+    ]
+  }
+}

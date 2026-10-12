@@ -1,0 +1,71 @@
+/* Крупный золотой тост на весь сервер — «Сокровища Посейдона» (server/lobby/fishing2.ts → hub.toastAll, client/ui/toasts.ts big) */
+
+/* .toasts — абсолютный блок с left: 50%, его ширина по содержимому не больше половины окна: длинная строка переносилась.
+   Пока на экране крупный тост, даём блоку нормальную ширину (телефонную колонку рыбалки перебивает mobile-fishing.css) */
+.toasts:has(.toast.big) {
+  width: min(920px, 96vw);
+}
+
+.toast.big {
+  max-width: min(880px, 94vw);
+  padding: 16px 30px;
+  border: 2px solid #fff1b8;
+  border-radius: 20px;
+  background: linear-gradient(180deg, #ffe38a 0%, #ffc43c 100%);
+  color: #2e1a05;
+  font-size: 24px;
+  font-weight: 900;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.45);
+  box-shadow:
+    var(--shadow),
+    0 0 0 4px rgba(255, 211, 90, 0.35),
+    0 0 36px 6px rgba(255, 196, 60, 0.55);
+  animation: toast-big-in 0.5s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+
+@keyframes toast-big-in {
+  from {
+    opacity: 0;
+    transform: translateY(-16px) scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes toast-big-glow {
+  to {
+    box-shadow:
+      var(--shadow),
+      0 0 0 4px rgba(255, 211, 90, 0.5),
+      0 0 52px 12px rgba(255, 196, 60, 0.7);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .toast.big {
+    animation:
+      toast-big-in 0.5s cubic-bezier(0.2, 1.4, 0.4, 1),
+      toast-big-glow 1.2s ease-in-out 0.5s infinite alternate;
+  }
+}
+
+/* телефон: уже и мельче, но всё ещё заметнее обычного */
+html.touch .toast.big {
+  max-width: 94vw;
+  padding: 10px 14px;
+  font-size: 16px;
+  line-height: 1.25;
+}
+
+/* телефон с удочкой в руках: тосты — узкая колонка слева (mobile-fishing.css, три строки) над карточкой улова;
+   крупный остаётся золотым, но без наезда на карточку */
+@media (max-width: 640px), (max-height: 480px) {
+  html.touch[data-fishing] .toast.big {
+    padding: 6px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    line-height: 15px;
+  }
+}

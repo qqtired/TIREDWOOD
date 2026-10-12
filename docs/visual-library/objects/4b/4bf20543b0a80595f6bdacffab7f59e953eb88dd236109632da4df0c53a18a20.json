@@ -1,0 +1,40 @@
+{
+  "assembledAt": "2026-10-12T02:59:56.386Z",
+  "htmlBytes": 38526969,
+  "bundleBytes": 695530,
+  "embeddedNewGlbs": [
+    "hookclaw",
+    "wickmole",
+    "railhopper",
+    "chainwarden",
+    "cauldronmaster"
+  ],
+  "newModelClipCount": 57,
+  "embeddedBaselineGlbs": [
+    "rat",
+    "beetle",
+    "cooper",
+    "boss",
+    "hero"
+  ],
+  "sourceCommit": "4d354e33310ba3bd20272b27a90de552ccfa2732 (doc-only successor to tested R6)",
+  "imageCount": 5,
+  "sha256": "e125b4eb4d881985064907d8e4a9d2a0a30b17f5c4ff45be9bb0bbafb8f1b79e",
+  "evidenceUpdate": {
+    "revision": "R6",
+    "metadataOnly": true,
+    "receipt": "./r6-evidence-receipt.json",
+    "bundleUnchanged": true
+  },
+  "evidenceUpdatedAt": "2026-10-12T09:26:50.479Z",
+  "evidenceRevision": "R6",
+  "rebundledForEvidence": false,
+  "currentFinalAcceptanceReceipt": "./r6-final-local-acceptance-receipt.json",
+  "topStatusUpdatedAt": "2026-10-12T09:26:50.479Z",
+  "topStatus": {
+    "localCommit": "4d354e33310ba3bd20272b27a90de552ccfa2732",
+    "combatScenarios": "root accepted locally",
+    "fullProgression": "separate boundary",
+    "metadataOnly": true
+  }
+}

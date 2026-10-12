@@ -1,0 +1,21 @@
+{
+  "case": "boss20-guard",
+  "automated": "FAIL",
+  "visual": "NOT_ACCEPTED",
+  "error": "Normal-HP policy died; no survival PASS",
+  "flags": {
+    "nativeGlobalMenuResumed": true,
+    "ticksAdvanced": true,
+    "serverParity": true,
+    "dash": true,
+    "warn:boulder": true,
+    "warn:stal": true,
+    "q": true,
+    "warn:ember_splash": true,
+    "warn:cauldron_pour": true,
+    "warn:cauldron_flow": true,
+    "warn:cauldron_boil": true
+  },
+  "elapsedMs": 52168,
+  "sourceFreeze": "79c7aa9061682aefdbf130d1fcc03e5689c7ecfd3dde341bcc65a9eac089b332"
+}

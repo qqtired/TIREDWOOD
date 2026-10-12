@@ -1,0 +1,14 @@
+import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import vm from 'node:vm';
+import * as THREE from '../../../../../../game-opus/node_modules/three/build/three.module.js';
+import {ScenarioRun} from './scenarios.mjs';import {eventCamera} from './event-camera.mjs';
+test('forge preparation and exterior consequence have deterministic boundary and replay without mutating history',()=>{
+ const run=new ScenarioRun('forge',4);run.seek(1);run.choose('kit');run.seek(9.999);assert.equal(eventCamera(run.def,run.snapshot()).key,'forge/main');run.seek(10);const before=run.snapshot(),view=eventCamera(run.def,before);assert.equal(view.key,'forge/gate');assert.deepEqual(run.snapshot(),before);run.seek(0);assert.equal(eventCamera(run.def,run.snapshot()).key,'forge/main');run.seek(10);assert.deepEqual(eventCamera(run.def,run.snapshot()),view);
+});
+test('water route stays visible for 1/4, returns to stock on arrival and preserves late-burn failure',()=>{
+ for(const[n,arrival]of[[1,10],[4,13]]){const run=new ScenarioRun('stores',n);run.seek(5);run.choose('water');run.seek(arrival-.01);assert.equal(eventCamera(run.def,run.snapshot()).key,'stores/water');run.seek(arrival);assert.equal(eventCamera(run.def,run.snapshot()).key,'stores/main');}
+ const late=new ScenarioRun('stores',4);late.seek(15);late.choose('water');late.seek(20);const before=late.snapshot();assert(before.storesBurned&&before.savedCrates===0);assert.equal(eventCamera(late.def,before).key,'stores/water');assert(eventCamera(late.def,before).caption.includes('не успели'));assert.deepEqual(late.snapshot(),before);
+});
+test('Orbit owns the camera until a view-only return restores the current chapter without resetting action or clock',()=>{
+ const source=fs.readFileSync(new URL('./event-lab.js',import.meta.url),'utf8'),start=source.indexOf(' let manualEventCamera='),end=source.indexOf(' function cameraReference()',start),helper=source.slice(start,end),run=new ScenarioRun('forge',4),nodes=new Map(),handlers={},camera=new THREE.PerspectiveCamera(),controls={target:new THREE.Vector3(),update(){},addEventListener:(type,cb)=>handlers[type]=cb},get=id=>{if(!nodes.has(id))nodes.set(id,{textContent:''});return nodes.get(id);};
+ run.seek(1);run.choose('kit');const context={run,eventCamera,camera,controls,$:get,mode:'events'};vm.createContext(context);vm.runInContext(helper+';cameraEvent();',context);const prep=camera.position.toArray();handlers.start();run.seek(16);vm.runInContext('applyEventCamera(run.snapshot());',context);assert.deepEqual(camera.position.toArray(),prep);const before=run.snapshot();get('run-camera').onclick();assert.deepEqual(camera.position.toArray(),eventCamera(run.def,before).camera);assert.deepEqual(run.snapshot(),before);assert.equal(run.choice,'kit');assert.equal(run.time,16);
+});

@@ -1,0 +1,92 @@
+{
+  "date": "2026-10-12",
+  "controlModel": "gpt-6.1-sol",
+  "reasoning": "xhigh",
+  "imageModel": "not exposed by built-in tool",
+  "items": [
+    {
+      "id": "embers_evo",
+      "sha256": "cfdbb745839956841ad89e84c8355103781198e6b748912a07cb899eda2fef33",
+      "bytes": 2351932,
+      "original": "../../../../../../unavailable.html",
+      "source": "./embers_evo/embers_evo.png",
+      "copiedTo": "../../../../../../unavailable.html",
+      "prompt": "./embers_evo/prompt.txt",
+      "receipt": {
+        "id": "embers_evo",
+        "code": 0,
+        "thread": "01a12d6c-a947-7ee2-afd3-5355aee676a0",
+        "original": "../../../../../../unavailable.html",
+        "controlModel": "gpt-6.1-sol",
+        "reasoning": "xhigh",
+        "imageModel": "not exposed"
+      },
+      "gamePNGArchivedTo": "./runtime-input-archive/evo-embers_evo.png",
+      "runtimeBytes": 16796,
+      "runtimeSha256": "3c2d96be7e899a2056593e2d3a5a6220dcbdd0eb09dbcb00257e5758bc1ad6ef"
+    },
+    {
+      "id": "pickaxe_evo",
+      "sha256": "6e3f1de102c6f9fe82d9150bb5492b4188219fc8e28a28ff6dbcc671fa2f1101",
+      "bytes": 2513181,
+      "original": "../../../../../../unavailable.html",
+      "source": "./pickaxe_evo/pickaxe_evo.png",
+      "copiedTo": "../../../../../../unavailable.html",
+      "prompt": "./pickaxe_evo/prompt.txt",
+      "receipt": {
+        "id": "pickaxe_evo",
+        "code": 0,
+        "thread": "01a12d6e-bcbb-7cc3-ae34-67e72ead1240",
+        "original": "../../../../../../unavailable.html",
+        "controlModel": "gpt-6.1-sol",
+        "reasoning": "xhigh",
+        "imageModel": "not exposed"
+      },
+      "gamePNGArchivedTo": "./runtime-input-archive/evo-pickaxe_evo.png",
+      "runtimeBytes": 18338,
+      "runtimeSha256": "a9c5813f539d0dbca43cefb86d1ae67b3c3e78f3dc755fdb40e4d0825b2a8e2d"
+    },
+    {
+      "id": "spark_evo",
+      "sha256": "868dfaf97841f02aa04b8bd68426f9b1347d1ef4322c86af24746a38742b73cc",
+      "bytes": 2323521,
+      "original": "../../../../../../unavailable.html",
+      "source": "./spark_evo/spark_evo.png",
+      "copiedTo": "../../../../../../unavailable.html",
+      "prompt": "./spark_evo/prompt.txt",
+      "receipt": {
+        "id": "spark_evo",
+        "code": 0,
+        "thread": "01a12d70-b200-7763-ad42-b5e87dece152",
+        "original": "../../../../../../unavailable.html",
+        "controlModel": "gpt-6.1-sol",
+        "reasoning": "xhigh",
+        "imageModel": "not exposed"
+      },
+      "gamePNGArchivedTo": "./runtime-input-archive/evo-spark_evo.png",
+      "runtimeBytes": 18496,
+      "runtimeSha256": "72ede620521f40989fcb99f227c160f159b12ed7e88ce53c0af897813bbb97e7"
+    },
+    {
+      "id": "charges_evo",
+      "sha256": "725fda21c7d9286b92666c47d482c0e36e41ac1c798325854fdceb7c495eaa24",
+      "bytes": 2273450,
+      "original": "../../../../../../unavailable.html",
+      "source": "./charges_evo/charges_evo.png",
+      "copiedTo": "../../../../../../unavailable.html",
+      "prompt": "./charges_evo/prompt.txt",
+      "receipt": {
+        "id": "charges_evo",
+        "code": 0,
+        "thread": "01a12d72-ae45-7b70-8a62-6918b37dd769",
+        "original": "../../../../../../unavailable.html",
+        "controlModel": "gpt-6.1-sol",
+        "reasoning": "xhigh",
+        "imageModel": "not exposed"
+      },
+      "gamePNGArchivedTo": "./runtime-input-archive/evo-charges_evo.png",
+      "runtimeBytes": 17948,
+      "runtimeSha256": "3e416bbf02c460d6b3361b7a80739ad1c26a90948e27416e2ef2ef17548e66e3"
+    }
+  ]
+}

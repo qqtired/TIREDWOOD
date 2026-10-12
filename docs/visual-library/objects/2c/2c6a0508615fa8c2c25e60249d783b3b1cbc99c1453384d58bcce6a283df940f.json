@@ -1,0 +1,33 @@
+{
+  "tick": 613,
+  "hash": 1596126765,
+  "initialHash": 2153560649,
+  "room": {
+    "seed": 704301,
+    "tick": 613,
+    "stage": "wave",
+    "upto": 613,
+    "received": 30,
+    "coins": 0,
+    "over": false,
+    "paused": true
+  },
+  "mismatches": 0,
+  "bad": 0,
+  "result": {
+    "waves": 16,
+    "ms": 0,
+    "kills": 376,
+    "level": 5,
+    "bosses": 0,
+    "killedBy": "",
+    "dmg": {
+      "spark": 20419,
+      "lantern": 8628,
+      "embers": 21401,
+      "pickaxe": 8584,
+      "charges": 3084
+    },
+    "end": "running"
+  }
+}

@@ -1,0 +1,266 @@
+{
+  "id": "foreman",
+  "background": true,
+  "blender": "5.2.2 LTS",
+  "pid": 87358,
+  "transport": "native MCP execute_blender_code; existing unchanged command handlers",
+  "summary": {
+    "triangles": 3970,
+    "materials": 5,
+    "meshPrimitives": 35,
+    "textures": 0,
+    "images": 0,
+    "clips": [
+      {
+        "name": "foreman_idle",
+        "seconds": 2.0,
+        "runtimeDuration": 2.041667,
+        "inputStart": 0.041667,
+        "inputEnd": 2.041667,
+        "channels": 81
+      },
+      {
+        "name": "foreman_walk",
+        "seconds": 1.0,
+        "runtimeDuration": 1.041667,
+        "inputStart": 0.041667,
+        "inputEnd": 1.041667,
+        "channels": 81
+      },
+      {
+        "name": "foreman_windup",
+        "seconds": 4.0,
+        "runtimeDuration": 4.041667,
+        "inputStart": 0.041667,
+        "inputEnd": 4.041667,
+        "channels": 81
+      },
+      {
+        "name": "foreman_attack",
+        "seconds": 0.833333,
+        "runtimeDuration": 0.875,
+        "inputStart": 0.041667,
+        "inputEnd": 0.875,
+        "channels": 81
+      },
+      {
+        "name": "foreman_recover",
+        "seconds": 1.833333,
+        "runtimeDuration": 1.875,
+        "inputStart": 0.041667,
+        "inputEnd": 1.875,
+        "channels": 81
+      },
+      {
+        "name": "foreman_hit",
+        "seconds": 0.583333,
+        "runtimeDuration": 0.625,
+        "inputStart": 0.041667,
+        "inputEnd": 0.625,
+        "channels": 81
+      },
+      {
+        "name": "foreman_death",
+        "seconds": 3.0,
+        "runtimeDuration": 3.041667,
+        "inputStart": 0.041667,
+        "inputEnd": 3.041667,
+        "channels": 81
+      },
+      {
+        "name": "foreman_open",
+        "seconds": 2.0,
+        "runtimeDuration": 2.041667,
+        "inputStart": 0.041667,
+        "inputEnd": 2.041667,
+        "channels": 81
+      },
+      {
+        "name": "foreman_device_set",
+        "seconds": 4.0,
+        "runtimeDuration": 4.041667,
+        "inputStart": 0.041667,
+        "inputEnd": 4.041667,
+        "channels": 81
+      }
+    ],
+    "nodes": 57,
+    "bytes": 767224,
+    "sha256": "7fdd7c654e15e7f55056e0e7c00d77191c11f812e9dfaeed9d5545b74660bc92",
+    "binSHA256": "5fbb3a378308b1a7d1952bcd66dcb5aba274683e518aa2f3b2dafc8244fa6efa"
+  },
+  "authored": [
+    {
+      "name": "foreman_idle",
+      "requestedSeconds": 2,
+      "keySeconds": 2.0,
+      "frames": 49
+    },
+    {
+      "name": "foreman_walk",
+      "requestedSeconds": 1,
+      "keySeconds": 1.0,
+      "frames": 25
+    },
+    {
+      "name": "foreman_windup",
+      "requestedSeconds": 4,
+      "keySeconds": 4.0,
+      "frames": 97
+    },
+    {
+      "name": "foreman_attack",
+      "requestedSeconds": 0.8,
+      "keySeconds": 0.8333333333333334,
+      "frames": 21
+    },
+    {
+      "name": "foreman_recover",
+      "requestedSeconds": 1.8,
+      "keySeconds": 1.8333333333333333,
+      "frames": 45
+    },
+    {
+      "name": "foreman_hit",
+      "requestedSeconds": 0.55,
+      "keySeconds": 0.5833333333333334,
+      "frames": 15
+    },
+    {
+      "name": "foreman_death",
+      "requestedSeconds": 3,
+      "keySeconds": 3.0,
+      "frames": 73
+    },
+    {
+      "name": "foreman_open",
+      "requestedSeconds": 2,
+      "keySeconds": 2.0,
+      "frames": 49
+    },
+    {
+      "name": "foreman_device_set",
+      "requestedSeconds": 4,
+      "keySeconds": 4.0,
+      "frames": 97
+    }
+  ],
+  "source": "[LOCAL_PATH]",
+  "sourceSHA256": "3030e61f64ab2a9e4d768a5ee544a3e5d6ea0251133781451db195b9bd250008",
+  "storyboardSHA256": "805a4ecbd88d0e7464de32348cdec00a50544878d82e20941a38dbdf199db0f0",
+  "reference": "../../../../../v1/art/originals/02-elite.png",
+  "referenceSHA256": "f79a2af2e3fae64f5929954532fd08a2a9a4d5a28947ffe9895873428d77d948",
+  "anchors": {
+    "footL": [
+      -0.3569999933242798,
+      -0.08924999833106995,
+      0.10114999860525131
+    ],
+    "footR": [
+      0.3569999933242798,
+      -0.08924999833106995,
+      0.10114999860525131
+    ]
+  },
+  "storyboard": {
+    "id": "foreman",
+    "windup": 4,
+    "attack": 0.8,
+    "death": 3,
+    "silhouette": "Heavy carpenter beaver, flat planted tail, clear teeth and brow, left shield, free lever hand, real A-frame and pin",
+    "events": [
+      [
+        0,
+        "ratchet_strip"
+      ],
+      [
+        0.5,
+        "side_support_fold"
+      ],
+      [
+        0.9,
+        "shield_face_first"
+      ],
+      [
+        1.4,
+        "beaver_recoil_from_lever"
+      ],
+      [
+        1.7,
+        "tail_brake_slide"
+      ],
+      [
+        2.15,
+        "seat_hips"
+      ],
+      [
+        2.55,
+        "hammer_drop"
+      ],
+      [
+        3,
+        "machine_rattle_stop"
+      ]
+    ],
+    "deathStages": [
+      [
+        0,
+        0.5,
+        "Ratchet strips separately from body"
+      ],
+      [
+        0.5,
+        1.4,
+        "A-frame supports fold inward; shield falls face first"
+      ],
+      [
+        1.4,
+        3,
+        "Beaver recoils, tail brakes its slide, sits and drops hammer; mechanism rattles later"
+      ]
+    ],
+    "attackEvents": [
+      [
+        0,
+        "tail_and_feet_brace"
+      ],
+      [
+        0.12,
+        "hand_on_lever"
+      ],
+      [
+        0.25,
+        "shoulder_drive"
+      ],
+      [
+        0.36,
+        "brace_gate_contact"
+      ],
+      [
+        0.52,
+        "lever_recoil"
+      ],
+      [
+        0.8,
+        "pin_exposed"
+      ]
+    ],
+    "measure": {
+      "plantDriftMaxM": 0.02,
+      "handGripErrorMaxM": 0.025,
+      "minimumFloorY": -0.025,
+      "tailContactDuringBrake": true,
+      "shieldFloorContactBeforeBodySeat": true,
+      "machineMustSettleLast": true
+    },
+    "reviewSeconds": [
+      0,
+      0.5,
+      0.9,
+      1.4,
+      2.15,
+      3
+    ],
+    "textureAB": "Same geometry/UV/clips/material count; B adds one 512px ImageGen colour atlas"
+  }
+}

@@ -1,0 +1,73 @@
+/* Карточка «Сокровища Посейдона» (клад вместо обычного сундука, client/lobby/fishtreasure.ts): крупнее, лучи и золотое сияние */
+.fc2.poseidon {
+  border-color: #ffe08a;
+  box-shadow:
+    0 24px 60px rgba(10, 5, 8, 0.55),
+    0 0 70px 10px rgba(255, 211, 90, 0.75);
+}
+
+.fc2.poseidon .fc2-box {
+  width: 200px;
+  height: 218px;
+  margin: 4px 0 2px;
+}
+
+.fc2.poseidon .fc2-box::before {
+  content: '';
+  position: absolute;
+  inset: -52px;
+  z-index: 0;
+  border-radius: 50%;
+  background: repeating-conic-gradient(rgba(255, 226, 130, 0.5) 0deg 7deg, rgba(255, 226, 130, 0) 7deg 22deg);
+  -webkit-mask-image: radial-gradient(circle, #000 18%, transparent 68%);
+  mask-image: radial-gradient(circle, #000 18%, transparent 68%);
+  opacity: 0;
+}
+
+.fc2.poseidon.show .fc2-box::before {
+  opacity: 1;
+  transition: opacity 0.6s ease 0.5s;
+}
+
+.fc2.poseidon .fc2-chest {
+  z-index: 1;
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.45)) drop-shadow(0 0 18px rgba(255, 211, 90, 0.55));
+}
+
+.fc2.poseidon .fc2-lid,
+.fc2.poseidon .fc2-coins {
+  z-index: 2;
+}
+
+.fc2.poseidon .fc2-title b {
+  color: #ffd35a;
+  font-size: 24px;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .fc2.poseidon.show .fc2-box::before {
+    animation: fc2-rays 16s linear infinite;
+  }
+}
+
+@keyframes fc2-rays {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* телефон: карточка остаётся компактным «чеком» (fish2.css .touch .fc2) — без большой картинки и лучей */
+.touch .fc2.poseidon .fc2-box {
+  width: 72px;
+  height: 76px;
+  margin: 0;
+}
+
+.touch .fc2.poseidon .fc2-box::before {
+  display: none;
+}
+
+.touch .fc2.poseidon .fc2-title b {
+  font-size: 16px;
+}

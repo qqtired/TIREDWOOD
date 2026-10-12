@@ -1,0 +1,371 @@
+{
+  "id": "crabcrane",
+  "background": true,
+  "blender": "5.2.2 LTS",
+  "pid": 87358,
+  "transport": "native MCP execute_blender_code; existing unchanged command handlers",
+  "summary": {
+    "triangles": 6552,
+    "materials": 5,
+    "meshPrimitives": 58,
+    "textures": 0,
+    "images": 0,
+    "clips": [
+      {
+        "name": "crabcrane_idle",
+        "seconds": 2.0,
+        "runtimeDuration": 2.041667,
+        "inputStart": 0.041667,
+        "inputEnd": 2.041667,
+        "channels": 132
+      },
+      {
+        "name": "crabcrane_walk",
+        "seconds": 1.0,
+        "runtimeDuration": 1.041667,
+        "inputStart": 0.041667,
+        "inputEnd": 1.041667,
+        "channels": 132
+      },
+      {
+        "name": "crabcrane_windup",
+        "seconds": 2.416667,
+        "runtimeDuration": 2.458333,
+        "inputStart": 0.041667,
+        "inputEnd": 2.458333,
+        "channels": 132
+      },
+      {
+        "name": "crabcrane_attack",
+        "seconds": 1.0,
+        "runtimeDuration": 1.041667,
+        "inputStart": 0.041667,
+        "inputEnd": 1.041667,
+        "channels": 132
+      },
+      {
+        "name": "crabcrane_recover",
+        "seconds": 1.833333,
+        "runtimeDuration": 1.875,
+        "inputStart": 0.041667,
+        "inputEnd": 1.875,
+        "channels": 132
+      },
+      {
+        "name": "crabcrane_hit",
+        "seconds": 0.583333,
+        "runtimeDuration": 0.625,
+        "inputStart": 0.041667,
+        "inputEnd": 0.625,
+        "channels": 132
+      },
+      {
+        "name": "crabcrane_death",
+        "seconds": 4.5,
+        "runtimeDuration": 4.541667,
+        "inputStart": 0.041667,
+        "inputEnd": 4.541667,
+        "channels": 132
+      },
+      {
+        "name": "crabcrane_open",
+        "seconds": 3.0,
+        "runtimeDuration": 3.041667,
+        "inputStart": 0.041667,
+        "inputEnd": 3.041667,
+        "channels": 132
+      },
+      {
+        "name": "crabcrane_spawn",
+        "seconds": 1.833333,
+        "runtimeDuration": 1.875,
+        "inputStart": 0.041667,
+        "inputEnd": 1.875,
+        "channels": 132
+      },
+      {
+        "name": "crabcrane_anchor_set",
+        "seconds": 2.416667,
+        "runtimeDuration": 2.458333,
+        "inputStart": 0.041667,
+        "inputEnd": 2.458333,
+        "channels": 132
+      },
+      {
+        "name": "crabcrane_hook_windup",
+        "seconds": 1.833333,
+        "runtimeDuration": 1.875,
+        "inputStart": 0.041667,
+        "inputEnd": 1.875,
+        "channels": 132
+      },
+      {
+        "name": "crabcrane_hook_swing",
+        "seconds": 1.0,
+        "runtimeDuration": 1.041667,
+        "inputStart": 0.041667,
+        "inputEnd": 1.041667,
+        "channels": 132
+      },
+      {
+        "name": "crabcrane_rage",
+        "seconds": 2.0,
+        "runtimeDuration": 2.041667,
+        "inputStart": 0.041667,
+        "inputEnd": 2.041667,
+        "channels": 132
+      }
+    ],
+    "nodes": 89,
+    "bytes": 1649292,
+    "sha256": "553d4ad2279a93faf7650b034cb484953717e856655819217c26ae1844acdf94",
+    "binSHA256": "1b671a372601e4a6fd61ccca1a9f8048538b1359e22cec1bd6d650c7bdf9ab3e"
+  },
+  "authored": [
+    {
+      "name": "crabcrane_idle",
+      "requestedSeconds": 2,
+      "keySeconds": 2.0,
+      "frames": 49
+    },
+    {
+      "name": "crabcrane_walk",
+      "requestedSeconds": 1,
+      "keySeconds": 1.0,
+      "frames": 25
+    },
+    {
+      "name": "crabcrane_windup",
+      "requestedSeconds": 2.4,
+      "keySeconds": 2.4166666666666665,
+      "frames": 59
+    },
+    {
+      "name": "crabcrane_attack",
+      "requestedSeconds": 1,
+      "keySeconds": 1.0,
+      "frames": 25
+    },
+    {
+      "name": "crabcrane_recover",
+      "requestedSeconds": 1.8,
+      "keySeconds": 1.8333333333333333,
+      "frames": 45
+    },
+    {
+      "name": "crabcrane_hit",
+      "requestedSeconds": 0.55,
+      "keySeconds": 0.5833333333333334,
+      "frames": 15
+    },
+    {
+      "name": "crabcrane_death",
+      "requestedSeconds": 4.5,
+      "keySeconds": 4.5,
+      "frames": 109
+    },
+    {
+      "name": "crabcrane_open",
+      "requestedSeconds": 3,
+      "keySeconds": 3.0,
+      "frames": 73
+    },
+    {
+      "name": "crabcrane_spawn",
+      "requestedSeconds": 1.8,
+      "keySeconds": 1.8333333333333333,
+      "frames": 45
+    },
+    {
+      "name": "crabcrane_anchor_set",
+      "requestedSeconds": 2.4,
+      "keySeconds": 2.4166666666666665,
+      "frames": 59
+    },
+    {
+      "name": "crabcrane_hook_windup",
+      "requestedSeconds": 1.8,
+      "keySeconds": 1.8333333333333333,
+      "frames": 45
+    },
+    {
+      "name": "crabcrane_hook_swing",
+      "requestedSeconds": 1,
+      "keySeconds": 1.0,
+      "frames": 25
+    },
+    {
+      "name": "crabcrane_rage",
+      "requestedSeconds": 2,
+      "keySeconds": 2.0,
+      "frames": 49
+    }
+  ],
+  "source": "[LOCAL_PATH]",
+  "sourceSHA256": "3030e61f64ab2a9e4d768a5ee544a3e5d6ea0251133781451db195b9bd250008",
+  "storyboardSHA256": "805a4ecbd88d0e7464de32348cdec00a50544878d82e20941a38dbdf199db0f0",
+  "reference": "../../../../../v1/art/originals/03-crab-boss.png",
+  "referenceSHA256": "5d0d8f6ed387ba60c64ec5585ac7c20ae0333e021731cd151c1c209e79a9b520",
+  "anchors": {
+    "footL0": [
+      -2.486299991607666,
+      -1.3339999914169312,
+      0.1264999955892563
+    ],
+    "footL1": [
+      -2.486299991607666,
+      -0.16099999845027924,
+      0.1264999955892563
+    ],
+    "footL2": [
+      -2.486299991607666,
+      1.0119999647140503,
+      0.1264999955892563
+    ],
+    "footR0": [
+      2.962399959564209,
+      -1.3339999914169312,
+      0.1264999955892563
+    ],
+    "footR1": [
+      2.962399959564209,
+      -0.16099999845027924,
+      0.1264999955892563
+    ],
+    "footR2": [
+      2.962399959564209,
+      1.0119999647140503,
+      0.1264999955892563
+    ],
+    "support0": [
+      -1.2000000476837158,
+      -0.75,
+      0.014999999664723873
+    ],
+    "support1": [
+      0.10000000149011612,
+      -1.0,
+      0.014999999664723873
+    ],
+    "support2": [
+      1.850000023841858,
+      0.6499999761581421,
+      0.014999999664723873
+    ]
+  },
+  "storyboard": {
+    "id": "crabcrane",
+    "windup": 2.4,
+    "attack": 1,
+    "hookWindup": 1.8,
+    "open": 3,
+    "death": 4.5,
+    "silhouette": "Asymmetric massive old crab, low rock-like shell, one crane claw, articulated boom, rear winch, three load-bearing supports",
+    "events": [
+      [
+        0,
+        "winch_brake_fail"
+      ],
+      [
+        0.3,
+        "support_1_sag"
+      ],
+      [
+        0.55,
+        "support_2_sag"
+      ],
+      [
+        0.8,
+        "boom_elbow_fold"
+      ],
+      [
+        1.4,
+        "load_ground_contact"
+      ],
+      [
+        2,
+        "body_side_settle"
+      ],
+      [
+        2.6,
+        "legs_spread"
+      ],
+      [
+        3.5,
+        "free_block_swing"
+      ],
+      [
+        4,
+        "rope_slack"
+      ],
+      [
+        4.5,
+        "eyes_dim"
+      ]
+    ],
+    "deathStages": [
+      [
+        0,
+        0.8,
+        "Winch brake fails; three supports sag in different phases"
+      ],
+      [
+        0.8,
+        2,
+        "Articulated boom places the load onto safe ground"
+      ],
+      [
+        2,
+        3.5,
+        "Heavy shell rests on its side; legs open and lose tension"
+      ],
+      [
+        3.5,
+        4.5,
+        "Free pulley sways after the shell stops; rope and eyes lose activity"
+      ]
+    ],
+    "attackEvents": [
+      [
+        0,
+        "three_supports_seated"
+      ],
+      [
+        0.16,
+        "boom_tension"
+      ],
+      [
+        0.3,
+        "load_lift"
+      ],
+      [
+        0.48,
+        "sweep_contact_sector"
+      ],
+      [
+        0.76,
+        "load_recoil"
+      ],
+      [
+        1,
+        "winch_open"
+      ]
+    ],
+    "measure": {
+      "plantDriftMaxM": 0.035,
+      "minimumFloorY": -0.035,
+      "loadGroundContactByS": 2,
+      "supportPhasesDistinct": true,
+      "pulleyMustMoveAfterBodyRest": true,
+      "unsafeDeathDamage": false
+    },
+    "reviewSeconds": [
+      0,
+      0.55,
+      1.4,
+      2,
+      3.5,
+      4.5
+    ]
+  }
+}

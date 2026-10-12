@@ -1,0 +1,16 @@
+{
+  "stage": "after finish and vendor recovery",
+  "errors": [],
+  "searchVisible": 3,
+  "filterVisible": 11,
+  "allVisible": 131,
+  "threeRevision": "147",
+  "canvasCount": 3,
+  "vendor": {
+    "status": 200,
+    "bytes": 607784,
+    "sha256": "f34446bf875b5fb0dcd93819ffe1d9e182d46634ee855f5d904c6c4ac7cdbc95",
+    "revision": "147"
+  },
+  "vendorNote": "The design document loads Three lazily; the restored alias was fetched and executed explicitly in the same page."
+}

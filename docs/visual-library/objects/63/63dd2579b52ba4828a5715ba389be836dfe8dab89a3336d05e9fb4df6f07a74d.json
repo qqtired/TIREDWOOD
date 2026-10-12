@@ -1,0 +1,1077 @@
+{
+  "baseline": "bd182c285f2ac5c8186b4d4eb5dc1af9532c78f0",
+  "pavilions": [
+    {
+      "id": "skytower",
+      "group": "arenas",
+      "file": "pav_skytower.glb",
+      "live": []
+    },
+    {
+      "id": "paintball",
+      "group": "arenas",
+      "file": "pav_paintball.glb",
+      "live": []
+    },
+    {
+      "id": "fort",
+      "group": "arenas",
+      "file": "pav_fort.glb",
+      "live": [
+        "live_fort_door_l",
+        "live_fort_door_r"
+      ]
+    },
+    {
+      "id": "karting",
+      "group": "arenas",
+      "file": "pav_karting.glb",
+      "live": [
+        "live_door"
+      ]
+    },
+    {
+      "id": "dungeon_cliff",
+      "group": "cliffs",
+      "file": "pav_dungeon_cliff_v2.glb",
+      "live": []
+    },
+    {
+      "id": "farm_arch",
+      "group": "farm",
+      "file": "pav_farm_arch.glb",
+      "live": []
+    },
+    {
+      "id": "windmill",
+      "group": "farm",
+      "file": "pav_windmill.glb",
+      "live": [
+        "live_sails"
+      ]
+    },
+    {
+      "id": "kursaal",
+      "group": "games",
+      "file": "pav_kursaal.glb",
+      "live": []
+    },
+    {
+      "id": "cafe",
+      "group": "games",
+      "file": "pav_cafe.glb",
+      "live": [
+        "live_vane"
+      ]
+    },
+    {
+      "id": "cardveranda",
+      "group": "games",
+      "file": "pav_cardveranda.glb",
+      "live": []
+    },
+    {
+      "id": "billiards",
+      "group": "games",
+      "file": "pav_billiards.glb",
+      "live": []
+    },
+    {
+      "id": "regatta_lookout",
+      "group": "games",
+      "file": "pav_regatta_lookout.glb",
+      "live": []
+    },
+    {
+      "id": "fountain",
+      "group": "games",
+      "file": "pav_fountain.glb",
+      "live": [
+        "live_water"
+      ]
+    },
+    {
+      "id": "rotunda",
+      "group": "hub",
+      "file": "pav_rotunda.glb",
+      "live": []
+    },
+    {
+      "id": "honor",
+      "group": "hub",
+      "file": "pav_honor.glb",
+      "live": []
+    },
+    {
+      "id": "online",
+      "group": "hub",
+      "file": "pav_online.glb",
+      "live": [
+        "live_clock_hour",
+        "live_clock_minute"
+      ]
+    },
+    {
+      "id": "lighthouse_arch",
+      "group": "port",
+      "file": "pav_lighthouse_arch.glb",
+      "live": []
+    },
+    {
+      "id": "sunset",
+      "group": "port",
+      "file": "pav_sunset.glb",
+      "live": []
+    },
+    {
+      "id": "fishyard",
+      "group": "port",
+      "file": "pav_fishyard.glb",
+      "live": []
+    },
+    {
+      "id": "rats",
+      "group": "port",
+      "file": "pav_rats.glb",
+      "live": []
+    },
+    {
+      "id": "swallow_gate",
+      "group": "port",
+      "file": "pav_swallow_gate.glb",
+      "live": []
+    },
+    {
+      "id": "fishshowcase",
+      "group": "port",
+      "file": "pav_fishshowcase.glb",
+      "live": []
+    },
+    {
+      "id": "lifeguard",
+      "group": "beach",
+      "file": "pav_lifeguard.glb",
+      "live": []
+    },
+    {
+      "id": "cabins",
+      "group": "beach",
+      "file": "pav_cabins.glb",
+      "live": []
+    },
+    {
+      "id": "aeroclub",
+      "group": "beach",
+      "file": "pav_aeroclub.glb",
+      "live": [
+        "live_aeroclub_propeller",
+        "live_aeroclub_windsock"
+      ]
+    },
+    {
+      "id": "mole",
+      "group": "pier",
+      "file": "pav_mole.glb",
+      "live": [
+        "live_mole_red_light"
+      ]
+    },
+    {
+      "id": "semyon",
+      "group": "pier",
+      "file": "pav_semyon.glb",
+      "live": []
+    },
+    {
+      "id": "lighthouse",
+      "group": "pier",
+      "file": "pav_lighthouse.glb",
+      "live": [
+        "live_lamp"
+      ]
+    }
+  ],
+  "npcs": [
+    {
+      "id": "zhetonych",
+      "x": 54.2,
+      "z": 2,
+      "mode": null
+    },
+    {
+      "id": "lyonya",
+      "x": 49.6,
+      "z": 15.6,
+      "mode": null
+    },
+    {
+      "id": "tonya",
+      "x": 45.6,
+      "z": -1,
+      "mode": null
+    },
+    {
+      "id": "miron",
+      "x": -16.2,
+      "z": 41.8,
+      "mode": null
+    },
+    {
+      "id": "seva",
+      "x": 3.8,
+      "z": 20.4,
+      "mode": null
+    },
+    {
+      "id": "boris",
+      "x": 13.4,
+      "z": 16.2,
+      "mode": "regatta"
+    },
+    {
+      "id": "bochka",
+      "x": -4,
+      "z": 10.1,
+      "mode": "hide"
+    },
+    {
+      "id": "tolik",
+      "x": 1.15,
+      "z": 22.5,
+      "mode": null
+    },
+    {
+      "id": "asya",
+      "x": -26.4,
+      "z": -12.4,
+      "mode": null
+    },
+    {
+      "id": "lyova",
+      "x": -27.2,
+      "z": 11.6,
+      "mode": null
+    },
+    {
+      "id": "liza",
+      "x": -24.4,
+      "z": 1.8,
+      "mode": null
+    },
+    {
+      "id": "pasha",
+      "x": 1.6,
+      "z": -27.6,
+      "mode": null
+    },
+    {
+      "id": "gena",
+      "x": 36.4,
+      "z": -27.9,
+      "mode": null
+    },
+    {
+      "id": "zuko",
+      "x": 29.8,
+      "z": -27.6,
+      "mode": "fort"
+    },
+    {
+      "id": "vova",
+      "x": -10.6,
+      "z": -27.8,
+      "mode": "sky"
+    },
+    {
+      "id": "shura",
+      "x": -13.6,
+      "z": -33.4,
+      "mode": "dungeon"
+    },
+    {
+      "id": "galya",
+      "x": 27.9,
+      "z": -10.8,
+      "mode": null
+    }
+  ],
+  "assets": [
+    {
+      "file": "kit_arcade.glb",
+      "bytes": 67896,
+      "nodes": 4,
+      "primitives": 4,
+      "triangles": 1048,
+      "families": {
+        "p3_matte": 1048
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "kit_awnings.glb",
+      "bytes": 82008,
+      "nodes": 4,
+      "primitives": 8,
+      "triangles": 1472,
+      "families": {
+        "p3_matte": 960,
+        "p3_gloss": 512
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "kit_embankment.glb",
+      "bytes": 158648,
+      "nodes": 8,
+      "primitives": 8,
+      "triangles": 2200,
+      "families": {
+        "p3_matte": 2200
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "kit_green.glb",
+      "bytes": 191308,
+      "nodes": 5,
+      "primitives": 10,
+      "triangles": 2838,
+      "families": {
+        "p3_matte": 1524,
+        "p3_gloss": 30,
+        "p3_foliage": 1284
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "kit_lights.glb",
+      "bytes": 244920,
+      "nodes": 102,
+      "primitives": 13,
+      "triangles": 3334,
+      "families": {
+        "p3_gloss": 3254,
+        "p3_glow": 80
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "kit_street.glb",
+      "bytes": 52740,
+      "nodes": 1,
+      "primitives": 2,
+      "triangles": 750,
+      "families": {
+        "p3_matte": 246,
+        "p3_gloss": 504
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "npc/asya.glb",
+      "bytes": 193180,
+      "nodes": 8,
+      "primitives": 8,
+      "triangles": 7861,
+      "families": {
+        "p3_gloss": 4149,
+        "p3_glow": 96,
+        "p3_matte": 3616
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "npc/bochka.glb",
+      "bytes": 209284,
+      "nodes": 9,
+      "primitives": 11,
+      "triangles": 7440,
+      "families": {
+        "p3_gloss": 3560,
+        "p3_glow": 96,
+        "p3_matte": 3784
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "npc/boris.glb",
+      "bytes": 168372,
+      "nodes": 7,
+      "primitives": 7,
+      "triangles": 6478,
+      "families": {
+        "p3_gloss": 4910,
+        "p3_glow": 96,
+        "p3_matte": 1472
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "npc/galya.glb",
+      "bytes": 227848,
+      "nodes": 7,
+      "primitives": 8,
+      "triangles": 7969,
+      "families": {
+        "p3_gloss": 3652,
+        "p3_glow": 96,
+        "p3_matte": 4221
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "npc/gena.glb",
+      "bytes": 198756,
+      "nodes": 8,
+      "primitives": 8,
+      "triangles": 7984,
+      "families": {
+        "p3_gloss": 4854,
+        "p3_glow": 96,
+        "p3_matte": 3034
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "npc/liza.glb",
+      "bytes": 201440,
+      "nodes": 9,
+      "primitives": 10,
+      "triangles": 7624,
+      "families": {
+        "p3_gloss": 5100,
+        "p3_glow": 96,
+        "p3_matte": 2428
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "npc/lyonya.glb",
+      "bytes": 150392,
+      "nodes": 9,
+      "primitives": 9,
+      "triangles": 6020,
+      "families": {
+        "p3_gloss": 4744,
+        "p3_glow": 96,
+        "p3_matte": 1180
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "npc/lyova.glb",
+      "bytes": 187664,
+      "nodes": 7,
+      "primitives": 8,
+      "triangles": 7800,
+      "families": {
+        "p3_gloss": 5916,
+        "p3_glow": 96,
+        "p3_matte": 1788
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "npc/miron.glb",
+      "bytes": 213812,
+      "nodes": 9,
+      "primitives": 10,
+      "triangles": 7740,
+      "families": {
+        "p3_gloss": 4428,
+        "p3_glow": 96,
+        "p3_matte": 3216
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "npc/pasha.glb",
+      "bytes": 200500,
+      "nodes": 7,
+      "primitives": 7,
+      "triangles": 7896,
+      "families": {
+        "p3_gloss": 6756,
+        "p3_glow": 96,
+        "p3_matte": 1044
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "npc/seva.glb",
+      "bytes": 204376,
+      "nodes": 7,
+      "primitives": 7,
+      "triangles": 7738,
+      "families": {
+        "p3_gloss": 5768,
+        "p3_glow": 96,
+        "p3_matte": 1874
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "npc/shura.glb",
+      "bytes": 192260,
+      "nodes": 9,
+      "primitives": 12,
+      "triangles": 7548,
+      "families": {
+        "p3_gloss": 6092,
+        "p3_glow": 284,
+        "p3_matte": 1172
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "npc/tolik.glb",
+      "bytes": 213076,
+      "nodes": 9,
+      "primitives": 10,
+      "triangles": 7300,
+      "families": {
+        "p3_gloss": 4512,
+        "p3_glow": 96,
+        "p3_matte": 2692
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "npc/tonya.glb",
+      "bytes": 178480,
+      "nodes": 8,
+      "primitives": 9,
+      "triangles": 6626,
+      "families": {
+        "p3_gloss": 4807,
+        "p3_glow": 96,
+        "p3_matte": 1723
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "npc/vova.glb",
+      "bytes": 194600,
+      "nodes": 7,
+      "primitives": 8,
+      "triangles": 7236,
+      "families": {
+        "p3_gloss": 5368,
+        "p3_glow": 96,
+        "p3_matte": 1772
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "npc/zhetonych.glb",
+      "bytes": 211504,
+      "nodes": 8,
+      "primitives": 8,
+      "triangles": 7685,
+      "families": {
+        "p3_gloss": 4932,
+        "p3_glow": 96,
+        "p3_matte": 2657
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "npc/zuko.glb",
+      "bytes": 197372,
+      "nodes": 7,
+      "primitives": 7,
+      "triangles": 7950,
+      "families": {
+        "p3_gloss": 5824,
+        "p3_glow": 96,
+        "p3_matte": 2030
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "pav_aeroclub.glb",
+      "bytes": 312092,
+      "nodes": 26,
+      "primitives": 6,
+      "triangles": 4770,
+      "families": {
+        "p3_matte": 2428,
+        "p3_gloss": 2342
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "pav_billiards.glb",
+      "bytes": 554652,
+      "nodes": 51,
+      "primitives": 2,
+      "triangles": 8505,
+      "families": {
+        "p3_matte": 3602,
+        "p3_gloss": 4903
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "pav_cabins.glb",
+      "bytes": 233956,
+      "nodes": 14,
+      "primitives": 2,
+      "triangles": 3344,
+      "families": {
+        "p3_matte": 1257,
+        "p3_gloss": 2087
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "pav_cafe.glb",
+      "bytes": 452248,
+      "nodes": 26,
+      "primitives": 4,
+      "triangles": 6906,
+      "families": {
+        "p3_gloss.003": 2564,
+        "p3_matte.003": 4314,
+        "p3_glow.003": 28
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "pav_cardveranda.glb",
+      "bytes": 398244,
+      "nodes": 89,
+      "primitives": 2,
+      "triangles": 5822,
+      "families": {
+        "p3_matte.004": 2900,
+        "p3_gloss.004": 2922
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "pav_dungeon_cliff.glb",
+      "bytes": 704132,
+      "nodes": 238,
+      "primitives": 3,
+      "triangles": 9811,
+      "families": {
+        "p3_matte": 8865,
+        "p3_gloss": 546,
+        "p3_foliage": 400
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "pav_dungeon_cliff_v2.glb",
+      "bytes": 704124,
+      "nodes": 238,
+      "primitives": 3,
+      "triangles": 9811,
+      "families": {
+        "p3_matte": 8865,
+        "p3_gloss": 546,
+        "p3_foliage": 400
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "pav_farm_arch.glb",
+      "bytes": 262444,
+      "nodes": 93,
+      "primitives": 2,
+      "triangles": 3904,
+      "families": {
+        "p3_matte": 3828,
+        "p3_gloss": 76
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "pav_fishshowcase.glb",
+      "bytes": 559896,
+      "nodes": 76,
+      "primitives": 3,
+      "triangles": 7416,
+      "families": {
+        "p3_glow": 2,
+        "p3_matte": 894,
+        "p3_gloss": 6520
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "pav_fishyard.glb",
+      "bytes": 265900,
+      "nodes": 55,
+      "primitives": 5,
+      "triangles": 3656,
+      "families": {
+        "p3_gloss": 2200,
+        "p3_matte": 1422,
+        "p3_glow": 34
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "pav_fort.glb",
+      "bytes": 642440,
+      "nodes": 30,
+      "primitives": 9,
+      "triangles": 9432,
+      "families": {
+        "p3_matte": 8308,
+        "p3_gloss": 1104,
+        "p3_glow": 20
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "pav_fountain.glb",
+      "bytes": 222624,
+      "nodes": 19,
+      "primitives": 3,
+      "triangles": 3816,
+      "families": {
+        "p3_gloss": 2312,
+        "p3_matte": 1504
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "pav_gq_props.glb",
+      "bytes": 50948,
+      "nodes": 3,
+      "primitives": 4,
+      "triangles": 654,
+      "families": {
+        "p3_gloss": 290,
+        "p3_matte": 364
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "pav_honor.glb",
+      "bytes": 190236,
+      "nodes": 15,
+      "primitives": 3,
+      "triangles": 2816,
+      "families": {
+        "p3_glow": 2,
+        "p3_matte": 516,
+        "p3_gloss": 2298
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "pav_karting.glb",
+      "bytes": 429304,
+      "nodes": 82,
+      "primitives": 5,
+      "triangles": 6778,
+      "families": {
+        "p3_gloss": 2492,
+        "p3_matte": 4086,
+        "p3_glow": 200
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "pav_kursaal.glb",
+      "bytes": 1784156,
+      "nodes": 393,
+      "primitives": 3,
+      "triangles": 11675,
+      "families": {
+        "p3_matte.001": 7671,
+        "p3_gloss.001": 3924,
+        "p3_glow": 80
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "pav_lifeguard.glb",
+      "bytes": 241652,
+      "nodes": 20,
+      "primitives": 3,
+      "triangles": 3656,
+      "families": {
+        "p3_gloss": 3244,
+        "p3_matte": 412
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "pav_lighthouse.glb",
+      "bytes": 449584,
+      "nodes": 7,
+      "primitives": 3,
+      "triangles": 8324,
+      "families": {
+        "p3_glow": 544,
+        "p3_matte": 5376,
+        "p3_gloss": 2404
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "pav_lighthouse_arch.glb",
+      "bytes": 186716,
+      "nodes": 9,
+      "primitives": 2,
+      "triangles": 2898,
+      "families": {
+        "p3_matte.001": 2230,
+        "p3_gloss.001": 668
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "pav_mole.glb",
+      "bytes": 266248,
+      "nodes": 49,
+      "primitives": 3,
+      "triangles": 3914,
+      "families": {
+        "p3_glow.002": 60,
+        "p3_matte.002": 3332,
+        "p3_gloss.002": 522
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "pav_online.glb",
+      "bytes": 171724,
+      "nodes": 38,
+      "primitives": 6,
+      "triangles": 2706,
+      "families": {
+        "p3_glow.004": 60,
+        "p3_gloss.004": 2066,
+        "p3_matte.004": 580
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "pav_paintball.glb",
+      "bytes": 1472672,
+      "nodes": 173,
+      "primitives": 4,
+      "triangles": 13296,
+      "families": {
+        "p3_glow": 42,
+        "p3_matte": 7576,
+        "p3_gloss": 5678
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "pav_props.glb",
+      "bytes": 565464,
+      "nodes": 24,
+      "primitives": 31,
+      "triangles": 8567,
+      "families": {
+        "p3_matte": 5528,
+        "p3_gloss": 2705,
+        "p3_foliage": 250,
+        "p3_glow": 84
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "pav_rats.glb",
+      "bytes": 291864,
+      "nodes": 34,
+      "primitives": 4,
+      "triangles": 4178,
+      "families": {
+        "p3_gloss": 2680,
+        "p3_matte": 1498
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "pav_regatta_lookout.glb",
+      "bytes": 77536,
+      "nodes": 51,
+      "primitives": 3,
+      "triangles": 1026,
+      "families": {
+        "p3_matte": 550,
+        "p3_gloss": 452,
+        "p3_glow": 24
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "pav_rotunda.glb",
+      "bytes": 436672,
+      "nodes": 71,
+      "primitives": 3,
+      "triangles": 7228,
+      "families": {
+        "p3_matte.002": 6740,
+        "p3_gloss.002": 476,
+        "p3_glow.002": 12
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "pav_semyon.glb",
+      "bytes": 483632,
+      "nodes": 36,
+      "primitives": 3,
+      "triangles": 7378,
+      "families": {
+        "p3_matte.001": 5304,
+        "p3_gloss.001": 2062,
+        "p3_glow.001": 12
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "pav_skytower.glb",
+      "bytes": 675080,
+      "nodes": 67,
+      "primitives": 3,
+      "triangles": 9668,
+      "families": {
+        "p3_matte": 7542,
+        "p3_gloss": 2046,
+        "p3_glow": 80
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "pav_sunset.glb",
+      "bytes": 98620,
+      "nodes": 84,
+      "primitives": 3,
+      "triangles": 1602,
+      "families": {
+        "p3_matte": 732,
+        "p3_gloss": 858,
+        "p3_glow": 12
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "pav_swallow_gate.glb",
+      "bytes": 294260,
+      "nodes": 29,
+      "primitives": 7,
+      "triangles": 4540,
+      "families": {
+        "p3_gloss": 2288,
+        "p3_matte": 2252
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "pav_windmill.glb",
+      "bytes": 91136,
+      "nodes": 4,
+      "primitives": 3,
+      "triangles": 1414,
+      "families": {
+        "p3_matte": 1238,
+        "p3_gloss": 176
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "pb_props.glb",
+      "bytes": 305744,
+      "nodes": 12,
+      "primitives": 19,
+      "triangles": 4378,
+      "families": {
+        "p3_matte": 1716,
+        "p3_gloss": 2662
+      },
+      "animations": 0,
+      "images": 0
+    },
+    {
+      "file": "plaza_entrance_v2.glb",
+      "bytes": 746356,
+      "nodes": 5,
+      "primitives": 21,
+      "triangles": 10823,
+      "families": {
+        "glow_jam": 148,
+        "board_face": 4,
+        "stone_dark": 66,
+        "plaza_stone_warm": 2900,
+        "void": 146,
+        "plaza_stone": 2713,
+        "stone_wall": 244,
+        "iron": 1708,
+        "wood_dark": 478,
+        "wood": 756,
+        "moss": 528,
+        "mush_cap": 210,
+        "glow_fire": 48,
+        "brass": 472,
+        "jam": 402
+      },
+      "animations": 1,
+      "images": 0
+    }
+  ]
+}

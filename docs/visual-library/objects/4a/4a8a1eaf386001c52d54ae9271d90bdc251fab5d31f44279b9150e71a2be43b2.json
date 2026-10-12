@@ -1,0 +1,34 @@
+{
+  "tick": 684,
+  "hash": 2400982920,
+  "initialHash": 2076743752,
+  "room": {
+    "seed": 704302,
+    "tick": 684,
+    "stage": "wave",
+    "upto": 684,
+    "received": 42,
+    "coins": 0,
+    "over": false,
+    "paused": true
+  },
+  "mismatches": 0,
+  "bad": 0,
+  "result": {
+    "waves": 17,
+    "ms": 0,
+    "kills": 534,
+    "level": 7,
+    "bosses": 0,
+    "killedBy": "",
+    "dmg": {
+      "beam": 53643,
+      "stalactites": 17894,
+      "spark": 9507,
+      "lantern": 8031,
+      "embers": 17801,
+      "q": 187
+    },
+    "end": "running"
+  }
+}

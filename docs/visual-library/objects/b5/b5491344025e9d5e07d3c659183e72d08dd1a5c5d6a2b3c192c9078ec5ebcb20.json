@@ -1,0 +1,23 @@
+{
+  "assembledAt": "2026-10-11T21:31:36.563Z",
+  "htmlBytes": 26249497,
+  "bundleBytes": 674809,
+  "embeddedNewGlbs": [
+    "hookclaw",
+    "wickmole",
+    "railhopper",
+    "chainwarden",
+    "cauldronmaster"
+  ],
+  "newModelClipCount": 43,
+  "embeddedBaselineGlbs": [
+    "rat",
+    "beetle",
+    "cooper",
+    "boss",
+    "hero"
+  ],
+  "sourceCommit": "62f814f",
+  "imageCount": 5,
+  "sha256": "a6370d383ab0b47a074c9ecd6026d9be7da25e8e67b09bfbf10a19b28fd4c3cd"
+}

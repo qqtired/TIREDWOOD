@@ -1,0 +1,110 @@
+[
+  {
+    "family": "Rubik",
+    "weight": 400,
+    "subset": "latin",
+    "path": "../assets/rubik-latin-400-normal.woff2"
+  },
+  {
+    "family": "Rubik",
+    "weight": 400,
+    "subset": "cyrillic",
+    "path": "../assets/rubik-cyrillic-400-normal.woff2"
+  },
+  {
+    "family": "Rubik",
+    "weight": 600,
+    "subset": "latin",
+    "path": "../assets/rubik-latin-600-normal.woff2"
+  },
+  {
+    "family": "Rubik",
+    "weight": 600,
+    "subset": "cyrillic",
+    "path": "../assets/rubik-cyrillic-600-normal.woff2"
+  },
+  {
+    "family": "Rubik",
+    "weight": 700,
+    "subset": "latin",
+    "path": "../assets/rubik-latin-700-normal.woff2"
+  },
+  {
+    "family": "Rubik",
+    "weight": 700,
+    "subset": "cyrillic",
+    "path": "../assets/rubik-cyrillic-700-normal.woff2"
+  },
+  {
+    "family": "Rubik",
+    "weight": 800,
+    "subset": "latin",
+    "path": "../assets/rubik-latin-800-normal.woff2"
+  },
+  {
+    "family": "Rubik",
+    "weight": 800,
+    "subset": "cyrillic",
+    "path": "../assets/rubik-cyrillic-800-normal.woff2"
+  },
+  {
+    "family": "Rubik Mono One",
+    "weight": 400,
+    "subset": "latin",
+    "path": "../assets/rubik-mono-one-latin-400-normal.woff2"
+  },
+  {
+    "family": "Rubik Mono One",
+    "weight": 400,
+    "subset": "cyrillic",
+    "path": "../assets/rubik-mono-one-cyrillic-400-normal.woff2"
+  },
+  {
+    "family": "Alegreya Sans",
+    "weight": 700,
+    "subset": "latin",
+    "path": "../assets/alegreya-sans-latin-700-normal.woff2"
+  },
+  {
+    "family": "Alegreya Sans",
+    "weight": 700,
+    "subset": "cyrillic",
+    "path": "../assets/alegreya-sans-cyrillic-700-normal.woff2"
+  },
+  {
+    "family": "Alegreya Sans",
+    "weight": 800,
+    "subset": "latin",
+    "path": "../assets/alegreya-sans-latin-800-normal.woff2"
+  },
+  {
+    "family": "Alegreya Sans",
+    "weight": 800,
+    "subset": "cyrillic",
+    "path": "../assets/alegreya-sans-cyrillic-800-normal.woff2"
+  },
+  {
+    "family": "Alegreya Sans",
+    "weight": 900,
+    "subset": "latin",
+    "path": "../assets/alegreya-sans-latin-900-normal.woff2"
+  },
+  {
+    "family": "Alegreya Sans",
+    "weight": 900,
+    "subset": "cyrillic",
+    "path": "../assets/alegreya-sans-cyrillic-900-normal.woff2"
+  },
+  {
+    "family": "Alegreya SC",
+    "weight": 900,
+    "subset": "latin",
+    "path": "../assets/alegreya-sc-latin-900-normal.woff2"
+  },
+  {
+    "family": "Alegreya SC",
+    "weight": 900,
+    "subset": "cyrillic",
+    "path": "../assets/alegreya-sc-cyrillic-900-normal.woff2"
+  }
+]

@@ -1,0 +1,709 @@
+/* Рыбалка 2.0: игровое поле шкалы вываживания (рамка кита вокруг — fishkit.css), анимация сундука на карточке улова,
+   компактная сетка коллекции в профиле (.fb-*), уровень рыбалки в профиле (.fs-skill). Окна и HUD рыбалки — на ките. */
+
+/* ---------------------------------------------------------------- шкала вываживания */
+
+.fr {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+  --tc: #8f9aa3;
+}
+
+.fr.show {
+  display: flex;
+  animation: fr-in 0.22s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+
+@keyframes fr-in {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) scale(0.85);
+  }
+}
+
+/* категория рыбы — ярлык кита: сплошной цвет категории, белый текст (как .fi-tier--lg) */
+.fr-label {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 5px 14px;
+  border-radius: var(--r-pill, 999px);
+  background: var(--tc);
+  color: #fff;
+  font: 900 var(--fs-16, 16px)/1 var(--font-text, Rubik, sans-serif);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.3);
+  white-space: nowrap;
+}
+
+.fr.legend .fr-label,
+.fr.myth .fr-label {
+  animation: fr-blink 0.6s ease-in-out infinite alternate;
+}
+
+@keyframes fr-blink {
+  to {
+    box-shadow: 0 0 18px var(--tc);
+  }
+}
+
+.fr-bar {
+  position: relative;
+  width: 58px;
+  height: min(310px, 52vh);
+  border-radius: 14px;
+  border: 5px solid #7a4e2c;
+  background: #6b4426;
+  box-shadow:
+    0 14px 34px rgba(10, 5, 8, 0.5),
+    inset 0 0 0 2px #a8754a;
+  overflow: hidden;
+}
+
+.fr.myth .fr-bar {
+  border-color: #b8323f;
+}
+
+.fr.dart .fr-bar {
+  animation: fr-shake 0.12s linear infinite;
+}
+
+@keyframes fr-shake {
+  25% {
+    transform: translateX(-2px) rotate(-1deg);
+  }
+  75% {
+    transform: translateX(2px) rotate(1deg);
+  }
+}
+
+.fr-water {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(#5fb7d8, #2a6f9a 55%, #18405e);
+}
+
+.fr-water::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(transparent 0 22px, rgba(255, 255, 255, 0.07) 22px 24px);
+}
+
+.fr-zone {
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  border-radius: 8px;
+  background: rgba(110, 220, 120, 0.42);
+  border: 2px solid rgba(190, 255, 170, 0.85);
+  box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.25);
+}
+
+.fr.in .fr-zone {
+  background: rgba(130, 240, 135, 0.6);
+  box-shadow:
+    inset 0 0 12px rgba(255, 255, 255, 0.4),
+    0 0 14px rgba(150, 255, 140, 0.7);
+}
+
+/* Фактура зоны — отдельным слоем поверх цвета: цвет, рамку и свечение рисуют темы (client/ui/fishstyle.css), а тут —
+   плотный поплавок в плетёной оплётке. Нити в две стороны (светлые «\» и тёмные «/») складываются в сетку, блик сверху,
+   тень снизу и боковая подсветка дают объём. Узор — белый и тёмно-зелёный с прозрачностью, поэтому ложится на цвет
+   любой темы и любого состояния (.in — ярче, .slack — бледнее вместе с зоной). Только градиенты; размер плетения — --fr-w. */
+.fr-zone {
+  --fr-w: 6px;
+}
+
+.fr-zone::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    /* блик сверху */
+    linear-gradient(rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0) 14px),
+    /* тень снизу */
+    linear-gradient(to top, rgba(0, 28, 14, 0.4), rgba(0, 28, 14, 0) 16px),
+    /* слева светлее, справа темнее: зона круглится */
+    linear-gradient(90deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0) 35%, rgba(0, 28, 14, 0) 60%, rgba(0, 28, 14, 0.26)),
+    /* плетение: нить «\» светлая, «/» тёмная */
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0) 0, rgba(255, 255, 255, 0.4) calc(var(--fr-w) * 0.25), rgba(255, 255, 255, 0) calc(var(--fr-w) * 0.5), rgba(255, 255, 255, 0) var(--fr-w)),
+    repeating-linear-gradient(-45deg, rgba(0, 28, 14, 0) 0, rgba(0, 28, 14, 0.34) calc(var(--fr-w) * 0.25), rgba(0, 28, 14, 0) calc(var(--fr-w) * 0.5), rgba(0, 28, 14, 0) var(--fr-w));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    inset 0 -2px 3px rgba(0, 28, 14, 0.35);
+}
+
+/* морская карта — бледный пергамент: фактура потише, чтобы зона осталась «пунктиром курса» */
+[data-fr-theme='chart'] .fr-zone::before {
+  opacity: 0.55;
+}
+
+/* блик при ударе о дно: fishgame.ts ставит .hit на 120 мс (в покое слой прозрачен) */
+.fr-zone::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(ellipse 100% 70% at 50% 100%, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0) 75%);
+}
+
+.fr-zone.hit::after {
+  animation: fr-zone-flash 0.12s ease-out;
+}
+
+@keyframes fr-zone-flash {
+  from {
+    opacity: 1;
+  }
+}
+
+/* без анимаций: зона не сплющивается (transform ставит fishgame.ts) и не вспыхивает, фактура неподвижна и остаётся */
+@media (prefers-reduced-motion: reduce) {
+  .fr-zone {
+    transform: none !important;
+  }
+
+  .fr-zone.hit::after {
+    animation: none;
+  }
+}
+
+.fr-fish {
+  position: absolute;
+  left: 50%;
+  width: 40px;
+  height: 24px;
+  color: var(--tc);
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.45));
+  transform: translate(-50%, 50%);
+}
+
+.fr-fish svg {
+  display: block;
+}
+
+.fr-prog {
+  width: 190px;
+  height: 16px;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--panel-strong);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+}
+
+.fr-prog i {
+  display: block;
+  height: 100%;
+  width: 25%;
+  border-radius: 999px;
+  background: #e0b030;
+}
+
+.fr.low .fr-prog {
+  animation: fr-low 0.4s ease-in-out infinite alternate;
+}
+
+@keyframes fr-low {
+  to {
+    border-color: var(--jam-soft);
+    box-shadow: 0 0 14px rgba(255, 80, 80, 0.6);
+  }
+}
+
+/* одна подсказка под шкалой: «Держи [мышь] — зона вверх» — гаснет после первых нажатий */
+.fr-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+  color: var(--plate-text);
+  font: 700 var(--fs-15, 15px)/1.2 var(--font-text, Rubik, sans-serif);
+  white-space: nowrap;
+  transition: opacity 0.4s;
+}
+
+.fr-hint .k-key .k-mouse {
+  font-size: 18px;
+}
+
+.fr-hint.gone {
+  opacity: 0;
+}
+
+/* место под шкалой (fishgame.ts): подсказка — в потоке, срочные красные надписи («Последний рывок!», «Леска провисла»,
+   «Леска натянута») — поверх неё: шкала не прыгает */
+.fr-slot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  align-self: stretch;
+  gap: 6px;
+}
+
+.fr-slot > .fe-stand,
+.fr-slot > .fe-slack,
+.fr-slot > .fe-taut {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  width: max-content;
+  /* не шире рамки шкалы: длинное предупреждение переносится, а не вылезает за неё */
+  max-width: calc(100% - 8px);
+  white-space: normal;
+  min-height: 32px;
+  font-size: var(--fs-16, 16px);
+  font-weight: 900;
+  text-align: center;
+}
+
+/* срочное — вместо подсказки; провисла леска — важнее последнего рывка */
+.fr-slot > .fe-stand.show ~ .fr-hint,
+.fr.slack .fr-slot > .fr-hint {
+  opacity: 0;
+  transition: none;
+}
+
+.fr.slack .fr-slot > .fe-stand {
+  display: none;
+}
+
+/* итог — на рамке вместо оценки и подсказки: «Поймал!» / «Сорвалась…» крупно, ниже оценка */
+.fr-res {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-height: 32px;
+  text-align: center;
+}
+
+.fr-res b {
+  font: 900 var(--fs-28, 28px)/1 var(--font-text, Rubik, sans-serif);
+}
+
+.fr-res span {
+  color: var(--grc, var(--surf-dim));
+  font: 700 var(--fs-14, 14px)/1.2 var(--font-text, Rubik, sans-serif);
+}
+
+.fr.won .fr-res,
+.fr.lost .fr-res {
+  display: flex;
+  animation: fr-res 0.35s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+
+.fr.won > .fr-grade,
+.fr.lost > .fr-grade,
+.fr.won > .fr-slot,
+.fr.lost > .fr-slot,
+.fr.won > .fe-reelbonus,
+.fr.lost > .fe-reelbonus {
+  display: none;
+}
+
+.fr.won .fr-bar,
+.fr.lost .fr-bar {
+  opacity: 0.55;
+}
+
+@keyframes fr-res {
+  from {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+}
+
+/* телефон: держать — где угодно на экране, кроме верхних кнопок */
+.fr-hold {
+  position: absolute;
+  inset: 64px 0 0;
+  display: none;
+  pointer-events: auto;
+  touch-action: none;
+  -webkit-touch-callout: none;
+}
+
+.fr-hold.show {
+  display: block;
+}
+
+/* ---------------------------------------------------------------- картинки */
+
+.f2-shadow {
+  filter: brightness(0) opacity(0.32);
+}
+
+.f2-nopic {
+  display: grid;
+  place-items: center;
+  font-size: 28px;
+  color: var(--cream-dim);
+}
+
+/* ---------------------------------------------------------------- сундук на карточке улова (fishcard2.ts, кит .fi-catch):
+   трясётся, крышка отскакивает (светится щель), монеты вылетают дугой */
+.fc2-box {
+  position: relative;
+  width: 170px;
+  height: 118px;
+}
+
+.fc2-chest {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.4));
+}
+
+.fi-catch.is-chest .fc2-chest {
+  animation: fc2-shake 0.75s ease-in-out;
+}
+
+.fi-catch.is-chest.is-open .fc2-chest {
+  animation: fc2-pop 0.4s cubic-bezier(0.2, 1.8, 0.4, 1);
+}
+
+@keyframes fc2-shake {
+  10%,
+  50%,
+  90% {
+    transform: rotate(-6deg) translateY(-2px);
+  }
+  30%,
+  70% {
+    transform: rotate(6deg) translateY(-2px);
+  }
+}
+
+@keyframes fc2-pop {
+  from {
+    transform: scale(0.85) translateY(6px);
+  }
+}
+
+.fc2-lid {
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  top: 18%;
+  height: 26%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(255, 236, 140, 0.95), rgba(255, 200, 60, 0) 70%);
+  opacity: 0;
+}
+
+.fi-catch.is-open .fc2-lid {
+  animation: fc2-glow 1.6s ease-out forwards;
+}
+
+@keyframes fc2-glow {
+  15% {
+    opacity: 1;
+    transform: scale(1.6);
+  }
+  to {
+    opacity: 0.35;
+    transform: scale(1.2);
+  }
+}
+
+.fc2-coins {
+  position: absolute;
+  left: 50%;
+  top: 30%;
+}
+
+.fc2-coins i {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  opacity: 0;
+}
+
+.fc2-coins i .coin {
+  width: 100%;
+  height: 100%;
+}
+
+.fi-catch.is-chest .fc2-coins i {
+  animation: fc2-coin 0.9s cubic-bezier(0.2, 0.8, 0.5, 1) forwards;
+}
+
+@keyframes fc2-coin {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(0.6);
+  }
+  60% {
+    opacity: 1;
+    transform: translate(calc(-50% + var(--dx)), var(--dy)) scale(1.1) rotate(200deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--dx)), calc(var(--dy) + 70px)) scale(0.9) rotate(320deg);
+  }
+}
+
+/* ---------------------------------------------------------------- сетка коллекции (профиль: Esc → «Коллекция», fishbook.ts collectionGrid) */
+
+.fb-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fb-sec-h {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.fb-sec-h b {
+  color: var(--tc);
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.fb-sec-h span {
+  font-size: 13px;
+  color: var(--cream-dim);
+}
+
+.fb-cells {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+  gap: 8px;
+}
+
+.fb-cell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 6px 7px;
+  border-radius: 12px;
+  border: 1.5px solid var(--tc);
+  background: rgba(255, 240, 220, 0.06);
+  text-align: center;
+}
+
+.fb-cell.unknown {
+  border-color: var(--line);
+  background: rgba(255, 240, 220, 0.03);
+}
+
+.fb-cell.find {
+  border-color: rgba(138, 119, 102, 0.8);
+}
+
+.fb-pic {
+  display: block;
+  width: 100%;
+  height: 54px;
+  object-fit: contain;
+}
+
+/* имя — 14 px, не мельче: длинное переносится по слогам, больше двух строк — многоточие */
+.fb-name {
+  display: -webkit-box;
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.15;
+  hyphens: auto;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.fb-cell.unknown .fb-name {
+  color: var(--cream-dim);
+}
+
+.fb-rec {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 13px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--gold);
+  font-variant-numeric: tabular-nums;
+}
+
+.fb-cell.unknown .fb-rec {
+  color: var(--cream-dim);
+}
+
+.fb-price {
+  font-size: 13px;
+  color: var(--cream-dim);
+}
+
+.fb-rain {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  font: 800 13px/1 var(--font-text);
+}
+
+.fb-rain .k-ic {
+  width: 20px;
+  height: 20px;
+}
+
+/* в профиле — плотнее */
+.fb-grid.compact {
+  gap: 8px;
+}
+
+.fb-grid.compact .fb-cells {
+  grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+  gap: 6px;
+}
+
+.fb-grid.compact .fb-pic {
+  height: 34px;
+}
+
+
+/* узкий экран: журнал — на весь экран, клетки помельче */
+@media (max-width: 640px), (max-height: 480px) {
+  .fb-cells {
+    grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+    gap: 6px;
+  }
+
+  .fb-pic {
+    height: 40px;
+  }
+}
+
+/* Уровень рыбалки в профиле (меню Esc → «Коллекция», fishprogresshud.ts fishSkillBlock): кит — значок, полоса .k-meter цвета
+   режима, токены кита; цифры опыта не двигают текст рядом */
+.fs-skill { display: flex; flex-direction: column; gap: 6px; }
+.fs-skill-head { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+.fs-skill-head b { display: inline-flex; align-items: center; gap: 8px; margin: 0; color: var(--surf-text); font: 800 var(--fs-16)/1.2 var(--font-text); }
+.fs-skill-head .fs-ic { width: 24px; height: 24px; object-fit: contain; }
+.fs-skill-head span { color: var(--surf-dim); font: 700 var(--fs-14)/1.2 var(--font-text); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fs-skill-sub { color: var(--surf-dim); font: 500 var(--fs-13)/1.3 var(--font-text); }
+.fs-skill-perk { overflow: hidden; color: var(--surf-dim); font: 500 var(--fs-14)/1.3 var(--font-text); white-space: nowrap; text-overflow: ellipsis; }
+.fs-skill-perk b { color: var(--gold-text); font-weight: 800; }
+
+.fb-cell { min-width: 0; color: var(--cream); font-family: inherit; cursor: default; }
+button.fb-cell { cursor: pointer; }
+.fb-name { overflow-wrap: anywhere; line-height: 1.3; }
+.fb-tier { max-width: 100%; overflow: hidden; color: var(--tc); font-size: 13px; line-height: 1.4; white-space: nowrap; text-overflow: ellipsis; }
+.fb-cell.unknown .fb-tier { color: var(--cream-dim); }
+.fb-rain { top: 3px; right: 4px; }
+.fb-cells { grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); align-items: stretch; }
+.fb-grid.compact .fb-cells { grid-template-columns: repeat(auto-fill, minmax(116px, 1fr)); }
+.fb-grid.compact .fb-pic { height: 43px; }
+.fb-cell:focus-visible{ outline: 2px solid #ffe09c; outline-offset: 3px; }
+/* The common profile selector used to turn every nested album div into a row. */
+.prof-block.prof-album .fb-grid { display: flex; flex-direction: column; gap: 12px; }
+.prof-block.prof-album .fb-sec { display: block; }
+.prof-block.prof-album .fb-sec-h { display: flex; justify-content: flex-start; align-items: baseline; gap: 8px; }
+.prof-block.prof-album .fb-sec-h b { margin-bottom: 0; }
+.prof-block.prof-album .fb-cells { display: grid; gap: 7px; }
+.prof-block.prof-album .fb-cell { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 3px; }
+.prof-block.prof-fishing { grid-column: 1 / -1; }
+.prof-block.prof-fishing > div:not(.fs-skill) { padding: 2px 0; }
+.prof-block.prof-fishing .fs-skill { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+.prof-block.prof-fishing .fs-skill-head { display: flex; align-items: baseline; justify-content: space-between; }
+.prof-block.prof-fishing .fs-skill-head b { margin: 0; }
+.prof-fish-note { margin: 10px 0 0; color: var(--surf-dim); font: 500 var(--fs-13)/1.45 var(--font-text); }
+
+@media (max-width: 640px), (max-height: 480px) {
+  .fs-skill-head { gap: 6px; flex-wrap: wrap; }
+}
+
+/* телефон: шкала узкой колонкой справа (место — fishkit.css .touch .fr.fi-reel), подписи мельче */
+.touch .fr-label {
+  max-width: 100%;
+  padding: 4px 8px;
+  font-size: 13px;
+  line-height: 1.25;
+  letter-spacing: 0;
+  white-space: normal;
+  text-align: center;
+}
+.touch .fr-bar { width: 52px; height: min(240px, 34dvh); }
+.touch .fr-prog { width: 112px; height: 12px; padding: 2px; }
+.touch .fr-hint {
+  max-width: 100%;
+  padding: 5px 7px;
+  border-radius: 9px;
+  font-size: 13px;
+  line-height: 1.35;
+  white-space: normal;
+  text-align: center;
+}
+/* телефон: колонка узкая и подсказки внизу экрана при вываживании нет — срочные надписи в потоке, как раньше */
+.touch .fr-slot > .fe-stand,
+.touch .fr-slot > .fe-slack {
+  position: static;
+  translate: none;
+  width: auto;
+  max-width: 100%;
+}
+.touch .fr-res { font-size: 19px; }
+.touch .fr-hold { top: calc(64px + env(safe-area-inset-top, 0px)); }
+
+/* Legacy catches still require a decision: both actions stay visible and tappable. */
+.touch .fs-bite { top: 36%; padding: 7px 14px; font-size: 22px; }
+.touch .fs-bite.show { animation: none; }
+.touch .fs-card {
+  left: calc(8px + env(safe-area-inset-left, 0px));
+  right: auto;
+  top: calc(126px + env(safe-area-inset-top, 0px));
+  bottom: auto;
+  width: min(290px, calc(100vw - 16px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)));
+  max-height: calc(100dvh - 270px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 9px;
+  gap: 6px;
+  border-radius: 12px;
+}
+.touch .fs-card.show { animation: none; }
+.touch .fs-pic { width: 135px; height: 60px; object-fit: contain; }
+.touch .fs-title b { font-size: 18px; }
+.touch .fs-title span { font-size: 15px; }
+.touch .fs-btn { min-height: 44px; font-size: 14px; }
+.touch .fs-btn > span { white-space: normal; }
+
+@media (max-height: 480px) and (orientation: landscape) {
+  .touch .fr-bar { height: min(142px, 34dvh); }
+  .touch .fr-label { font-size: 13px; }
+  .touch .fr-hint { font-size: 13px; padding: 3px 6px; }
+  .touch .fs-card {
+    top: calc(66px + env(safe-area-inset-top, 0px));
+    max-height: calc(100dvh - 82px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  }
+  .touch .fs-pic { width: 90px; height: 40px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .touch .fr *, .touch .fi-catch *, .touch .fs-card * { animation: none !important; }
+}

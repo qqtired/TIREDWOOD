@@ -1,0 +1,339 @@
+{
+  "id": "miller",
+  "background": true,
+  "blender": "5.2.2 LTS",
+  "pid": 87358,
+  "transport": "native MCP execute_blender_code; existing unchanged command handlers",
+  "summary": {
+    "triangles": 5286,
+    "materials": 5,
+    "meshPrimitives": 40,
+    "textures": 0,
+    "images": 0,
+    "clips": [
+      {
+        "name": "miller_idle",
+        "seconds": 2.0,
+        "runtimeDuration": 2.041667,
+        "inputStart": 0.041667,
+        "inputEnd": 2.041667,
+        "channels": 93
+      },
+      {
+        "name": "miller_walk",
+        "seconds": 1.0,
+        "runtimeDuration": 1.041667,
+        "inputStart": 0.041667,
+        "inputEnd": 1.041667,
+        "channels": 93
+      },
+      {
+        "name": "miller_windup",
+        "seconds": 2.416667,
+        "runtimeDuration": 2.458333,
+        "inputStart": 0.041667,
+        "inputEnd": 2.458333,
+        "channels": 93
+      },
+      {
+        "name": "miller_attack",
+        "seconds": 3.0,
+        "runtimeDuration": 3.041667,
+        "inputStart": 0.041667,
+        "inputEnd": 3.041667,
+        "channels": 93
+      },
+      {
+        "name": "miller_recover",
+        "seconds": 1.833333,
+        "runtimeDuration": 1.875,
+        "inputStart": 0.041667,
+        "inputEnd": 1.875,
+        "channels": 93
+      },
+      {
+        "name": "miller_hit",
+        "seconds": 0.583333,
+        "runtimeDuration": 0.625,
+        "inputStart": 0.041667,
+        "inputEnd": 0.625,
+        "channels": 93
+      },
+      {
+        "name": "miller_death",
+        "seconds": 4.0,
+        "runtimeDuration": 4.041667,
+        "inputStart": 0.041667,
+        "inputEnd": 4.041667,
+        "channels": 93
+      },
+      {
+        "name": "miller_open",
+        "seconds": 3.0,
+        "runtimeDuration": 3.041667,
+        "inputStart": 0.041667,
+        "inputEnd": 3.041667,
+        "channels": 93
+      },
+      {
+        "name": "miller_spawn",
+        "seconds": 1.833333,
+        "runtimeDuration": 1.875,
+        "inputStart": 0.041667,
+        "inputEnd": 1.875,
+        "channels": 93
+      },
+      {
+        "name": "miller_crank",
+        "seconds": 2.416667,
+        "runtimeDuration": 2.458333,
+        "inputStart": 0.041667,
+        "inputEnd": 2.458333,
+        "channels": 93
+      },
+      {
+        "name": "miller_gust",
+        "seconds": 3.0,
+        "runtimeDuration": 3.041667,
+        "inputStart": 0.041667,
+        "inputEnd": 3.041667,
+        "channels": 93
+      },
+      {
+        "name": "miller_jammed",
+        "seconds": 3.0,
+        "runtimeDuration": 3.041667,
+        "inputStart": 0.041667,
+        "inputEnd": 3.041667,
+        "channels": 93
+      },
+      {
+        "name": "miller_rage",
+        "seconds": 2.0,
+        "runtimeDuration": 2.041667,
+        "inputStart": 0.041667,
+        "inputEnd": 2.041667,
+        "channels": 93
+      }
+    ],
+    "nodes": 65,
+    "bytes": 998468,
+    "sha256": "572bd02f66b44077150f9150880f9c34b03a16efc227cfe470f03357537ceeb3",
+    "binSHA256": "9a41bc23af8ca69515efe45384db679bb0d9a936e7a492ef4c9b3c9f77897192"
+  },
+  "authored": [
+    {
+      "name": "miller_idle",
+      "requestedSeconds": 2,
+      "keySeconds": 2.0,
+      "frames": 49
+    },
+    {
+      "name": "miller_walk",
+      "requestedSeconds": 1,
+      "keySeconds": 1.0,
+      "frames": 25
+    },
+    {
+      "name": "miller_windup",
+      "requestedSeconds": 2.4,
+      "keySeconds": 2.4166666666666665,
+      "frames": 59
+    },
+    {
+      "name": "miller_attack",
+      "requestedSeconds": 3,
+      "keySeconds": 3.0,
+      "frames": 73
+    },
+    {
+      "name": "miller_recover",
+      "requestedSeconds": 1.8,
+      "keySeconds": 1.8333333333333333,
+      "frames": 45
+    },
+    {
+      "name": "miller_hit",
+      "requestedSeconds": 0.55,
+      "keySeconds": 0.5833333333333334,
+      "frames": 15
+    },
+    {
+      "name": "miller_death",
+      "requestedSeconds": 4,
+      "keySeconds": 4.0,
+      "frames": 97
+    },
+    {
+      "name": "miller_open",
+      "requestedSeconds": 3,
+      "keySeconds": 3.0,
+      "frames": 73
+    },
+    {
+      "name": "miller_spawn",
+      "requestedSeconds": 1.8,
+      "keySeconds": 1.8333333333333333,
+      "frames": 45
+    },
+    {
+      "name": "miller_crank",
+      "requestedSeconds": 2.4,
+      "keySeconds": 2.4166666666666665,
+      "frames": 59
+    },
+    {
+      "name": "miller_gust",
+      "requestedSeconds": 3,
+      "keySeconds": 3.0,
+      "frames": 73
+    },
+    {
+      "name": "miller_jammed",
+      "requestedSeconds": 3,
+      "keySeconds": 3.0,
+      "frames": 73
+    },
+    {
+      "name": "miller_rage",
+      "requestedSeconds": 2,
+      "keySeconds": 2.0,
+      "frames": 49
+    }
+  ],
+  "source": "[LOCAL_PATH]",
+  "sourceSHA256": "3030e61f64ab2a9e4d768a5ee544a3e5d6ea0251133781451db195b9bd250008",
+  "storyboardSHA256": "805a4ecbd88d0e7464de32348cdec00a50544878d82e20941a38dbdf199db0f0",
+  "reference": "../../../../../v1/art/originals/04-miller-boss.png",
+  "referenceSHA256": "6428f313697a105d44494552b0380fca36a8ebdc93db928729513d678bb22287",
+  "anchors": {
+    "footL": [
+      -0.7350000143051147,
+      -0.1837500035762787,
+      0.2082500010728836
+    ],
+    "footR": [
+      0.7350000143051147,
+      -0.1837500035762787,
+      0.2082500010728836
+    ]
+  },
+  "storyboard": {
+    "id": "miller",
+    "windup": 2.4,
+    "attack": 3,
+    "jammed": 3,
+    "death": 4,
+    "silhouette": "Old boar miller, heavy neck/shoulders, separated hoof toes, thick chipped four-blade wheel, genuine shaft/coupling/frame, held by both hands, cloth scarf",
+    "events": [
+      [
+        0,
+        "coupling_strip"
+      ],
+      [
+        0.25,
+        "wheel_stutter"
+      ],
+      [
+        0.6,
+        "blade_break"
+      ],
+      [
+        1.1,
+        "flour_soft_puff"
+      ],
+      [
+        1.8,
+        "frame_release"
+      ],
+      [
+        2.2,
+        "lean_on_wheel"
+      ],
+      [
+        2.6,
+        "seat_on_sack"
+      ],
+      [
+        2.9,
+        "wheel_half_roll"
+      ],
+      [
+        3,
+        "scarf_over_face"
+      ],
+      [
+        3.5,
+        "sack_deflate"
+      ],
+      [
+        4,
+        "crank_last_turn"
+      ]
+    ],
+    "deathStages": [
+      [
+        0,
+        0.6,
+        "Coupling strips and wheel decelerates in pulses"
+      ],
+      [
+        0.6,
+        1.8,
+        "One blade breaks; harmless flour puff; supporting frame detaches"
+      ],
+      [
+        1.8,
+        3,
+        "Boar leans on wheel, sits on sack, wheel rolls half a turn sideways"
+      ],
+      [
+        3,
+        4,
+        "Scarf falls over face; sack deflates; crank makes its final independent turn"
+      ]
+    ],
+    "attackEvents": [
+      [
+        0,
+        "hooves_and_frame_brace"
+      ],
+      [
+        0.3,
+        "wheel_accelerate"
+      ],
+      [
+        0.7,
+        "gust_start"
+      ],
+      [
+        1.4,
+        "cloth_follows_gust"
+      ],
+      [
+        2.6,
+        "wheel_recoil"
+      ],
+      [
+        3,
+        "coupling_exposed"
+      ]
+    ],
+    "measure": {
+      "plantDriftMaxM": 0.035,
+      "handGripErrorMaxM": 0.03,
+      "minimumFloorY": -0.035,
+      "brokenBlades": 1,
+      "wheelRollRadians": 3.141592653589793,
+      "scarfMustSettleAfterSeat": true
+    },
+    "reviewSeconds": [
+      0,
+      0.6,
+      1.1,
+      1.8,
+      2.9,
+      4
+    ]
+  }
+}

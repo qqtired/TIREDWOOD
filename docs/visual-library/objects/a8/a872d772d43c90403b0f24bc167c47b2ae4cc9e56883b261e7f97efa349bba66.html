@@ -1,0 +1,46 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>startup-inline prototype</title>
+<style>
+html, body { margin: 0; min-height: 100%; background: #211a25; }
+#startup { position: fixed; inset: 0; z-index: 10000; overflow: hidden; color: #fff3de; font: 400 16px/1.4 system-ui, -apple-system, 'Segoe UI', sans-serif; background: #6c8fb0 url("data:image/webp;base64,UklGRhAEAABXRUJQVlA4WAoAAAAgAAAALwAAGgAASUNDUMgBAAAAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADZWUDggIgIAANAKAJ0BKjAAGwA+tUieSycjoqGwFVqo4BaJbACdMoSCv3E5AGa24HPgWUNPmWKaCe2mvbPRV/VUoDxs1JP+ZMrdhaA3T1ygMwOYfKIPSNx660boKugoP6pmbSRv3e4AAP7gBug2F8nFXn7isEA7JMU+qbQDPHMvtkWBROz13yxo8noSDjnTc0ZwYNqHWJQFvO0qnSm1XN0BVO4zWPR9+YCnfHPnQ8DgcbUk4gZsIuA7NWaQwAnsXxfkoAuVrqb55kTq98ZgxX3Rs1qIPvvISuGENGcv+FM+//He2JwFp1bvufsJ3jkfZ2Pl+oMTdE0uBPiH5sH8VncTVqCFx5gFvZaNs4wdTyj6BOgqYW3/JdzmPVHTSJWTcY0Mshu+vspOn3wiGbzgkglPQR+H/52QtfNIdU380mDcMrJBW0ez1oc74T/G10CsXWu/k5pl6df05b+QEZOPQy/JqdGr+HUD0gVAyTE1yIjijB6T9fzhTPSBjBhOC2EQZJeouL4h+9KkgqRjwJDOBRRSqQt/a/SQYUr0pz2JQOYS8oL/EXIINH9j3CSPtgV32PgKogjjbvqZRsJC4am03gY+/aimHlaLVHkDr6jMGFSF/TEXYyhqc63XCy9QFDgGHCFwRzVv1flPZwKnwGkS7TnOdXW8rOC6H+i9ws9E7S0h6i27KjlSe5Rp56cn2BVUshJ08W4xbbfms4elkaRABTb1gZQJgpNI72AAAA==") center / cover; }
+#startup *, #startup *::before, #startup *::after { box-sizing: border-box; }
+#startup .s-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .4s; }
+#startup .s-art.ready { opacity: 1; }
+#startup::after { content: ''; position: absolute; inset: 0; background: linear-gradient(0deg, rgba(24,14,20,.55), rgba(24,14,20,0) 38%); pointer-events: none; }
+#startup .s-logo { position: absolute; z-index: 1; left: 0; right: 0; top: 12vh; margin: 0; text-align: center; font: 900 clamp(44px, 7vw, 92px)/1 system-ui, sans-serif; letter-spacing: -.01em; color: #fff3de; -webkit-text-stroke: .15em #2a1f24; paint-order: stroke fill; text-shadow: 0 .1em 0 #2a1f24; transform: rotate(-2.5deg); }
+#startup .s-logo b { color: #ffd35a; }
+#startup .s-card { position: absolute; z-index: 1; left: 50%; bottom: max(24px, 6vh); width: min(680px, calc(100% - 32px)); transform: translateX(-50%); padding: 22px 26px 18px; border: 1px solid rgba(255,236,205,.16); border-radius: 20px; background: rgba(34,24,29,.9); box-shadow: 0 24px 60px rgba(10,5,8,.5); }
+#startup .s-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+#startup h1 { margin: 0; font-size: 22px; font-weight: 800; }
+#startup .s-n { padding: 3px 10px; border-radius: 99px; background: rgba(255,240,220,.08); font-size: 14px; font-weight: 700; white-space: nowrap; }
+#startup .s-steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+#startup .s-steps li { list-style: none; display: flex; flex-direction: column; gap: 9px; color: rgba(255,243,222,.62); font-size: 14px; font-weight: 700; }
+#startup .s-steps li::before { content: ''; height: 8px; border-radius: 99px; background: rgba(10,6,8,.55); box-shadow: inset 0 0 0 1px rgba(255,236,205,.12); }
+#startup .s-steps { margin: 0; padding: 0; }
+#startup[data-stage="modules"] li:nth-child(1), #startup[data-stage="fonts"] li:nth-child(2), #startup[data-stage="world"] li:nth-child(3), #startup[data-stage="frame"] li:nth-child(4) { color: #fff3de; }
+#startup[data-stage="modules"] li:nth-child(1)::before, #startup[data-stage="fonts"] li:nth-child(2)::before, #startup[data-stage="world"] li:nth-child(3)::before, #startup[data-stage="frame"] li:nth-child(4)::before { background: linear-gradient(90deg, #ffd35a 55%, rgba(10,6,8,.55) 55%); }
+#startup[data-stage="fonts"] li:nth-child(1), #startup[data-stage="world"] li:nth-child(-n+2), #startup[data-stage="frame"] li:nth-child(-n+3) { color: #8fe0a2; }
+#startup[data-stage="fonts"] li:nth-child(1)::before, #startup[data-stage="world"] li:nth-child(-n+2)::before, #startup[data-stage="frame"] li:nth-child(-n+3)::before { background: #6fcf84; }
+#startup .s-tip { margin: 16px 0 0; padding-top: 12px; border-top: 1px solid rgba(255,236,205,.14); color: rgba(255,243,222,.75); }
+#startup .s-tip b { margin-right: 8px; padding: 2px 9px; border-radius: 99px; background: rgba(255,211,90,.15); color: #ffd35a; font-size: 14px; }
+#startup-retry { display: none; margin-top: 16px; min-height: 52px; padding: 8px 22px; border: 0; border-radius: 16px; background: linear-gradient(#ffe08a, #ffd35a); box-shadow: 0 5px 0 #a87612; color: #3a2603; font: 900 18px/1 system-ui, sans-serif; cursor: pointer; }
+#startup[data-failed] #startup-retry { display: inline-block; }
+#startup[data-failed] .s-steps, #startup[data-failed] .s-n, #startup[data-failed] .s-tip { display: none; }
+#startup[data-failed] h1 { color: #ff8a8a; font-size: 26px; }
+#startup .s-fail { display: none; margin: 8px 0 0; color: rgba(255,243,222,.75); font-size: 18px; }
+#startup[data-failed] .s-fail { display: block; }
+@media (prefers-reduced-motion: no-preference) { #startup:not([data-failed]) li { animation: s-blink 1.6s ease-in-out infinite paused; } }
+@keyframes s-blink { 50% { opacity: .6; } }
+</style></head><body>
+<!-- 30 строк CSS. Картинка: ../../../../../game-opus/client/assets/loading/hd/cover.webp (190 КБ); заглушка 48×27 — data URL 1,4 КБ прямо в CSS. -->
+<div id="startup" data-stage="world">
+  <img class="s-art" src="../../../../../game-opus/client/assets/loading/hd/cover.webp" alt="" onload="this.classList.add('ready')" fetchpriority="high">
+  <p class="s-logo">TIRED<b>WOOD</b></p>
+  <div class="s-card" role="status">
+    <div class="s-head"><h1 id="startup-status">Собираем набережную…</h1><span class="s-n">Шаг 3 из 4</span></div>
+    <p class="s-fail">Не удалось загрузить файлы игры. Проверь интернет и попробуй ещё раз.</p>
+    <ol class="s-steps"><li>Игра</li><li>Надписи</li><li>Набережная</li><li>Первый кадр</li></ol>
+    <p class="s-tip"><b>Совет</b>Tab — кто где и кто во что играет</p>
+    <button id="startup-retry" type="button">Попробовать ещё раз</button>
+  </div>
+</div>
+</body></html>

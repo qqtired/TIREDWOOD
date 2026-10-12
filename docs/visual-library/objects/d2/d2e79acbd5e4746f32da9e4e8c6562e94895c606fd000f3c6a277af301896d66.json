@@ -1,0 +1,574 @@
+{
+  "checks": [
+    {
+      "name": "chat:100→90→100 native sizing",
+      "pass": true,
+      "evidence": {
+        "ratio": 0.8999807098765432,
+        "back": 1,
+        "dimensions": [
+          {
+            "width": 324,
+            "height": 79.53125,
+            "visible": true,
+            "background": "rgba(0, 0, 0, 0)",
+            "shadow": "none",
+            "filter": "none",
+            "borderWidth": "0px"
+          },
+          {
+            "width": 291.59375,
+            "height": 72,
+            "visible": true,
+            "background": "rgba(0, 0, 0, 0)",
+            "shadow": "none",
+            "filter": "none",
+            "borderWidth": "0px"
+          },
+          {
+            "width": 324,
+            "height": 79.53125,
+            "visible": true,
+            "background": "rgba(0, 0, 0, 0)",
+            "shadow": "none",
+            "filter": "none",
+            "borderWidth": "0px"
+          }
+        ]
+      }
+    },
+    {
+      "name": "chatInput:100→90→100 native sizing",
+      "pass": true,
+      "evidence": {
+        "ratio": 0.8979802798982188,
+        "back": 1,
+        "dimensions": [
+          {
+            "width": 196.5,
+            "height": 27,
+            "visible": true,
+            "background": "rgba(0, 0, 0, 0)",
+            "shadow": "none",
+            "filter": "none",
+            "borderWidth": "0px"
+          },
+          {
+            "width": 176.453125,
+            "height": 24.296875,
+            "visible": true,
+            "background": "rgba(0, 0, 0, 0)",
+            "shadow": "none",
+            "filter": "none",
+            "borderWidth": "0px"
+          },
+          {
+            "width": 196.5,
+            "height": 27,
+            "visible": true,
+            "background": "rgba(0, 0, 0, 0)",
+            "shadow": "none",
+            "filter": "none",
+            "borderWidth": "0px"
+          }
+        ]
+      }
+    },
+    {
+      "name": "emoji:100→90→100 native sizing",
+      "pass": true,
+      "evidence": {
+        "ratio": 0.8998759395752755,
+        "back": 1,
+        "dimensions": [
+          {
+            "width": 214.109375,
+            "height": 62.0625,
+            "visible": true,
+            "background": "rgba(0, 0, 0, 0)",
+            "shadow": "none",
+            "filter": "none",
+            "borderWidth": "0px"
+          },
+          {
+            "width": 192.671875,
+            "height": 55.859375,
+            "visible": true,
+            "background": "rgba(0, 0, 0, 0)",
+            "shadow": "none",
+            "filter": "none",
+            "borderWidth": "0px"
+          },
+          {
+            "width": 214.109375,
+            "height": 62.0625,
+            "visible": true,
+            "background": "rgba(0, 0, 0, 0)",
+            "shadow": "none",
+            "filter": "none",
+            "borderWidth": "0px"
+          }
+        ]
+      }
+    },
+    {
+      "name": "emojiIcon:100→90→100 native sizing",
+      "pass": true,
+      "evidence": {
+        "ratio": 0.8996201844818231,
+        "back": 1,
+        "dimensions": [
+          {
+            "width": 28.796875,
+            "height": 28.796875,
+            "visible": true,
+            "background": "rgba(0, 0, 0, 0)",
+            "shadow": "none",
+            "filter": "drop-shadow(rgba(20, 10, 12, 0.24) 0px 1px 1.5px)",
+            "borderWidth": "0px"
+          },
+          {
+            "width": 25.90625,
+            "height": 25.90625,
+            "visible": true,
+            "background": "rgba(0, 0, 0, 0)",
+            "shadow": "none",
+            "filter": "drop-shadow(rgba(20, 10, 12, 0.24) 0px 1px 1.5px)",
+            "borderWidth": "0px"
+          },
+          {
+            "width": 28.796875,
+            "height": 28.796875,
+            "visible": true,
+            "background": "rgba(0, 0, 0, 0)",
+            "shadow": "none",
+            "filter": "drop-shadow(rgba(20, 10, 12, 0.24) 0px 1px 1.5px)",
+            "borderWidth": "0px"
+          }
+        ]
+      }
+    },
+    {
+      "name": "profile:100→90→100 native sizing",
+      "pass": true,
+      "evidence": {
+        "ratio": 0.9012605042016807,
+        "back": 1,
+        "dimensions": [
+          {
+            "width": 163.625,
+            "height": 39.59375,
+            "visible": true,
+            "background": "rgba(255, 252, 246, 0.92)",
+            "shadow": "rgba(16, 48, 60, 0.1) 0px 0px 0px 1px, rgba(10, 40, 56, 0.24) 0px 5px 16px 0px, rgba(10, 40, 56, 0.16) 0px 1px 2px 0px",
+            "filter": "none",
+            "borderWidth": "1.11111px"
+          },
+          {
+            "width": 147.46875,
+            "height": 35.625,
+            "visible": true,
+            "background": "rgba(255, 252, 246, 0.92)",
+            "shadow": "rgba(16, 48, 60, 0.1) 0px 0px 0px 1px, rgba(10, 40, 56, 0.24) 0px 5px 16px 0px, rgba(10, 40, 56, 0.16) 0px 1px 2px 0px",
+            "filter": "none",
+            "borderWidth": "1.23457px"
+          },
+          {
+            "width": 163.625,
+            "height": 39.59375,
+            "visible": true,
+            "background": "rgba(255, 252, 246, 0.92)",
+            "shadow": "rgba(16, 48, 60, 0.1) 0px 0px 0px 1px, rgba(10, 40, 56, 0.24) 0px 5px 16px 0px, rgba(10, 40, 56, 0.16) 0px 1px 2px 0px",
+            "filter": "none",
+            "borderWidth": "1.11111px"
+          }
+        ]
+      }
+    },
+    {
+      "name": "portrait:100→90→100 native sizing",
+      "pass": true,
+      "evidence": {
+        "ratio": 0.9001447178002895,
+        "back": 1,
+        "dimensions": [
+          {
+            "width": 32.390625,
+            "height": 32.390625,
+            "visible": true,
+            "background": "rgba(0, 0, 0, 0)",
+            "shadow": "rgba(23, 50, 58, 0.1) 0px 0px 0px 1px inset",
+            "filter": "none",
+            "borderWidth": "0px"
+          },
+          {
+            "width": 29.15625,
+            "height": 29.15625,
+            "visible": true,
+            "background": "rgba(0, 0, 0, 0)",
+            "shadow": "rgba(23, 50, 58, 0.1) 0px 0px 0px 1px inset",
+            "filter": "none",
+            "borderWidth": "0px"
+          },
+          {
+            "width": 32.390625,
+            "height": 32.390625,
+            "visible": true,
+            "background": "rgba(0, 0, 0, 0)",
+            "shadow": "rgba(23, 50, 58, 0.1) 0px 0px 0px 1px inset",
+            "filter": "none",
+            "borderWidth": "0px"
+          }
+        ]
+      }
+    },
+    {
+      "name": "emoji tray has no common plate, icon retains shadow",
+      "pass": true,
+      "evidence": [
+        {
+          "tray": {
+            "width": 214.109375,
+            "height": 62.0625,
+            "visible": true,
+            "background": "rgba(0, 0, 0, 0)",
+            "shadow": "none",
+            "filter": "none",
+            "borderWidth": "0px"
+          },
+          "icon": {
+            "width": 28.796875,
+            "height": 28.796875,
+            "visible": true,
+            "background": "rgba(0, 0, 0, 0)",
+            "shadow": "none",
+            "filter": "drop-shadow(rgba(20, 10, 12, 0.24) 0px 1px 1.5px)",
+            "borderWidth": "0px"
+          }
+        },
+        {
+          "tray": {
+            "width": 192.671875,
+            "height": 55.859375,
+            "visible": true,
+            "background": "rgba(0, 0, 0, 0)",
+            "shadow": "none",
+            "filter": "none",
+            "borderWidth": "0px"
+          },
+          "icon": {
+            "width": 25.90625,
+            "height": 25.90625,
+            "visible": true,
+            "background": "rgba(0, 0, 0, 0)",
+            "shadow": "none",
+            "filter": "drop-shadow(rgba(20, 10, 12, 0.24) 0px 1px 1.5px)",
+            "borderWidth": "0px"
+          }
+        },
+        {
+          "tray": {
+            "width": 214.109375,
+            "height": 62.0625,
+            "visible": true,
+            "background": "rgba(0, 0, 0, 0)",
+            "shadow": "none",
+            "filter": "none",
+            "borderWidth": "0px"
+          },
+          "icon": {
+            "width": 28.796875,
+            "height": 28.796875,
+            "visible": true,
+            "background": "rgba(0, 0, 0, 0)",
+            "shadow": "none",
+            "filter": "drop-shadow(rgba(20, 10, 12, 0.24) 0px 1px 1.5px)",
+            "borderWidth": "0px"
+          }
+        }
+      ]
+    },
+    {
+      "name": "server-confirmed free Outfit color updates own HUD portrait",
+      "pass": true,
+      "evidence": {
+        "before": 10,
+        "after": 0,
+        "svgChanged": true
+      }
+    },
+    {
+      "name": "Outfit and portrait restore through ordinary UI",
+      "pass": true
+    },
+    {
+      "name": "original scale/color restored",
+      "pass": true
+    }
+  ],
+  "measurements": [
+    {
+      "uiScale": 1,
+      "hudK": "0.9",
+      "baseK": "1",
+      "rows": {
+        "chat": {
+          "width": 324,
+          "height": 79.53125,
+          "visible": true,
+          "background": "rgba(0, 0, 0, 0)",
+          "shadow": "none",
+          "filter": "none",
+          "borderWidth": "0px"
+        },
+        "chatInput": {
+          "width": 196.5,
+          "height": 27,
+          "visible": true,
+          "background": "rgba(0, 0, 0, 0)",
+          "shadow": "none",
+          "filter": "none",
+          "borderWidth": "0px"
+        },
+        "emoji": {
+          "width": 214.109375,
+          "height": 62.0625,
+          "visible": true,
+          "background": "rgba(0, 0, 0, 0)",
+          "shadow": "none",
+          "filter": "none",
+          "borderWidth": "0px"
+        },
+        "emojiIcon": {
+          "width": 28.796875,
+          "height": 28.796875,
+          "visible": true,
+          "background": "rgba(0, 0, 0, 0)",
+          "shadow": "none",
+          "filter": "drop-shadow(rgba(20, 10, 12, 0.24) 0px 1px 1.5px)",
+          "borderWidth": "0px"
+        },
+        "profile": {
+          "width": 163.625,
+          "height": 39.59375,
+          "visible": true,
+          "background": "rgba(255, 252, 246, 0.92)",
+          "shadow": "rgba(16, 48, 60, 0.1) 0px 0px 0px 1px, rgba(10, 40, 56, 0.24) 0px 5px 16px 0px, rgba(10, 40, 56, 0.16) 0px 1px 2px 0px",
+          "filter": "none",
+          "borderWidth": "1.11111px"
+        },
+        "portrait": {
+          "width": 32.390625,
+          "height": 32.390625,
+          "visible": true,
+          "background": "rgba(0, 0, 0, 0)",
+          "shadow": "rgba(23, 50, 58, 0.1) 0px 0px 0px 1px inset",
+          "filter": "none",
+          "borderWidth": "0px"
+        },
+        "menu": {
+          "width": 0,
+          "height": 0,
+          "visible": false,
+          "background": "rgba(0, 0, 0, 0)",
+          "shadow": "rgb(10, 59, 55) 0px 0px 0px 1px, rgba(3, 25, 23, 0.36) 0px 16px 36px 0px",
+          "filter": "none",
+          "borderWidth": "1.42857px"
+        }
+      },
+      "stats": "56 FPS · 1 мс · буфер 2.6 т",
+      "outfitColor": 10,
+      "confirmedNick": "DungeonR4Tester"
+    },
+    {
+      "uiScale": 0.9,
+      "hudK": "0.81",
+      "baseK": "0.9",
+      "rows": {
+        "chat": {
+          "width": 291.59375,
+          "height": 72,
+          "visible": true,
+          "background": "rgba(0, 0, 0, 0)",
+          "shadow": "none",
+          "filter": "none",
+          "borderWidth": "0px"
+        },
+        "chatInput": {
+          "width": 176.453125,
+          "height": 24.296875,
+          "visible": true,
+          "background": "rgba(0, 0, 0, 0)",
+          "shadow": "none",
+          "filter": "none",
+          "borderWidth": "0px"
+        },
+        "emoji": {
+          "width": 192.671875,
+          "height": 55.859375,
+          "visible": true,
+          "background": "rgba(0, 0, 0, 0)",
+          "shadow": "none",
+          "filter": "none",
+          "borderWidth": "0px"
+        },
+        "emojiIcon": {
+          "width": 25.90625,
+          "height": 25.90625,
+          "visible": true,
+          "background": "rgba(0, 0, 0, 0)",
+          "shadow": "none",
+          "filter": "drop-shadow(rgba(20, 10, 12, 0.24) 0px 1px 1.5px)",
+          "borderWidth": "0px"
+        },
+        "profile": {
+          "width": 147.46875,
+          "height": 35.625,
+          "visible": true,
+          "background": "rgba(255, 252, 246, 0.92)",
+          "shadow": "rgba(16, 48, 60, 0.1) 0px 0px 0px 1px, rgba(10, 40, 56, 0.24) 0px 5px 16px 0px, rgba(10, 40, 56, 0.16) 0px 1px 2px 0px",
+          "filter": "none",
+          "borderWidth": "1.23457px"
+        },
+        "portrait": {
+          "width": 29.15625,
+          "height": 29.15625,
+          "visible": true,
+          "background": "rgba(0, 0, 0, 0)",
+          "shadow": "rgba(23, 50, 58, 0.1) 0px 0px 0px 1px inset",
+          "filter": "none",
+          "borderWidth": "0px"
+        },
+        "menu": {
+          "width": 0,
+          "height": 0,
+          "visible": false,
+          "background": "rgba(0, 0, 0, 0)",
+          "shadow": "rgb(10, 59, 55) 0px 0px 0px 1px, rgba(3, 25, 23, 0.36) 0px 16px 36px 0px",
+          "filter": "none",
+          "borderWidth": "1.5873px"
+        }
+      },
+      "stats": "60 FPS · 1 мс · буфер 2.6 т",
+      "outfitColor": 10,
+      "confirmedNick": "DungeonR4Tester"
+    },
+    {
+      "uiScale": 1,
+      "hudK": "0.9",
+      "baseK": "1",
+      "rows": {
+        "chat": {
+          "width": 324,
+          "height": 79.53125,
+          "visible": true,
+          "background": "rgba(0, 0, 0, 0)",
+          "shadow": "none",
+          "filter": "none",
+          "borderWidth": "0px"
+        },
+        "chatInput": {
+          "width": 196.5,
+          "height": 27,
+          "visible": true,
+          "background": "rgba(0, 0, 0, 0)",
+          "shadow": "none",
+          "filter": "none",
+          "borderWidth": "0px"
+        },
+        "emoji": {
+          "width": 214.109375,
+          "height": 62.0625,
+          "visible": true,
+          "background": "rgba(0, 0, 0, 0)",
+          "shadow": "none",
+          "filter": "none",
+          "borderWidth": "0px"
+        },
+        "emojiIcon": {
+          "width": 28.796875,
+          "height": 28.796875,
+          "visible": true,
+          "background": "rgba(0, 0, 0, 0)",
+          "shadow": "none",
+          "filter": "drop-shadow(rgba(20, 10, 12, 0.24) 0px 1px 1.5px)",
+          "borderWidth": "0px"
+        },
+        "profile": {
+          "width": 163.625,
+          "height": 39.59375,
+          "visible": true,
+          "background": "rgba(255, 252, 246, 0.92)",
+          "shadow": "rgba(16, 48, 60, 0.1) 0px 0px 0px 1px, rgba(10, 40, 56, 0.24) 0px 5px 16px 0px, rgba(10, 40, 56, 0.16) 0px 1px 2px 0px",
+          "filter": "none",
+          "borderWidth": "1.11111px"
+        },
+        "portrait": {
+          "width": 32.390625,
+          "height": 32.390625,
+          "visible": true,
+          "background": "rgba(0, 0, 0, 0)",
+          "shadow": "rgba(23, 50, 58, 0.1) 0px 0px 0px 1px inset",
+          "filter": "none",
+          "borderWidth": "0px"
+        },
+        "menu": {
+          "width": 0,
+          "height": 0,
+          "visible": false,
+          "background": "rgba(0, 0, 0, 0)",
+          "shadow": "rgb(10, 59, 55) 0px 0px 0px 1px, rgba(3, 25, 23, 0.36) 0px 16px 36px 0px",
+          "filter": "none",
+          "borderWidth": "1.42857px"
+        }
+      },
+      "stats": "60 FPS · 1 мс · буфер 2.6 т",
+      "outfitColor": 10,
+      "confirmedNick": "DungeonR4Tester"
+    }
+  ],
+  "screenshots": [
+    "/tmp/tiredwood-farm-pack1.NNujvo/hud-live-coverage/2026-10-12T09-18-52-801Z/scale-100-1.png",
+    "/tmp/tiredwood-farm-pack1.NNujvo/hud-live-coverage/2026-10-12T09-18-52-801Z/scale-90-2.png",
+    "/tmp/tiredwood-farm-pack1.NNujvo/hud-live-coverage/2026-10-12T09-18-52-801Z/scale-100-3.png",
+    "/tmp/tiredwood-farm-pack1.NNujvo/hud-live-coverage/2026-10-12T09-18-52-801Z/outfit-color-confirmed.png"
+  ],
+  "errors": [],
+  "restoration": {
+    "scale": 1,
+    "color": 10,
+    "pos": [
+      8.638525556112377,
+      0,
+      -6.058688508460355
+    ]
+  },
+  "started": "2026-10-12T09:18:52.802Z",
+  "original": {
+    "scale": 1,
+    "color": 10,
+    "nick": "DungeonR4Tester",
+    "scene": "lobby",
+    "pos": [
+      8.638525556112377,
+      0,
+      -6.058688508460355
+    ]
+  },
+  "wardrobeSetup": {
+    "point": {
+      "id": 7,
+      "kind": "kiosk",
+      "x": -23.4,
+      "y": 0,
+      "z": -1.4,
+      "yaw": 1.5707963267948966,
+      "r": 4.5,
+      "arg": 0,
+      "label": "примерочная"
+    },
+    "method": "debug TP only for segment setup, native E opens actual UI"
+  },
+  "finished": "2026-10-12T09:18:58.143Z",
+  "status": "native_hud_checks_completed_visual_review_pending"
+}

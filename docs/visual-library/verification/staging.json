@@ -1,0 +1,7 @@
+{
+  "staging": "${TMPDIR}/tiredwood-visual-library-staging-2026-10-12T20-44-14-512Z",
+  "manifest": "${TMPDIR}/tiredwood-visual-library-staging-2026-10-12T20-44-14-512Z/staging-manifest.json",
+  "movedFiles": 379,
+  "gitPathspec": "tools/visual-library/git-add-paths.txt",
+  "command": "git add --pathspec-from-file=tools/visual-library/git-add-paths.txt"
+}

@@ -1,0 +1,786 @@
+{
+  "textFiles": 10477,
+  "findings": [
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/r5-2026-10-12/index.html",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-water-study-2026-10-12/v3/index.html",
+      "type": "absolute-user-path",
+      "count": 7
+    },
+    {
+      "origin": "workspace/reports/tiredwood-water-study-2026-10-12/v2/index.html",
+      "type": "absolute-user-path",
+      "count": 7
+    },
+    {
+      "origin": "workspace/concepts_blender/art-v2/preview/index.html",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-water-study-2026-10-12/archive/pre-b2-20261012/index.html",
+      "type": "absolute-user-path",
+      "count": 7
+    },
+    {
+      "origin": "workspace/reports/tiredwood-water-study-2026-10-12/archive/pre-browser-root-fix/index.html",
+      "type": "absolute-user-path",
+      "count": 7
+    },
+    {
+      "origin": "workspace/reports/tiredwood-product-review-2026-10-07/index.html",
+      "type": "absolute-user-path",
+      "count": 127
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/archive/pre-texture-ab2-20261012/index.html",
+      "type": "absolute-user-path",
+      "count": 2
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/index.html",
+      "type": "absolute-user-path",
+      "count": 2
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/r4-2026-10-12/index.html",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/backups/workspace-cleanup-2026-10-10/duplicate-product-report.html",
+      "type": "absolute-user-path",
+      "count": 127
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/index.html",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v1/index.html",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/index.html",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-code-review-2026-10-07/report.html",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/.claude/worktrees/mcp-blender-integration-127bb2/reports/tiredwood-code-review-2026-10-07/report.html",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/.claude/worktrees/mcp-blender-integration-127bb2/reports/tiredwood-product-review-2026-10-07/index.html",
+      "type": "absolute-user-path",
+      "count": 127
+    },
+    {
+      "origin": "workspace/.claude/worktrees/mcp-blender-integration-127bb2/concepts_blender/art-v2/preview/index.html",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-quality-review-2026-10-12/evidence/waterfront-final-coverage-closed.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/r5-2026-10-12/source/calculations.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/art/PROVENANCE.md",
+      "type": "absolute-user-path",
+      "count": 5
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/source/calculate.mjs",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/source/build.mjs",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/source/calculations.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/art/PROVENANCE.md",
+      "type": "absolute-user-path",
+      "count": 5
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/source/calculate.mjs",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/source/build.mjs",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/concepts_blender/art-v2/preview/preview.mjs",
+      "type": "absolute-user-path",
+      "count": 4
+    },
+    {
+      "origin": "workspace/concepts_blender/art-v2/preview/gallery.mjs",
+      "type": "absolute-user-path",
+      "count": 5
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/art/wickmole/prompt.txt",
+      "type": "absolute-user-path",
+      "count": 2
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/art/railhopper/prompt.txt",
+      "type": "absolute-user-path",
+      "count": 2
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/art/hookclaw/prompt.txt",
+      "type": "absolute-user-path",
+      "count": 2
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/art/chainwarden/prompt.txt",
+      "type": "absolute-user-path",
+      "count": 2
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/art/cauldronmaster/prompt.txt",
+      "type": "absolute-user-path",
+      "count": 2
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/source/calculate-v2.mjs",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/archive/pre-texture-ab2-20261012/source/calculate-v2.mjs",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/archive/pre-texture-ab2-20261012/CAMERA-REVIEW.md",
+      "type": "absolute-user-path",
+      "count": 2
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/archive/pre-texture-ab2-20261012/QA-RUN-CODE.md",
+      "type": "absolute-user-path",
+      "count": 3
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/CAMERA-REVIEW.md",
+      "type": "absolute-user-path",
+      "count": 2
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/QA-RUN-CODE.md",
+      "type": "absolute-user-path",
+      "count": 3
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/r4-2026-10-12/source/calculations.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/analysis/balance-data.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v1/analysis/balance-data.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/source/progression-arithmetic.mjs",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/identity/tested-r6-freeze.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/art/wickmole/prompt.txt",
+      "type": "absolute-user-path",
+      "count": 2
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/art/railhopper/prompt.txt",
+      "type": "absolute-user-path",
+      "count": 2
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/art/hookclaw/prompt.txt",
+      "type": "absolute-user-path",
+      "count": 2
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/art/chainwarden/prompt.txt",
+      "type": "absolute-user-path",
+      "count": 2
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/art/cauldronmaster/prompt.txt",
+      "type": "absolute-user-path",
+      "count": 2
+    },
+    {
+      "origin": "workspace/reports/tiredwood-code-review-2026-10-07/quality-review.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-code-review-2026-10-07/benchmark-review.json",
+      "type": "absolute-user-path",
+      "count": 3
+    },
+    {
+      "origin": "workspace/reports/tiredwood-code-review-2026-10-07/local-stand.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-waterfront-optimization-2026-10-12/baseline-final/metrics.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-waterfront-optimization-2026-10-12/after-rathead/metrics.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-waterfront-optimization-2026-10-12/baseline/metrics.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-waterfront-optimization-2026-10-12/after/metrics.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/.claude/worktrees/mcp-blender-integration-127bb2/reports/tiredwood-code-review-2026-10-07/quality-review.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/.claude/worktrees/mcp-blender-integration-127bb2/reports/tiredwood-code-review-2026-10-07/benchmark-review.json",
+      "type": "absolute-user-path",
+      "count": 3
+    },
+    {
+      "origin": "workspace/.claude/worktrees/mcp-blender-integration-127bb2/reports/tiredwood-code-review-2026-10-07/local-stand.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/.claude/worktrees/mcp-blender-integration-127bb2/concepts_blender/art-v2/preview/preview.mjs",
+      "type": "absolute-user-path",
+      "count": 4
+    },
+    {
+      "origin": "workspace/.claude/worktrees/mcp-blender-integration-127bb2/concepts_blender/art-v2/preview/gallery.mjs",
+      "type": "absolute-user-path",
+      "count": 5
+    },
+    {
+      "origin": "workspace/reports/tiredwood-quality-review-2026-10-12/evidence/farm-independent-review.md",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-quality-review-2026-10-12/evidence/farm-second-review.md",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-quality-review-2026-10-12/evidence/product-lab-independent-review-initial.md",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-quality-review-2026-10-12/evidence/product-lab-independent-review.md",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-quality-review-2026-10-12/evidence/regatta-concept-audit.md",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-quality-review-2026-10-12/evidence/waterfront-final-coverage.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/source/encounters.mjs",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/source/generate-refs.mjs",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/source/verify.mjs",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/source/build.mjs",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/archive/pre-texture-ab2-20261012/source/build.mjs",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/identity/tested-source/client/assets/dungeon/icons/PROVENANCE.md",
+      "type": "absolute-user-path",
+      "count": 6
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/identity/tested-source/docs/superpowers/plans/2026-10-12-dungeon-expansion-v2.md",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/harness-root-successor/setup.mjs",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/game-opus/docs/farm/review/pack1-data.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/archive/pre-texture-ab2-20261012/models/evidence/jampump-r2-06-native.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/archive/pre-texture-ab2-20261012/models/evidence/foreman-r2-06-native.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/archive/pre-texture-ab2-20261012/models/evidence/crabcrane-r2-06-native.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/archive/pre-texture-ab2-20261012/models/evidence/miller-r2-06-native.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/archive/pre-texture-ab2-20261012/models/evidence/ropecrab-r2-07-native.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/archive/pre-texture-ab2-20261012/models/evidence/ropecrab-r2-07-transport.json",
+      "type": "absolute-user-path",
+      "count": 2
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/archive/pre-texture-ab2-20261012/models/evidence/canopy-r2-07-native.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/archive/pre-texture-ab2-20261012/models/evidence/canopy-r2-07-transport.json",
+      "type": "absolute-user-path",
+      "count": 2
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/archive/pre-texture-ab2-20261012/models/evidence/foreman-r2-06-canonical-transport-mcp.json",
+      "type": "absolute-user-path",
+      "count": 2
+    },
+    {
+      "origin": "workspace/reports/tiredwood-hud-five-directions-2026-10-12/archive/first-five-qa-2026-10-12/source/prepare-assets.mjs",
+      "type": "absolute-user-path",
+      "count": 2
+    },
+    {
+      "origin": "workspace/reports/tiredwood-hud-five-directions-2026-10-12/archive/ten-layouts-before-material-redesign-2026-10-12/source/prepare-assets.mjs",
+      "type": "absolute-user-path",
+      "count": 2
+    },
+    {
+      "origin": "workspace/reports/tiredwood-hud-five-directions-2026-10-12/archive/ten-materials-approved-before-11-15-2026-10-12/source/prepare-assets.mjs",
+      "type": "absolute-user-path",
+      "count": 2
+    },
+    {
+      "origin": "worktrees/game-opus-dungeon-ui3/docs/farm/review/pack1-data.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "worktrees/game-opus-farm-review3/docs/farm/review/pack1-data.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "worktrees/game-opus-fortress-approved/docs/farm/review/pack1-data.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "worktrees/game-opus-integration-review3/docs/farm/review/pack1-data.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "worktrees/game-opus-island-review2/docs/farm/review/pack1-data.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "worktrees/game-opus-park-review3/docs/farm/review/pack1-data.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "worktrees/game-opus-racing-review3/docs/farm/review/pack1-data.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "worktrees/game-opus-social-review3/docs/farm/review/pack1-data.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "worktrees/game-opus-waterfront-review3/docs/farm/review/pack1-data.json",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/art/evolutions-v2/embers_evo/prompt.txt",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/art/evolutions-v2/pickaxe_evo/prompt.txt",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/art/evolutions-v2/spark_evo/prompt.txt",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/art/evolutions-v2/charges_evo/prompt.txt",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/art/cauldronmaster/final.txt",
+      "type": "absolute-user-path",
+      "count": 2
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/art/cauldronmaster/orig-source.txt",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/art/cauldronmaster/source.txt",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/art/chainwarden/final.txt",
+      "type": "absolute-user-path",
+      "count": 2
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/art/chainwarden/orig-source.txt",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/art/chainwarden/source.txt",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/art/hookclaw/final.txt",
+      "type": "absolute-user-path",
+      "count": 2
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/art/hookclaw/orig-source.txt",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/art/hookclaw/source.txt",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/art/railhopper/final.txt",
+      "type": "absolute-user-path",
+      "count": 2
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/art/railhopper/orig-source.txt",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/art/railhopper/source.txt",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/art/wickmole/orig-source.txt",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/art/wickmole/source.txt",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/source/generate-refs.mjs",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/source/coverage-v2.mjs",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/source/native-canopy.test.mjs",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/source/native-model-viewer.test.mjs",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/source/native-pump.test.mjs",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/source/qa-texture-ab2.run-code.js",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/game-opus/docs/farm/pack1-2026-10-11.md",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/archive/pre-texture-ab2-20261012/source/coverage-v2.mjs",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/archive/pre-texture-ab2-20261012/source/native-canopy.test.mjs",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/archive/pre-texture-ab2-20261012/source/native-model-viewer.test.mjs",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/archive/pre-texture-ab2-20261012/source/native-pump.test.mjs",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-hud-five-directions-2026-10-12/source/extra-check.mjs",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-hud-five-directions-2026-10-12/source/prepare-assets.mjs",
+      "type": "absolute-user-path",
+      "count": 2
+    },
+    {
+      "origin": "worktrees/game-opus-dungeon-ui3/docs/farm/pack1-2026-10-11.md",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "worktrees/game-opus-farm-review3/docs/farm/pack1-2026-10-11.md",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "worktrees/game-opus-fortress-approved/docs/farm/pack1-2026-10-11.md",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "worktrees/game-opus-integration-review3/docs/farm/pack1-2026-10-11.md",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "worktrees/game-opus-island-review2/docs/farm/pack1-2026-10-11.md",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "worktrees/game-opus-park-review3/docs/farm/pack1-2026-10-11.md",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "worktrees/game-opus-racing-review3/docs/farm/pack1-2026-10-11.md",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "worktrees/game-opus-social-review3/docs/farm/pack1-2026-10-11.md",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "worktrees/game-opus-waterfront-review3/docs/farm/pack1-2026-10-11.md",
+      "type": "absolute-user-path",
+      "count": 1
+    },
+    {
+      "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v2/models/scripts/verify_glb.mjs",
+      "type": "absolute-user-path",
+      "count": 1
+    }
+  ],
+  "excludedQaFiles": [
+    "files/workspace/reports/tiredwood-test-center-2026-10-12/review3/evidence/farm-plant-open.json",
+    "files/workspace/reports/tiredwood-test-center-2026-10-12/review3/evidence/farm-reputation.json",
+    "files/workspace/reports/tiredwood-test-center-2026-10-12/review3/evidence/kart-native-circuits.json",
+    "files/workspace/reports/tiredwood-test-center-2026-10-12/review3/evidence/cloudtower-two-players.json",
+    "files/workspace/reports/tiredwood-test-center-2026-10-12/review3/evidence/aqua-native-2026-10-12T19-12-17-368Z.json",
+    "files/workspace/reports/tiredwood-test-center-2026-10-12/review3/evidence/kite-two.json",
+    "files/workspace/reports/tiredwood-test-center-2026-10-12/review3/evidence/kite-control.json",
+    "files/workspace/reports/tiredwood-waterfront-optimization-2026-10-12/process-cleanup-final.json",
+    "files/workspace/reports/tiredwood-quality-review-2026-10-12/evidence/island-second-attempt3.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/failures/run-1791789653175-C/atlas/soft-same-pose.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/hook-contact/final-checkpoint.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/hook-contact/hook-before.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/hook-contact/hook-impact.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/hook-contact/hook-full-recover.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/mole-Q/final-checkpoint.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/mole-Q/mole-real-full-Q.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/mole-Q/mole-planted.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/rail-KB/final-checkpoint.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/rail-KB/rail-KB-warning.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/rail-KB/rail-shot.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/chain-twohits/final-checkpoint.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/chain-twohits/chain-first-contact.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/chain-twohits/chain-back-contact.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/crowd-mixed/final-checkpoint.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/crowd-mixed/crowd-running-performance.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/crowd-beetles/final-checkpoint.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/crowd-beetles/crowd-running-performance.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/distinct-deaths/final-checkpoint.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/distinct-deaths/all-five-real-Q-deaths.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/distinct-deaths/deaths-after-old-cut.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/distinct-deaths/boss-death-late.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/boss-phases/final-checkpoint.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/boss-phases/phase-1.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/boss-phases/phase-2.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/boss-phases/phase-3.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/timer20-to21/final-checkpoint.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/timer20-to21/boss-actually-spawned.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/timer20-to21/actual-endless21.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/wave16-kite/final-checkpoint.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/wave16-kite/combat-end.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/wave17-kite/final-checkpoint.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/wave17-kite/combat-end.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/wave18-range/final-checkpoint.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/wave18-range/combat-end.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/wave19-guard/final-checkpoint.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/wave19-guard/combat-end.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/boss20-kite/final-checkpoint.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/boss20-kite/combat-end.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/boss20-range/final-checkpoint.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/boss20-range/combat-end.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/boss20-guard/final-checkpoint.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/boss20-guard/combat-end.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/recipes-kite/final-checkpoint.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/recipes-kite/card-2.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/recipes-kite/chest-1.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/recipes-kite/chest-2.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/recipes-kite/chest-3.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/recipes-kite/chest-4.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/recipes-kite/chest-5.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/recipes-kite/evo-1-embers.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/recipes-kite/evo-2-charges.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/recipes-kite/evo-3-charges.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/recipes-kite/evo-4-spark.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/recipes-kite/evo-5-spark.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/recipes-guard/final-checkpoint.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/recipes-guard/card-2.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/recipes-guard/chest-1.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/recipes-guard/chest-2.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/recipes-guard/chest-3.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/recipes-guard/chest-4.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/recipes-guard/chest-5.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/recipes-guard/evo-1-fireflies.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/recipes-guard/evo-2-stalactites.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/recipes-guard/evo-3-stalactites.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/recipes-guard/evo-4-beam.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/cases/recipes-guard/evo-5-beam.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/normal/normal-input.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/normal/normal-results.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/normal/normal-restart.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/normal/normal-pause.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/normal/normal-exit.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/failures/run-1791790167971-A/boss20-guard/failure.json",
+    "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evidence/runtime-r6-root/failures/run-1791790637376-A/boss20-guard/failure.json"
+  ],
+  "valuesPrinted": false
+}

@@ -1,0 +1,27 @@
+/* Гидроплан «Стриж» на ките 2.0: интерфейс пилота (client/lobby/plane.ts) и окошко баннера (client/lobby/planebanner.ts).
+   Плашка полёта — событие верх-центра, клавиши — .mo-keys внизу, кнопки — .k-btn справа внизу; здесь только кружок цели
+   (в слое без zoom) и раскладка окна. Только токены кита. */
+.pl-hud[hidden], .pl-aim[hidden] { display: none; }
+
+/* кружок «куда летим»: кольцо с тёмной обводкой и точка, увеличивается масштабом HUD */
+.pl-aim {
+  position: absolute; width: 30px; height: 30px; margin: -15px 0 0 -15px; border: 2.5px solid #fff; border-radius: 50%;
+  box-shadow: 0 0 0 1.5px rgba(20, 10, 12, 0.6), inset 0 0 0 1.5px rgba(20, 10, 12, 0.35); scale: var(--hud-k, 1); pointer-events: none;
+}
+.pl-aim::after { content: ''; position: absolute; left: 50%; top: 50%; width: 4px; height: 4px; margin: -2px 0 0 -2px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 1.5px rgba(20, 10, 12, 0.65); }
+
+/* кнопки пилота справа внизу (слот br): «Баннер» и «Сесть сейчас» */
+.pl-banner .k-coin { width: 18px; height: 18px; vertical-align: -3px; }
+
+/* окошко баннера */
+.pl-ban-scrim[hidden] { display: none; }
+.pl-ban-scrim { pointer-events: auto; }
+.pl-ban-win:focus { outline: none; }
+.pl-ban-sub { margin: 0 0 12px; color: var(--surf-dim); font: 500 var(--fs-15)/1.35 var(--font-text); }
+.pl-ban-input { width: 100%; font-size: var(--fs-18); font-weight: 700; }
+.pl-ban-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 8px; color: var(--surf-dim); font: 600 var(--fs-13)/1.3 var(--font-text); }
+.pl-ban-count { flex: none; font-variant-numeric: tabular-nums; }
+.pl-ban-note { text-align: right; }
+.pl-ban-note .k-coin { width: 14px; height: 14px; vertical-align: -2px; }
+.pl-ban-actions { padding-top: 4px; }
+.pl-ban-go .k-coin { width: 20px; height: 20px; vertical-align: -4px; }

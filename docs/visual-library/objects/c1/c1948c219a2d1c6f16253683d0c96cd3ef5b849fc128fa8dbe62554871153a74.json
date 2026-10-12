@@ -1,0 +1,39 @@
+{
+  "errors": [],
+  "models": [
+    {
+      "id": "hookclaw",
+      "clip": "hookclaw_attack",
+      "path": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-html-final/hookclaw-actual.png"
+    },
+    {
+      "id": "wickmole",
+      "clip": "wickmole_attack",
+      "path": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-html-final/wickmole-actual.png"
+    },
+    {
+      "id": "railhopper",
+      "clip": "railhopper_attack",
+      "path": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-html-final/railhopper-actual.png"
+    },
+    {
+      "id": "chainwarden",
+      "clip": "chainwarden_attack",
+      "path": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-html-final/chainwarden-actual.png"
+    },
+    {
+      "id": "cauldronmaster",
+      "clip": "cauldronmaster_attack",
+      "path": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-html-final/cauldronmaster-actual.png"
+    }
+  ],
+  "started": "2026-10-12T09:24:22.629Z",
+  "weaponCanvasChanged": true,
+  "calculator": {
+    "weapon": "beam",
+    "level": "7"
+  },
+  "headline": "Подземелье\nВторой ярус · 16–20\n01\nЧто есть сейчас\n02\nПять волн\n03\nНовые враги / 3D\n04\nБурдюк, три фазы\n05\nОружие и эволюции\n06\nБаланс и сборки\n07\nГраницы и исходники\nR2 · 12.10.2026\n41b91a8 + локальные изменения\n12.10.2026, 05:59:56\n\nРеализация R2\n\nИгровая логика подключена; root проверяет бой.\n\nTIREDWOOD · РАСШИРЕНИЕ R2 · ЛОКАЛЬНАЯ РЕАЛИЗАЦИЯ\nВторой ярус\n\nПосле 15-й волны знакомая орда остаётся. Четыре новых противника проверяют маршрут и сборку, а на 20-й приходит Казанщик Бурдюк.\n\nРеализовано в рабочей ветке\nРеальный бой проверяет root\n\nГлавное: новые роли добавляют решения, а не иммунитеты к оружию.\n\nПосле босса — 21-я волна и бесконечный забег. Старые враги, Старый Повидл на 10-й и хвосты прошлых волн сохранены.\n\nImageGen: направление модели. Реальная GLB и анимации — в разделе 3D.\n3 + 1\nрядовых и новая элита\n20 → 21\nбосс, затем забе",
+  "htmlSha256": "bf92ff1a745f6f1612b18931f49a7a9d40adcf1600c0d22b45eaa9477ce0fbe3",
+  "finished": "2026-10-12T09:24:31.908Z"
+}

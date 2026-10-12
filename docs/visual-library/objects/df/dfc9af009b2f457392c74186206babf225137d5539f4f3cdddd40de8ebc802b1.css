@@ -1,0 +1,549 @@
+/* Экран загрузки между комнатами (transition.ts): картина режима на весь экран (HD), облака, желейка-ведущая с советом,
+   крупное название и плашка с полосой. Раскладка и значения — сцена «Загрузка комнаты» страницы lab/ui (lab/ui/screens/entry.css);
+   общее (.en-scr, .en-art, .en-shade, .en-logo) — entry.css, плашки и полоса — кит. Сцена рисуется в пикселях 1440×900 и
+   масштабируется как слои кита (zoom --hud-k, см. .en-scr). Цвет режима — data-mode (кит: --mode).
+   Анимации — только transform и opacity: их ведёт compositor, и они не замирают, пока главный поток строит новый мир.
+   Бесконечные анимации идут, только пока экран виден (класс .play). Эту раскладку берёт и экран «Последний свет»
+   (client/lobby/isle/cover.ts). */
+
+.tr {
+  --art-focus: 50% 50%;
+  /* пока картина не пришла — дневное небо в цвет режима */
+  background: linear-gradient(180deg, #74c3f0 0%, #b7e2fa 48%, color-mix(in srgb, var(--mode) 40%, #fff1d6) 100%);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  will-change: opacity;
+  contain: strict;
+  /* проявление мира: экран тает 0,4 с */
+  transition: opacity 0.4s ease-in, visibility 0s linear 0.4s;
+}
+
+.tr.on {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  /* затемнение: 0,35 с */
+  transition: opacity 0.35s ease-out, visibility 0s;
+}
+
+/* --- картина: появляясь, оседает на место; уходя, наплывает — «влетаем» в мир */
+
+.tr-art {
+  position: absolute;
+  inset: 0;
+  transform: scale(1.08);
+  transition: transform 0.4s ease-in;
+  will-change: transform;
+}
+
+.tr.on .tr-art {
+  transform: none;
+  transition: transform 1s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.tr-pic {
+  object-position: var(--art-focus, 50% 50%);
+  opacity: 0;
+  transform-origin: 50% 45%;
+  transition: opacity 0.3s ease-out;
+  will-change: transform, opacity;
+}
+
+.tr-art.ready .tr-pic {
+  opacity: 1;
+}
+
+/* --- облака: экран появляется сквозь них — расходятся в стороны, как будто влетаем в картину */
+
+.tr-clouds {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.tr-cloud {
+  position: absolute;
+  width: max(96vw, 170vh);
+  aspect-ratio: 2 / 1;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 200'%3E%3Cdefs%3E%3CradialGradient id='a'%3E%3Cstop offset='.55' stop-color='%23fff'/%3E%3Cstop offset='1' stop-color='%23fff' stop-opacity='0'/%3E%3C/radialGradient%3E%3CradialGradient id='b'%3E%3Cstop offset='.35' stop-color='%23dfe9f4'/%3E%3Cstop offset='1' stop-color='%23dfe9f4' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cellipse cx='200' cy='152' rx='186' ry='40' fill='url(%23b)'/%3E%3Ccircle cx='72' cy='148' r='38' fill='url(%23a)'/%3E%3Ccircle cx='118' cy='122' r='62' fill='url(%23a)'/%3E%3Ccircle cx='196' cy='92' r='84' fill='url(%23a)'/%3E%3Ccircle cx='282' cy='112' r='66' fill='url(%23a)'/%3E%3Ccircle cx='158' cy='146' r='52' fill='url(%23a)'/%3E%3Ccircle cx='246' cy='146' r='54' fill='url(%23a)'/%3E%3Ccircle cx='330' cy='142' r='40' fill='url(%23a)'/%3E%3C/svg%3E") center / contain no-repeat;
+  opacity: 1;
+  will-change: transform, opacity;
+  /* после того как экран растаял — тихо обратно в середину, к следующему разу */
+  transition: transform 0s linear 0.45s, opacity 0s linear 0.45s;
+}
+
+.tr-cloud.c1 {
+  top: -18%;
+  left: -38%;
+}
+
+.tr-cloud.c2 {
+  top: 12%;
+  right: -42%;
+}
+
+.tr-cloud.c3 {
+  bottom: -40%;
+  left: -6%;
+}
+
+.tr.on .tr-cloud {
+  opacity: 0;
+  transition: transform 1.3s cubic-bezier(0.2, 0.7, 0.25, 1), opacity 1.1s ease-in 0.1s;
+}
+
+.tr.on .tr-cloud.c1 {
+  transform: translate(-62%, -12%);
+}
+
+.tr.on .tr-cloud.c2 {
+  transform: translate(62%, 6%);
+}
+
+.tr.on .tr-cloud.c3 {
+  transform: translate(-8%, 55%);
+}
+
+/* --- марка сверху слева */
+
+.tr-brand {
+  position: absolute;
+  top: 34px;
+  left: 56px;
+}
+
+/* --- название и плашка: сначала затемнение и проявление, потом тянутся снизу */
+
+.tr-info {
+  position: absolute;
+  left: 56px;
+  bottom: 48px;
+  width: 700px;
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.25s ease-in, transform 0.3s ease-in;
+  will-change: transform, opacity;
+}
+
+.tr.on .tr-info {
+  opacity: 1;
+  transform: none;
+  transition: opacity 0.35s ease-out 0.06s, transform 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) 0.06s;
+}
+
+.tr-title {
+  margin: 0 0 18px -4px;
+  color: var(--hero-text);
+  font-family: var(--hero-font);
+  font-weight: var(--hero-weight);
+  font-size: calc(112px * var(--display-scale));
+  line-height: 1;
+  letter-spacing: var(--display-track);
+  text-transform: var(--display-case);
+  -webkit-text-stroke: 0.12em var(--en-ink);
+  paint-order: stroke fill;
+  text-shadow: 0 0.07em 0 var(--en-ink), 0 0.12em 0.35em rgba(var(--en-night), 0.45);
+  white-space: nowrap;
+}
+
+.tr-plate {
+  padding: 16px 20px 18px;
+  border-radius: var(--r-lg);
+}
+
+.tr-sub {
+  margin: 0;
+  font: 800 var(--fs-22) / 1.25 var(--font-text);
+}
+
+.tr-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 0;
+  color: var(--gold-text);
+  font: 700 var(--fs-16) / 1.3 var(--font-text);
+}
+
+.tr-line[hidden] {
+  display: none;
+}
+
+.tr-line .k-ic {
+  width: 24px;
+  height: 24px;
+}
+
+.tr-plate .tr-meter {
+  margin: 16px 0 10px;
+}
+
+/* заливка полосы — сдвигом (transition по transform ведёт compositor); вид — как .k-meter-fill (цвет режима) */
+.tr-fill {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--mode) 74%, #fff), var(--mode) 60%);
+  transform: translateX(-96%);
+  transition: transform 0.3s ease-out;
+  will-change: transform;
+}
+
+.tr-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 1.3em;
+  margin: 0;
+  font: 700 var(--fs-16) / 1.3 var(--font-text);
+}
+
+.tr-who {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  color: var(--surf-dim);
+  font: 700 var(--fs-14) / 1.2 var(--font-text);
+}
+
+.tr-who:empty {
+  display: none;
+}
+
+.tr-retry[hidden] {
+  display: none;
+}
+
+.tr-retry {
+  margin-top: 14px;
+}
+
+/* --- желейка-ведущая и её облачко с советом */
+
+.tr-host {
+  position: absolute;
+  right: 44px;
+  bottom: 26px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(24%);
+  transition: opacity 0.2s ease-in, transform 0.3s ease-in;
+  will-change: transform, opacity;
+}
+
+.tr.on .tr-host {
+  opacity: 1;
+  transform: none;
+  transition: opacity 0.3s ease-out 0.1s, transform 0.6s cubic-bezier(0.3, 1.45, 0.5, 1) 0.1s;
+}
+
+.tr-jelly {
+  position: relative;
+  flex: none;
+  height: 330px;
+}
+
+.tr-jelly img {
+  position: relative;
+  display: block;
+  height: 100%;
+  width: auto;
+  transform-origin: 50% 100%;
+  will-change: transform;
+}
+
+.tr-jelly img:not([src]) {
+  visibility: hidden;
+}
+
+.tr-jelly-shadow {
+  position: absolute;
+  left: 16%;
+  right: 16%;
+  bottom: -2%;
+  height: 10%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(var(--en-night), 0.55), rgba(var(--en-night), 0));
+  will-change: transform, opacity;
+}
+
+.tr-bubble {
+  position: relative;
+  z-index: 1;
+  width: 340px;
+  margin: 0 40px 6px 0;
+  padding: 14px 18px 16px;
+  border-radius: var(--r-lg);
+  opacity: 0;
+  transform: scale(0.6);
+  transform-origin: 85% 100%;
+  transition: opacity 0.15s ease-in, transform 0.2s ease-in;
+  will-change: transform, opacity;
+}
+
+.tr.on .tr-bubble {
+  opacity: 1;
+  transform: none;
+  transition: opacity 0.25s ease-out 0.5s, transform 0.5s cubic-bezier(0.3, 1.6, 0.5, 1) 0.5s;
+}
+
+/* хвостик облачка — к желейке */
+.tr-bubble::after {
+  content: '';
+  position: absolute;
+  right: 70px;
+  bottom: -11px;
+  width: 20px;
+  height: 20px;
+  border-right: var(--plate-border);
+  border-bottom: var(--plate-border);
+  background: var(--plate-bg);
+  transform: rotate(45deg);
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+  -webkit-backdrop-filter: var(--plate-blur);
+  backdrop-filter: var(--plate-blur);
+}
+
+.tr-bubble .k-eyebrow {
+  margin-bottom: 6px;
+}
+
+/* три совета в одной клетке сетки: облачко по самому длинному, виден один */
+.tr-tips {
+  display: grid;
+}
+
+.tr-tips p {
+  grid-area: 1 / 1;
+  margin: 0;
+  font: 700 var(--fs-18) / 1.3 var(--font-text);
+  text-wrap: balance;
+}
+
+.tr-tips p + p {
+  opacity: 0;
+}
+
+/* --- не загрузилось: без полосы и желейки, строка — красная, кнопка «Обновить страницу» */
+
+.tr.failed .tr-meter,
+.tr.failed .tr-who,
+.tr.failed .tr-host {
+  display: none;
+}
+
+.tr.failed .tr-status {
+  display: block;
+  margin-top: 14px;
+  color: var(--bad-text);
+  text-wrap: balance;
+}
+
+.tr.failed .en-shade--bottom {
+  background: linear-gradient(0deg, rgba(var(--en-night), 0.92) 0%, rgba(var(--en-night), 0.55) 60%, rgba(var(--en-night), 0.35) 100%);
+}
+
+/* --- отсчёт 3-2-1 над миром: в центре HUD (.k-slot--c), цифры — .k-count кита */
+
+/* вне показа не занимает места: в слоте c на этом месте ложатся баннеры героя (Уровень N!, Маяк горит!) */
+.en-count-box {
+  display: none;
+  place-items: center;
+  width: 520px;
+  min-height: 260px;
+  background: radial-gradient(closest-side, rgba(var(--en-night), 0.38), rgba(var(--en-night), 0));
+  text-align: center;
+  pointer-events: none;
+}
+
+.en-count-box.show {
+  display: grid;
+}
+
+/* --- живое, пока экран виден */
+
+@media (prefers-reduced-motion: no-preference) {
+  .tr.play .tr-pic {
+    animation: tr-kb 20s cubic-bezier(0.25, 0.1, 0.25, 1) both;
+  }
+  .tr.play:not(.failed) .tr-jelly img {
+    animation: tr-hop 1.8s ease-in-out infinite;
+  }
+  .tr.play:not(.failed) .tr-jelly-shadow {
+    animation: tr-hop-shadow 1.8s ease-in-out infinite;
+  }
+  .tr.play[data-kind='skill'] .tr-jelly img {
+    animation-name: tr-float;
+    animation-duration: 3.2s;
+  }
+  .tr.play[data-kind='skill'] .tr-jelly-shadow {
+    animation-name: tr-float-shadow;
+    animation-duration: 3.2s;
+  }
+  .tr.play .tr-tips p {
+    animation: tr-tip 15s linear infinite both;
+  }
+  .tr.play .tr-tips p:nth-child(2) {
+    animation-delay: 5s;
+  }
+  .tr.play .tr-tips p:nth-child(3) {
+    animation-delay: 10s;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tr,
+  .tr.on,
+  .tr-art,
+  .tr.on .tr-art,
+  .tr-info,
+  .tr.on .tr-info,
+  .tr-host,
+  .tr.on .tr-host,
+  .tr-bubble,
+  .tr.on .tr-bubble {
+    transition-duration: 0.15s;
+    transition-delay: 0s;
+  }
+  .tr-art,
+  .tr-info,
+  .tr-host,
+  .tr-bubble {
+    transform: none;
+  }
+  .tr-cloud {
+    display: none;
+  }
+}
+
+@keyframes tr-kb {
+  from {
+    transform: scale(1.02);
+  }
+  to {
+    transform: scale(1.08) translate(-0.8%, -0.5%);
+  }
+}
+
+/* прыжок желейки: присела, вытянулась, вверх, вниз, шлёп — и отпружинила */
+@keyframes tr-hop {
+  0%,
+  86%,
+  100% {
+    transform: translateY(0) scale(1, 1);
+  }
+  10% {
+    transform: translateY(0) scale(1.07, 0.93);
+  }
+  22% {
+    transform: translateY(-9%) scale(0.95, 1.06);
+  }
+  38% {
+    transform: translateY(-14%) scale(1, 1);
+  }
+  54% {
+    transform: translateY(-4%) scale(0.96, 1.05);
+  }
+  62% {
+    transform: translateY(0) scale(1.09, 0.91);
+  }
+  74% {
+    transform: translateY(0) scale(0.98, 1.02);
+  }
+}
+
+@keyframes tr-hop-shadow {
+  0%,
+  10%,
+  62%,
+  100% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+  38% {
+    opacity: 0.45;
+    transform: scaleX(0.7);
+  }
+}
+
+/* «Выше облаков»: желейка с шариками не прыгает, а парит */
+@keyframes tr-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-2deg);
+  }
+  50% {
+    transform: translateY(-7%) rotate(2deg);
+  }
+}
+
+@keyframes tr-float-shadow {
+  0%,
+  100% {
+    opacity: 0.8;
+    transform: scaleX(0.9);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scaleX(0.7);
+  }
+}
+
+@keyframes tr-tip {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  2.5%,
+  31% {
+    opacity: 1;
+    transform: none;
+  }
+  33.3%,
+  100% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+/* телефон стоя: всё снизу во всю ширину, желейка с облачком — над плашкой */
+@media (max-width: 720px) and (orientation: portrait) {
+  .tr-brand {
+    top: 16px;
+    left: 16px;
+  }
+  .tr-info {
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+    width: auto;
+  }
+  .tr-title {
+    font-size: calc(64px * var(--display-scale));
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .tr-host {
+    right: 0;
+    bottom: 330px;
+  }
+  .tr-jelly {
+    height: 220px;
+  }
+  .tr-bubble {
+    width: 300px;
+    margin-right: 16px;
+  }
+  .en-count-box {
+    width: 100%;
+  }
+}

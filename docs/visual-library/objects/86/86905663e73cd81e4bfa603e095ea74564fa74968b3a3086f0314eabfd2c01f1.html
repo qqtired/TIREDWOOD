@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Жители набережной</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="../../../../../vendor/5d7627bc8ceade10.css" rel="stylesheet">
+<style>
+  :root { --bg: #f6efe4; --card: #fffaf2; --ink: #2a1f24; --soft: #7a6a5e; --line: #eadfcd; --terra: #d9643a; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: Rubik, system-ui, sans-serif; }
+  .wrap { width: 1800px; padding: 28px 36px 36px; }
+  header { display: flex; align-items: baseline; gap: 22px; margin-bottom: 20px; }
+  h1 { font-weight: 900; font-size: 38px; margin: 0; letter-spacing: -0.5px; }
+  .sub { color: var(--soft); font-size: 18px; font-weight: 500; }
+  .grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; }
+  .card img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; }
+  .meta { padding: 10px 14px 13px; border-top: 1px solid var(--line); }
+  .name { font-weight: 700; font-size: 19px; line-height: 1.15; display: flex; align-items: center; gap: 8px; }
+  .dot { width: 13px; height: 13px; border-radius: 50%; flex: none; box-shadow: inset 0 0 0 1px rgba(0,0,0,.15); }
+  .role { color: var(--soft); font-size: 14.5px; margin-top: 4px; line-height: 1.25; }
+  .q { display: inline-block; font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--terra); margin-top: 6px; }
+  .note { grid-column: span 1; display: flex; flex-direction: column; justify-content: center; padding: 18px; color: var(--soft); font-size: 15px; line-height: 1.4; background: transparent; border: 1px dashed #d8c8b0; }
+  .note b { color: var(--ink); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Жители набережной</h1>
+    <div class="sub">17 жителей у входов в режимы · концепты для Blender · plaza3/npc, 11.10.2026</div>
+  </header>
+  <div class="grid" id="grid"></div>
+</div>
+<script>
+  const R = [
+    ['zhetonych', 'Жетоныч', 'хозяин автоматов и аркады', 'Игровой квартал', '#9b1b30'],
+    ['lyonya', 'Маркёр Лёня', 'бильярд', 'Игровой квартал', '#7a4a2e'],
+    ['tonya', 'Бариста Тоня', 'кафе «Чайка», афиша', 'Центр', '#ff9ec7'],
+    ['miron', 'Смотритель Мирон', 'маяк, фото, места ловли', 'Порт', '#ffd23f'],
+    ['seva', 'Капитан Сева', 'катер «Ласточка»', 'Порт', '#f2eadc'],
+    ['boris', 'Боцман Борис', 'портовая регата', 'Порт', '#4a63ff'],
+    ['bochka', 'Бочка', 'прятки «Рыбный двор»', 'Порт', '#d9913c'],
+    ['tolik', 'Букмекер Толик', 'крысиные бега', 'Порт', '#7a3f9e'],
+    ['asya', 'Пилот Ася', 'гидроплан «Стриж»', 'Порт', '#1fb5b0'],
+    ['lyova', 'Спасатель Лёва', 'аквапарк «Волна»', 'Пляж', '#ff4d6d'],
+    ['liza', 'Модистка Лиза', 'примерочная', 'Пляж', '#b39ddb'],
+    ['pasha', 'Краскомёт Паша', 'пейнтбол, Склад №3', 'Арены', '#9bd13b'],
+    ['gena', 'Механик Гена', 'картинг, гараж', 'Арены', '#ff8a1c'],
+    ['zuko', 'Зомби Зуко', 'крепость', 'Арены', '#5fd8a8'],
+    ['vova', 'Верхолаз Вова', '«Выше облаков», каланча', 'Арены', '#5ab8ff'],
+    ['shura', 'Шахтёр Шура', 'вход в Подземелье', 'Скалы', '#d6336c'],
+    ['galya', 'Фермерша Галя', 'дорога «Огороды» на ферму', 'Выезд в поле', '#d9913c'],
+  ];
+  const g = document.getElementById('grid');
+  for (const [id, name, role, q, c] of R) {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.innerHTML = `<img src="concepts/${id}.png" alt="${name}"><div class="meta"><div class="name"><span class="dot" style="background:${c}"></span>${name}</div><div class="role">${role}</div><span class="q">${q}</span></div>`;
+    g.appendChild(el);
+  }
+  const n = document.createElement('div');
+  n.className = 'card note';
+  n.innerHTML = '<b>Не в этом листе</b><br>Дед Семён и крупье — пока как есть.<br>Вышибала Макс уходит вместе с Fight Club.<br><br>Цвет точки — цвет тела из палитры игроков.';
+  g.appendChild(n);
+</script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+{
+  "case": "distinct-deaths",
+  "type": "deathFixture",
+  "seed": 704314,
+  "accelerated": true,
+  "initialHash": 2659240277,
+  "edits": [
+    "skip to wave19",
+    "assume previous 18 waves for local fixture counters",
+    "isolated fixture: no director background/props/map pickups; actual map collision stays",
+    "enemyHP50/auto cooldown99999; herolevel40 avoids XP choice before all5 actual Q deaths complete; not balance"
+  ],
+  "seconds": 7,
+  "normalHP": false,
+  "heroHp": 100,
+  "weapons": [
+    {
+      "id": "lantern",
+      "lv": 1,
+      "evo": 0
+    }
+  ],
+  "passives": [],
+  "source": "original game.d.makeRun returned actual run; setup before first view/hash",
+  "receivedAt": 882860.1000000015
+}

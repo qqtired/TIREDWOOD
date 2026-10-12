@@ -1,0 +1,66 @@
+<!doctype html><meta charset="utf-8"><title>glb check</title>
+<style>body{margin:0;background:#c4e3f3;font:12px sans-serif}canvas{display:block}#out{white-space:pre;position:absolute;left:-9999px}</style>
+<script type="importmap">{"imports":{"three":"../../../../game-opus/node_modules/three/build/three.module.js","three/addons/":"/three/examples/jsm/"}}</script>
+<canvas id="c" width="1600" height="900"></canvas><pre id="out">pending</pre>
+<script>window.onerror=(m)=>fetch('/error.txt',{method:'POST',body:String(m)});</script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+const FILES = ['bellbuoy', 'goldfish-glow', 'rod-lighthouse', 'puffin', 'keeper-hat', 'keeper-sweater', 'ignat', 'jelly'];
+const out = {};
+const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), antialias: true, preserveDrawingBuffer: true });
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.setScissorTest(true);
+const loader = new GLTFLoader();
+function dot() {
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const g = c.getContext('2d'); const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  gr.addColorStop(0, 'rgba(255,160,50,0.8)'); gr.addColorStop(1, 'rgba(255,140,40,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c);
+}
+const halo = new THREE.SpriteMaterial({ map: dot(), blending: THREE.AdditiveBlending, transparent: true, depthWrite: false });
+const cols = 4, rows = 2, W = 1600 / cols, H = 900 / rows;
+let i = 0;
+for (const f of FILES) {
+  try {
+    const gltf = await loader.loadAsync('/glb/' + f + '.glb');
+    const root = gltf.scene;
+    let tris = 0, meshes = 0; const mats = new Set(); const nodes = []; const halos = [];
+    root.traverse((o) => {
+      nodes.push(o.name);
+      if (o.isMesh) {
+        meshes++;
+        const g = o.geometry; tris += (g.index ? g.index.count : g.attributes.position.count) / 3;
+        const ms = Array.isArray(o.material) ? o.material : [o.material];
+        for (const m of ms) mats.add(`${m.name}${m.vertexColors ? '+vc' : ''}${m.map ? '+map' : ''}${m.emissive && m.emissive.getHex() ? '+emit×' + m.emissiveIntensity : ''}${m.transparent ? '+blend' : ''}${m.side === THREE.DoubleSide ? '+2side' : ''}`);
+      }
+      if (o.userData && o.userData.halo_size) halos.push(o);
+    });
+    for (const h of halos) { const s = new THREE.Sprite(halo); s.scale.setScalar(h.userData.halo_size); h.add(s); }
+    const box = new THREE.Box3().setFromObject(root);
+    const size = box.getSize(new THREE.Vector3());
+    out[f] = { tris, meshes, materials: [...mats], nodes: nodes.filter(Boolean), halos: halos.map((h) => h.name + ':' + h.userData.halo_size),
+      anims: gltf.animations.map((a) => `${a.name} ${a.duration.toFixed(2)}s ${a.tracks.length}tr`),
+      size: size.toArray().map((v) => +v.toFixed(3)), min: box.min.toArray().map((v) => +v.toFixed(3)), extras: root.children[0]?.userData };
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xc4e3f3);
+    scene.add(new THREE.HemisphereLight(0xdff1ff, 0xd9c49c, 1.4));
+    const sun = new THREE.DirectionalLight(0xfff4e6, 2.2); sun.position.set(3, 5, 4); scene.add(sun);
+    scene.add(root);
+    const c = box.getCenter(new THREE.Vector3());
+    const r = Math.max(size.x, size.y, size.z);
+    const cam = new THREE.PerspectiveCamera(35, W / H, 0.01, 50);
+    const dir = f === 'rod-lighthouse' ? new THREE.Vector3(1, 0.4, -0.1) : new THREE.Vector3(0.6, 0.35, -1);
+    cam.position.copy(c).addScaledVector(dir.normalize(), r * (f === 'rod-lighthouse' ? 1.7 : 2.3));
+    cam.lookAt(c);
+    const x = (i % cols) * W, y = (rows - 1 - Math.floor(i / cols)) * H;
+    renderer.setViewport(x, y, W, H); renderer.setScissor(x, y, W, H);
+    renderer.render(scene, cam);
+  } catch (e) { out[f] = { error: String(e) }; }
+  i++;
+}
+document.getElementById('out').textContent = JSON.stringify(out, null, 1);
+document.title = 'done';
+await fetch('/result.json', { method: 'POST', body: JSON.stringify(out, null, 1) });
+await fetch('/shot.png', { method: 'POST', body: renderer.domElement.toDataURL('image/png') });
+</script>

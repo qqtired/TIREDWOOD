@@ -1,0 +1,29 @@
+{
+  "created": "2026-10-12T13:35:10.720Z",
+  "reason": "Owner review #6: A/B visually identical; frozen before all edits",
+  "entries": [
+    "./BRIEF-REV2.md",
+    "./CAMERA-REVIEW.md",
+    "./CAUSALITY-FIX.md",
+    "./LEDGER.md",
+    "./MODEL-CONTRACT.md",
+    "./PLAN.md",
+    "./PUMP-POSE-CONTRACT.md",
+    "./QA-RUN-CODE.md",
+    "./TACTICS.md",
+    "./TEXTURE-AB.md",
+    "./VIEWER-PREP.md",
+    "data",
+    "evidence",
+    "./index.html",
+    "models",
+    "source"
+  ],
+  "hashes": {
+    "./index.html": "bae3a42023ceadaac8ac9be9229884b15ea78043a3746b56ce2b12dd68b6cd80",
+    "./models/manifest.json": "aea51598f39d5cf5ef5dcb68aa1003f542bbf16441d165d4d3640a6b319c7687",
+    "./source/native-model-viewer.js": "360153cc0fed7cac20f225270100673ddbce859b90ac07fef76e2590b4ff0819",
+    "./source/event-lab.js": "33f83f14f4d55eb07dad1daeae5c9663311ed17bd7f2323dbf073b285da9cbac",
+    "./source/collect-model-assets.mjs": "36a6c8ded31e4831ec820856c4aa36f111e0b1da935cc5e7d4a8caef47e93287"
+  }
+}

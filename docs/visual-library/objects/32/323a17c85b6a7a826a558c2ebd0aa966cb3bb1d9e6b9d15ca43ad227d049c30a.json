@@ -1,0 +1,5131 @@
+{
+  "verifiedAt": "2026-10-12T02:59:56.912Z",
+  "sourceCommit": "bd182c2 + uncommitted mode/dungeon-expansion-v2",
+  "sourceFreeze": {
+    "sha256": "4c11b483cf11222559d38d409482852b2a8b0d75fdaf734575825c39242a27c7",
+    "base": "bd182c2",
+    "files": 40,
+    "previousCodeReviewSHA": "70b0da82e57041190884488d5949c9eec03bbefa87fc4157e04079fc71d319db",
+    "metadataOnlyChange": [
+      "client/assets/dungeon/PROVENANCE-expansion-v2.md"
+    ]
+  },
+  "checks": 1014,
+  "passed": true,
+  "htmlBytes": 31388691,
+  "models": [
+    {
+      "id": "hookclaw",
+      "bytes": 132192,
+      "clips": 7,
+      "tris": 2549,
+      "sha256": "b09162ef0c6aa575b461bdddb36100d9b761a254661da42045645fae0d31e79f"
+    },
+    {
+      "id": "wickmole",
+      "bytes": 179060,
+      "clips": 7,
+      "tris": 3648,
+      "sha256": "24c549c3ce061e7e393ff08f73b173e37e74077544ea9f6745747f34744245cb"
+    },
+    {
+      "id": "railhopper",
+      "bytes": 159644,
+      "clips": 7,
+      "tris": 2514,
+      "sha256": "edf92d78c331f45deeee75db8a53b6e41b6df4ad9efe31857a9cdb0b99efe02f"
+    },
+    {
+      "id": "chainwarden",
+      "bytes": 541920,
+      "clips": 7,
+      "tris": 4728,
+      "sha256": "129a73308dd0afcb3ec0c315dfde44af66b0edf5f783098a7152f1de5b5f5653"
+    },
+    {
+      "id": "cauldronmaster",
+      "bytes": 1791276,
+      "clips": 29,
+      "tris": 14940,
+      "sha256": "66b7e7d7b492090875add0ab7242f097b65ff33facb5eedeaea7fb88a19a6350"
+    }
+  ],
+  "limits": "Binary/source/structure and focused synthetic simulation only. Root owns fullgate, real battle, visual animation acceptance and FPS. Final plain native assets are embedded; optionalsoft exact motion is checked; runtime VAT A/B and built-game acceptance remain pending.",
+  "details": [
+    {
+      "name": "embeddedData",
+      "passed": true,
+      "detail": "One safe JSON payload"
+    },
+    {
+      "name": "uniqueDOMIDs",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "allControlBindingsPresent",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "noUnresolvedTemplateTokens",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "noRemoteRenderDependencies",
+      "passed": true,
+      "detail": "Inline images/fonts/models/bundle; local source links are optional"
+    },
+    {
+      "name": "oneWebGLRenderer",
+      "passed": true,
+      "detail": "Weapon preview uses the same rendering context"
+    },
+    {
+      "name": "fiveImageReferences",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "originalUnchanged:hookclaw",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "imageEmbedded:hookclaw",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "originalUnchanged:wickmole",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "imageEmbedded:wickmole",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "originalUnchanged:railhopper",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "imageEmbedded:railhopper",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "originalUnchanged:chainwarden",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "imageEmbedded:chainwarden",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "originalUnchanged:cauldronmaster",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "imageEmbedded:cauldronmaster",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "eightInlineEvolutionIcons",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "evoPNGOriginal:embers_evo",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "evoRuntimeWebP:embers_evo",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "evoInlineIcon:embers_evo",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "evoPNGOriginal:pickaxe_evo",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "evoRuntimeWebP:pickaxe_evo",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "evoInlineIcon:pickaxe_evo",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "evoPNGOriginal:spark_evo",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "evoRuntimeWebP:spark_evo",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "evoInlineIcon:spark_evo",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "evoPNGOriginal:charges_evo",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "evoRuntimeWebP:charges_evo",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "evoInlineIcon:charges_evo",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "realModelEmbedded:hookclaw",
+      "passed": true,
+      "detail": "Actual exported GLB, no substitute mesh"
+    },
+    {
+      "name": "glbMagic",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "glbLength",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "embeddedModelMatchesR2:hookclaw",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "embeddedModelMatchesGame:hookclaw",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "canonicalManifestSHA:hookclaw",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "noExternalGLBResources:hookclaw",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "clip:hookclaw_idle",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "clip:hookclaw_walk",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "clip:hookclaw_windup",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "clip:hookclaw_attack",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "clip:hookclaw_recover",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "clip:hookclaw_hit",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "clip:hookclaw_death",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "nonemptyTracks:hookclaw",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:hookclaw_idle",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:hookclaw_walk",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:hookclaw_windup",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:hookclaw_attack",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:hookclaw_recover",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:hookclaw_hit",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:hookclaw_death",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "eventImpactClock:hookclaw",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "eventFullClock:hookclaw",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "fullDeathClock:hookclaw",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "realModelEmbedded:wickmole",
+      "passed": true,
+      "detail": "Actual exported GLB, no substitute mesh"
+    },
+    {
+      "name": "glbMagic",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "glbLength",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "embeddedModelMatchesR2:wickmole",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "embeddedModelMatchesGame:wickmole",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "canonicalManifestSHA:wickmole",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "noExternalGLBResources:wickmole",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "clip:wickmole_idle",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "clip:wickmole_walk",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "clip:wickmole_windup",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "clip:wickmole_attack",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "clip:wickmole_recover",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "clip:wickmole_hit",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "clip:wickmole_death",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "nonemptyTracks:wickmole",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:wickmole_idle",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:wickmole_walk",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:wickmole_windup",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:wickmole_attack",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:wickmole_recover",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:wickmole_hit",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:wickmole_death",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "eventImpactClock:wickmole",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "eventFullClock:wickmole",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "fullDeathClock:wickmole",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "realModelEmbedded:railhopper",
+      "passed": true,
+      "detail": "Actual exported GLB, no substitute mesh"
+    },
+    {
+      "name": "glbMagic",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "glbLength",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "embeddedModelMatchesR2:railhopper",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "embeddedModelMatchesGame:railhopper",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "canonicalManifestSHA:railhopper",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "noExternalGLBResources:railhopper",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "clip:railhopper_idle",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "clip:railhopper_walk",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "clip:railhopper_windup",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "clip:railhopper_attack",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "clip:railhopper_recover",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "clip:railhopper_hit",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "clip:railhopper_death",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "nonemptyTracks:railhopper",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:railhopper_idle",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:railhopper_walk",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:railhopper_windup",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:railhopper_attack",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:railhopper_recover",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:railhopper_hit",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:railhopper_death",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "eventImpactClock:railhopper",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "eventFullClock:railhopper",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "fullDeathClock:railhopper",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "realModelEmbedded:chainwarden",
+      "passed": true,
+      "detail": "Actual exported GLB, no substitute mesh"
+    },
+    {
+      "name": "glbMagic",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "glbLength",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "embeddedModelMatchesR2:chainwarden",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "embeddedModelMatchesGame:chainwarden",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "canonicalManifestSHA:chainwarden",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "noExternalGLBResources:chainwarden",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "clip:chainwarden_idle",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "clip:chainwarden_walk",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "clip:chainwarden_windup",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "clip:chainwarden_attack",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "clip:chainwarden_recover",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "clip:chainwarden_hit",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "clip:chainwarden_death",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "nonemptyTracks:chainwarden",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:chainwarden_idle",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:chainwarden_walk",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:chainwarden_windup",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:chainwarden_attack",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:chainwarden_recover",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:chainwarden_hit",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:chainwarden_death",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "eventImpactClock:chainwarden",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "eventFullClock:chainwarden",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "secondImpactClock:chainwarden",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "fullDeathClock:chainwarden",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "realModelEmbedded:cauldronmaster",
+      "passed": true,
+      "detail": "Actual exported GLB, no substitute mesh"
+    },
+    {
+      "name": "glbMagic",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "glbLength",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "embeddedModelMatchesR2:cauldronmaster",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "embeddedModelMatchesGame:cauldronmaster",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "canonicalManifestSHA:cauldronmaster",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "noExternalGLBResources:cauldronmaster",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "clip:cauldronmaster_idle",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "clip:cauldronmaster_walk",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "clip:cauldronmaster_windup",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "clip:cauldronmaster_attack",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "clip:cauldronmaster_pour",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "clip:cauldronmaster_boil",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "clip:cauldronmaster_recover",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "clip:cauldronmaster_hit",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "clip:cauldronmaster_death",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "phaseClip:idle_p2",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "phaseClip:walk_p2",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "phaseClip:windup_p2",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "phaseClip:attack_p2",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "phaseClip:pour_p2",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "phaseClip:boil_p2",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "phaseClip:recover_p2",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "phaseClip:hit_p2",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "phaseClip:death_p2",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "phaseClip:phase_p2",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "phaseClip:idle_p3",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "phaseClip:walk_p3",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "phaseClip:windup_p3",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "phaseClip:attack_p3",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "phaseClip:pour_p3",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "phaseClip:boil_p3",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "phaseClip:recover_p3",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "phaseClip:hit_p3",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "phaseClip:death_p3",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "phaseClip:phase_p3",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "nonemptyTracks:cauldronmaster",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:cauldronmaster_idle",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:cauldronmaster_walk",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:cauldronmaster_windup",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:cauldronmaster_attack",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:cauldronmaster_pour",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:cauldronmaster_boil",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:cauldronmaster_recover",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:cauldronmaster_hit",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:cauldronmaster_death",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:cauldronmaster_idle_p2",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:cauldronmaster_walk_p2",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:cauldronmaster_windup_p2",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:cauldronmaster_attack_p2",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:cauldronmaster_pour_p2",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:cauldronmaster_boil_p2",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:cauldronmaster_recover_p2",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:cauldronmaster_hit_p2",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:cauldronmaster_death_p2",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:cauldronmaster_idle_p3",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:cauldronmaster_walk_p3",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:cauldronmaster_windup_p3",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:cauldronmaster_attack_p3",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:cauldronmaster_pour_p3",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:cauldronmaster_boil_p3",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:cauldronmaster_recover_p3",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:cauldronmaster_hit_p3",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:cauldronmaster_death_p3",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:cauldronmaster_phase_p2",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "actualClipDuration:cauldronmaster_phase_p3",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "bossArmature",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "threePhysicalLiquidLayers",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "phaseLiquidMorphTracks",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "liquidOpaqueP1",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "pairedClockP1",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "liquidOpaqueP2",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "pairedClockP2",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "liquidOpaqueP3",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "pairedClockP3",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "bossImpact:pour",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "bossCycle:pour",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "bossImpact:boil",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "bossCycle:boil",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "boilSafeCenterFourMeters",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "fullDeathClock:cauldronmaster",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "glbMagic",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "glbLength",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExperimentSeparate",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softEmbeddedMatchesFile",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softOneMapUV0",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "glbMagic",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "glbLength",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softReceiptMatchesEmbedded",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softHierarchyAndRestExact",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softAllChannelsRetained:chainwarden_idle",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:body:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:body:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:body:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:arm_l:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:arm_l:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:arm_l:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:fore_l:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:fore_l:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:fore_l:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:ring:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:ring:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:ring:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:arm_r:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:arm_r:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:arm_r:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:fore_r:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:fore_r:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:fore_r:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:weight:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:weight:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:weight:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:head:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:head:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:head:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:eyes:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:eyes:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:eyes:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:lids:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:lids:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:lids:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:leg_l:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:leg_l:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:leg_l:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:shin_l:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:shin_l:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:shin_l:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:leg_r:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:leg_r:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:leg_r:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:shin_r:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:shin_r:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:shin_r:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_00:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_00:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_00:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_01:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_01:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_01:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_02:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_02:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_02:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_03:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_03:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_03:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_04:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_04:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_04:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_05:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_05:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_05:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_06:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_06:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_06:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_07:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_07:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_07:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_08:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_08:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_08:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_09:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_09:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_09:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_10:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_10:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_10:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_11:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_11:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_11:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_12:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_12:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_12:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_13:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_13:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_13:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_14:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_14:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_14:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_15:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_15:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_15:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_16:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_16:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_16:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_17:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_17:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_17:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_18:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_18:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_18:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_19:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_19:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:link_19:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:reel_frame:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:reel_frame:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:reel_frame:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:reel_drum:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:reel_drum:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_idle:reel_drum:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softAllChannelsRetained:chainwarden_walk",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:body:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:body:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:body:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:arm_l:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:arm_l:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:arm_l:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:fore_l:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:fore_l:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:fore_l:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:ring:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:ring:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:ring:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:arm_r:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:arm_r:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:arm_r:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:fore_r:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:fore_r:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:fore_r:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:weight:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:weight:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:weight:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:head:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:head:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:head:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:eyes:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:eyes:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:eyes:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:lids:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:lids:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:lids:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:leg_l:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:leg_l:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:leg_l:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:shin_l:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:shin_l:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:shin_l:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:leg_r:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:leg_r:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:leg_r:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:shin_r:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:shin_r:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:shin_r:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_00:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_00:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_00:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_01:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_01:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_01:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_02:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_02:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_02:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_03:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_03:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_03:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_04:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_04:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_04:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_05:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_05:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_05:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_06:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_06:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_06:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_07:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_07:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_07:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_08:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_08:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_08:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_09:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_09:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_09:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_10:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_10:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_10:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_11:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_11:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_11:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_12:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_12:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_12:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_13:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_13:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_13:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_14:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_14:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_14:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_15:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_15:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_15:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_16:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_16:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_16:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_17:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_17:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_17:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_18:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_18:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_18:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_19:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_19:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:link_19:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:reel_frame:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:reel_frame:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:reel_frame:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:reel_drum:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:reel_drum:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_walk:reel_drum:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softAllChannelsRetained:chainwarden_windup",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:body:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:body:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:body:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:arm_l:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:arm_l:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:arm_l:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:fore_l:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:fore_l:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:fore_l:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:ring:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:ring:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:ring:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:arm_r:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:arm_r:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:arm_r:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:fore_r:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:fore_r:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:fore_r:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:weight:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:weight:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:weight:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:head:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:head:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:head:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:eyes:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:eyes:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:eyes:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:lids:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:lids:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:lids:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:leg_l:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:leg_l:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:leg_l:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:shin_l:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:shin_l:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:shin_l:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:leg_r:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:leg_r:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:leg_r:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:shin_r:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:shin_r:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:shin_r:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_00:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_00:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_00:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_01:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_01:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_01:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_02:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_02:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_02:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_03:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_03:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_03:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_04:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_04:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_04:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_05:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_05:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_05:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_06:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_06:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_06:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_07:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_07:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_07:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_08:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_08:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_08:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_09:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_09:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_09:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_10:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_10:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_10:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_11:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_11:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_11:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_12:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_12:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_12:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_13:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_13:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_13:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_14:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_14:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_14:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_15:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_15:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_15:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_16:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_16:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_16:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_17:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_17:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_17:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_18:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_18:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_18:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_19:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_19:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:link_19:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:reel_frame:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:reel_frame:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:reel_frame:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:reel_drum:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:reel_drum:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_windup:reel_drum:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softAllChannelsRetained:chainwarden_attack",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:body:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:body:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:body:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:arm_l:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:arm_l:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:arm_l:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:fore_l:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:fore_l:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:fore_l:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:ring:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:ring:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:ring:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:arm_r:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:arm_r:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:arm_r:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:fore_r:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:fore_r:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:fore_r:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:weight:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:weight:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:weight:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:head:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:head:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:head:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:eyes:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:eyes:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:eyes:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:lids:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:lids:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:lids:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:leg_l:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:leg_l:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:leg_l:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:shin_l:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:shin_l:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:shin_l:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:leg_r:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:leg_r:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:leg_r:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:shin_r:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:shin_r:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:shin_r:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_00:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_00:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_00:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_01:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_01:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_01:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_02:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_02:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_02:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_03:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_03:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_03:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_04:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_04:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_04:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_05:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_05:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_05:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_06:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_06:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_06:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_07:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_07:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_07:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_08:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_08:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_08:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_09:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_09:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_09:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_10:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_10:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_10:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_11:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_11:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_11:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_12:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_12:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_12:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_13:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_13:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_13:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_14:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_14:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_14:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_15:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_15:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_15:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_16:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_16:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_16:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_17:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_17:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_17:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_18:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_18:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_18:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_19:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_19:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:link_19:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:reel_frame:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:reel_frame:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:reel_frame:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:reel_drum:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:reel_drum:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_attack:reel_drum:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softAllChannelsRetained:chainwarden_recover",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:body:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:body:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:body:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:arm_l:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:arm_l:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:arm_l:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:fore_l:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:fore_l:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:fore_l:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:ring:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:ring:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:ring:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:arm_r:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:arm_r:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:arm_r:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:fore_r:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:fore_r:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:fore_r:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:weight:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:weight:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:weight:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:head:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:head:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:head:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:eyes:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:eyes:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:eyes:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:lids:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:lids:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:lids:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:leg_l:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:leg_l:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:leg_l:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:shin_l:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:shin_l:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:shin_l:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:leg_r:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:leg_r:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:leg_r:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:shin_r:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:shin_r:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:shin_r:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_00:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_00:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_00:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_01:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_01:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_01:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_02:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_02:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_02:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_03:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_03:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_03:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_04:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_04:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_04:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_05:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_05:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_05:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_06:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_06:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_06:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_07:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_07:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_07:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_08:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_08:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_08:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_09:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_09:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_09:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_10:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_10:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_10:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_11:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_11:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_11:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_12:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_12:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_12:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_13:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_13:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_13:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_14:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_14:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_14:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_15:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_15:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_15:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_16:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_16:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_16:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_17:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_17:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_17:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_18:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_18:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_18:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_19:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_19:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:link_19:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:reel_frame:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:reel_frame:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:reel_frame:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:reel_drum:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:reel_drum:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_recover:reel_drum:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softAllChannelsRetained:chainwarden_hit",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:body:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:body:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:body:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:arm_l:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:arm_l:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:arm_l:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:fore_l:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:fore_l:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:fore_l:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:ring:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:ring:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:ring:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:arm_r:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:arm_r:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:arm_r:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:fore_r:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:fore_r:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:fore_r:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:weight:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:weight:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:weight:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:head:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:head:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:head:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:eyes:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:eyes:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:eyes:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:lids:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:lids:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:lids:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:leg_l:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:leg_l:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:leg_l:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:shin_l:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:shin_l:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:shin_l:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:leg_r:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:leg_r:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:leg_r:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:shin_r:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:shin_r:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:shin_r:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_00:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_00:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_00:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_01:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_01:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_01:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_02:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_02:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_02:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_03:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_03:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_03:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_04:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_04:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_04:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_05:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_05:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_05:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_06:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_06:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_06:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_07:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_07:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_07:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_08:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_08:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_08:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_09:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_09:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_09:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_10:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_10:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_10:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_11:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_11:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_11:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_12:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_12:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_12:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_13:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_13:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_13:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_14:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_14:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_14:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_15:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_15:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_15:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_16:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_16:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_16:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_17:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_17:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_17:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_18:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_18:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_18:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_19:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_19:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:link_19:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:reel_frame:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:reel_frame:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:reel_frame:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:reel_drum:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:reel_drum:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_hit:reel_drum:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softAllChannelsRetained:chainwarden_death",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:body:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:body:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:body:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:arm_l:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:arm_l:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:arm_l:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:fore_l:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:fore_l:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:fore_l:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:ring:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:ring:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:ring:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:arm_r:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:arm_r:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:arm_r:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:fore_r:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:fore_r:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:fore_r:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:weight:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:weight:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:weight:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:head:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:head:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:head:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:eyes:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:eyes:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:eyes:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:lids:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:lids:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:lids:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:leg_l:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:leg_l:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:leg_l:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:shin_l:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:shin_l:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:shin_l:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:leg_r:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:leg_r:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:leg_r:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:shin_r:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:shin_r:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:shin_r:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_00:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_00:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_00:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_01:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_01:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_01:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_02:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_02:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_02:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_03:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_03:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_03:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_04:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_04:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_04:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_05:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_05:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_05:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_06:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_06:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_06:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_07:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_07:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_07:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_08:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_08:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_08:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_09:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_09:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_09:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_10:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_10:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_10:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_11:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_11:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_11:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_12:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_12:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_12:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_13:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_13:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_13:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_14:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_14:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_14:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_15:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_15:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_15:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_16:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_16:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_16:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_17:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_17:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_17:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_18:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_18:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_18:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_19:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_19:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:link_19:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:reel_frame:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:reel_frame:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:reel_frame:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:reel_drum:translation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:reel_drum:rotation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "softExactAnimation:chainwarden_death:reel_drum:scale",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "fiftySevenActualClips",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "sharesSum:16",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "oldShareRetained:16",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "bodyBudget:16",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "eventReservation:16",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "waveMatchesCurrentSim:16",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "sharesSum:17",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "oldShareRetained:17",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "bodyBudget:17",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "eventReservation:17",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "waveMatchesCurrentSim:17",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "sharesSum:18",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "oldShareRetained:18",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "bodyBudget:18",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "eventReservation:18",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "waveMatchesCurrentSim:18",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "sharesSum:19",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "oldShareRetained:19",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "bodyBudget:19",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "eventReservation:19",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "waveMatchesCurrentSim:19",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "noFinalAt20",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "eightExistingCatalysts",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "sixteenFiniteNativeTraces",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "threeLegalFivePlusFiveBuilds",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "allEightEvolutionsCovered",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "twelveLabeledNativePolicies",
+      "passed": true,
+      "detail": "Registration fixture10000HP is separate from normal-HP policies"
+    },
+    {
+      "name": "allPhaseAttackFamiliesExercised",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "currentSourceInline",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "v1HTMLUnchanged",
+      "passed": true,
+      "detail": ""
+    }
+  ],
+  "verifiedRevision": "R4",
+  "currentArtifactRevision": "R6",
+  "currentEvidenceReceipt": "./r6-evidence-receipt.json",
+  "currentSourceHandoffReceipt": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-r6-handoff-receipt.json",
+  "reuseBoundary": "R4 native/binary1014 checks retained; R5 freshly checked40 source hashes, inline metadata/source and unchanged viewer bundle. No new full gate/browser claim."
+}

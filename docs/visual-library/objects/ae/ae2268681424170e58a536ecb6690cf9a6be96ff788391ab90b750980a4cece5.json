@@ -1,0 +1,325 @@
+{
+  "worktree": "[LOCAL_PATH]",
+  "base": "41b91a8",
+  "branch": "mode/dungeon-expansion-v2",
+  "recordedAt": "2026-10-12T06:02:45.794Z",
+  "sourceSHA": "79c7aa9061682aefdbf130d1fcc03e5689c7ecfd3dde341bcc65a9eac089b332",
+  "files": [
+    {
+      "path": "client/assets/dungeon/PROVENANCE-expansion-v2.md",
+      "bytes": 1556,
+      "sha256": "56bb738f5d7e65183a9d6c76f0f6182bce87f8865a68678fbc6aa46448b82514"
+    },
+    {
+      "path": "client/assets/dungeon/icons/PROVENANCE.md",
+      "bytes": 42985,
+      "sha256": "310a04acd6e650b976021a23b6fa0294217a0ef940bdac90eaa2f47bd79a77dc"
+    },
+    {
+      "path": "client/dungeon/assets.ts",
+      "bytes": 4991,
+      "sha256": "d8d63c769a58b0f5abee2fdedcda4b28cb4d80c2ad72c19885da3a8ba1a51087"
+    },
+    {
+      "path": "client/dungeon/boss.ts",
+      "bytes": 7898,
+      "sha256": "69767abe83eb4da5cc8dc4025649bd96260ea4ec939c8240aa7c8a251b62e41e"
+    },
+    {
+      "path": "client/dungeon/data.ts",
+      "bytes": 4911,
+      "sha256": "d25df64b10b8a606541a7b0148cb940632267985c25c74e86ea5002f0881f805"
+    },
+    {
+      "path": "client/dungeon/fx.ts",
+      "bytes": 20711,
+      "sha256": "4e288c11f0093d7d43c0455fddbc188ca8b4e859964ed2082fc50c2eedfb2d5e"
+    },
+    {
+      "path": "client/dungeon/game.ts",
+      "bytes": 66172,
+      "sha256": "160deee9061343a1722a736691f1026f0684d06db3999e7eab3cc0ff3cbf8142"
+    },
+    {
+      "path": "client/dungeon/hero.ts",
+      "bytes": 8210,
+      "sha256": "7a7495779d57d458bf53bff5df930ffc3f2c8aef7cc4bb4f196c5bcecc69f7de"
+    },
+    {
+      "path": "client/dungeon/mobs.ts",
+      "bytes": 20339,
+      "sha256": "10b4c2b92682699d037a796a9e7823fdcac6436cbf6663f11a97f71aed65263b"
+    },
+    {
+      "path": "client/dungeon/mock.ts",
+      "bytes": 35313,
+      "sha256": "9cf186e97f7c9b502cc068ea8d943a6398ced96af7d0c265a8bc7b9080af6358"
+    },
+    {
+      "path": "client/dungeon/simview.ts",
+      "bytes": 32730,
+      "sha256": "b496b80edde01aa72e9188c4512c78a027621de8ce1ad1f62d876b09fa98e7fc"
+    },
+    {
+      "path": "client/dungeon/view.ts",
+      "bytes": 9392,
+      "sha256": "ae7216c4848807727a6b3b07ce081c51f170ba1a414522390cb6010f2926f2fe"
+    },
+    {
+      "path": "client/dungeon/weaponvisuals.ts",
+      "bytes": 4388,
+      "sha256": "05938d3968e52edbf34f2109377c86d978de476e88804967099882db23c0645d"
+    },
+    {
+      "path": "client/dungeon/zones.ts",
+      "bytes": 23113,
+      "sha256": "83dc291dd57e0a160bed63017ee512c38470cfcaef67d09e3b044f8f5eb73d27"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-10-12-dungeon-expansion-v2.md",
+      "bytes": 7387,
+      "sha256": "f4916b57905fd96284a530c8fabee3133be1ab5596010c5e8e2ab6a30987f1e1"
+    },
+    {
+      "path": "docs/survivors/design-data.json",
+      "bytes": 90636,
+      "sha256": "932a6775825747f3126c596dea0143cf5b34b1b040e87c3e05e45a20f5965849"
+    },
+    {
+      "path": "docs/survivors/expansion-v2.md",
+      "bytes": 18119,
+      "sha256": "26312b3265d657e785ecc53f7807744e51264ef3c91387a7be88cff59ceb64ab"
+    },
+    {
+      "path": "shared/dungeon/boss.ts",
+      "bytes": 13368,
+      "sha256": "fd9fd375458225256816fd34ea575d05e53dea348bc70e40a2bec9502b941734"
+    },
+    {
+      "path": "shared/dungeon/cauldron.ts",
+      "bytes": 5066,
+      "sha256": "186ee5b9921c7a9142f07733f2b3bd043ff4fd7168288426bda7433a485e87c5"
+    },
+    {
+      "path": "shared/dungeon/core.ts",
+      "bytes": 11618,
+      "sha256": "af9099a0b414de38be0b4a8fec5cb8721d1a403b1a2037d809d84be92acdb6b2"
+    },
+    {
+      "path": "shared/dungeon/data.ts",
+      "bytes": 12487,
+      "sha256": "2c4dd3483a1cdde6b723e52d7b654793818df4a8f585b4798ce3f32f1ef1121b"
+    },
+    {
+      "path": "shared/dungeon/director.ts",
+      "bytes": 22073,
+      "sha256": "ffa09a8e4295edcb8a6a0c63df2ac0d018b49c3a31caea21e75da6935eeb62ae"
+    },
+    {
+      "path": "shared/dungeon/enemycharges.ts",
+      "bytes": 980,
+      "sha256": "ce0e6df23c1ba86acb42d4a3cdbc7ea0f44c8b096a08aecf0aab42cd1180cac1"
+    },
+    {
+      "path": "shared/dungeon/expansion.ts",
+      "bytes": 5595,
+      "sha256": "df6e201796818accfdab08fb3a9d60c9582f484dbf1f3fe1925b950a8341ca78"
+    },
+    {
+      "path": "shared/dungeon/gen-design.ts",
+      "bytes": 54087,
+      "sha256": "75a034d8ea926cfb34e9c2c4a64214f60c99f7999b9604f64cb80244c9b2ced1"
+    },
+    {
+      "path": "shared/dungeon/hero.ts",
+      "bytes": 7119,
+      "sha256": "c2d62fed27934a149d1708da3568ab5f3b63121e3f4feb22bbd283fbe0fc44be"
+    },
+    {
+      "path": "shared/dungeon/mobs.ts",
+      "bytes": 20649,
+      "sha256": "da51aea88bb3ef3bfaf008b3a41c27811ad715bef2165050f0a9f1f763926299"
+    },
+    {
+      "path": "shared/dungeon/pickups.ts",
+      "bytes": 8445,
+      "sha256": "90508eac73a77fa121ffe86c1a1b3d2d24662569c5cde2864ec2ae44537af382"
+    },
+    {
+      "path": "shared/dungeon/progress.ts",
+      "bytes": 10511,
+      "sha256": "b4721b606669d70d824126526605aafd06e898cfd92bcfab851178ed52cdee80"
+    },
+    {
+      "path": "shared/dungeon/props.ts",
+      "bytes": 23582,
+      "sha256": "163ee32657b4410eb52a13d0dc8aed0705798e1ca5bd017c38b96f0e7da2806b"
+    },
+    {
+      "path": "shared/dungeon/sim.ts",
+      "bytes": 11053,
+      "sha256": "9e285f3b383603a4c2abc498988f622006c4e5aa3b6d8b6f7b5e1f53c1e7a163"
+    },
+    {
+      "path": "shared/dungeon/types.ts",
+      "bytes": 27191,
+      "sha256": "9b1c97fcd0bf58efa4c0f2d44968da9e8cb63afb4b7feb624e72d2f568fd8def"
+    },
+    {
+      "path": "shared/dungeon/weapons.ts",
+      "bytes": 22490,
+      "sha256": "6a7a5bf12bfd51fbdf0493660f5310a307f013e3b2f851cf381a3843b3b09b40"
+    },
+    {
+      "path": "test/dungeon-cauldron-view.test.ts",
+      "bytes": 2417,
+      "sha256": "b74954665d204e9feb4684042ec9bc33dc8ce5694c8ec01b91cab3ead92ffda9"
+    },
+    {
+      "path": "test/dungeon-expansion-boss-callers.test.ts",
+      "bytes": 2482,
+      "sha256": "ea9e1b4782d105655f3b361bfc4ac3fb07bfc5231300df686766cefb149b36fb"
+    },
+    {
+      "path": "test/dungeon-expansion-capacity.test.ts",
+      "bytes": 3169,
+      "sha256": "f6da73648625b98137566e247fa780d0f6e0a812565e3ff91385da40620b8dfb"
+    },
+    {
+      "path": "test/dungeon-expansion-curse.test.ts",
+      "bytes": 3397,
+      "sha256": "6aa9bee5fc0403a4ec50be405bd1e69ba9b57bfd5599b318c09e2cd52a509281"
+    },
+    {
+      "path": "test/dungeon-expansion-visual.test.ts",
+      "bytes": 2948,
+      "sha256": "45aa5d25a9875e5f3f17940a3def0e6adfdff8e931531cef9b26f1ca77e4241d"
+    },
+    {
+      "path": "test/dungeon-expansion-weapons.test.ts",
+      "bytes": 8716,
+      "sha256": "e62dcb1517eb5430d5d9277909dcc02287c02551f0505b65f9ba09fbb48d948a"
+    },
+    {
+      "path": "test/dungeon-expansion.test.ts",
+      "bytes": 8696,
+      "sha256": "ca30aa00d7e204afd8402a0c29e184c52fd992ba238c20e7ab7dd5e7683a017e"
+    }
+  ],
+  "focused": {
+    "tests": 57,
+    "pass": 57,
+    "log": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-source-r3-focused.log",
+    "verifiedRevision": "R3",
+    "rerunByThisAgent": false
+  },
+  "assets": "Final plain5GLB native delivery unchanged; soft exact-motion/brightness verified separately. Actual game VAT/phase/corpse/performance acceptance pending root.",
+  "changeFromR3": {
+    "previousSHA": "70b0da82e57041190884488d5949c9eec03bbefa87fc4157e04079fc71d319db",
+    "paths": [
+      "client/assets/dungeon/PROVENANCE-expansion-v2.md"
+    ],
+    "reason": "Model worker final plain asset SHA provenance only; all code/data/tests/docs unchanged; R3 independent review and57focused results retained."
+  },
+  "assetReceipt": "../../../revision2/models/game-delivery-receipt.json",
+  "revision": "R6",
+  "previousRevision": "R5",
+  "previousSourceSHA": "b12d6ba10abf8af04a6689463ec7e7f3fe35f017b47c6ef230315026b605f4bf",
+  "originalIntegrationBase": "bd182c2",
+  "r4Archive": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-source-r4-archive",
+  "fullGate": {
+    "owner": "root",
+    "revision": "R6",
+    "status": "PASS root-reported; logs independently inspected",
+    "check": true,
+    "test": {
+      "total": 1962,
+      "passed": 1961,
+      "failed": 0,
+      "skipped": 1
+    },
+    "build": true,
+    "evidence": [
+      {
+        "path": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-r6-check.log",
+        "sha256": "f853a6a0cc82020063ad07caf3ff2d4bb74cac7cf21a899165813cc77a48876b"
+      },
+      {
+        "path": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-r6-test.log",
+        "sha256": "b6836761b41d4260af80b7162785a0949124a39b33184643a1ba1659e01f88ba"
+      },
+      {
+        "path": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-r6-build.log",
+        "sha256": "abe5a3bf7cc1efc2e30e6e28a0d5c273bd2cce8e07cf4f26dd7beb1bfb7c3562"
+      }
+    ],
+    "ranByThisAgent": false
+  },
+  "changeFromR5": {
+    "paths": [
+      "client/dungeon/game.ts"
+    ],
+    "rootOwned": true,
+    "runtimeChange": true,
+    "fix": "Consume Enter/NumpadEnter for intro as well as breather; existing goNow handles intro. Prevent common chat opening from intro prompt."
+  },
+  "r5Archive": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-source-r5-archive",
+  "earlierRuntimeAttempts": [
+    {
+      "id": "rawChromeWrongDocumentError",
+      "status": "FAILED_NOT_PASS",
+      "reason": "Wrong-document raw Chrome attempt; not valid game evidence",
+      "evidence": [
+        "runtime-harness/browser-observer-raw-launch.json",
+        "runtime-harness/browser-observer.json"
+      ],
+      "shaderFailureClaim": false
+    },
+    {
+      "id": "normal-v3-actualIntroEnterChat",
+      "status": "FAILED_NOT_PASS",
+      "reason": "Actual intro HUD prompts Enter; game did not consume it, common chat opened and blocked input. Root identified one-line fix.",
+      "evidence": [
+        "dungeon-r5-normal-v3.log",
+        "runtime-harness/captures-normal-v3"
+      ],
+      "shaderFailureClaim": false
+    },
+    {
+      "id": "r6-hook-loading-cover-and-dead-hero",
+      "status": "FAIL_CAPTURE",
+      "reason": "enter returned during loading cover; hero died before later generic hp<100 capture. Zero hash mismatches did not make the image valid.",
+      "evidence": [
+        "dungeon-runtime-r6/captures-late/hook-contact-entry.png",
+        "dungeon-runtime-r6/captures-late/hook-impact.png"
+      ],
+      "shaderFailureClaim": false
+    },
+    {
+      "id": "r6-hook-overlapping-room-transition",
+      "status": "FAIL_CAPTURE",
+      "reason": "Repeated /go before lobby.hasSelf and transition idle caused fresh run null; timeout was not game acceptance.",
+      "evidence": [
+        "dungeon-r6-hook-atomic.log",
+        "dungeon-r6-hook-enter.log"
+      ],
+      "shaderFailureClaim": false
+    }
+  ],
+  "previousTypeChangesR5": {
+    "paths": [
+      "client/dungeon/simview.ts",
+      "test/dungeon-expansion.test.ts"
+    ],
+    "changes": [
+      "Remove unreachable pressure alert branch; director pressure uses existing horde alert",
+      "Add two as const annotations in recipe tests"
+    ],
+    "addedConstLines": [
+      34,
+      61
+    ],
+    "runtimeChange": false,
+    "rootOwned": true
+  }
+}

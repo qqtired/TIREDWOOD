@@ -1,0 +1,50 @@
+{
+  "status": "PASS",
+  "file": "../../../../models/glb/canopy-r2-07.glb",
+  "sha256": "da211a74ffa180edc8ce5f532dd595015776ff8373456d7fa9bf1f2d522b986a",
+  "checks": {
+    "bodyAlive": true,
+    "feetPlanted": true,
+    "eyesAlive": true,
+    "worldRootUpright": true,
+    "ribHingesAttached": true,
+    "coverAreaReduced": true,
+    "notDeathAlias": true
+  },
+  "clips": [
+    {
+      "name": "canopy_canopy_break",
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 2.875,
+      "keySpan": 2.83333333209157,
+      "minBodyScale": 1,
+      "minEyeScale": 0.123348668217659,
+      "maxBodyTiltRadians": 0,
+      "maxBodyTranslationM": 0,
+      "maxFootDriftM": 0,
+      "maxRootTiltRadians": 0,
+      "maxRibHingeDriftM": 1.8246778584188778e-7
+    },
+    {
+      "name": "canopy_cover_disabled",
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 2.0416667461395264,
+      "keySpan": 2.0000000782310963,
+      "minBodyScale": 0.9999999403953551,
+      "minEyeScale": 0.123348668217659,
+      "maxBodyTiltRadians": 0.004000001100266762,
+      "maxBodyTranslationM": 0,
+      "maxFootDriftM": 0,
+      "maxRootTiltRadians": 0,
+      "maxRibHingeDriftM": 8.648045020334959e-8
+    }
+  ],
+  "coverage": {
+    "measure": "Actual horizontal projected convex hull of8cap meshes; not a gameplay damage claim",
+    "initialProjectedConvexAreaM2": 3.751348694589677,
+    "finalProjectedConvexAreaM2": 1.6228767390735888,
+    "finalToInitialRatio": 0.432611540861066,
+    "coverageLostAt": "First coverBreak key after lock shot; physical folding follows"
+  },
+  "scope": "Selected living carrier; death/other actor clips are separate"
+}

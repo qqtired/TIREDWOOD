@@ -1,0 +1,28 @@
+{
+  "initialHtml": 536,
+  "additionalBuiltPagesFound": 16,
+  "totalConsidered": 552,
+  "excludedHtml": 27,
+  "includedOrigins": 525,
+  "uniqueHtml": 131,
+  "uniqueBytes": 1051064741,
+  "devAndTemplateGroups": 58,
+  "confirmedMissing": 168,
+  "redactionsByType": {
+    "server-address": 588,
+    "localhost-link": 1293,
+    "absolute-user-path": 601
+  },
+  "protectedDocs": [
+    {
+      "id": "7c52c5c11d040f",
+      "path": "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evolutions-r8/index.html",
+      "redacted": true
+    },
+    {
+      "id": "5c55281890738d",
+      "path": "files/workspace/reports/tiredwood-hud-five-directions-2026-10-12/revision-concepts-11-15.html",
+      "redacted": false
+    }
+  ]
+}

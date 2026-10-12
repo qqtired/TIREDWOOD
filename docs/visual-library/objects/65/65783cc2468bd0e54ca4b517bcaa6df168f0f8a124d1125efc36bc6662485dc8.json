@@ -1,0 +1,19 @@
+{
+  "status": "Pending independent actual GLB parity and viewer review",
+  "baseline": "../glb/foreman-r2-06.glb",
+  "rawNativeB": "../glb/foreman-r2-06-textureB.glb",
+  "canonicalB": "../glb/foreman-r2-06-textureB-canonical.glb",
+  "baselineSHA256": "7fdd7c654e15e7f55056e0e7c00d77191c11f812e9dfaeed9d5545b74660bc92",
+  "rawNativeBSHA256": "c111ad7312afb9539cdddb64a83f09b3ad62aa8c44ea4b3076c72e7463b27bef",
+  "canonicalSHA256": "a15c76ba0364a3af5e60be7005e55634f590a3f09a69989894a58e9e13bcbbec",
+  "baselineBINPrefixUnchanged": true,
+  "baselineBINPrefixSHA256": "fe70eb8e0bee60394f894bbf8c4981a9955db9b1f8c9f51d3d8a8131567c42d1",
+  "imageBytesIdentical": true,
+  "meshAccessorsUnchanged": true,
+  "nodeTransformsUnchanged": true,
+  "clipsUnchanged": true,
+  "materials": 5,
+  "textures": 1,
+  "images": 1,
+  "drawCallsUnchanged": true
+}

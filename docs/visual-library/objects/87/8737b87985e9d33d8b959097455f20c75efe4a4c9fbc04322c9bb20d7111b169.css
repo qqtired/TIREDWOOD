@@ -1,0 +1,39 @@
+/* Радио на лодке на ките UI 2.0 (client/boat/radiopanel.ts): кнопка «Радио» (R) — в ряду Z G R (ownboats.css), панель —
+   .k-panel.fi-radio над рядом. Готовые правила панели (.fi-radio .fi-radio-h .fi-station .fi-radio-row) — в client/lobby/fishkit.css;
+   здесь только то, чего там нет: порядок в слоте, эквалайзер по звуку, строка «кто управляет». */
+
+/* панель стоит над рядом кнопок и под карточкой улова */
+.k-slot--br > .fi-radio { order: 8; }
+.fi-radio[hidden] { display: none; }
+
+/* кнопка: пока радио играет, в ней бегут полоски (кит) */
+.br-chip .k-eq { align-self: center; height: 14px; margin-left: 2px; }
+.br-chip .k-eq[hidden] { display: none; }
+.br-chip .k-eq > i { background: currentColor; }
+
+/* станции: эквалайзер только у играющей; высоту полос по звуку ставит client/boat/radiopanel.ts (tick) */
+.fi-station .k-eq { display: none; height: 16px; }
+.fi-station.is-on .k-eq { display: inline-flex; }
+.fi-station .k-eq > i { height: 100%; animation: none; transform: scaleY(.2); transform-origin: 50% 100%; transition: transform .08s linear; }
+.fi-station:disabled { cursor: not-allowed; }
+
+/* переключатели: подпись слева, переключатель справа */
+.fi-radio > .k-switch { width: 100%; justify-content: space-between; }
+.fi-radio-row > .k-slider:disabled, .fi-radio .k-switch:has(> input:disabled) { opacity: .55; cursor: not-allowed; }
+
+/* строка «кто управляет»: 14 px; когда нельзя — красным, со значком замка */
+.fi-radio-note { display: flex; align-items: center; gap: 6px; margin: 0; color: var(--surf-dim); font: 500 var(--fs-14)/1.3 var(--font-text); }
+.fi-radio-note img { flex: none; width: 22px; height: 22px; object-fit: contain; }
+.fi-radio-note.locked { color: var(--bad-text); font-weight: 700; }
+.fi-radio-note.flash { animation: br-flash .5s ease-out; }
+@keyframes br-flash {
+  0%, 100% { transform: none; }
+  20% { transform: translateX(-5px); }
+  50% { transform: translateX(4px); }
+  75% { transform: translateX(-2px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fi-radio-note.flash { animation: none; }
+  .fi-station .k-eq > i { transition: none; }
+}

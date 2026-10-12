@@ -1,0 +1,138 @@
+/* Панель «Голос» (client/ui/voicepanel.ts): строки, ползунки, переключатели и кнопки — набор кита (.k-row, .k-slider,
+   .k-switch, .k-seg, .k-btn, .k-meter), как у остальных настроек меню. Здесь — только раскладка групп и списка людей. */
+
+.vp {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  color: var(--surf-text);
+  text-align: left;
+}
+
+.vp [hidden] {
+  display: none !important;
+}
+
+.vp-empty {
+  margin: 0;
+  color: var(--surf-dim);
+  font-size: var(--fs-14);
+}
+
+.vp-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.vp-status-line {
+  font-size: var(--fs-16);
+}
+
+.vp-status-line b {
+  margin-right: 4px;
+  font-size: var(--fs-18);
+  font-weight: 800;
+}
+
+.vp-hint {
+  margin: 6px 0 0;
+}
+
+.vp-alert {
+  align-self: flex-start;
+  white-space: normal;
+}
+
+.vp-alert:disabled {
+  cursor: default;
+}
+
+.vp-group > .mn-h {
+  margin: 0 0 2px;
+}
+
+/* строка «название — управление»: длинные пояснения не растягивают управление */
+.vp .k-row-ctl {
+  min-width: 0;
+}
+
+.vp-select {
+  flex: none;
+  min-width: 240px;
+  max-width: 320px;
+  height: 44px;
+}
+
+.vp-select option {
+  background: var(--surf-solid);
+  color: var(--surf-text);
+}
+
+/* уровень микрофона: полоса кита, без «следа» и без плавного хвоста — следует за голосом */
+.vp-meter {
+  width: 220px;
+}
+
+.vp-meter .k-meter-ghost {
+  display: none;
+}
+
+.vp-meter .k-meter-fill {
+  transition: width 60ms linear;
+}
+
+.vp-msg {
+  margin: 4px 0 2px;
+}
+
+/* люди: имя с состоянием слева, громкость и «заглушить» справа */
+.vp-people {
+  display: flex;
+  flex-direction: column;
+}
+
+.vp-person .k-row-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vp-person.talking .k-row-hint {
+  color: var(--good-text);
+}
+
+.vp-person.muted .k-row-title {
+  opacity: 0.6;
+}
+
+.vp-person .k-slider:disabled {
+  opacity: 0.45;
+}
+
+.vp-mute {
+  min-width: 104px;
+}
+
+.vp-mute[aria-pressed='true'] {
+  box-shadow: inset 0 0 0 2px var(--bad);
+}
+
+.vp-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+}
+
+.vp-note {
+  flex: 1 1 260px;
+  margin: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vp-meter .k-meter-fill {
+    transition: none;
+  }
+}

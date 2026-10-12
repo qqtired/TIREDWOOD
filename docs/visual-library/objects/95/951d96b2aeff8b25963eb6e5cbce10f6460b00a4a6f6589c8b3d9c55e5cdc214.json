@@ -1,0 +1,481 @@
+{
+  "date": "2026-10-12",
+  "seed": 7043,
+  "method": "Actual shared simulation, finished legal5+5 loadout, temper5, normal map collision/invulnerability, auto-pick healing if offered, no Q/dash/building effects. Stand/orbit6/retreat16 use normal HP. Contact2.6-registration uses10000HP solely to exercise all phase attacks; not balance/survival evidence. All input policies are synthetic, not a browser playtest or manual acceptance.",
+  "geometry": {
+    "hook": {
+      "every": 4.2,
+      "impact": 0.8333333333333334,
+      "recover": 2.2333333333333334,
+      "radius": 0.65,
+      "dmg": 14,
+      "right": 0.13684,
+      "forward": 1.22417
+    },
+    "chain": {
+      "every": 7,
+      "impact": 1.2666666666666666,
+      "impact2": 2.7666666666666666,
+      "recover": 5,
+      "radius": 0.216,
+      "dmg": 22,
+      "vuln": 1.25,
+      "interrupt": 0.12,
+      "right": -0.0266295,
+      "forward": 3.06,
+      "right2": 0.0266134,
+      "forward2": -3.063678,
+      "radius2": 0.216
+    },
+    "cauldron": {
+      "ladle": {
+        "impact": 1.3333333333333333,
+        "recover": 3.5,
+        "radius": 0.54,
+        "dmg": 24,
+        "right": -0.0363,
+        "forward": 1.9011
+      },
+      "ladle2": {
+        "impact": 1.3333333333333333,
+        "impact2": 2.8333333333333335,
+        "recover": 5.3,
+        "radius": 0.54,
+        "dmg": 24,
+        "right": -1.4671,
+        "forward": 1.2654,
+        "right2": 1.7061,
+        "forward2": 1.4824,
+        "radius2": 0.541
+      },
+      "pour": {
+        "impact": 1.2333333333333334,
+        "recover": 3.1333333333333333,
+        "width": 1.2,
+        "length": 14,
+        "radius": 1.8,
+        "dmg": 18
+      },
+      "boil": {
+        "impact": 1.5,
+        "recover": 3.5,
+        "inner": 4,
+        "radius": 8,
+        "dmg": 26
+      }
+    }
+  },
+  "rows": [
+    {
+      "build": "kite",
+      "policy": "stand",
+      "registrationOnly": false,
+      "ticks": 416,
+      "bossKilledAt": null,
+      "bossHp": 51412,
+      "heroHp": 0,
+      "heroHpMax": 100,
+      "heroDamageReceived": 117,
+      "end": "death",
+      "wave": 20,
+      "phases": {
+        "1": 0
+      },
+      "attacks": {
+        "pour": 3
+      },
+      "maxState": {
+        "mobs": 12,
+        "enemyCharges": 0,
+        "marks": 10,
+        "shots": 47,
+        "traps": 10
+      },
+      "weaponDamage": {
+        "embers": 11585.919999999993,
+        "spark": 887.4880000000002,
+        "lantern": 1753.6000000000004,
+        "pickaxe": 2641.920000000001
+      }
+    },
+    {
+      "build": "kite",
+      "policy": "orbit6",
+      "registrationOnly": false,
+      "ticks": 1634,
+      "bossKilledAt": 54.46666666666667,
+      "bossHp": 0,
+      "heroHp": 44,
+      "heroHpMax": 100,
+      "heroDamageReceived": 56,
+      "end": "running",
+      "wave": 21,
+      "phases": {
+        "1": 0,
+        "2": 19.966666666666665,
+        "3": 37.7
+      },
+      "attacks": {
+        "pour": 11,
+        "boil": 1
+      },
+      "maxState": {
+        "mobs": 12,
+        "enemyCharges": 0,
+        "marks": 11,
+        "shots": 47,
+        "traps": 10
+      },
+      "weaponDamage": {
+        "spark": 7825.6639999999925,
+        "lantern": 15283.20000000002,
+        "embers": 43987.19999999933,
+        "pickaxe": 1351.6799999999998,
+        "charges": 1912.6399999999994
+      }
+    },
+    {
+      "build": "kite",
+      "policy": "retreat16",
+      "registrationOnly": false,
+      "ticks": 416,
+      "bossKilledAt": null,
+      "bossHp": 58275,
+      "heroHp": 0,
+      "heroHpMax": 100,
+      "heroDamageReceived": 117,
+      "end": "death",
+      "wave": 20,
+      "phases": {
+        "1": 0
+      },
+      "attacks": {
+        "pour": 3
+      },
+      "maxState": {
+        "mobs": 12,
+        "enemyCharges": 0,
+        "marks": 10,
+        "shots": 47,
+        "traps": 10
+      },
+      "weaponDamage": {
+        "embers": 9536.000000000007,
+        "spark": 386.944
+      }
+    },
+    {
+      "build": "kite",
+      "policy": "contact2.6-registration",
+      "registrationOnly": true,
+      "ticks": 899,
+      "bossKilledAt": 29.966666666666665,
+      "bossHp": 0,
+      "heroHp": 9842,
+      "heroHpMax": 10000,
+      "heroDamageReceived": 258,
+      "end": "running",
+      "wave": 21,
+      "phases": {
+        "1": 0,
+        "2": 10.4,
+        "3": 21.333333333333332
+      },
+      "attacks": {
+        "ladle": 1,
+        "pour": 3,
+        "ladle2": 2
+      },
+      "maxState": {
+        "mobs": 12,
+        "enemyCharges": 0,
+        "marks": 10,
+        "shots": 47,
+        "traps": 10
+      },
+      "weaponDamage": {
+        "spark": 4367.743999999998,
+        "lantern": 7780.000000000003,
+        "embers": 24141.759999999806,
+        "pickaxe": 20198.39999999999,
+        "charges": 13828.800000000005
+      }
+    },
+    {
+      "build": "guard",
+      "policy": "stand",
+      "registrationOnly": false,
+      "ticks": 558,
+      "bossKilledAt": null,
+      "bossHp": 44737,
+      "heroHp": 0,
+      "heroHpMax": 200,
+      "heroDamageReceived": 228,
+      "end": "death",
+      "wave": 20,
+      "phases": {
+        "1": 0
+      },
+      "attacks": {
+        "pour": 4
+      },
+      "maxState": {
+        "mobs": 12,
+        "enemyCharges": 0,
+        "marks": 13,
+        "shots": 25,
+        "traps": 0
+      },
+      "weaponDamage": {
+        "beam": 3783.6799999999953,
+        "embers": 10571.52000000001,
+        "stalactites": 6482.560000000007,
+        "lantern": 2387.2000000000003,
+        "fireflies": 351.36
+      }
+    },
+    {
+      "build": "guard",
+      "policy": "orbit6",
+      "registrationOnly": false,
+      "ticks": 1639,
+      "bossKilledAt": 54.63333333333333,
+      "bossHp": 0,
+      "heroHp": 25,
+      "heroHpMax": 200,
+      "heroDamageReceived": 177,
+      "end": "running",
+      "wave": 21,
+      "phases": {
+        "1": 0,
+        "2": 19.2,
+        "3": 37.6
+      },
+      "attacks": {
+        "pour": 11,
+        "boil": 1
+      },
+      "maxState": {
+        "mobs": 12,
+        "enemyCharges": 0,
+        "marks": 12,
+        "shots": 25,
+        "traps": 0
+      },
+      "weaponDamage": {
+        "beam": 6067.199999999999,
+        "lantern": 8255.200000000003,
+        "stalactites": 21168.319999999967,
+        "embers": 31972.799999999563,
+        "fireflies": 3228.4800000000055
+      }
+    },
+    {
+      "build": "guard",
+      "policy": "retreat16",
+      "registrationOnly": false,
+      "ticks": 842,
+      "bossKilledAt": null,
+      "bossHp": 48308,
+      "heroHp": 0,
+      "heroHpMax": 200,
+      "heroDamageReceived": 204,
+      "end": "death",
+      "wave": 20,
+      "phases": {
+        "1": 0
+      },
+      "attacks": {
+        "pour": 6
+      },
+      "maxState": {
+        "mobs": 12,
+        "enemyCharges": 0,
+        "marks": 8,
+        "shots": 25,
+        "traps": 0
+      },
+      "weaponDamage": {
+        "beam": 3845.119999999996,
+        "embers": 15639.359999999999,
+        "stalactites": 496.00000000000006
+      }
+    },
+    {
+      "build": "guard",
+      "policy": "contact2.6-registration",
+      "registrationOnly": true,
+      "ticks": 1587,
+      "bossKilledAt": 52.9,
+      "bossHp": 0,
+      "heroHp": 9745,
+      "heroHpMax": 10000,
+      "heroDamageReceived": 320,
+      "end": "running",
+      "wave": 21,
+      "phases": {
+        "1": 0,
+        "2": 18.3,
+        "3": 36.06666666666667
+      },
+      "attacks": {
+        "ladle": 2,
+        "pour": 4,
+        "ladle2": 3,
+        "boil": 1
+      },
+      "maxState": {
+        "mobs": 12,
+        "enemyCharges": 0,
+        "marks": 12,
+        "shots": 25,
+        "traps": 0
+      },
+      "weaponDamage": {
+        "beam": 9210.880000000003,
+        "lantern": 7415.200000000003,
+        "stalactites": 20211.83999999997,
+        "embers": 30465.59999999964,
+        "fireflies": 3191.0400000000045
+      }
+    },
+    {
+      "build": "range",
+      "policy": "stand",
+      "registrationOnly": false,
+      "ticks": 416,
+      "bossKilledAt": null,
+      "bossHp": 49916,
+      "heroHp": 0,
+      "heroHpMax": 100,
+      "heroDamageReceived": 102,
+      "end": "death",
+      "wave": 20,
+      "phases": {
+        "1": 0
+      },
+      "attacks": {
+        "pour": 3
+      },
+      "maxState": {
+        "mobs": 12,
+        "enemyCharges": 0,
+        "marks": 13,
+        "shots": 25,
+        "traps": 0
+      },
+      "weaponDamage": {
+        "beam": 3409.9199999999964,
+        "embers": 7883.520000000012,
+        "stalactites": 4685.440000000004,
+        "lantern": 1561.6000000000001,
+        "spark": 856.6400000000001
+      }
+    },
+    {
+      "build": "range",
+      "policy": "orbit6",
+      "registrationOnly": false,
+      "ticks": 1462,
+      "bossKilledAt": null,
+      "bossHp": 5103,
+      "heroHp": 0,
+      "heroHpMax": 100,
+      "heroDamageReceived": 135,
+      "end": "death",
+      "wave": 20,
+      "phases": {
+        "1": 0,
+        "2": 18.666666666666668,
+        "3": 36.06666666666667
+      },
+      "attacks": {
+        "pour": 10,
+        "boil": 1
+      },
+      "maxState": {
+        "mobs": 12,
+        "enemyCharges": 0,
+        "marks": 12,
+        "shots": 25,
+        "traps": 0
+      },
+      "weaponDamage": {
+        "beam": 5785.599999999998,
+        "lantern": 7035.200000000001,
+        "stalactites": 17778.24000000001,
+        "spark": 6566.246399999993,
+        "embers": 27842.23999999968
+      }
+    },
+    {
+      "build": "range",
+      "policy": "retreat16",
+      "registrationOnly": false,
+      "ticks": 416,
+      "bossKilledAt": null,
+      "bossHp": 57084,
+      "heroHp": 0,
+      "heroHpMax": 100,
+      "heroDamageReceived": 102,
+      "end": "death",
+      "wave": 20,
+      "phases": {
+        "1": 0
+      },
+      "attacks": {
+        "pour": 3
+      },
+      "maxState": {
+        "mobs": 12,
+        "enemyCharges": 0,
+        "marks": 8,
+        "shots": 25,
+        "traps": 0
+      },
+      "weaponDamage": {
+        "beam": 3205.119999999997,
+        "embers": 7503.360000000013,
+        "stalactites": 496.00000000000006
+      }
+    },
+    {
+      "build": "range",
+      "policy": "contact2.6-registration",
+      "registrationOnly": true,
+      "ticks": 1514,
+      "bossKilledAt": 50.46666666666667,
+      "bossHp": 0,
+      "heroHp": 9826,
+      "heroHpMax": 10000,
+      "heroDamageReceived": 274,
+      "end": "running",
+      "wave": 21,
+      "phases": {
+        "1": 0,
+        "2": 17.666666666666668,
+        "3": 34.53333333333333
+      },
+      "attacks": {
+        "ladle": 2,
+        "pour": 4,
+        "ladle2": 2,
+        "boil": 1
+      },
+      "maxState": {
+        "mobs": 12,
+        "enemyCharges": 0,
+        "marks": 13,
+        "shots": 25,
+        "traps": 0
+      },
+      "weaponDamage": {
+        "beam": 8709.120000000006,
+        "lantern": 6956.800000000002,
+        "stalactites": 18953.599999999988,
+        "spark": 6534.463999999994,
+        "embers": 29111.35999999967
+      }
+    }
+  ]
+}

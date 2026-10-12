@@ -1,0 +1,17 @@
+{
+  "status": "PASS",
+  "before": "r2-06",
+  "after": "r2-07",
+  "geometryUVIdentical": true,
+  "unchangedOriginalClips": {
+    "canopy_idle": true,
+    "canopy_walk": true,
+    "canopy_windup": true,
+    "canopy_attack": true,
+    "canopy_recover": true,
+    "canopy_hit": true,
+    "canopy_death": true,
+    "canopy_open": true
+  },
+  "sha256": "da211a74ffa180edc8ce5f532dd595015776ff8373456d7fa9bf1f2d522b986a"
+}

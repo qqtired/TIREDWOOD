@@ -1,0 +1,18 @@
+/* Последние ставки рулетки в окне ставки (то же, что на табло на баркасе, коротко): строка — кружок выпавшего числа,
+   ник, на что и сколько поставил, итог «+N 🪙» зелёным или «−N» красным; своя строка — золотом. */
+.fe-rl-recent { margin-top: 8px; padding: 6px 10px; border-radius: 11px; background: rgba(236,229,204,.06); }
+.fe-rl-recent[hidden] { display: none; }
+.fe-rl-rhead { margin: 0 0 3px; font: 800 12px/1.3 Rubik, system-ui, sans-serif; letter-spacing: .04em; text-transform: uppercase; color: #bfc7ad; }
+.fe-rl-rrow { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto auto; align-items: center; gap: 4px 8px; padding: 1px 4px; border-radius: 7px; font: 600 13px/1.15 Rubik, system-ui, sans-serif; color: #f6ecd0; }
+.fe-rl-rrow.mine { background: rgba(255,212,92,.16); }
+.fe-rl-rrow.mine .fe-rl-rnick { color: #ffd45c; }
+.fe-rl-rdot { display: grid; place-items: center; width: 22px; height: 22px; box-sizing: border-box; border-radius: 50%; border: 2px solid #f2e6c4; color: #fff; font: 800 11px/1 Rubik, system-ui, sans-serif; background: #1e7a3d; }
+.fe-rl-rdot.red, .fe-rl-rbet.red { background: #b3262b; }
+.fe-rl-rdot.black, .fe-rl-rbet.black { background: #2a2a31; }
+.fe-rl-rdot.green, .fe-rl-rbet.green { background: #1e7a3d; }
+.fe-rl-rnick { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+.fe-rl-rbet { padding: 1px 9px; border-radius: 999px; border: 1px solid rgba(255,255,255,.28); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fe-rl-rres { min-width: 64px; text-align: right; font: 800 14px/1.3 Rubik, system-ui, sans-serif; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fe-rl-rres.win { color: #7ee59b; }
+.fe-rl-rres.loss { color: #ff8577; }
+.fe-rl-rres .coin { width: 14px; height: 14px; vertical-align: -2px; margin-left: 2px; }

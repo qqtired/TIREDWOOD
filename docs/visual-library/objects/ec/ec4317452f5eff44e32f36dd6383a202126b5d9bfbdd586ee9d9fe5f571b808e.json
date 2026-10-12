@@ -1,0 +1,9 @@
+{
+  "status": "PASS",
+  "id": "ropecrab",
+  "before": "r2-06",
+  "after": "r2-07",
+  "geometryUVIdentical": true,
+  "finalTwoDeathIntervalMaxComponentDelta": 0,
+  "sha256": "8cad56396653cfa2b49aa9885cc6d42949a782be2927e0cd61ded48b36c712c0"
+}

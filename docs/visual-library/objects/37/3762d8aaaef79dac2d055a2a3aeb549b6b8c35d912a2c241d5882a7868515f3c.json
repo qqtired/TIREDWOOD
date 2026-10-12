@@ -1,0 +1,11 @@
+{
+  "id": "03-crab-boss",
+  "code": 0,
+  "thread": "01a12cc7-f597-7fe2-9f63-bae508c579de",
+  "seconds": 55,
+  "original": "../../../../../../../unavailable.html",
+  "copied": "../../originals/03-crab-boss.png",
+  "tool": "Codex CLI built-in image_gen",
+  "model": "gpt-6.1-sol",
+  "created": "2026-10-11T21:05:19.767Z"
+}

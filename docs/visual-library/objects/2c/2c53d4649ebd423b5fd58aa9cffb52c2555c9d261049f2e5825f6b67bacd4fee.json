@@ -1,0 +1,66 @@
+{
+  "case": "wave18-range",
+  "type": "normalHP",
+  "seed": 704302,
+  "accelerated": true,
+  "initialHash": 2076743752,
+  "edits": [
+    "skip to wave18",
+    "assume previous 17 waves for local fixture counters",
+    "finished legal5+5 inventory and temper5 supplied by setup, not earned"
+  ],
+  "seconds": 30,
+  "normalHP": true,
+  "heroHp": 100,
+  "weapons": [
+    {
+      "id": "lantern",
+      "lv": 7,
+      "evo": 1
+    },
+    {
+      "id": "embers",
+      "lv": 7,
+      "evo": 1
+    },
+    {
+      "id": "spark",
+      "lv": 7,
+      "evo": 1
+    },
+    {
+      "id": "stalactites",
+      "lv": 7,
+      "evo": 1
+    },
+    {
+      "id": "beam",
+      "lv": 7,
+      "evo": 1
+    }
+  ],
+  "passives": [
+    {
+      "id": "might",
+      "lv": 5
+    },
+    {
+      "id": "armor",
+      "lv": 5
+    },
+    {
+      "id": "area",
+      "lv": 5
+    },
+    {
+      "id": "cooldown",
+      "lv": 5
+    },
+    {
+      "id": "magnet",
+      "lv": 5
+    }
+  ],
+  "source": "original game.d.makeRun returned actual run; setup before first view/hash",
+  "receivedAt": 581635.799999997
+}

@@ -1,0 +1,59 @@
+/* Голос в игре (client/ui/voice.ts): кнопка — .k-voice в строке дока чата (client/chat.ts, .k-slot--bl), над строкой —
+   «Сейчас говорят» (.k-speaking) и короткая подсказка. В доке .voice-hud — display: contents: кнопка и столбик — ячейки
+   сетки строки чата (раскладка дока — styles.css, .pz-dock). Пока открыто модальное окно (<dialog>), кнопка живёт в нём —
+   слева внизу (правила ниже без дока). Цвета — только токены кита. */
+.voice-hud[hidden], .voice-hud [hidden] { display: none !important; }
+.voice-hud { position: fixed; z-index: 5; left: 16px; bottom: 16px; display: flex; align-items: flex-end; gap: 10px; pointer-events: none; text-align: left; }
+.k-chat-bar > .voice-hud { display: contents; }
+.voice-side { display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-end; gap: 6px; min-width: 0; }
+.voice-speakers { margin: 0; padding: 0; list-style: none; pointer-events: none; }
+.voice-speaker { max-width: 220px; overflow: hidden; animation: voice-in 180ms ease-out both; transition: opacity 170ms ease, transform 170ms ease; }
+/* свой — тот же вид, золотая рамка */
+.voice-speaker[data-self] { box-shadow: var(--chat-shadow), inset 0 0 0 1.5px var(--gold); }
+.voice-speaker[data-out] { opacity: 0; transform: translateX(-8px); animation: none; }
+.voice-more { color: var(--surf-dim); animation: none; }
+.voice-speaker-icon { flex: none; display: grid; place-items: center; width: 16px; height: 16px; color: var(--good-text); }
+.voice-speaker-icon svg { display: block; width: 16px; height: 16px; overflow: visible; }
+.voice-speaker-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+/* волны: в такт голосу (--lvl 0…1 из client/ui/voice.ts), без уровня — спокойно дышат */
+.voice-speaker .vw1, .voice-speaker .vw2 { transform-box: fill-box; transform-origin: 0 50%; transition: opacity 90ms linear, transform 90ms linear; }
+.voice-speaker[data-lvl='live'] .vw1 { opacity: calc(0.35 + var(--lvl, 0) * 0.65); transform: scale(calc(0.85 + var(--lvl, 0) * 0.2)); }
+.voice-speaker[data-lvl='live'] .vw2 { opacity: calc(0.12 + var(--lvl, 0) * 0.88); transform: scale(calc(0.8 + var(--lvl, 0) * 0.28)); }
+.voice-speaker[data-lvl='calm'] .vw1 { animation: voice-wave 1.6s ease-in-out infinite; }
+.voice-speaker[data-lvl='calm'] .vw2 { animation: voice-wave 1.6s ease-in-out 0.25s infinite; }
+.voice-tip { max-width: 300px; margin: 0; padding: 5px 10px; font: 500 var(--fs-13)/1.35 var(--font-text); }
+/* кнопка: вид — .k-voice кита (is-live — говоришь, is-muted — выключено/ошибка); здесь — поведение и особые состояния */
+.voice-hold { flex: none; font: inherit; pointer-events: auto; user-select: none; -webkit-user-select: none; touch-action: none; transition: filter 140ms, transform 140ms; }
+.voice-hold > :is(svg, img) { grid-area: 1 / 1; display: block; pointer-events: none; }
+.voice-hold > img { width: 30px; height: 30px; object-fit: contain; filter: drop-shadow(0 2px 2px rgba(20, 10, 12, .3)); }
+.voice-hold .voice-speaker-off { display: none; }
+.voice-hold[data-state='blocked'] > :first-child { display: none; }
+.voice-hold[data-state='blocked'] .voice-speaker-off { display: block; }
+.voice-hold[data-state='off'] { opacity: .75; }
+.voice-hold[data-state='listen'] { color: var(--surf-dim); }
+.voice-hold[data-state='talking'] { transform: scale(.96); }
+.voice-hold[data-state='blocked'] { background: var(--gold); color: var(--gold-ink); animation: voice-nudge 1.6s ease-in-out infinite; }
+.voice-hold[data-state='connecting']::after, .voice-hold[data-state='requesting']::after { content: ''; position: absolute; inset: -5px; border: 2px solid transparent; border-top-color: var(--gold-text); border-radius: 50%; animation: voice-connect 1.3s linear infinite; }
+.voice-hold:disabled { cursor: default; }
+.voice-hold:hover:not(:disabled) { filter: brightness(1.08); }
+.voice-hold:focus-visible { outline: none; box-shadow: var(--plate-shadow), var(--focus); }
+.touch .voice-key { display: none; }
+@keyframes voice-connect { to { transform: rotate(360deg); } }
+@keyframes voice-nudge { 50% { box-shadow: var(--plate-shadow), 0 0 0 6px var(--gold-soft); } }
+@keyframes voice-in { from { opacity: 0; transform: translateX(-8px); } }
+@keyframes voice-wave { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .voice-hold { transition: none; }
+  .voice-speaker { animation: none; transition: none; }
+  .voice-speaker .vw1, .voice-speaker .vw2 { animation: none !important; transition: none; }
+  .voice-hold[data-state='blocked'] { animation: none; }
+  .voice-hold[data-state='connecting']::after, .voice-hold[data-state='requesting']::after { animation: none; border-style: dashed; border-color: var(--gold-text); }
+}
+/* в окне на телефоне — выше джойстика */
+@media (pointer: coarse) {
+  .voice-hud { bottom: max(166px, calc(env(safe-area-inset-bottom) + 150px)); }
+}
+@media (forced-colors: active) {
+  .voice-hud :focus-visible { outline: 2px solid Highlight; }
+  .voice-hold:disabled { color: GrayText; opacity: 1; }
+}

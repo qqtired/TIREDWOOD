@@ -1,0 +1,314 @@
+{
+  "id": "canopy",
+  "background": true,
+  "blender": "5.2.2 LTS",
+  "pid": 87358,
+  "transport": "native MCP execute_blender_code; existing unchanged command handlers",
+  "summary": {
+    "triangles": 2860,
+    "materials": 5,
+    "meshPrimitives": 34,
+    "textures": 0,
+    "images": 0,
+    "clips": [
+      {
+        "name": "canopy_idle",
+        "seconds": 2.0,
+        "runtimeDuration": 2.041667,
+        "inputStart": 0.041667,
+        "inputEnd": 2.041667,
+        "channels": 57
+      },
+      {
+        "name": "canopy_walk",
+        "seconds": 1.0,
+        "runtimeDuration": 1.041667,
+        "inputStart": 0.041667,
+        "inputEnd": 1.041667,
+        "channels": 57
+      },
+      {
+        "name": "canopy_windup",
+        "seconds": 1.833333,
+        "runtimeDuration": 1.875,
+        "inputStart": 0.041667,
+        "inputEnd": 1.875,
+        "channels": 57
+      },
+      {
+        "name": "canopy_attack",
+        "seconds": 0.833333,
+        "runtimeDuration": 0.875,
+        "inputStart": 0.041667,
+        "inputEnd": 0.875,
+        "channels": 57
+      },
+      {
+        "name": "canopy_recover",
+        "seconds": 1.833333,
+        "runtimeDuration": 1.875,
+        "inputStart": 0.041667,
+        "inputEnd": 1.875,
+        "channels": 57
+      },
+      {
+        "name": "canopy_hit",
+        "seconds": 0.583333,
+        "runtimeDuration": 0.625,
+        "inputStart": 0.041667,
+        "inputEnd": 0.625,
+        "channels": 57
+      },
+      {
+        "name": "canopy_death",
+        "seconds": 2.833333,
+        "runtimeDuration": 2.875,
+        "inputStart": 0.041667,
+        "inputEnd": 2.875,
+        "channels": 57
+      },
+      {
+        "name": "canopy_open",
+        "seconds": 2.0,
+        "runtimeDuration": 2.041667,
+        "inputStart": 0.041667,
+        "inputEnd": 2.041667,
+        "channels": 57
+      },
+      {
+        "name": "canopy_canopy_break",
+        "seconds": 2.833333,
+        "runtimeDuration": 2.875,
+        "inputStart": 0.041667,
+        "inputEnd": 2.875,
+        "channels": 57
+      },
+      {
+        "name": "canopy_cover_disabled",
+        "seconds": 2.0,
+        "runtimeDuration": 2.041667,
+        "inputStart": 0.041667,
+        "inputEnd": 2.041667,
+        "channels": 57
+      }
+    ],
+    "nodes": 39,
+    "bytes": 500048,
+    "sha256": "da211a74ffa180edc8ce5f532dd595015776ff8373456d7fa9bf1f2d522b986a",
+    "binSHA256": "c2a22720a1137eebf694a3f6aa2a54ba617962a2cddbb185fee74d26e0640fb6"
+  },
+  "authored": [
+    {
+      "name": "canopy_idle",
+      "requestedSeconds": 2,
+      "keySeconds": 2.0,
+      "frames": 49
+    },
+    {
+      "name": "canopy_walk",
+      "requestedSeconds": 1,
+      "keySeconds": 1.0,
+      "frames": 25
+    },
+    {
+      "name": "canopy_windup",
+      "requestedSeconds": 1.8,
+      "keySeconds": 1.8333333333333333,
+      "frames": 45
+    },
+    {
+      "name": "canopy_attack",
+      "requestedSeconds": 0.8,
+      "keySeconds": 0.8333333333333334,
+      "frames": 21
+    },
+    {
+      "name": "canopy_recover",
+      "requestedSeconds": 1.8,
+      "keySeconds": 1.8333333333333333,
+      "frames": 45
+    },
+    {
+      "name": "canopy_hit",
+      "requestedSeconds": 0.55,
+      "keySeconds": 0.5833333333333334,
+      "frames": 15
+    },
+    {
+      "name": "canopy_death",
+      "requestedSeconds": 2.8,
+      "keySeconds": 2.8333333333333335,
+      "frames": 69
+    },
+    {
+      "name": "canopy_open",
+      "requestedSeconds": 2,
+      "keySeconds": 2.0,
+      "frames": 49
+    },
+    {
+      "name": "canopy_canopy_break",
+      "requestedSeconds": 2.8,
+      "keySeconds": 2.8333333333333335,
+      "frames": 69
+    },
+    {
+      "name": "canopy_cover_disabled",
+      "requestedSeconds": 2,
+      "keySeconds": 2.0,
+      "frames": 49
+    }
+  ],
+  "source": "[LOCAL_PATH]",
+  "sourceSHA256": "59f2055740ec875aa6e7cf1f6cd30fb16e0d35619b4076408e786bd6f4832add",
+  "storyboardSHA256": "6f724b8710b29bd8b3a3d80105cbd0e7ce720b826ad2403ddab2a9e11a20ce4f",
+  "reference": "../../../../../v1/art/originals/01-mobs.png",
+  "referenceSHA256": "c6df3db8168aad218b9006c165210c9bab2c2ccf3b43c485512b567b56f8a64c",
+  "anchors": {
+    "footL": [
+      -0.20000000298023224,
+      -0.07000000029802322,
+      0.07100000232458115
+    ],
+    "footR": [
+      0.20000000298023224,
+      -0.07000000029802322,
+      0.07100000232458115
+    ]
+  },
+  "storyboard": {
+    "id": "canopy",
+    "windup": 1.8,
+    "attack": 0.8,
+    "death": 2.8,
+    "silhouette": "Crooked organic stem, uneven heavy cap, real underside ribs and hinge lock, root boots",
+    "events": [
+      [
+        0,
+        "frame_lock_snap"
+      ],
+      [
+        0.4,
+        "rib_fold_1"
+      ],
+      [
+        0.65,
+        "rib_fold_2"
+      ],
+      [
+        0.9,
+        "rib_fold_3"
+      ],
+      [
+        1.15,
+        "rib_fold_4"
+      ],
+      [
+        1.4,
+        "stem_spring_compress"
+      ],
+      [
+        1.9,
+        "stem_retract"
+      ],
+      [
+        2.25,
+        "jam_drops_settle"
+      ],
+      [
+        2.8,
+        "root_boots_remain"
+      ]
+    ],
+    "deathStages": [
+      [
+        0,
+        0.4,
+        "Hinged underside lock snaps free"
+      ],
+      [
+        0.4,
+        1.4,
+        "Ribs fold sequentially; heavy cap lowers as an umbrella"
+      ],
+      [
+        1.4,
+        2.8,
+        "Stem compresses and retreats below cap; root boots and settling drops remain"
+      ]
+    ],
+    "attackEvents": [
+      [
+        0,
+        "roots_brace"
+      ],
+      [
+        0.16,
+        "cap_front_tilt"
+      ],
+      [
+        0.26,
+        "ribs_spread"
+      ],
+      [
+        0.36,
+        "canopy_push_contact"
+      ],
+      [
+        0.64,
+        "rib_recoil"
+      ],
+      [
+        0.8,
+        "lock_exposed"
+      ]
+    ],
+    "measure": {
+      "plantDriftMaxM": 0.02,
+      "minimumFloorY": -0.025,
+      "sequentialRibDelayMinS": 0.16,
+      "bootsMustRemainAtEnd": true,
+      "capAboveBootsAtRest": true
+    },
+    "reviewSeconds": [
+      0,
+      0.4,
+      0.9,
+      1.4,
+      1.9,
+      2.8
+    ],
+    "livingCoverStages": [
+      [
+        0,
+        0.55,
+        "Lock visibly unlatched; cover hub settles onto upper carrier support; carrier stays alive"
+      ],
+      [
+        0.1,
+        2.3,
+        "Eight real rib hinges invert cap sectors into a narrow broken cover"
+      ],
+      [
+        2.3,
+        2.833333,
+        "Broken cover holds; living carrier is preserved"
+      ],
+      [
+        2.833333,
+        "loop2s",
+        "cover_disabled keeps narrow cover with carrier blinking; right group is unchanged"
+      ]
+    ],
+    "livingCoverContract": {
+      "coverBreak": "canopy_canopy_break",
+      "coverDisabled": "canopy_cover_disabled",
+      "requestedBreakSeconds": 2.8,
+      "expectedKeySpanSeconds": 2.833333,
+      "disabledLoopKeySeconds": 2,
+      "coverageLost": "start of coverBreak after one-second player shot",
+      "status": "SOURCE ONLY; native07 export and checks pending",
+      "jointProof": "Actual individual rib hinges remain attached to moving hub port"
+    }
+  }
+}

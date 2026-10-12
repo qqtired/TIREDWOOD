@@ -1,0 +1,1179 @@
+{
+  "date": "2026-10-07",
+  "timezone": "Europe/Moscow",
+  "commit": "8146e57c1992d549d3a20b51195069b5c7b29573",
+  "build": "e4a883292820e541987a514bde92fc30f6c69c501b7e5dc7ffe584f1541f267f",
+  "scope": "Read-only review. Native FPS baseline matches reconstructed immutable build. Parallel wardrobe work is outside the baseline; current full gate also checked separately.",
+  "findings": [
+    {
+      "id": "Q1",
+      "severity": "P1",
+      "confidence": "high; synthetic offline reproduction plus exact global loop guard",
+      "type": "correctness/lifecycle",
+      "title": "Последний игрок уходит — крысиные бега и рулетка перестают рассчитывать ставки",
+      "path": "server/hub.ts",
+      "lines": [
+        366,
+        367
+      ],
+      "relatedLocations": [
+        {
+          "path": "server/main.ts",
+          "lines": [
+            367,
+            371
+          ]
+        },
+        {
+          "path": "server/hub.ts",
+          "lines": [
+            1073,
+            1077
+          ]
+        },
+        {
+          "path": "server/lobby/ratrace.ts",
+          "lines": [
+            64,
+            66
+          ]
+        },
+        {
+          "path": "server/lobby/roulette.ts",
+          "lines": [
+            80,
+            82
+          ]
+        }
+      ],
+      "evidence": "Hub.active includes card tables/director/billiards but excludes ratrace.busy and roulette.busy. main.loop returns when !hub.active before calling Hub.step. The narrower Hub.step guard already accounts for both betting games, so it never gets reached. Synthetic RatTrack bet20 then final Hub.disconnect yielded trackBusy=true, hubActive=false, phase=open and escrow20 after advancing wall-clock60s and applying actual main-loop active guard. Existing ratrace test helper advance() calls hub.step unconditionally, bypassing this boundary.",
+      "trigger": "Единственный/последний онлайн игрок ставит на крысу либо в рулетке и полностью выходит до расчёта; остальные комнаты и активные карточные столы пусты.",
+      "consequence": "Раунд и залог зависают до следующего входа; при рестарте вернётся исходная ставка вместо результата. Это не доказанная безвозвратная потеря денег, а нарушенный обещанный расчёт даже после выхода.",
+      "proposal": "Включить оба busy в единый предикат жизнеспособности хаба и переиспользовать его в запуске/остановке цикла. Небольшой тест последнего disconnect должен идти через тот же внешний guard, что main.loop.",
+      "validationNeeded": "Объектный интеграционный тест RatTrack и RouletteTable: все клиенты ушли, wall-clock прошёл дедлайн, глобальный цикл продолжился, итог записан один раз и escrow очищен. Отдельно проверить остановку после завершения.",
+      "domain": "quality",
+      "proof": "Воспроизведено",
+      "observation": "RatTrack busy=true после последнего disconnect, Hub.active=false; внешний loop guard не вызывает step, escrow остаётся. Рулетка имеет такое же отсутствие в предикате; её полный сценарий отдельно не запускался.",
+      "source": "./frozen-source/server/hub.ts",
+      "priority": "first"
+    },
+    {
+      "id": "Q2",
+      "severity": "P1",
+      "confidence": "high; reproduced for ratrace; roulette shares explicit omission",
+      "type": "operations/lifecycle",
+      "title": "/health считает незавершённый денежный розыгрыш безопасным для выкладки",
+      "path": "server/hub.ts",
+      "lines": [
+        1106,
+        1113
+      ],
+      "relatedLocations": [
+        {
+          "path": "deploy.sh",
+          "lines": [
+            16,
+            25
+          ]
+        },
+        {
+          "path": "server/profiles.ts",
+          "lines": [
+            96,
+            105
+          ]
+        }
+      ],
+      "evidence": "health.busy sums mode humans, card tables, director, billiards and plane, but excludes roulette.busy/ratrace.busy. deploy.sh chooses health.busy to decide interruption safety. Offline reproduction returned healthBusy=0 during live RatTrack open phase with an online bettor and escrow20. Not merely the final-player Q1 case: release guard is wrong while bettor remains online.",
+      "trigger": "На сервере только площадь; идут крысиные ставки/забег либо рулетка, других busy режимов нет; штатная выкладка спрашивает /health.",
+      "consequence": "Штатная выкладка способна прервать розыгрыш, хотя пользователь не разрешал FORCE. Startup refund protects исходную ставку, но выигрыш/результат и анимация обрываются.",
+      "proposal": "Добавить оба незавершённых розыгрыша в busy и закрепить одну явную политику незавершённых денежных операций для active/health/shutdown.",
+      "validationNeeded": "Негативные тесты health.busy в open/run/spin и положительный idle; тест deploy gate с этим ответом. Production state не проверен.",
+      "domain": "quality",
+      "proof": "Воспроизведено",
+      "observation": "health.busy=0 во время незавершённой ставки на крысу даже с игроком online. deploy.sh использует это поле как защиту от прерывания. Это локальный репро, не наблюдение боевого релиза.",
+      "source": "./frozen-source/server/hub.ts",
+      "priority": "first"
+    },
+    {
+      "id": "Q4",
+      "severity": "P1",
+      "confidence": "high for unhandled path; full live process crash not launched",
+      "type": "reliability/storage",
+      "title": "Сбой записи Store выходит неперехваченным из игрового ввода или тика",
+      "path": "server/store.ts",
+      "lines": [
+        357,
+        364
+      ],
+      "relatedLocations": [
+        {
+          "path": "server/store.ts",
+          "lines": [
+            388,
+            390
+          ]
+        },
+        {
+          "path": "server/main.ts",
+          "lines": [
+            303,
+            320
+          ]
+        },
+        {
+          "path": "server/main.ts",
+          "lines": [
+            376,
+            379
+          ]
+        },
+        {
+          "path": "server/profiles.ts",
+          "lines": [
+            292,
+            302
+          ]
+        }
+      ],
+      "evidence": "Debounced timer calls flush without catch; reserve/settle methods mutate memory, call flush, and propagate its Error; main message callback and tick callback call hub without an error boundary. Synthetic primary write failure (state.json.tmp replaced by directory) produced Error, in-memory balance80/escrow20, primary balance100. No runtime rollback for escrow, unlike grantSet's primaryRevision handling (profiles.ts615–624). Ordinary Node unhandled callback exception would terminate process; reviewer did not start a live server.",
+      "trigger": "ENOSPC/permission/I/O failure or backup-write failure during ordinary save, paid action or result tick.",
+      "consequence": "Один временный сбой диска может оборвать все комнаты. Невыплаченные escrow возвратятся после старта, но до секунды отложенных наград/прогресса других игроков не гарантированы. Backup failure after primary rename also gets presented as action failure despite already committed data.",
+      "proposal": "Прописать безопасную политику: различать primary committed / backup failed, остановить новые денежные операции при primary failure, сообщить health degraded, повторить pending save с ограничением и выполнить контролируемое завершение если запись не восстанавливается. Не добавлять blind catch, который продолжит выдавать незаписанные выигрыши.",
+      "validationNeeded": "Failure injection на reserve, settlement и debounce; отдельный отказ до rename и после primary commit. Проверить all-or-nothing баланс/escrow и управляемый operational boundary, не только Store.flush unit-test.",
+      "domain": "quality",
+      "proof": "Воспроизведён отказ I/O",
+      "observation": "Синтетический отказ primary write: exception, tokens в памяти 80, на диске 100, escrow в памяти 20. Exception выходит из callbacks без error boundary. Падение живого процесса специально не запускалось.",
+      "source": "./frozen-source/server/store.ts",
+      "priority": "first"
+    },
+    {
+      "id": "Q5",
+      "severity": "P2",
+      "confidence": "high structure; latency/scaling magnitude unmeasured",
+      "type": "optimization/persistence",
+      "title": "Каждая ставка и выплата синхронно переписывает все профили и делает fsync в общем потоке",
+      "path": "server/profiles.ts",
+      "lines": [
+        543,
+        560
+      ],
+      "relatedLocations": [
+        {
+          "path": "server/store.ts",
+          "lines": [
+            375,
+            387
+          ]
+        },
+        {
+          "path": "server/store.ts",
+          "lines": [
+            408,
+            417
+          ]
+        },
+        {
+          "path": "server/lobby/ratrace.ts",
+          "lines": [
+            137,
+            150
+          ]
+        },
+        {
+          "path": "server/lobby/roulette.ts",
+          "lines": [
+            154,
+            167
+          ]
+        },
+        {
+          "path": "server/lobby/blackjack.ts",
+          "lines": [
+            278,
+            295
+          ]
+        }
+      ],
+      "evidence": "Every reserve/settle flush JSON.stringify(state) + synchronous write/fsync/rename of the full profile array. RatTrack, roulette and Blackjack settle each bettor separately in one tick. N payouts therefore incur N full-state writes/fsyncs instead of one; primaryRevision increments per payout. An interruption between committed payouts leaves a partially settled event; remaining escrow refunds stake at restart. Durak already uses batch reserve/settle, proving a local existing pattern.",
+      "trigger": "Растёт число сохранённых профилей или несколько людей ставят/получают результат одновременно; день первой записи дополнительно пишет backup.",
+      "consequence": "Потенциальный общий jitter в движении/командах всех режимов и лишнее disk I/O; результат одного общего события может частично сохраниться до аварии. Не доказано, что текущая небольшая компания уже упирается в это.",
+      "proposal": "Начать с batch settlement целого RatTrack/roulette/Blackjack события одним durable snapshot по образцу Durak, сохранив reserve durability before acknowledgment. Измерить fsync/JSON p95/p99 на синтетической копии до решения о отдельном writer/journal.",
+      "validationNeeded": "Синтетические 64/1000/10000 профилей и 1/8/32 ставки; tick/event-loop latency и число disk commits, invariant выплаты/escrow после fail injection. Writer/thread/БД не нужны без измеренного остаточного bottleneck.",
+      "domain": "quality",
+      "proof": "Замерено + код",
+      "observation": "Настоящие Profiles.settleRat/Store: 8 выплат — медиана 38 мс / 8 записей; 32 — 158 мс / 32 записи; 64 — 334 мс / 64 записи. По три повтора, искусственные профили и локальный диск. Это не время записи на VPS.",
+      "source": "./frozen-source/server/profiles.ts",
+      "priority": "first"
+    },
+    {
+      "id": "net-01",
+      "severity": "P2",
+      "confidence": "verified offline reproduction",
+      "title": "Возврат в прятки теряет изменения предметов, прошедшие без связи",
+      "path": "server/hide/game.ts",
+      "lines": [
+        545,
+        563
+      ],
+      "related": [
+        {
+          "path": "shared/link.ts",
+          "lines": [
+            9,
+            13
+          ]
+        },
+        {
+          "path": "server/link.ts",
+          "lines": [
+            49,
+            54
+          ]
+        },
+        {
+          "path": "server/hub.ts",
+          "lines": [
+            593,
+            610
+          ]
+        }
+      ],
+      "evidence": "hide_state содержит дельту к p.sent, а не полный заменяемый снимок. view изменяет p.sent до вызова sink; SessionLink при detach выбрасывает volatile hide_state. В Hub.resume отсутствует reset sentEpoch/room full resync. Настоящие HideGame.send/SessionLink, hideSetup(2)/toSeek: initial full=true, prop x=110cm; detach; prop x+=200cm; send; attach; send => actual x310cm, resumed full=false,p=[], pending=0.",
+      "trigger": "Сеть оборвалась, за время обрыва предмет переместился и остановился либо исчез. Hub сохраняет ту же комнату/HidePlayer, затем возвращает сокет без пересоздания сцены.",
+      "consequence": "Клиент после успешного reconnect сохраняет старое место или отсутствующий предмет до следующего изменения/смены epoch. В прятках это влияет на поиск и точность выстрелов.",
+      "proposal": "Короткий room resume hook: для HidePlayer сбросить sentEpoch и отправить полный snapshot после attach. Долгосрочно — baseline generation/ack для дельт. Не добавлять слепое отбрасывание hide_state по давлению.",
+      "validationNeeded": "Два клиента: reconnect hunter, пока prop перемещается и останавливается; отдельно поймать prop во время обрыва. Проверить полный снимок после replay и отсутствие утечки скрытых предметов в blind phase. Offline воспроизведение сделано; браузер/runtime не запускались.",
+      "tradeoffs": "Полный resync коротко увеличивает payload; требуется сохранить blind/role visibility, порядок replay и server-authoritative phase. Простое внесение hide_state в reliable replay увеличит трафик и не решает произвольный baseline skip.",
+      "domain": "net",
+      "proof": "Воспроизведено",
+      "observation": "Независимый повтор: предмет изменился 110 → 310 см во время detach; после attach full=false, p=[], pending=0. Проверены реальные HideGame и SessionLink; полный браузерный reconnect этого сценария не запускался.",
+      "source": "./frozen-source/server/hide/game.ts",
+      "priority": "first"
+    },
+    {
+      "id": "net-02",
+      "severity": "P2",
+      "confidence": "verified offline reproduction",
+      "title": "Backpressure молча теряет одноразовый reset картинга",
+      "path": "server/voice-wire.ts",
+      "lines": [
+        43,
+        52
+      ],
+      "related": [
+        {
+          "path": "server/race/race.ts",
+          "lines": [
+            740,
+            747
+          ]
+        },
+        {
+          "path": "shared/kartnet.ts",
+          "lines": [
+            145,
+            151
+          ]
+        },
+        {
+          "path": "client/race/match.ts",
+          "lines": [
+            387,
+            394
+          ]
+        }
+      ],
+      "evidence": "Защита reset признаёт только MSG_SNAPSHOT=2. Картинг использует MSG_KART_SNAPSHOT=3 с тем же flags byte9. Сервер снимает k.selfReset до отправки. Настоящие encodeKartSnapshot/encodeSnapshot и fake socket bufferedAmount=512*1024: type3 flags3 => sent0,closed[]; type2 flags3 => sent1,closed[].",
+      "trigger": "Возврат карта на КТ/телепорт/reset в момент исходящей очереди 512KiB..1MiB.",
+      "consequence": "Критический reset исчезает без fresh handshake; следующий снимок запускает обычный reconcile вместо predictor.reset/camera reset, вызывая большой сглаживаемый сдвиг и проигрывание старых вводов.",
+      "proposal": "Включить reset type3 в guard либо передавать transport explicit critical flag; ещё устойчивее — повторяемый reset generation до ack. Не считать повторяемый regatta reset counter одноразовым флагом.",
+      "validationNeeded": "Тест обоих encoder типов на 512KiB и 1MiB; race return-to-checkpoint при congestion; проверка что reset отправлен или соединение явно закрыто. Offline encoder repro выполнен; симптом в браузере не измерен.",
+      "tradeoffs": "Принудительный reconnect при reset повышает надёжность ценой разрыва гонки. Повторный reset без generation/ack может повторно сбрасывать клиент и портить плавность.",
+      "domain": "net",
+      "proof": "Воспроизведено",
+      "observation": "Независимый повтор реальных encoders и sendServerBinary: при 512 КиБ kart type3 reset не отправлен и соединение не закрыто; обычный type2 reset отправлен.",
+      "source": "./frozen-source/server/voice-wire.ts",
+      "priority": "first"
+    },
+    {
+      "severity": "P2",
+      "confidence": "high",
+      "title": "Сверка катера и самолёта нарушает непрерывность картинки между тиками",
+      "path": "client/lobby/regattapredict.ts",
+      "lines": [
+        77,
+        101
+      ],
+      "evidence": "accept() saves old state only, resets prev to authoritative state, replays entries and calculates offset from old current state. The render path uses lerp(prev,state,alpha)+offset (regatta.ts:514–525). When ack==newest and a small correction occurs, prev and state become identical; offset protects alpha=1 but not the displayed position for alpha<1.\nPure Node reproduction: initialize RgPredictor with placeRgBoat(), velocity 12 m/s, predict seq=1, accept ack=1 with authoritative x correction +0.05 m. Measured draw discontinuity: alpha=0 => 0.20326797385620665 m; alpha=0.5 => 0.10163398692809977 m; alpha=1 => 0 m. Predicted one-tick displacement was 0.20326797385620665 m.\nSame algorithm in client/lobby/plane.ts:192–216 resets prev to server state and derives offset from old current state; rendering at 446–448 interpolates prev/state. General Predictor.reconcile preserves continuity by translating prev by the same position correction (client/predict.ts:149–154).\nReproduction persisted as regatta-correction-repro.mjs and regatta-correction-repro.json beside this report. Rg confirmed by executing current source; Plane follows from code comparison and has not been executed.",
+      "trigger": "While moving, receive a correction for newest predicted input, e.g. server-only boat collision. The receipt occurs between simulation ticks, so render alpha is below 1. At 120 Hz alpha spans intermediate values; at 60 Hz it is also often below 1 because queue pacing adjusts tick rate by ±3%. More pending inputs can reduce or alter the jump but do not ensure continuity when replay changes velocity.",
+      "consequence": "A small server correction can cause a visible position/camera jump as large as one physics step, despite correction offset smoothing; on faster plane motion the same formula can magnify the visible movement. This is a source/probe result, not a measured in-game incidence rate.",
+      "proposal": "Сохранить непрерывный интервал prev/current при сверке, как в общем Predictor, либо вычислять offset от реально показанной позы. Сброс после телепорта оставлять мгновенным. Применить одинаковый принцип к катеру и самолёту.",
+      "validationNeeded": "Сверка с ack==newest и несколькими replay inputs; alpha 0 / 0,5 / 1; малая поправка и намеренный teleport; проверить картинку и отсутствие ложных corrections.",
+      "id": "C1",
+      "domain": "net",
+      "proof": "Воспроизведено",
+      "observation": "Катер: поправка физики 5 см дала скачок картинки 20,3 см при alpha=0 и 10,2 см при alpha=0,5. При alpha=1 скачка нет. Аналогия самолёта установлена по коду; отдельный репро самолёта не запускался.",
+      "source": "./frozen-source/client/lobby/regattapredict.ts",
+      "priority": "first"
+    },
+    {
+      "id": "net-03",
+      "severity": "P2",
+      "confidence": "high static evidence; impact requires runtime measurement",
+      "title": "Набережная рассылает всех игроков каждому 30 раз в секунду",
+      "path": "server/lobby/room.ts",
+      "lines": [
+        1981,
+        2012
+      ],
+      "related": [
+        {
+          "path": "shared/lobby.ts",
+          "lines": [
+            132,
+            139
+          ]
+        },
+        {
+          "path": "shared/protocol.ts",
+          "lines": [
+            95,
+            97
+          ]
+        }
+      ],
+      "evidence": "Один общий список всех players (кроме ephemeral) упаковывается и добавляется каждому персональному снимку. Distance/zone/subscription filtering отсутствует. Формула bare snapshot =22 header+103 self+1 count+14*N+30 ball=156+14N bytes. N=64:1052 bytes/snapshot,31560 B/s/player,2019840 B/s aggregate. Это не замер реальной сети; JSON, WS/TCP/TLS overhead исключены.",
+      "trigger": "Большая компания распределена по площади/пирсу/аквапарку; значительная часть чужих аватаров далеко или за камерой.",
+      "consequence": "Трафик и snapshot copy/fanout растут O(N²), клиент декодирует и обновляет ненужные далёкие сущности. Удвоение всей комнаты до60Hz удвоит этот baseline.",
+      "proposal": "Сначала измерить visible/near peer fraction. Сохранить self ack cadence, разделить nearby динамику и far low-rate updates; spatial interest с hysteresis, отдельными despawn и roster. 60Hz рядом выбирать после budget comparison; дальние10–15Hz, крупные global события отдельно.",
+      "validationNeeded": "16/32/64 клиента и распределённые позиции: bytes/s, send count, serialize/copy ms, p95 display-age, avatar pop-in и переходы near/far. Проверить общие пары/жесты, катер, голос, таблички и spectator взгляды. Runtime не измерялось этим агентом.",
+      "tradeoffs": "Удаление из списка сейчас воспринимается клиентом как исчезновение: naive фильтр даст pop-in. Нужны lifetime/relevancy semantics; экран события/голос могут нуждаться в дальнем player metadata.",
+      "domain": "net",
+      "proof": "Замерено + расчёт",
+      "observation": "64 клиента: основной браузер получил 31,3–31,8 КБ/с payload. Формула только binary: (156+14N)×30; при N=64 это 31 560 B/s каждому и 2 019 840 B/s всей комнате. Суммарный исходящий трафик комнаты здесь рассчитан, не измерен.",
+      "source": "./frozen-source/server/lobby/room.ts",
+      "priority": "next"
+    },
+    {
+      "id": "net-04",
+      "severity": "P2",
+      "confidence": "high static evidence",
+      "title": "512KiB guard ограничивает память, но допускает длинную очередь устаревших снимков",
+      "path": "server/voice-wire.ts",
+      "lines": [
+        23,
+        52
+      ],
+      "evidence": "Обычный binary отправляется пока bufferedAmount<512KiB; уже помещённые WS/TCP bytes нельзя заменить. После threshold новые снимки пропускаются, но старые продолжают приходить первыми. 524288/31560=16.61s plaza payload-equivalent при64 peers; это оценка размера backlog, не доказательство фактической задержки. JSON вообще допускается до1MiB.",
+      "trigger": "Короткое ухудшение download/Wi-Fi, зависшая вкладка или клиент с пропускной способностью ниже sustained state stream.",
+      "consequence": "После восстановления сети клиент может проигрывать старую очередь; новые dropped packets сами по себе freshness не возвращают. Игрок испытывает stale remotes и corrections при всё ещё живом сокете.",
+      "proposal": "Снять queue-age/bufferedAmount/drop counters; выбрать threshold по разрешённой задержке и потоку конкретного режима. Держать latest replaceable snapshot до передачи ws.send и не накапливать его при занятости; durable controls приоритетно. Для чрезмерно старой уже отправленной очереди применять согласованный reconnect/full-resync.",
+      "validationNeeded": "Throttle download, burst stall, recovery: p95/p99 state age, сколько времени drains очередь, reconnect rate, reset delivery. Не считать fake bufferedAmount полноценным TCP тестом.",
+      "tradeoffs": "Слишком низкий threshold без hysteresis вызывает needless reconnect при кратких stalls. JS latest-slot не удалит bytes, уже переданные TCP; нужны измерения, а WebRTC migration не является готовым решением.",
+      "domain": "net",
+      "proof": "Подтверждено кодом",
+      "observation": "512 КиБ ограничивает очередь по байтам. 16,6 с — эквивалент объёма этой очереди при потоке 31,56 КБ/с, а не измеренный лаг. Возраст сообщений, drops и асимметричный uplink следует измерить.",
+      "source": "./frozen-source/server/voice-wire.ts",
+      "priority": "next"
+    },
+    {
+      "id": "net-05",
+      "severity": "P2",
+      "confidence": "high static evidence; performance magnitude unmeasured",
+      "title": "Skill snapshot каждый раз повторяет roster и заново собирает общие данные для каждого клиента",
+      "path": "server/skilltest/game.ts",
+      "lines": [
+        333,
+        361
+      ],
+      "related": [
+        {
+          "path": "server/hide/game.ts",
+          "lines": [
+            545,
+            582
+          ]
+        }
+      ],
+      "evidence": "Skill sendAll10Hz вызывает send на каждого игрока, внутри send — peers() и raceView(). peers включает pid,level,nick,outfit и динамику. Общие peer массивы и race rows клонируются P раз за snapshot; metadata повторяется P*10 раз/с. Hide уже разделяет outfit roster и delta props, но view заново sort bodies/build stains/seen/rows для каждого клиента.",
+      "trigger": "Несколько игроков в Skill/Hide; ухудшение особенно заметно при увеличение cadence ради плавности.",
+      "consequence": "Лишние object allocations/stringify/JSON parse и bytes;10Hz даёт100ms интервал remote updates ещё до interpolation. Простое JSON10→30Hz увеличит всю повторяемую нагрузку втрое.",
+      "proposal": "Общую peers/race часть собирать один раз за tick, roster/version только при изменении. Затем compact dynamic binary для Skill, сохраняя точное self состояние для reconciliation. Для Hide сохранить anonymous/blind visibility и безопасный delta baseline; не переносить его механически на full shared packet.",
+      "validationNeeded": "5 Skill/8 Hide: actual bytes, allocations/serialize/parse time, remote smoothness и p95 correction. Тест детерминизма self; nickname/outfit/role changes; hidden prop data visibility. Runtime timing не проводился.",
+      "tradeoffs": "Binary формат требует synchronized protocol release; float32/quantization self без доказательства нарушит bit-identical prediction. Общий Hide packet может раскрыть хiders blind hunters.",
+      "domain": "net",
+      "proof": "Подтверждено кодом",
+      "observation": "Skill 10 Гц повторяет peers/race и metadata каждого игрока. Runtime CPU и точная экономия после разделения roster пока не измерены.",
+      "source": "./frozen-source/server/skilltest/game.ts",
+      "priority": "next"
+    },
+    {
+      "id": "net-06",
+      "severity": "P2",
+      "confidence": "high static evidence; performance magnitude unmeasured",
+      "title": "Одинаковый JSON broadcast сериализуется заново для каждого получателя",
+      "path": "server/lobby/room.ts",
+      "lines": [
+        2040,
+        2042
+      ],
+      "related": [
+        {
+          "path": "server/link.ts",
+          "lines": [
+            49,
+            60
+          ]
+        },
+        {
+          "path": "server/voice-wire.ts",
+          "lines": [
+            27,
+            29
+          ]
+        },
+        {
+          "path": "server/hub.ts",
+          "lines": [
+            1040,
+            1045
+          ]
+        },
+        {
+          "path": "server/lobby/pirates.ts",
+          "lines": [
+            781,
+            792
+          ]
+        }
+      ],
+      "evidence": "Lobby.broadcast направляет один msg в каждую SessionLink, которая отдельно JSON.stringify reliable msg, либо вызывает socket JSON.stringify для volatile. pnow10Hz при64 lobby clients=>640 одинаковых serialize calls/s; их payload создаётся один раз, но stringify всё равно повторяется. Binary lobby/common entity buffer уже кодируется один раз — этот паттерн стоит сохранить.",
+      "trigger": "Pirates/plane/full roster/global event fanout при многолюдной набережной.",
+      "consequence": "Serialization CPU/temporary string allocations растут с fanout, хотя содержимое одинаково; могут добавлять tick jitter вместе с другими комнатами.",
+      "proposal": "Подготовленный JSON text для действительно общего immutable broadcast передавать SessionLink с сохранением личных sent/base/keep и transport guard. Не обходить SessionLink через raw ws.send. Начать с frequent pirate/plane stream после timing evidence.",
+      "validationNeeded": "Измерить stringify calls и ms в event scenario; replay/ack/resume payload идентичен прежнему, private messages не смешиваются. Учесть разные sent counters. Static hotpath найден, profiler не запускался.",
+      "tradeoffs": "Кэширование изменяемого объекта может отправить старые данные. Общая строка возможна, общий counter или shared replay state — нет.",
+      "domain": "net",
+      "proof": "Подтверждено кодом",
+      "observation": "Общий broadcast повторяет JSON.stringify внутри личных SessionLink. Надёжную нумерацию и replay обходить нельзя; сам выигрыш CPU пока не измерен.",
+      "source": "./frozen-source/server/lobby/room.ts",
+      "priority": "next"
+    },
+    {
+      "id": "net-07",
+      "severity": "P2",
+      "confidence": "verified offline retention count plus static evidence",
+      "title": "Пиратская динамика 10Hz копится в reliable replay как control events",
+      "path": "shared/link.ts",
+      "lines": [
+        4,
+        13
+      ],
+      "related": [
+        {
+          "path": "server/lobby/pirates.ts",
+          "lines": [
+            760,
+            792
+          ]
+        },
+        {
+          "path": "server/link.ts",
+          "lines": [
+            49,
+            60
+          ]
+        }
+      ],
+      "evidence": "LINK_VOLATILE не содержит pnow. Pirates отправляет полные позиции p/d каждые6 ticks, optional loot l при dirty/каждые2s. SessionLink сохраняет каждое pnow для reconnect. Offline detach+300 сообщений pnow=>pending300. Даже без disconnected состояния каждые2s ack держит около20 full pirate messages/player.",
+      "trigger": "Участник набережной теряет связь во время набега; до45s session сохранена и продолжает получать server broadcasts без сокета.",
+      "consequence": "Бесполезные historical positions удерживаются и replayваются burst после attach; они конкурируют с rewards/phase/control в768KiB replay cap и1MiB socket highwater. Риски cap/reconnect зависят от actual event payload и требуют замера.",
+      "proposal": "Разделить replaceable p/d dynamics и persistent loot state: либо full pnow включая loot с full resync on resume, либо reliable loot/version message плюс volatile motion. Не просто дописать pnow в volatile: optional l может потеряться и остаться stale.",
+      "validationNeeded": "Reconnect10/30/45s в набеге, loot theft/drop/cancel during outage; replay bytes/count, retained rewards/phase, client final loot matches authoritative state. Только synthetic SessionLink retention проверен; actual pirate payload не измерен.",
+      "tradeoffs": "Добавление l ко всем снимкам увеличит ongoing bytes; reliable loot split требует ordering/version contracts. Символы строк/UTF8 и JSON sizing необходимо мерить byteLength, не предполагать равенство string.length.",
+      "domain": "net",
+      "proof": "Воспроизведено",
+      "observation": "Независимый SessionLink probe: 300 pnow при detach оставили pending=300. Позиции заменяемы, но optional loot внутри pnow мешает просто сделать весь тип volatile.",
+      "source": "./frozen-source/shared/link.ts",
+      "priority": "next"
+    },
+    {
+      "severity": "P2",
+      "confidence": "medium",
+      "title": "Ввод продолжает попадать в забитую исходящую очередь WebSocket",
+      "path": "client/net.ts",
+      "lines": [
+        85,
+        90
+      ],
+      "evidence": "sendBinary() checks OPEN and time since last received message only. It does not check ws.bufferedAmount, even though Net.buffered exposes it at lines 102–103. Input callers enqueue one packet per simulation step in lobby, race, paintball, fort, fight, skill and hide.\nBounded pure Node fake-socket probe set readyState=OPEN, bufferedAmount=1048576 and lastRx=performance.now(); two sendBinary(new Uint8Array(24)) calls both invoked socket.send(). Output: queuedBytesBefore=1048576, inputPacketsAdded=2, lastReceiveFresh=true.\nlastRx is refreshed by every inbound JSON/binary message (net.ts:38–40). Therefore recent incoming traffic is not proof of writable outgoing transport. The current guard limits fully silent connections after 2.5 s, but it does not bound an asymmetrically congested outgoing queue.",
+      "trigger": "An outgoing transport stalls or stays behind while inbound server traffic remains recent. Browser remains OPEN and send() accumulates buffered messages; binary input continues at 60 ticks/s until receive silence passes the existing threshold, if it ever does.",
+      "consequence": "Stale controls accumulate in ordered TCP output. After recovery they are delivered ahead of current controls and can create catch-up/reconciliation or delayed button release. Queue growth is proven by the control-flow/probe; frequency and user-visible magnitude require a network measurement.",
+      "proposal": "Добавить измерение возраста и размера исходящей очереди ввода. При подтверждённом накоплении согласовать ограничение старых вводов с prediction/reconnect и действиями; не выбрасывать кнопки и важные действия вслепую.",
+      "validationNeeded": "Асимметричный медленный uplink при живом входящем потоке; bounded backlog, отсутствие ложного flood и корректное восстановление позиции.",
+      "id": "C2",
+      "domain": "net",
+      "proof": "Код + fake socket",
+      "observation": "При bufferedAmount=1 МиБ и свежем lastRx два пакета ввода всё равно отправляются. В коротком локальном proxy-тесте реальная исходящая очередь была 0; реальное переполнение uplink не доказано.",
+      "source": "./frozen-source/client/net.ts",
+      "priority": "next"
+    },
+    {
+      "id": "R1",
+      "severity": "P2",
+      "confidence": "high",
+      "title": "Начальный вход строит весь мир и впервые компилирует его в одном блокирующем проходе",
+      "path": "client/lobby/scene.ts",
+      "lines": [
+        402,
+        602
+      ],
+      "observedCode": "App:263 синхронно new LobbyScene; scene:404 new LobbyWorld; world:271–281 генерирует две PMREM через fromScene, world:312–352 последовательно строит карту/декор/город/look; scene:439–598 строит системы событий/игр/аватары. startup.ts:31 await paint, затем await game.start; startup-game.ts:27 new App(...).start() не разбивает конструкторы. compileAsync найден только transition.ts:481, initial join idle идёт в App:1447.",
+      "trigger": "Холодное открытие страницы, особенно слабый CPU/GPU или непустой кэш с холодными шейдерами.",
+      "consequence": "Экран загрузки успевает появиться, но основной поток затем занят до завершения всех конструкторов, а первый idle/render запускает синхронную компиляцию. Продолжительность текущего состояния не измерена; 4–5 с из optimization.md — исторический замер.",
+      "proposal": "Сохранить единый graph и все миры/кэши согласно решению владельца. Разбить построение на небольшие задания с yield по кадрам; на начальном loading прогреть фактические материалы/варианты и PMREM до первого пользовательского кадра.",
+      "validationNeeded": "Измерить startup long tasks и p95 максимальной блокировки на cold/warm cache, CPU×4; проверить первый кадр join и первый переход, лимит 1,5 с из optimization.md.",
+      "domain": "fps",
+      "proof": "Замерено + код",
+      "observation": "В чистом запуске длинные задачи 268, 1042 и 1162 мс; в отдельном первом браузерном контексте максимум 1456 мс. Это локальные паузы JS, а не время сети. На этом Mac отдельная пауза укладывается в бюджет 1,5 с, но запас мал.",
+      "source": "./frozen-source/client/lobby/scene.ts",
+      "priority": "next"
+    },
+    {
+      "id": "R2",
+      "severity": "P2",
+      "confidence": "high",
+      "title": "Авто-качество навсегда остаётся на ступени, до которой упало",
+      "path": "client/render/quality.ts",
+      "lines": [
+        19,
+        22
+      ],
+      "observedCode": "nextAutoQuality возвращает тот же ratio для быстрых окон; единственная ветка его изменения вычитает 0.25. App:1399–1406 сохраняет autoRatio и раздаёт новый tier.",
+      "trigger": "Игрок пережил несколько медленных окон (толпа/шторм/другой режим), потом оказался в лёгкой сцене.",
+      "consequence": "Разрешение и tier продолжают оставаться пониженными при свободном бюджете; возврат на набережную не восстанавливает их. Выполненная read-only Node-проверка: шесть медленных окон довели 1.5→0.75; двадцать быстрых окон по 8 мс оставили 0.75.",
+      "proposal": "Добавить ограниченный подъём после нескольких устойчиво быстрых окон с отдельным порогом и задержкой, верхняя граница autoStart; не менять загрузку/кэш миров.",
+      "validationNeeded": "Unit: медленные→быстрые окна, hysteresis и отсутствие колебаний; runtime: тяжёлое событие→спокойная сцена, наблюдать ratio/tier и стабильность FPS.",
+      "domain": "fps",
+      "proof": "Воспроизведено",
+      "observation": "Настоящий nextAutoQuality: шесть медленных окон снижают ratio 1,5 → 0,75; двадцать быстрых окон оставляют 0,75.",
+      "source": "./frozen-source/client/render/quality.ts",
+      "priority": "next"
+    },
+    {
+      "id": "R3",
+      "severity": "P2",
+      "confidence": "high",
+      "title": "Авто-качество принимает меню и переходы за производительность игры",
+      "path": "client/app.ts",
+      "lines": [
+        1387,
+        1406
+      ],
+      "observedCode": "trackPerf игнорирует только document.hidden и perfWait. frame:1419 вызывает его до screen/active/transition проверок; frame:1435 вместо active.frame может выполняться transition.frame; frame:1447 join/connecting/lost рисует lobby.idle.",
+      "trigger": "Долгое ожидание в меню на фоне облёта, повторные переходы с capture/compile/upload, зависание GPU при загрузке.",
+      "consequence": "Окна RAF за меню/прогрев могут понизить autoRatio перед реальной игрой. perfWait=3 только откладывает первоначальное измерение, последующие переходы не исключаются. R2 делает последствия долгими.",
+      "proposal": "Разделить статистику и решения auto: сбрасывать накопление/slowWindows вне стабильного игрового кадра, во время transition.busy и короткого grace после него; показывать общей статистике свои выборки отдельно при необходимости.",
+      "validationNeeded": "Unit/интеграция: в join/connecting/transition ratio не меняется; после перехода стабильные игровые окна по-прежнему понижают качество.",
+      "domain": "fps",
+      "proof": "Подтверждено кодом",
+      "observation": "trackPerf стоит до выбора game/transition/idle. Наличие grace 3 с при старте не исключает последующие переходы и меню. Реальное число ошибочных понижений в длительной сессии не измерялось.",
+      "source": "./frozen-source/client/app.ts",
+      "priority": "next"
+    },
+    {
+      "id": "R4",
+      "severity": "P2",
+      "confidence": "high",
+      "title": "Пониженный фактический tier не доходит до части эффектов и пиратской толпы",
+      "path": "client/lobby/scene.ts",
+      "lines": [
+        718,
+        722
+      ],
+      "observedCode": "LobbyScene.setQuality обновляет лишь world/fx/kraken. scene:470 Pirates hooks.quality и scene:568 regatta low читают исходные settings.quality; scene:2315 storm3d и 2322 fishJumps тоже читают settings.quality. lobbyQuality('auto', false):127–130 всегда high на desktop. Pirates3D:155 crowd создаётся с hooks.quality(); PirateCrowd.setQuality:115–123 имеет работающий low-budget, но повторных вызовов crowd.setQuality нет.",
+      "trigger": "Auto уже упал до low либо выбран «Своё» с effects less/shadows low при сохранённом quality='high'/'auto'; ручная смена пресета после старта тоже не обновляет PirateCrowd.",
+      "consequence": "Солнце/дождь/общие частицы понижаются, но шторм, прыжки рыбы, след регаты и разнообразие/receiveShadow толпы используют прежний бюджет. Меню обещает применение настроек на лету, часть тяжёлых эффектов его не выполняет.",
+      "proposal": "Сохранить effective tier в LobbyScene и использовать его во всех callback/update; прокинуть setQuality в Pirates3D→crowd, включая текущие инстансы.",
+      "validationNeeded": "Проверить debug число инстансов/вариантов, receiveShadow и budget в auto low, custom low, ручных low→high→low во время набега/регаты.",
+      "domain": "fps",
+      "proof": "Подтверждено кодом",
+      "observation": "App передаёт фактический tier, но часть систем продолжает читать исходное settings.quality. Авто и «Своё» здесь могут расходиться с реальным пресетом. Величина затрат этих эффектов не измерена.",
+      "source": "./frozen-source/client/lobby/scene.ts",
+      "priority": "next"
+    },
+    {
+      "id": "R5",
+      "severity": "P2",
+      "confidence": "high",
+      "title": "Гашение обычных PointLight меняет ключи шейдеров во время игры",
+      "path": "client/lobby/world.ts",
+      "lines": [
+        1266,
+        1268
+      ],
+      "observedCode": "Четыре обычных PointLight создаются world:297–301; setQuality:1268 ставит visible, setStormClimate:1307 тоже ставит visible. Установленный three WebGLRenderer.js:1408/1426 использует traverseVisible для света; WebGLPrograms.js:342 и 478 включают numPointLights в ключ программы. shadowMap.type уже стабилен PCFShadowMap (renderer.ts:49).",
+      "trigger": "Первая смена high↔medium/low или первое выключение света штормом.",
+      "consequence": "Количество lights 4↔0 меняется; освещённым материалам нужны новые варианты программ, впервые запрашиваемые прямо в кадре события/авто-понижения. Актуальную длительность зависания требуется измерить.",
+      "proposal": "Сохранить набор обычных lights, гасить intensity=0 или заменить их эмиссивом/пятнами при перестройке площади. Для точного light-count budget сначала замерить итоговую стоимость; памятник/его lights не менять.",
+      "validationNeeded": "Снять programs до/после первой смены и Performance long tasks/p95 в high→low, шторм выключает/включает свет. Проверить визуальное погасание всех обычных ламп.",
+      "domain": "fps",
+      "proof": "Замерено + код",
+      "observation": "На изолированном стенде high → low: кэш программ 117 → 205, новая long task 750 мс. Это холодное переключение вариантов; уже прогретый повтор может быть дешевле. Сам замер не изолирует стоимость ламп от пересоздания теней/инвалидации материалов. Число программ — накопленный кэш, не одновременно используемые шейдеры.",
+      "source": "./frozen-source/client/lobby/world.ts",
+      "priority": "next"
+    },
+    {
+      "id": "R6",
+      "severity": "P2",
+      "confidence": "high",
+      "title": "Дальние живые аватары сохраняют все отдельные меши и полную анимацию",
+      "path": "client/render/avatar.ts",
+      "lines": [
+        1069,
+        1083
+      ],
+      "observedCode": "Avatar.shown определяется alive/hidden/local proximity, без дистанционного LOD. Constructor:555–633 создаёт отдельные body, глаза, зрачки, веки, face, attachments, gear, mittens, tag; costume/pet детали остаются до всей scene culling. updateTag:1529–1531 ограничивает только nick. LobbyScene.updateRemotes:2559 проходит всех и :2619 вызывает Avatar.update; low preset gfx.ts:105–108 оставляет viewDistance='far'. Touts имеют общий hide после 46 м (touts.ts:14/134), но без переходного LOD между 25–46 м.",
+      "trigger": "На площади несколько десятков игроков видимы в кадре, часть на 30–100 м; low/auto low на CPU-bound компьютере.",
+      "consequence": "Снижение resolution не сокращает основной submission workload от аватаров; количество отдельных draw calls растёт с числом игроков и одеждой. Величина FPS/640 calls из старого docs не воспроизводилась и не объявляется текущей.",
+      "proposal": "Сначала замерить 1/16/32/64 игроков. Добавить простой far tier: сохранять тело/силуэт, скрывать мелкие детали/таблички, обновлять косметическую анимацию реже; общие статические части группировать/инстансить только там, где замер оправдывает сложность.",
+      "validationNeeded": "Draw calls/CPU кадра и читаемость живых игроков на 30/60/100 м при 1/16/32/64; проверить PvP идентификацию, анимации и отсутствие исчезновения тела.",
+      "domain": "fps",
+      "proof": "Замерено + код",
+      "observation": "При 64 обычных клиентах у точки появления: 785 draw calls вместо 337 в одиночном виде той же стороны. Дальнего LOD нет. Эта толпа была близко: замер не доказывает выигрыш именно от дальнего LOD; сокращение частей ближних аватаров требует отдельного визуального сравнения.",
+      "source": "./frozen-source/client/render/avatar.ts",
+      "priority": "next"
+    },
+    {
+      "id": "R8",
+      "domain": "fps",
+      "severity": "P2",
+      "priority": "next",
+      "confidence": "measured diagnostic frame + source",
+      "title": "Шесть фоновых крыс обходятся в 90 отдельных отрисовок",
+      "path": "client/lobby/ratrace3d.ts",
+      "lines": [
+        608,
+        670
+      ],
+      "source": "./frozen-source/client/lobby/ratrace3d.ts",
+      "proof": "Замерено + код",
+      "observation": "Покадровая обёртка renderBufferDirect выделила 90 calls от lobby/rat3d. Все calls сверены с renderer.info в том же кадре. Этот показатель относится к одному виду камеры без запущенной ставки; он не постоянен при любой позиции.",
+      "evidence": "RATS.forEach создаёт шесть makeRat; каждый имеет отдельные тело, живот, попону, голову, нос, уши/глаза, хвост и четыре лапы. В отличие от статики тела не склеены и не имеют дальнего упрощения.",
+      "trigger": "Площадь смотрит в сторону понтона: крысы продолжают фоновую жизнь между забегами.",
+      "consequence": "Небольшая декоративная группа расходует около 17% отрисовок диагностического кадра.",
+      "proposal": "Начать с отдельных статических частей одной головы/тела по материалам и простой дальней модели. Сохранить анимацию, попоны и характеры; проверить вид вблизи и в забеге. Не превращать это в переделку всей площади.",
+      "validationNeeded": "Одинаковая камера/погода: профиль до/после; ориентир ≤300 calls для всей площади и сохранение заметных деталей крыс."
+    }
+  ],
+  "deferred": [
+    {
+      "id": "Q3",
+      "severity": "P1",
+      "confidence": "high; file-system synthetic reproduction",
+      "type": "data integrity",
+      "title": "Частично испорченный, но валидный JSON молча теряет профиль и не использует годную копию",
+      "path": "server/store.ts",
+      "lines": [
+        162,
+        169
+      ],
+      "relatedLocations": [
+        {
+          "path": "server/store.ts",
+          "lines": [
+            119,
+            122
+          ]
+        },
+        {
+          "path": "server/store.ts",
+          "lines": [
+            308,
+            312
+          ]
+        }
+      ],
+      "evidence": "parseState accepts v1 + profiles array, silently skips each normalizeProfile(null) row and treats remaining state as successful primary load. Synthetic primary had two profiles, one nick changed to null, while daily backup retained two valid profiles: load succeeded with one profile; next markDirty/flush rewrote primary with one profile, bypassing backup fallback. The raw damaged file was not quarantined.",
+      "trigger": "Частичная порча/ошибка ручной миграции в id или nick одной записи при сохранении валидного JSON и корректной внешней структуры.",
+      "consequence": "Профиль исчезает из памяти и следующего primary; оператор не узнаёт о потере. Та же ветка может принять profiles из одних неверных записей как пустую базу. Восстановление возможно из копии, но автоматический safety contract его не выполняет.",
+      "proposal": "Отличать допустимые отсутствующие новые поля от неисправимой идентичности. При пропущенной записи fail-closed для primary либо quarantine/recovery с явной диагностикой числа строк; проверять уникальность id/nick/key mapping до успешной загрузки.",
+      "validationNeeded": "Синтетические кейсы одной неверной строки, всех неверных строк, дубликатов id/nick; успешная безопасная нормализация старых сохранений должна сохраниться. Никакие рабочие данные не использовались."
+    },
+    {
+      "id": "Q6",
+      "severity": "P2",
+      "confidence": "high complexity from source; bottleneck significance unmeasured",
+      "type": "optimization/physics",
+      "title": "Движение и лучи перебирают все боксы мира для каждого игрока",
+      "path": "shared/sim.ts",
+      "lines": [
+        178,
+        232
+      ],
+      "relatedLocations": [
+        {
+          "path": "shared/sim.ts",
+          "lines": [
+            381,
+            411
+          ]
+        },
+        {
+          "path": "shared/world.ts",
+          "lines": [
+            83,
+            103
+          ]
+        },
+        {
+          "path": "shared/world.ts",
+          "lines": [
+            111,
+            120
+          ]
+        },
+        {
+          "path": "shared/hidephysics.ts",
+          "lines": [
+            37,
+            48
+          ]
+        }
+      ],
+      "evidence": "Each X/Y/Z sweep linearly scans CollisionWorld.n, with extra sweeps for step-up/ground sticking and movement substeps; raycast/overlaps/groundBelow also linearly scan n. CollisionWorld.setEnabled moves disabled boxes far away but leaves n unchanged, so disabled objects still receive broad checks. Shared physics is allocation-conscious, but no spatial broad phase. Hide fills up to200 dynamic slots per actor before scanning.",
+      "trigger": "Площадь растёт в collider count либо игроков много; боты и быстрые/dynamic movement вызывают дополнительные queries.",
+      "consequence": "Стоимость порядка players×boxes×sweeps; ограничение относится и к серверному simulation tick, и к локальному prediction. По текущему коду нельзя честно назвать выигрыш/FPS без измерения.",
+      "proposal": "При подтверждённом CPU bottleneck добавить минимальную uniform-grid broad phase для статических боксов и короткий список dynamic boxes; стабильный исходный порядок кандидатов обязателен для сохранения tie breaking/детерминизма. Начать с одного режима, не переписывать физику всех режимов.",
+      "validationNeeded": "Микропрофиль query count/candidate count и p95 при64 игроках; differential tests старый full scan vs indexed world на длинных одинаковых input traces, step-up, dash, moved/disabled boxes, совпавших гранях."
+    },
+    {
+      "id": "Q7",
+      "severity": "P2",
+      "confidence": "high blocking algorithm; budget exceedance is unmeasured",
+      "type": "optimization/simulation scheduling",
+      "title": "Удар бильярда целиком просчитывает до12 секунд физики внутри одного обработчика",
+      "path": "server/lobby/billiards.ts",
+      "lines": [
+        190,
+        196
+      ],
+      "relatedLocations": [
+        {
+          "path": "shared/billiards.ts",
+          "lines": [
+            90,
+            94
+          ]
+        },
+        {
+          "path": "shared/billiards.ts",
+          "lines": [
+            215,
+            229
+          ]
+        },
+        {
+          "path": "shared/billiards.ts",
+          "lines": [
+            249,
+            300
+          ]
+        }
+      ],
+      "evidence": "shoot calls simulate synchronously before acknowledgment/snapshot. simulate runs up to7200 steps at600Hz, with all16-ball candidate pairs per step and SUB8 inner collision steps when contacting. It shares the JS thread with60Hz Hub.step; several table shots serialize. This is intentionally deterministic and bounded, but not scheduled against global tick budget.",
+      "trigger": "Сильный разбой либо несколько почти одновременных ударов на разных столах.",
+      "consequence": "Потенциальная single-event pause для всех режимов; current duration not measured. Local tests cover deterministic result/settling but no latency boundary for concurrent tables.",
+      "proposal": "Сначала измерить длительность strong-break/long-roll и p99 event-loop pause. Если бюджет превышен, разбить тот же deterministic solver на фиксированные порции без изменения math/order, либо вынести complete-shot calculation в worker с versioned table shot id. Ограничивать запросы existing restAt, не менять исходную физику ради предположений.",
+      "validationNeeded": "Benchmark worst normal allowed shots on all3 tables плюс concurrent lobby movement; exact same positions/score/result after sliced/worker solver, rejected stale shot ids, disconnect during calculation."
+    },
+    {
+      "id": "R7",
+      "severity": "P2",
+      "confidence": "medium",
+      "title": "После восстановления WebGL context нет пути повторного построения PMREM окружений",
+      "path": "../../../../../game-opus/client/render/renderer.ts",
+      "lines": [
+        62,
+        67
+      ],
+      "observedCode": "Единственный webglcontextrestored handler в client обновляет timer и static shadows. LobbyWorld:272–281 берёт pmrem.fromScene(...).texture и хранит envClear/envRain один раз; LobbyLook:109 и lookbake.ts:221–229 так же строят custom env один раз. world:1409–1410 и look.ts:153 повторно назначают старые texture. Установленный three renderer:1123–1141 пересоздаёт GL context internals, но не повторяет application fromScene.",
+      "trigger": "WebGL context lost/restored (перегрузка GPU, сон/возврат, драйвер).",
+      "consequence": "Вероятно окружения в render-target textures остаются пустыми после restore, ломая блики/мокрый настил; source отсутствие rebuild подтверждено, визуальная поломка пока гипотеза до loss/restore smoke.",
+      "proposal": "Добавить один app/world restore hook, который регенерирует процедурные render targets/PMREM и перевязывает материалы; не выгружать миры в обычных переходах. Учитывать сцены, удерживаемые в памяти.",
+      "validationNeeded": "Через WEBGL_lose_context выполнить loss/restore до и после дождя, сравнить мокрый настил/блики на тех же камерах; проверить cached режимы, texture/program counts и отсутствие перманентного black env."
+    }
+  ],
+  "cpuCounts": {
+    "render": 3090,
+    "game": 385,
+    "system": 518
+  },
+  "drawCounts": {
+    "Без точной атрибуции": 180,
+    "lobby/fish2": 29,
+    "lobby/fishing": 6,
+    "lobby/folk": 22,
+    "lobby/world": 61,
+    "lobby/ball": 2,
+    "lobby/juke": 1,
+    "lobby/critters": 4,
+    "lobby/entryCircles": 7,
+    "lobby/blackjack3d": 9,
+    "lobby/billiards": 6,
+    "lobby/fishHouse": 14,
+    "lobby/roulette3d": 19,
+    "lobby/rat3d": 90,
+    "lobby/plaza": 36,
+    "lobby/aqua": 2,
+    "lobby/rg": 29,
+    "lobby/ferris": 1,
+    "lobby/effects": 2
+  },
+  "summaryRows": [
+    [
+      "1080p, 1 игрок, 4 направления",
+      "158.5–212.6",
+      "323–524",
+      "4,3–5,8",
+      "5,7–8,2"
+    ],
+    [
+      "1080p, тяжёлый вид, высокое",
+      "178.4–196.5",
+      "524–527",
+      "4,8–5,2",
+      "6,1–6,8"
+    ],
+    [
+      "1080p, тот же вид, низкое",
+      "193.7–205.8",
+      "523–525",
+      "4,5–4,8",
+      "6,2–6,4"
+    ],
+    [
+      "4K, высокое",
+      "113.4–121.1",
+      "524–525",
+      "7,9–8,1",
+      "9,4–11,9"
+    ],
+    [
+      "CPU ×4, высокое",
+      "44.3–45.6",
+      "522–525",
+      "20,0–20,9",
+      "25,3–26,5"
+    ],
+    [
+      "CPU ×4, низкое",
+      "44.0–44.8",
+      "525",
+      "20,6–21,2",
+      "27,5–28,3"
+    ],
+    [
+      "1080p, 16 клиентов, высокое",
+      "212.2",
+      "449",
+      "4,4",
+      "5,8"
+    ],
+    [
+      "1080p, 64 клиента, высокое",
+      "140.3",
+      "785",
+      "6,7",
+      "8,8"
+    ],
+    [
+      "1080p, 64 клиента, низкое",
+      "134.3",
+      "785",
+      "7,0",
+      "8,9"
+    ]
+  ],
+  "checks": {
+    "initial": {
+      "check": true,
+      "test": 1552,
+      "fail": 0,
+      "build": true
+    },
+    "latestWorkingTree": {
+      "check": true,
+      "test": 1596,
+      "fail": 0,
+      "build": true
+    },
+    "frozenGameBuildFingerprintMatchesInitial": true,
+    "independentRepros": true,
+    "headless": true,
+    "modes": [
+      "paintball",
+      "fort",
+      "skill",
+      "hide",
+      "race",
+      "fight"
+    ],
+    "errors": []
+  },
+  "benchMethodology": [
+    {
+      "id": "BENCH-M1",
+      "priority": "P1 interpretation",
+      "title": "Результаты процедурной сцены нельзя переносить на полный кадр игры",
+      "observation": "В стенде пять meshes на персонажа, нет одежды, текстур, надписей, отражений/преломлений, postprocessing, автоматического LOD, gameplay и сети. Тени солнца статические; персонажи используют плоские прозрачные blobs.",
+      "impact": "Не измеряются реальные дорогие материалы, shadow refresh, UI, создание полного мира, network decode/interpolation. 640 персонажей не означают 640 сетевых игроков или проверенную вместимость сервера.",
+      "recommendation": "Для полного game review использовать боевую локальную сборку с флагами сайта, временным DATA_DIR, реальные направления камеры/режимы/переходы/события; измерять полный frame CPU/GPU, render passes, p95/p99 и long tasks отдельно.",
+      "sources": [
+        {
+          "path": "../../../../../game-opus/tools/render-bench/scene.ts",
+          "lines": [
+            94,
+            114
+          ]
+        },
+        {
+          "path": "../../../../../game-opus/tools/render-bench/scene.ts",
+          "lines": [
+            145,
+            155
+          ]
+        },
+        {
+          "path": "../../../../../game-opus/tools/render-bench/README.md",
+          "lines": [
+            3,
+            3
+          ]
+        }
+      ]
+    },
+    {
+      "id": "BENCH-M2",
+      "priority": "P1 interpretation",
+      "title": "C быстрее B не означает C быстрее текущего A",
+      "observation": "A использует classic WebGLRenderer + GLSL/onBeforeCompile; B/C — новый WebGPURenderer и node/TSL materials. A→C одновременно меняет renderer архитектуру, материал и backend. B/C используют одну material factory и лучше изолируют backend. Архив 10×: 640 rain A/B/C ≈132.7/43.5/54.0 FPS; CPU median ≈7.0/19.3/18.0 ms.",
+      "impact": "Заявление об ускорении WebGPU по C/B без A вводит в заблуждение. В сохранённом тяжёлом сценарии A заметно быстрее C. Это ограничено данной сценой и машиной, а не универсальная оценка APIs.",
+      "recommendation": "Сравнивать итоговый оптимизированный A и C на эквивалентном production workload и визуале; разбирать B/C как backend experiment. Сначала batching/instancing/материалы/профиль полной игры. Миграцию предлагать только после подтверждённого user-visible выигрыша и учета rewrite всех custom shader paths.",
+      "sources": [
+        {
+          "path": "../../../../../game-opus/tools/render-bench/renderer.ts",
+          "lines": [
+            53,
+            63
+          ]
+        },
+        {
+          "path": "../../../../../game-opus/tools/render-bench/runtime.ts",
+          "lines": [
+            74,
+            82
+          ]
+        },
+        {
+          "path": "../../../../../game-opus/tools/render-bench/materials.ts",
+          "lines": [
+            21,
+            35
+          ]
+        },
+        {
+          "path": "../../../../../../../unavailable.html",
+          "lines": [
+            402,
+            430
+          ]
+        },
+        {
+          "path": "../../../../../../../unavailable.html",
+          "lines": [
+            535,
+            563
+          ]
+        },
+        {
+          "path": "../../../../../../../unavailable.html",
+          "lines": [
+            668,
+            696
+          ]
+        }
+      ],
+      "primaryDoc": "../../../../../../../vendor/207633f213f2d1b2.js"
+    },
+    {
+      "id": "BENCH-M3",
+      "priority": "P2 interpretation",
+      "title": "rAF FPS в baseline почти полностью ограничен частотой обновления",
+      "observation": "Baseline clean проходы почти все ≈165 FPS, интервалы ≈6.06 ms; CPU submission различается. Реализация определяет FPS как 1000/mean(rAF intervals), что корректно, но не измеряет максимальную пропускную способность GPU.",
+      "impact": "Одинаковые FPS не доказывают равную стоимость рендеринга или одинаковый запас; проценты FPS на потолке нельзя использовать как performance ranking. В 10× пример A160≈165 и C160≈164.5 также почти capped.",
+      "recommendation": "При одинаковых actual buffer/DPR/AA/quality сравнивать CPU submission и отдельные GPU timestamps, показывать cap. Для границы стабильных 60/120 FPS использовать повышенное разрешение и реальный heavy кадр; GPU не заменять вычислением 1000/FPS-CPU.",
+      "sources": [
+        {
+          "path": "../../../../../game-opus/tools/render-bench/runtime.ts",
+          "lines": [
+            164,
+            186
+          ]
+        },
+        {
+          "path": "../../../../../game-opus/tools/render-bench/metrics.ts",
+          "lines": [
+            21,
+            32
+          ]
+        },
+        {
+          "path": "../../../../../../../unavailable.html",
+          "lines": [
+            12,
+            25
+          ]
+        },
+        {
+          "path": "../../../../../game-opus/tools/render-bench/README.md",
+          "lines": [
+            29,
+            31
+          ]
+        }
+      ]
+    },
+    {
+      "id": "BENCH-M4",
+      "priority": "P2 coverage",
+      "title": "Две сцены и 10× не разделяют причины затрат и не соответствуют бюджету всей площади",
+      "observation": "Presets одновременно меняют 16→64 персонажа и rain false→true. 10× одновременно меняет здания/деревья/персонажей/rain/water segmentation; новые объекты компактнее и внутри прежнего footprint. Статическая shadow map рисуется только на подготовке. Стенд не сохраняет число shader programs, число textures/geometries или gameplay/full startup long tasks.",
+      "impact": "Нельзя из этих двух точек отдельно вывести цену дождя, игрока, тени, lights, pixels и максимального онлайна. Перечисленные draw counts steady frames не проверяют бюджет 300 с тенями в любой точке; 10× не значит десятикратная fragment/CPU/VRAM стоимость.",
+      "recommendation": "Для диагностики нужны пары dry/rain при одном player count, несколько фиксированных player counts без weather изменений, 720p/1080p/4K, статические и refresh-shadow frames. Бюджеты проекта проверять именно в игре; существующий stress test оставить stress test.",
+      "sources": [
+        {
+          "path": "../../../../../game-opus/tools/render-bench/main.ts",
+          "lines": [
+            13,
+            29
+          ]
+        },
+        {
+          "path": "../../../../../game-opus/tools/render-bench/scene-data.ts",
+          "lines": [
+            52,
+            64
+          ]
+        },
+        {
+          "path": "../../../../../game-opus/tools/render-bench/scene.ts",
+          "lines": [
+            29,
+            34
+          ]
+        },
+        {
+          "path": "../../../../../game-opus/tools/render-bench/scene.ts",
+          "lines": [
+            151,
+            155
+          ]
+        },
+        {
+          "path": "../../../../../game-opus/tools/render-bench/types.ts",
+          "lines": [
+            41,
+            47
+          ]
+        },
+        {
+          "path": "../../../../../game-opus/docs/optimization.md",
+          "lines": [
+            92,
+            97
+          ]
+        }
+      ]
+    },
+    {
+      "id": "BENCH-M5",
+      "priority": "P2 coverage",
+      "title": "GPU profiles имеют один повтор и мало samples в самом тяжёлом режиме",
+      "observation": "Clean suite вращает A/B/C для 3 повторов, но GPU jobs всегда лишь по одному проходу A/B/C после всех clean runs. В архиве 640 rain B GPU count=43, C=54. GPU p99 при таком объёме близок к максимуму; питание baseline не записано, одна машина и браузер.",
+      "impact": "Это полезная диагностика, но недостаточная основа для точного процентного выигрыша GPU или переносимости результата на слабые компьютеры/телефоны. Поздние профили могут отражать иное thermal/cache состояние. Причина не доказана.",
+      "recommendation": "Если нужен именно backend выбор, повторять и вращать GPU profiles отдельно, сообщать counts и ranges всех повторов, питание/браузер/GPU/config. CPU×4 использовать как отдельный sensitivity test, а не как точную имитацию другого GPU или телефона.",
+      "sources": [
+        {
+          "path": "../../../../../game-opus/tools/render-bench/main.ts",
+          "lines": [
+            89,
+            108
+          ]
+        },
+        {
+          "path": "../../../../../game-opus/tools/render-bench/renderer.ts",
+          "lines": [
+            114,
+            119
+          ]
+        },
+        {
+          "path": "../../../../../game-opus/tools/render-bench/renderer.ts",
+          "lines": [
+            199,
+            213
+          ]
+        },
+        {
+          "path": "../../../../../../../unavailable.html",
+          "lines": [
+            62,
+            66
+          ]
+        }
+      ],
+      "primaryDoc": "https://developer.chrome.com/docs/devtools/performance/reference"
+    },
+    {
+      "id": "BENCH-M6",
+      "priority": "P2 interpretation",
+      "title": "Spector B захват включает дополнительную тень и не равен steady benchmark кадру",
+      "observation": "Raw A/B captures самостоятельно распарсены: A 1558 commands/360 draws; B 1875 commands/383 draws. Архивный pass summary B=360 main+22 shadow+1 output, хотя steady измерения B=361 draws. Причина refresh в прежнем исследовании не прослежена.",
+      "impact": "+23 draws или общий command count нельзя выдавать за steady overhead B; Spector capture не является чистым GPU/CPU timing. Цифры захвата полезны для классификации команд и проходов, но не для количественной атрибуции миллисекунд.",
+      "recommendation": "В новом Spector анализе сопоставлять одинаковый t/camera/weather/quality и lifecycle; warm normal capture отдельно от shadow refresh. Группировать draws по framebuffer/pass/program/material, переключения program/VAO/UBO и uniform/uploads. Использовать Chrome CPU stacks и timestamps, чтобы проверить, действительно ли эти вызовы составляют bottleneck.",
+      "sources": [
+        {
+          "path": "../../../../../game-opus/tools/render-bench/main.ts",
+          "lines": [
+            126,
+            140
+          ]
+        },
+        {
+          "path": "../../../../../game-opus/tools/render-bench/main.ts",
+          "lines": [
+            85,
+            88
+          ]
+        },
+        {
+          "path": "../../../../../../../unavailable.html",
+          "lines": [
+            8,
+            15
+          ]
+        },
+        {
+          "path": "../../../../../../../unavailable.html",
+          "lines": [
+            28,
+            72
+          ]
+        }
+      ],
+      "primaryDoc": "https://github.com/BabylonJS/Spector.js/blob/v0.9.33/documentation/apis.md"
+    }
+  ]
+}

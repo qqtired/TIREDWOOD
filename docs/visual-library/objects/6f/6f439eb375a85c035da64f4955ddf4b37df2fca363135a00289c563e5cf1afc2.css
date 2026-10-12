@@ -1,0 +1,74 @@
+/* Картинг на ките 2.0 — раскладка поверх кита (префикс .rc-), как на странице lab/ui «Режимы» → «Картинг».
+   Детали — общие классы режимов (client/ui/kit/modes.css, .mo-*), цвета — только токены кита.
+   Кляксы краски, линии скорости и конфетти финиша — в client/styles.css (блок «гонка»). */
+
+/* цвет режима — у слоёв кита, пока ты в гонке (бейдж, тосты, полоса «через N с») */
+html[data-room='race'] { --mode-w: var(--m-race); --mode-h: var(--mh-race); }
+/* свои части в общих слотах кита — только в гонке и только у сцены той трассы, где ты сейчас */
+html:not([data-room='race']) .rc-only, .rc-only.rc-off { display: none !important; }
+.k-hud .rc-only[hidden], .rc-charge[hidden] { display: none !important; }
+
+/* крупный баннер гонки («Круг 2/3», «Последний круг!», «Финиш!») — поменьше (is-sm), чтобы не закрывать дорогу */
+html[data-room='race'] .k-hud > .k-slot--c .k-hero-title { font-size: calc(40px * var(--display-scale)); }
+/* «Не туда!» держится, пока едешь против хода (снимает hud.ts), — без растворения */
+html[data-room='race'] .k-hud > .k-slot--c > .k-hero--lose.is-play { animation: k-hero-pop .7s var(--ease-pop) both; }
+
+/* FPS под карточкой места */
+.rc-stats { padding-left: 4px; font-variant-numeric: tabular-nums; }
+
+/* мини-карта под бейджем: холст 170 в плашке 180 */
+.rc-map { flex: none; }
+
+/* бонус: рулетка — значок покачивается; телефон — плашка сама кнопка */
+.rc-item { flex: none; }
+/* текст не под колпачками E / ЛКМ на углу: плашка не уже 270 */
+.rc-item .mo-item-txt { min-width: 196px; }
+.rc-item.is-rolling .mo-item-ic { box-shadow: inset 0 0 0 2px var(--line-strong); }
+.rc-item.is-rolling .mo-ic { animation: rc-roll .15s ease-in-out infinite alternate; }
+.rc-item:not(.is-ready) .mo-item-keys { display: none; }
+.rc-item.is-ready .mo-item-ic { animation: k-bump .35s var(--ease-pop); }
+@keyframes rc-roll {
+  0% { transform: translateY(-2px) rotate(-4deg); }
+  100% { transform: translateY(2px) rotate(4deg); }
+}
+
+/* заряд заноса: полоса kit k-meter--lg, тон — по уровню (hud.ts); белый «копится» на светлой плашке — серо-бирюзовым */
+.rc-charge .k-meter.rc-meter-0 { --c: var(--surf-faint); }
+.rc-charge.is-max .k-meter { animation: k-bump .3s var(--ease-pop); }
+
+/* итоги: жетоны — жирно */
+.rc-scrim .k-table td:last-child { font-weight: 800; }
+
+/* телефон: бонус нажимается пальцем, пока лежит; нажали — окошко вдавилось, значок вылетает и тает */
+.touch .rc-item.is-ready { pointer-events: auto; touch-action: none; user-select: none; -webkit-touch-callout: none; }
+.touch .rc-item.is-ready .mo-item-ic { animation: rc-tap 1.2s ease-out .35s infinite; }
+.touch .rc-item.is-press .mo-item-ic { transform: scale(.86); }
+.rc-item-pop { position: absolute; width: 40px; height: 40px; pointer-events: none; animation: rc-item-pop .5s ease-out forwards; }
+.rc-item-pop img { width: 100%; height: 100%; object-fit: contain; }
+@keyframes rc-tap {
+  0% { box-shadow: inset 0 0 0 2px var(--gold), 0 0 0 0 var(--gold-soft); }
+  70%, 100% { box-shadow: inset 0 0 0 2px var(--gold), 0 0 0 14px transparent; }
+}
+@keyframes rc-item-pop {
+  0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -150%) scale(1.6); }
+}
+/* телефон 375×812 стоя. Слои кита масштабируются --hud-k, поэтому экранные px — calc(<px> / var(--hud-k, 1)).
+   Верхний ряд занят кнопками ☰ 💬 👥, «на трассу» и бейджем: карточка места и скорость — ниже него слева, мини-карта справа
+   (уже, чтобы не резать подпись «на трассу»). Внизу над рулём — бонус: не шире 190 px, чтобы не доходить до «тормоза» (x ≥ 203);
+   скорость внизу лежала на ▶ руля — её там нет. Чат — под скоростью */
+html.touch[data-room='race'] .k-hud > .k-slot--tl { top: calc(62px / var(--hud-k, 1)); }
+html.touch[data-room='race'] .rc-stats { display: none; }
+html.touch[data-room='race'] .k-hud > .k-slot--tr .mo-map { width: 160px; }
+html.touch[data-room='race'] .k-hud > .k-slot--br { top: calc((110px + env(safe-area-inset-top, 0px)) / var(--hud-k, 1)); bottom: auto; right: auto; left: var(--edge); margin-left: calc(env(safe-area-inset-left, 0px) / var(--hud-k, 1)); width: auto; align-items: flex-start; }
+html.touch[data-room='race'] .k-hud > .k-slot--bl { top: calc((152px + env(safe-area-inset-top, 0px)) / var(--hud-k, 1)); }
+html.touch[data-room='race'] .k-hud > .k-slot--bc { left: var(--edge); margin-left: calc(env(safe-area-inset-left, 0px) / var(--hud-k, 1)); width: auto; bottom: calc((108px + env(safe-area-inset-bottom, 0px)) / var(--hud-k, 1)); align-items: flex-start; }
+html.touch[data-room='race'] .rc-item .mo-item-txt { min-width: 0; max-width: 150px; }
+html.touch[data-room='race'] .rc-item .mo-item-txt > * { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rc-item.is-rolling .mo-ic, .rc-item.is-ready .mo-item-ic, .touch .rc-item.is-ready .mo-item-ic, .rc-charge.is-max .k-meter { animation: none !important; }
+}
+
+/* риски «синее» и «оранжевое» на светлой полосе — тёмными */
+.rc-charge .mo-tick { background: var(--line-strong); }

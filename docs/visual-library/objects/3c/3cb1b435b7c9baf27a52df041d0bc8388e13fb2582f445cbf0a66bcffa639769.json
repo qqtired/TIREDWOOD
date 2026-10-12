@@ -1,0 +1,27 @@
+{
+  "tick": 3601,
+  "hash": 1480689889,
+  "initialHash": 3280030446,
+  "room": {
+    "seed": 704317,
+    "tick": 3601,
+    "stage": "wave",
+    "upto": 3601,
+    "received": 0,
+    "coins": 18,
+    "over": false,
+    "paused": true
+  },
+  "mismatches": 0,
+  "bad": 0,
+  "result": {
+    "waves": 20,
+    "ms": 120000,
+    "kills": 0,
+    "level": 1,
+    "bosses": 0,
+    "killedBy": "",
+    "dmg": {},
+    "end": "running"
+  }
+}

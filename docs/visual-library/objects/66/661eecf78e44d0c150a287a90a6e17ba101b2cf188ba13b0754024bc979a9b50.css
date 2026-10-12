@@ -1,0 +1,9 @@
+/* Тосты верх-центра (client/ui/kit/topcenter.ts, client/ui/toasts.ts) — кит .k-toast. Здесь только раскладка:
+   тексты игры и сервера бывают длиннее одной строки кита (≤ 28 / 40 знаков) — переносим до трёх строк, а не режем «…»:
+   иначе пропадает смысл («Лодка «Удалая» ждёт у причала…»). Крупный тост на весь сервер — тот же .k-toast--reward. */
+.k-slot--tc .k-toast :is(.k-toast-title, .k-toast-sub) {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  white-space: normal;
+}

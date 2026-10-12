@@ -1,0 +1,8026 @@
+{
+  "headless": true,
+  "kind": "diagnostic capture; excluded from clean FPS measurements",
+  "errors": [],
+  "beforeQuality": {
+    "info": {
+      "frame": 536,
+      "calls": 516,
+      "triangles": 771258,
+      "points": 3748,
+      "lines": 1047,
+      "ratio": 1,
+      "screen": "game",
+      "paused": false,
+      "cpuMs": 4.899999999906868,
+      "gpuMs": 3.481708,
+      "frameMedianMs": 0,
+      "frameP95Ms": 0,
+      "quality": "high",
+      "gfx": {
+        "renderScale": 1,
+        "shadows": "high",
+        "effects": "normal",
+        "viewDistance": "far",
+        "fpsCap": 0,
+        "ratio": 1,
+        "tier": "high",
+        "auto": false,
+        "shadowsEnabled": true,
+        "viewK": 1,
+        "fx": 1
+      },
+      "memory": {
+        "geometries": 645,
+        "textures": 214
+      }
+    },
+    "state": {
+      "screen": "game",
+      "scene": "lobby",
+      "paused": false,
+      "nick": "FrameInspector",
+      "tokens": 100,
+      "epoch": 1,
+      "transition": {
+        "phase": "idle",
+        "kind": "lobby",
+        "fed": 100,
+        "passes": 0,
+        "compiled": false,
+        "textures": 0,
+        "texTotal": 0,
+        "elapsed": 0,
+        "who": [],
+        "waiting": 0,
+        "go": false
+      },
+      "id": 1,
+      "hasSelf": true,
+      "action": 0,
+      "arg": 0,
+      "act": 0,
+      "hold": 0,
+      "pos": [
+        -0.16257944160643556,
+        0,
+        6.546451929867743
+      ],
+      "corrections": 0,
+      "target": null,
+      "barkas": {
+        "ferry": {
+          "ph": 0,
+          "at": 0,
+          "n": 0,
+          "c": 0
+        },
+        "x": -26.75,
+        "z": 61.6,
+        "yaw": 0,
+        "speed": 0,
+        "matros": "stand",
+        "angler": {
+          "phase": "wait",
+          "caught": 0
+        }
+      },
+      "renderTick": 155.9159699277152,
+      "delay": 11.268200000000364,
+      "jitter": 17.80000000000001,
+      "remotes": 0,
+      "queue": 1.213929337621405,
+      "fps": 192,
+      "seq": 142,
+      "dkSeat": -1,
+      "dkLocked": false,
+      "dkHand": -1,
+      "blackjack": {
+        "table": 2,
+        "phase": "betting",
+        "rev": 0,
+        "left": 0,
+        "turn": -1,
+        "hand": 0,
+        "dealer": [],
+        "dealerTotal": null,
+        "seats": [
+          {
+            "k": 0,
+            "id": 0,
+            "pid": 0,
+            "nick": "",
+            "away": false,
+            "bet": 0,
+            "participating": false,
+            "hands": [],
+            "actions": [],
+            "skip": false
+          },
+          {
+            "k": 0,
+            "id": 0,
+            "pid": 0,
+            "nick": "",
+            "away": false,
+            "bet": 0,
+            "participating": false,
+            "hands": [],
+            "actions": [],
+            "skip": false
+          },
+          {
+            "k": 0,
+            "id": 0,
+            "pid": 0,
+            "nick": "",
+            "away": false,
+            "bet": 0,
+            "participating": false,
+            "hands": [],
+            "actions": [],
+            "skip": false
+          },
+          {
+            "k": 0,
+            "id": 0,
+            "pid": 0,
+            "nick": "",
+            "away": false,
+            "bet": 0,
+            "participating": false,
+            "hands": [],
+            "actions": [],
+            "skip": false
+          },
+          {
+            "k": 0,
+            "id": 0,
+            "pid": 0,
+            "nick": "",
+            "away": false,
+            "bet": 0,
+            "participating": false,
+            "hands": [],
+            "actions": [],
+            "skip": false
+          },
+          {
+            "k": 0,
+            "id": 0,
+            "pid": 0,
+            "nick": "",
+            "away": false,
+            "bet": 0,
+            "participating": false,
+            "hands": [],
+            "actions": [],
+            "skip": false
+          }
+        ]
+      },
+      "blackjackOpen": false,
+      "billiards": {
+        "on": true,
+        "table": -1,
+        "side": -1,
+        "ang": 0,
+        "power": 0,
+        "charging": null,
+        "pending": -1,
+        "can": false,
+        "anims": [
+          0,
+          0,
+          0
+        ],
+        "views": [
+          {
+            "phase": "open",
+            "shot": 0,
+            "score": [
+              0,
+              0
+            ],
+            "turn": -1,
+            "offer": null,
+            "seats": [
+              null,
+              null
+            ],
+            "note": "",
+            "bet": 0
+          },
+          {
+            "phase": "open",
+            "shot": 0,
+            "score": [
+              0,
+              0
+            ],
+            "turn": -1,
+            "offer": null,
+            "seats": [
+              null,
+              null
+            ],
+            "note": "",
+            "bet": 0
+          },
+          {
+            "phase": "open",
+            "shot": 0,
+            "score": [
+              0,
+              0
+            ],
+            "turn": -1,
+            "offer": null,
+            "seats": [
+              null,
+              null
+            ],
+            "note": "",
+            "bet": 0
+          }
+        ]
+      },
+      "skill": {
+        "t": "skillSt",
+        "n": 0,
+        "max": 5,
+        "names": [],
+        "course": "sky-tower-v1",
+        "phase": "none",
+        "left": 0
+      },
+      "kraken": {
+        "visible": false,
+        "age": -1,
+        "x": 0,
+        "z": 0,
+        "segments": 64,
+        "particles": 24
+      },
+      "boatrace": {
+        "phase": "idle",
+        "left": 0,
+        "n": 0,
+        "max": 6,
+        "names": []
+      },
+      "regatta": {
+        "phase": "idle",
+        "start": 0,
+        "stop": 0,
+        "boats": 0,
+        "racing": false,
+        "myBoat": -1,
+        "pred": {
+          "ready": false,
+          "corrections": 0,
+          "lap": 1,
+          "cp": 0,
+          "rt": 0,
+          "x": 0,
+          "z": 0,
+          "speed": 0,
+          "done": 0,
+          "flags": 0
+        },
+        "engines": [],
+        "queue": {
+          "phase": "idle",
+          "left": 0,
+          "n": 0,
+          "max": 6,
+          "names": []
+        },
+        "top": 0,
+        "course": {
+          "next": -1,
+          "taken": 0,
+          "board": "{\"title\":\"ПОРТОВАЯ РЕГАТА\",\"phase\":\"РЕКОРДЫ\",\"rows\":[],\"foot\":\"Рекордов ещё нет — встань в круг у пирса!\"}"
+        },
+        "lastStep": 0
+      },
+      "plane": {
+        "enabled": true,
+        "mine": false,
+        "flying": false,
+        "view": {
+          "ph": 0,
+          "slot": 0,
+          "pid": 0,
+          "nick": "",
+          "o": null,
+          "level": 1,
+          "q": [],
+          "qb": [],
+          "b": "",
+          "bn": "",
+          "hold": "",
+          "hu": 0,
+          "k": 1,
+          "eta": 0
+        },
+        "pose": {
+          "ph": 0,
+          "x": -38,
+          "y": 0,
+          "z": -11,
+          "yaw": 3.141592653589793,
+          "pitch": 0,
+          "roll": 0,
+          "v": 0
+        },
+        "ready": false,
+        "corrections": 0,
+        "state": {
+          "ph": 0,
+          "t": 0,
+          "x": -38,
+          "y": 0,
+          "z": -11,
+          "yaw": 3.141592653589793
+        },
+        "samples": 0,
+        "zoom": 12
+      },
+      "hide": {
+        "phase": "idle",
+        "left": 0,
+        "n": 0,
+        "max": 8,
+        "names": []
+      },
+      "startZone": {
+        "kind": null,
+        "left": 0
+      },
+      "storm": {
+        "id": "",
+        "phase": "idle",
+        "start": 0,
+        "end": 0,
+        "rankEnd": 0,
+        "rainbowEnd": 0,
+        "waveStart": 0,
+        "winners": []
+      },
+      "pirates": {
+        "phase": "idle",
+        "wave": 0,
+        "hp": 0,
+        "hpMax": 0,
+        "stolen": 0,
+        "left": 0,
+        "pirates": 0,
+        "boats": 0,
+        "items": 0,
+        "snaps": 0,
+        "queue": 0,
+        "ship": null,
+        "crowd": 0,
+        "nearCannon": -1,
+        "eligible": true,
+        "pirateAt": [],
+        "boatAt": []
+      },
+      "critters": {
+        "enabled": true,
+        "count": 15,
+        "modelsReady": 15,
+        "animals": [
+          {
+            "id": 0,
+            "kind": "cat",
+            "mode": "sched",
+            "x": -0.55,
+            "y": 0.3,
+            "z": 19.42,
+            "yaw": -1.5707963267948966,
+            "pitch": 0,
+            "action": "sleep",
+            "mood": "none",
+            "rest": "sea-bench",
+            "moving": false,
+            "airborne": false,
+            "phase": 0.09624442588130568,
+            "distance": 0,
+            "speed": 0,
+            "restWeight": 1,
+            "age": 2.598599498795253,
+            "remaining": 24.401400501204748,
+            "turn": 0,
+            "lookYaw": 0,
+            "lookPitch": 0,
+            "look": 0,
+            "excite": 0,
+            "alarm": 0,
+            "cry": 0
+          },
+          {
+            "id": 1,
+            "kind": "cat",
+            "mode": "sched",
+            "x": -10.2,
+            "y": 1,
+            "z": -21.9,
+            "yaw": -0.03569911267932451,
+            "pitch": 0,
+            "action": "groom",
+            "mood": "none",
+            "rest": "warehouse-crate",
+            "moving": false,
+            "airborne": false,
+            "phase": 0.03340870977186971,
+            "distance": 3.4008925726121886,
+            "speed": 0,
+            "restWeight": 1,
+            "age": 0.7349916149811335,
+            "remaining": 21.265008385018866,
+            "turn": 0,
+            "lookYaw": 0,
+            "lookPitch": 0,
+            "look": 0,
+            "excite": 0,
+            "alarm": 0,
+            "cry": 0
+          },
+          {
+            "id": 2,
+            "kind": "cat",
+            "mode": "sched",
+            "x": -16.3,
+            "y": 0,
+            "z": 44,
+            "yaw": -3.141592653589793,
+            "pitch": 0,
+            "action": "sleep",
+            "mood": "none",
+            "rest": "lighthouse-warm-floor",
+            "moving": false,
+            "airborne": false,
+            "phase": 0.4276249480229607,
+            "distance": 4.240175425099138,
+            "speed": 0,
+            "restWeight": 1,
+            "age": 11.118248648596978,
+            "remaining": 14.881751351403022,
+            "turn": 0,
+            "lookYaw": 0,
+            "lookPitch": 0,
+            "look": 0,
+            "excite": 0,
+            "alarm": 0,
+            "cry": 0
+          },
+          {
+            "id": 3,
+            "kind": "cat",
+            "mode": "sched",
+            "x": 22.6,
+            "y": 0,
+            "z": 5.5,
+            "yaw": -0.06656816377582475,
+            "pitch": 0,
+            "action": "sleep",
+            "mood": "none",
+            "rest": "cafe-shade",
+            "moving": false,
+            "airborne": false,
+            "phase": 0.8521130216867501,
+            "distance": 0,
+            "speed": 0,
+            "restWeight": 1,
+            "age": 19.598599498795252,
+            "remaining": 3.4014005012047477,
+            "turn": 0,
+            "lookYaw": 0,
+            "lookPitch": 0,
+            "look": 0,
+            "excite": 0,
+            "alarm": 0,
+            "cry": 0
+          },
+          {
+            "id": 4,
+            "kind": "gull",
+            "mode": "sched",
+            "x": -5.997322233215384,
+            "y": 0,
+            "z": 20.300535553356923,
+            "yaw": 1.3734007669450166,
+            "pitch": 0,
+            "action": "walk",
+            "mood": "none",
+            "rest": null,
+            "moving": true,
+            "airborne": false,
+            "phase": 0.9973222332153845,
+            "distance": 1.0170731057010358,
+            "speed": 0.11809999621414884,
+            "restWeight": 0,
+            "age": 1.5985994987952523,
+            "remaining": 0.04624550558951679,
+            "turn": 0,
+            "lookYaw": 0,
+            "lookPitch": 0,
+            "look": 0,
+            "excite": 0,
+            "alarm": 0,
+            "cry": 0
+          },
+          {
+            "id": 5,
+            "kind": "gull",
+            "mode": "sched",
+            "x": 6,
+            "y": 0,
+            "z": 20.2,
+            "yaw": -1.3734007669450166,
+            "pitch": 0,
+            "action": "peck",
+            "mood": "none",
+            "rest": "east-pier",
+            "moving": false,
+            "airborne": false,
+            "phase": 0.5412504085827712,
+            "distance": 1.0198039027185568,
+            "speed": 0,
+            "restWeight": 1,
+            "age": 5.953754494410483,
+            "remaining": 5.046245505589517,
+            "turn": 0,
+            "lookYaw": 0,
+            "lookPitch": 0,
+            "look": 0,
+            "excite": 0,
+            "alarm": 0,
+            "cry": 0
+          },
+          {
+            "id": 6,
+            "kind": "gull",
+            "mode": "sched",
+            "x": -16.35502568610367,
+            "y": 2.1933533612942178,
+            "z": 27.993797643325834,
+            "yaw": -2.097866252466595,
+            "pitch": 0.43446658298034924,
+            "action": "fly",
+            "mood": "none",
+            "rest": null,
+            "moving": true,
+            "airborne": true,
+            "phase": 0.2327089414944893,
+            "distance": 1.985629245554017,
+            "speed": 1.3311893367402456,
+            "restWeight": 0,
+            "age": 1.4286601363640088,
+            "remaining": 4.136294088404876,
+            "turn": 0,
+            "lookYaw": 0,
+            "lookPitch": 0,
+            "look": 0,
+            "excite": 0,
+            "alarm": 0,
+            "cry": 0
+          },
+          {
+            "id": 7,
+            "kind": "gull",
+            "mode": "sched",
+            "x": -20.1,
+            "y": 0,
+            "z": 33.2,
+            "yaw": -1.599162999763989,
+            "pitch": 0,
+            "action": "perch",
+            "mood": "none",
+            "rest": "fishing-pier",
+            "moving": false,
+            "airborne": false,
+            "phase": 0.8987176353965173,
+            "distance": 3.360084744241194,
+            "speed": 0,
+            "restWeight": 1,
+            "age": 12.582046895551242,
+            "remaining": 1.4179531044487579,
+            "turn": 0,
+            "lookYaw": 0,
+            "lookPitch": 0,
+            "look": 0,
+            "excite": 0,
+            "alarm": 0,
+            "cry": 0
+          },
+          {
+            "id": 8,
+            "kind": "gull",
+            "mode": "sched",
+            "x": -23.09939118015455,
+            "y": 0.5407935194585447,
+            "z": 41.40781741359036,
+            "yaw": -0.08924578320320545,
+            "pitch": -0.2726095108508605,
+            "action": "fly",
+            "mood": "none",
+            "rest": null,
+            "moving": true,
+            "airborne": true,
+            "phase": 0.9281503575373743,
+            "distance": 19.169850023173055,
+            "speed": 2.86839292602095,
+            "restWeight": 0,
+            "age": 7.211127681530307,
+            "remaining": 0.7888723184696929,
+            "turn": 0,
+            "lookYaw": 0,
+            "lookPitch": 0,
+            "look": 0,
+            "excite": 0,
+            "alarm": 0,
+            "cry": 0
+          },
+          {
+            "id": 9,
+            "kind": "gull",
+            "mode": "sched",
+            "x": 16.5,
+            "y": 0,
+            "z": 20.3,
+            "yaw": 0.19962572364359812,
+            "pitch": 0,
+            "action": "peck",
+            "mood": "none",
+            "rest": "cafe-pier",
+            "moving": false,
+            "airborne": false,
+            "phase": 0.8784434082727498,
+            "distance": 6.043047469109836,
+            "speed": 0,
+            "restWeight": 1,
+            "age": 11.419764307545748,
+            "remaining": 1.5802356924542522,
+            "turn": 0,
+            "lookYaw": 0,
+            "lookPitch": 0,
+            "look": 0,
+            "excite": 0,
+            "alarm": 0,
+            "cry": 0
+          },
+          {
+            "id": 10,
+            "kind": "crab",
+            "mode": "sched",
+            "x": -17.2,
+            "y": -0.9386299597738158,
+            "z": 24.5,
+            "yaw": 2.418613300188302,
+            "pitch": 0,
+            "action": "burrow",
+            "mood": "none",
+            "rest": "cove",
+            "moving": false,
+            "airborne": false,
+            "phase": 0.32482493734940665,
+            "distance": 0,
+            "speed": 0,
+            "restWeight": 1,
+            "age": 2.598599498795253,
+            "remaining": 5.401400501204747,
+            "turn": 0,
+            "lookYaw": 0,
+            "lookPitch": 0,
+            "look": 0,
+            "excite": 0,
+            "alarm": 0,
+            "cry": 0
+          },
+          {
+            "id": 11,
+            "kind": "crab",
+            "mode": "sched",
+            "x": -14.3,
+            "y": -0.9379846780983214,
+            "z": 22.6,
+            "yaw": 1.3772215511517236,
+            "pitch": 0,
+            "action": "burrow",
+            "mood": "none",
+            "rest": "cove",
+            "moving": false,
+            "airborne": false,
+            "phase": 0.9553999443105836,
+            "distance": 0,
+            "speed": 0,
+            "restWeight": 0.4583966293796457,
+            "age": 8.598599498795252,
+            "remaining": 0.4014005012047477,
+            "turn": 0,
+            "lookYaw": 0,
+            "lookPitch": 0,
+            "look": 0,
+            "excite": 0,
+            "alarm": 0,
+            "cry": 0
+          },
+          {
+            "id": 12,
+            "kind": "crab",
+            "mode": "sched",
+            "x": -14.7,
+            "y": -0.9401663695963034,
+            "z": 22.9,
+            "yaw": -2.214297435588179,
+            "pitch": 0,
+            "action": "burrow",
+            "mood": "none",
+            "rest": "cove",
+            "moving": false,
+            "airborne": false,
+            "phase": 0.6998249373494068,
+            "distance": 0.9999999999999993,
+            "speed": 0,
+            "restWeight": 1,
+            "age": 5.598599498795254,
+            "remaining": 2.401400501204746,
+            "turn": 0,
+            "lookYaw": 0,
+            "lookPitch": 0,
+            "look": 0,
+            "excite": 0,
+            "alarm": 0,
+            "cry": 0
+          },
+          {
+            "id": 13,
+            "kind": "crab",
+            "mode": "sched",
+            "x": -16.4977117146932,
+            "y": -0.9275066246578283,
+            "z": 23.834508115263684,
+            "yaw": -0.3947911196997617,
+            "pitch": 0,
+            "action": "walk",
+            "mood": "none",
+            "rest": null,
+            "moving": true,
+            "airborne": false,
+            "phase": 0.804576570613596,
+            "distance": 1.8705706669212079,
+            "speed": 0.6097560975609594,
+            "restWeight": 0,
+            "age": 1.9493572485481856,
+            "remaining": 0.6506427514518132,
+            "turn": 0,
+            "lookYaw": 0,
+            "lookPitch": 0,
+            "look": 0,
+            "excite": 0,
+            "alarm": 0,
+            "cry": 0
+          },
+          {
+            "id": 14,
+            "kind": "dog",
+            "mode": "run",
+            "x": 7.8267400163832415,
+            "y": 0,
+            "z": 7.445779569101079,
+            "yaw": 1.4587019542443,
+            "pitch": 0,
+            "action": "walk",
+            "mood": "none",
+            "rest": null,
+            "moving": true,
+            "airborne": false,
+            "phase": 0,
+            "distance": 13.590729216831285,
+            "speed": 2.799999971427643,
+            "restWeight": 0,
+            "age": 1.7694999999999956,
+            "remaining": 12.230500000000005,
+            "turn": 0,
+            "lookYaw": 0,
+            "lookPitch": 0,
+            "look": 0,
+            "excite": 0.7,
+            "alarm": 0,
+            "cry": 0
+          }
+        ]
+      },
+      "ask": -1,
+      "photoCard": false,
+      "ball": {
+        "x": 0,
+        "y": 0.34,
+        "z": 3.6,
+        "vx": 0,
+        "vy": 0,
+        "vz": 0,
+        "kicks": 0,
+        "bounces": 0,
+        "wet": 0,
+        "still": 20,
+        "known": true,
+        "corrections": 0,
+        "tau": 0,
+        "shown": true,
+        "screen": [
+          0,
+          0.34,
+          3.6
+        ]
+      },
+      "fish": [
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        }
+      ],
+      "fishSpot": -1,
+      "fishCard": false,
+      "fish2": {
+        "on": true,
+        "reel": false,
+        "running": false,
+        "p": 0,
+        "card": false,
+        "book": false,
+        "npc": false,
+        "rain": false,
+        "season": false,
+        "seasonEnds": 0,
+        "eventUntil": 0,
+        "board": {
+          "x": -15,
+          "y": 0,
+          "z": 20.8,
+          "yaw": 0,
+          "w": 3.6,
+          "d": 0.16,
+          "h": 2.45,
+          "panelY": 0.8
+        },
+        "podium": [],
+        "progress": {
+          "xp": 0,
+          "questsDone": 0,
+          "questCaught": 0,
+          "rod": 0,
+          "beerUntil": 0,
+          "aleUntil": 0,
+          "bagTier": 0,
+          "lure": 0,
+          "bag": [],
+          "bagSeq": 0
+        }
+      },
+      "fishHold": null,
+      "fishJumps": {
+        "on": false,
+        "flying": 0
+      },
+      "weather": {
+        "on": false,
+        "overcast": 0,
+        "rain": 0,
+        "dark": 0,
+        "wind": 0,
+        "wet": 0,
+        "storm": 0,
+        "plan": null,
+        "strikes": 0,
+        "next": 0
+      },
+      "folk": {
+        "caught": [
+          0,
+          0
+        ],
+        "fish": [
+          {
+            "ph": 2,
+            "anim": 0,
+            "n": 0,
+            "sp": -1
+          },
+          {
+            "ph": 0,
+            "anim": 0,
+            "n": 0,
+            "sp": -1
+          }
+        ]
+      },
+      "boats": {
+        "passing": false,
+        "x": 0,
+        "z": 0,
+        "launch": {
+          "riding": false,
+          "x": 8,
+          "z": 23.42,
+          "yaw": -1.571,
+          "speed": 0
+        }
+      },
+      "respect": null,
+      "mermaid": {
+        "active": false,
+        "age": -1,
+        "forced": false,
+        "key": -1,
+        "hearts": false,
+        "drops": 0,
+        "at": null,
+        "sides": [
+          {
+            "name": "запад",
+            "spots": 8,
+            "lanes": [
+              [
+                -20.5,
+                50.5
+              ],
+              [
+                -21,
+                33.75
+              ],
+              [
+                -21,
+                30.25
+              ]
+            ]
+          },
+          {
+            "name": "восток",
+            "spots": 9,
+            "lanes": [
+              [
+                -17,
+                30.25
+              ],
+              [
+                -17,
+                33.75
+              ],
+              [
+                -17.5,
+                48.75
+              ],
+              [
+                -12.5,
+                58.7
+              ]
+            ]
+          }
+        ]
+      },
+      "boat": {
+        "ph": 0,
+        "at": 0,
+        "n": 0,
+        "nick": "",
+        "secs": 0
+      },
+      "aqua": {
+        "at": 0,
+        "fin": 0,
+        "top": 0,
+        "done": 0,
+        "vt": 155.671875,
+        "knock": 0
+      },
+      "wheel": {
+        "until": 0,
+        "secs": 0
+      }
+    },
+    "programs": 117,
+    "tasks": [
+      {
+        "start": 350.1999999997206,
+        "duration": 198
+      },
+      {
+        "start": 566.5,
+        "duration": 1174
+      },
+      {
+        "start": 1949.6999999997206,
+        "duration": 1205
+      },
+      {
+        "start": 3345,
+        "duration": 428
+      },
+      {
+        "start": 4106.799999999814,
+        "duration": 123
+      },
+      {
+        "start": 4292.0999999996275,
+        "duration": 368
+      }
+    ]
+  },
+  "qualityChangeAt": 6837.299999999814,
+  "afterQuality": {
+    "info": {
+      "frame": 861,
+      "calls": 518,
+      "triangles": 777660,
+      "points": 3748,
+      "lines": 1047,
+      "ratio": 0.75,
+      "screen": "game",
+      "paused": false,
+      "cpuMs": 4.600000000093132,
+      "gpuMs": 3.481708,
+      "frameMedianMs": 5.099999904632568,
+      "frameP95Ms": 6.5,
+      "quality": "low",
+      "gfx": {
+        "renderScale": 0.75,
+        "shadows": "low",
+        "effects": "less",
+        "viewDistance": "far",
+        "fpsCap": 0,
+        "ratio": 0.75,
+        "tier": "low",
+        "auto": false,
+        "shadowsEnabled": true,
+        "viewK": 1,
+        "fx": 0.5
+      },
+      "memory": {
+        "geometries": 646,
+        "textures": 214
+      }
+    },
+    "state": {
+      "screen": "game",
+      "scene": "lobby",
+      "paused": false,
+      "nick": "FrameInspector",
+      "tokens": 100,
+      "epoch": 1,
+      "transition": {
+        "phase": "idle",
+        "kind": "lobby",
+        "fed": 179,
+        "passes": 0,
+        "compiled": false,
+        "textures": 0,
+        "texTotal": 0,
+        "elapsed": 0,
+        "who": [],
+        "waiting": 0,
+        "go": false
+      },
+      "id": 1,
+      "hasSelf": true,
+      "action": 0,
+      "arg": 0,
+      "act": 0,
+      "hold": 0,
+      "pos": [
+        -0.16257944160643556,
+        0,
+        6.546451929867743
+      ],
+      "corrections": 0,
+      "target": null,
+      "barkas": {
+        "ferry": {
+          "ph": 0,
+          "at": 0,
+          "n": 0,
+          "c": 0
+        },
+        "x": -26.75,
+        "z": 61.6,
+        "yaw": 0,
+        "speed": 0,
+        "matros": "stand",
+        "angler": {
+          "phase": "wait",
+          "caught": 0
+        }
+      },
+      "renderTick": 306.8541291765911,
+      "delay": 12,
+      "jitter": 30.53200000001118,
+      "remotes": 0,
+      "queue": 0.9666542111554518,
+      "fps": 196,
+      "seq": 256,
+      "dkSeat": -1,
+      "dkLocked": false,
+      "dkHand": -1,
+      "blackjack": {
+        "table": 2,
+        "phase": "betting",
+        "rev": 0,
+        "left": 0,
+        "turn": -1,
+        "hand": 0,
+        "dealer": [],
+        "dealerTotal": null,
+        "seats": [
+          {
+            "k": 0,
+            "id": 0,
+            "pid": 0,
+            "nick": "",
+            "away": false,
+            "bet": 0,
+            "participating": false,
+            "hands": [],
+            "actions": [],
+            "skip": false
+          },
+          {
+            "k": 0,
+            "id": 0,
+            "pid": 0,
+            "nick": "",
+            "away": false,
+            "bet": 0,
+            "participating": false,
+            "hands": [],
+            "actions": [],
+            "skip": false
+          },
+          {
+            "k": 0,
+            "id": 0,
+            "pid": 0,
+            "nick": "",
+            "away": false,
+            "bet": 0,
+            "participating": false,
+            "hands": [],
+            "actions": [],
+            "skip": false
+          },
+          {
+            "k": 0,
+            "id": 0,
+            "pid": 0,
+            "nick": "",
+            "away": false,
+            "bet": 0,
+            "participating": false,
+            "hands": [],
+            "actions": [],
+            "skip": false
+          },
+          {
+            "k": 0,
+            "id": 0,
+            "pid": 0,
+            "nick": "",
+            "away": false,
+            "bet": 0,
+            "participating": false,
+            "hands": [],
+            "actions": [],
+            "skip": false
+          },
+          {
+            "k": 0,
+            "id": 0,
+            "pid": 0,
+            "nick": "",
+            "away": false,
+            "bet": 0,
+            "participating": false,
+            "hands": [],
+            "actions": [],
+            "skip": false
+          }
+        ]
+      },
+      "blackjackOpen": false,
+      "billiards": {
+        "on": true,
+        "table": -1,
+        "side": -1,
+        "ang": 0,
+        "power": 0,
+        "charging": null,
+        "pending": -1,
+        "can": false,
+        "anims": [
+          0,
+          0,
+          0
+        ],
+        "views": [
+          {
+            "phase": "open",
+            "shot": 0,
+            "score": [
+              0,
+              0
+            ],
+            "turn": -1,
+            "offer": null,
+            "seats": [
+              null,
+              null
+            ],
+            "note": "",
+            "bet": 0
+          },
+          {
+            "phase": "open",
+            "shot": 0,
+            "score": [
+              0,
+              0
+            ],
+            "turn": -1,
+            "offer": null,
+            "seats": [
+              null,
+              null
+            ],
+            "note": "",
+            "bet": 0
+          },
+          {
+            "phase": "open",
+            "shot": 0,
+            "score": [
+              0,
+              0
+            ],
+            "turn": -1,
+            "offer": null,
+            "seats": [
+              null,
+              null
+            ],
+            "note": "",
+            "bet": 0
+          }
+        ]
+      },
+      "skill": {
+        "t": "skillSt",
+        "n": 0,
+        "max": 5,
+        "names": [],
+        "course": "sky-tower-v1",
+        "phase": "none",
+        "left": 0
+      },
+      "kraken": {
+        "visible": false,
+        "age": -1,
+        "x": 0,
+        "z": 0,
+        "segments": 32,
+        "particles": 8
+      },
+      "boatrace": {
+        "phase": "idle",
+        "left": 0,
+        "n": 0,
+        "max": 6,
+        "names": []
+      },
+      "regatta": {
+        "phase": "idle",
+        "start": 0,
+        "stop": 0,
+        "boats": 0,
+        "racing": false,
+        "myBoat": -1,
+        "pred": {
+          "ready": false,
+          "corrections": 0,
+          "lap": 1,
+          "cp": 0,
+          "rt": 0,
+          "x": 0,
+          "z": 0,
+          "speed": 0,
+          "done": 0,
+          "flags": 0
+        },
+        "engines": [],
+        "queue": {
+          "phase": "idle",
+          "left": 0,
+          "n": 0,
+          "max": 6,
+          "names": []
+        },
+        "top": 0,
+        "course": {
+          "next": -1,
+          "taken": 0,
+          "board": "{\"title\":\"ПОРТОВАЯ РЕГАТА\",\"phase\":\"РЕКОРДЫ\",\"rows\":[],\"foot\":\"Рекордов ещё нет — встань в круг у пирса!\"}"
+        },
+        "lastStep": 0
+      },
+      "plane": {
+        "enabled": true,
+        "mine": false,
+        "flying": false,
+        "view": {
+          "ph": 0,
+          "slot": 0,
+          "pid": 0,
+          "nick": "",
+          "o": null,
+          "level": 1,
+          "q": [],
+          "qb": [],
+          "b": "",
+          "bn": "",
+          "hold": "",
+          "hu": 0,
+          "k": 1,
+          "eta": 0
+        },
+        "pose": {
+          "ph": 0,
+          "x": -38,
+          "y": 0,
+          "z": -11,
+          "yaw": 3.141592653589793,
+          "pitch": 0,
+          "roll": 0,
+          "v": 0
+        },
+        "ready": false,
+        "corrections": 0,
+        "state": {
+          "ph": 0,
+          "t": 0,
+          "x": -38,
+          "y": 0,
+          "z": -11,
+          "yaw": 3.141592653589793
+        },
+        "samples": 0,
+        "zoom": 12
+      },
+      "hide": {
+        "phase": "idle",
+        "left": 0,
+        "n": 0,
+        "max": 8,
+        "names": []
+      },
+      "startZone": {
+        "kind": null,
+        "left": 0
+      },
+      "storm": {
+        "id": "",
+        "phase": "idle",
+        "start": 0,
+        "end": 0,
+        "rankEnd": 0,
+        "rainbowEnd": 0,
+        "waveStart": 0,
+        "winners": []
+      },
+      "pirates": {
+        "phase": "idle",
+        "wave": 0,
+        "hp": 0,
+        "hpMax": 0,
+        "stolen": 0,
+        "left": 0,
+        "pirates": 0,
+        "boats": 0,
+        "items": 0,
+        "snaps": 0,
+        "queue": 0,
+        "ship": null,
+        "crowd": 0,
+        "nearCannon": -1,
+        "eligible": true,
+        "pirateAt": [],
+        "boatAt": []
+      },
+      "critters": {
+        "enabled": true,
+        "count": 15,
+        "modelsReady": 15,
+        "animals": [
+          {
+            "id": 0,
+            "kind": "cat",
+            "mode": "sched",
+            "x": -0.55,
+            "y": 0.3,
+            "z": 19.42,
+            "yaw": -1.5707963267948966,
+            "pitch": 0,
+            "action": "sleep",
+            "mood": "none",
+            "rest": "sea-bench",
+            "moving": false,
+            "airborne": false,
+            "phase": 0.1894161291213525,
+            "distance": 0,
+            "speed": 0,
+            "restWeight": 1,
+            "age": 5.114235486276518,
+            "remaining": 21.885764513723483,
+            "turn": 0,
+            "lookYaw": 0,
+            "lookPitch": 0,
+            "look": 0,
+            "excite": 0,
+            "alarm": 0,
+            "cry": 0
+          },
+          {
+            "id": 1,
+            "kind": "cat",
+            "mode": "sched",
+            "x": -10.2,
+            "y": 1,
+            "z": -21.9,
+            "yaw": -0.03569911267932451,
+            "pitch": 0,
+            "action": "groom",
+            "mood": "none",
+            "rest": "warehouse-crate",
+            "moving": false,
+            "airborne": false,
+            "phase": 0.14775580011192735,
+            "distance": 3.4008925726121886,
+            "speed": 0,
+            "restWeight": 1,
+            "age": 3.2506276024624015,
+            "remaining": 18.7493723975376,
+            "turn": 0,
+            "lookYaw": 0,
+            "lookPitch": 0,
+            "look": 0,
+            "excite": 0,
+            "alarm": 0,
+            "cry": 0
+          },
+          {
+            "id": 2,
+            "kind": "cat",
+            "mode": "sched",
+            "x": -16.3,
+            "y": 0,
+            "z": 44,
+            "yaw": -3.141592653589793,
+            "pitch": 0,
+            "action": "sleep",
+            "mood": "none",
+            "rest": "lighthouse-warm-floor",
+            "moving": false,
+            "airborne": false,
+            "phase": 0.5243801783107018,
+            "distance": 4.240175425099138,
+            "speed": 0,
+            "restWeight": 1,
+            "age": 13.633884636078246,
+            "remaining": 12.366115363921754,
+            "turn": 0,
+            "lookYaw": 0,
+            "lookPitch": 0,
+            "look": 0,
+            "excite": 0,
+            "alarm": 0,
+            "cry": 0
+          },
+          {
+            "id": 3,
+            "kind": "cat",
+            "mode": "sched",
+            "x": 22.6,
+            "y": 0,
+            "z": 5.5,
+            "yaw": -0.06656816377582475,
+            "pitch": 0,
+            "action": "sleep",
+            "mood": "none",
+            "rest": "cafe-shade",
+            "moving": false,
+            "airborne": false,
+            "phase": 0.9614884994033268,
+            "distance": 0,
+            "speed": 0,
+            "restWeight": 1,
+            "age": 22.114235486276517,
+            "remaining": 0.8857645137234833,
+            "turn": 0,
+            "lookYaw": 0,
+            "lookPitch": 0,
+            "look": 0,
+            "excite": 0,
+            "alarm": 0,
+            "cry": 0
+          },
+          {
+            "id": 4,
+            "kind": "gull",
+            "mode": "sched",
+            "x": -6,
+            "y": 0,
+            "z": 20.3,
+            "yaw": 1.3734007669450166,
+            "pitch": 0,
+            "action": "peck",
+            "mood": "none",
+            "rest": "south-pier",
+            "moving": false,
+            "airborne": false,
+            "phase": 0.20578254015764563,
+            "distance": 1.0198039027185568,
+            "speed": 0,
+            "restWeight": 1,
+            "age": 2.4693904818917476,
+            "remaining": 9.530609518108253,
+            "turn": 0,
+            "lookYaw": 0,
+            "lookPitch": 0,
+            "look": 0,
+            "excite": 0,
+            "alarm": 0,
+            "cry": 0
+          },
+          {
+            "id": 5,
+            "kind": "gull",
+            "mode": "sched",
+            "x": 6,
+            "y": 0,
+            "z": 20.2,
+            "yaw": -1.3734007669450166,
+            "pitch": 0,
+            "action": "peck",
+            "mood": "none",
+            "rest": "east-pier",
+            "moving": false,
+            "airborne": false,
+            "phase": 0.7699445892628861,
+            "distance": 1.0198039027185568,
+            "speed": 0,
+            "restWeight": 1,
+            "age": 8.469390481891747,
+            "remaining": 2.5306095181082533,
+            "turn": 0,
+            "lookYaw": 0,
+            "lookPitch": 0,
+            "look": 0,
+            "excite": 0,
+            "alarm": 0,
+            "cry": 0
+          },
+          {
+            "id": 6,
+            "kind": "gull",
+            "mode": "sched",
+            "x": -16.5619136256853,
+            "y": 1.4268513018013604,
+            "z": 29.313401922114604,
+            "yaw": 1.8425091269101888,
+            "pitch": -0.5666717821807414,
+            "action": "fly",
+            "mood": "none",
+            "rest": null,
+            "moving": true,
+            "airborne": true,
+            "phase": 0.7293839114634542,
+            "distance": 3.3521625291801764,
+            "speed": 1.399576974269288,
+            "restWeight": 0,
+            "age": 3.9442961238452767,
+            "remaining": 1.6206581009236078,
+            "turn": 0,
+            "lookYaw": 0,
+            "lookPitch": 0,
+            "look": 0,
+            "excite": 0,
+            "alarm": 0,
+            "cry": 0
+          },
+          {
+            "id": 7,
+            "kind": "gull",
+            "mode": "sched",
+            "x": -22.07735271345013,
+            "y": 1.9247282157510435,
+            "z": 32.66970599188874,
+            "yaw": 1.2078539650058353,
+            "pitch": 0.5324373798822832,
+            "action": "fly",
+            "mood": "none",
+            "rest": null,
+            "moving": true,
+            "airborne": true,
+            "phase": 0.165963584047204,
+            "distance": 3.786775795505378,
+            "speed": 1.6364401693590194,
+            "restWeight": 0,
+            "age": 1.09768288303251,
+            "remaining": 4.5099609889593655,
+            "turn": 0,
+            "lookYaw": 0,
+            "lookPitch": 0,
+            "look": 0,
+            "excite": 0,
+            "alarm": 0,
+            "cry": 0
+          },
+          {
+            "id": 8,
+            "kind": "gull",
+            "mode": "sched",
+            "x": -22.6,
+            "y": 0,
+            "z": 39.3,
+            "yaw": -0.2540867198438834,
+            "pitch": 0,
+            "action": "peck",
+            "mood": "none",
+            "rest": "lighthouse-apron",
+            "moving": false,
+            "airborne": false,
+            "phase": 0.115117577934105,
+            "distance": 19.88261151351658,
+            "speed": 0,
+            "restWeight": 1,
+            "age": 1.726763669011575,
+            "remaining": 13.273236330988425,
+            "turn": 0,
+            "lookYaw": 0,
+            "lookPitch": 0,
+            "look": 0,
+            "excite": 0,
+            "alarm": 0,
+            "cry": 0
+          },
+          {
+            "id": 9,
+            "kind": "gull",
+            "mode": "sched",
+            "x": 17.065923614349476,
+            "y": 0,
+            "z": 20.20567939760842,
+            "yaw": -1.4056476493802703,
+            "pitch": 0,
+            "action": "walk",
+            "mood": "none",
+            "rest": null,
+            "moving": true,
+            "airborne": false,
+            "phase": 0.47160301195789694,
+            "distance": 6.616777295172492,
+            "speed": 0.7560975609755916,
+            "restWeight": 0,
+            "age": 0.9354002950270086,
+            "remaining": 1.0267811663595126,
+            "turn": 0,
+            "lookYaw": 0,
+            "lookPitch": 0,
+            "look": 0,
+            "excite": 0,
+            "alarm": 0,
+            "cry": 0
+          },
+          {
+            "id": 10,
+            "kind": "crab",
+            "mode": "sched",
+            "x": -17.2,
+            "y": -0.9386299597738158,
+            "z": 24.5,
+            "yaw": 2.418613300188302,
+            "pitch": 0,
+            "action": "burrow",
+            "mood": "none",
+            "rest": "cove",
+            "moving": false,
+            "airborne": false,
+            "phase": 0.6392794357845647,
+            "distance": 0,
+            "speed": 0,
+            "restWeight": 1,
+            "age": 5.114235486276518,
+            "remaining": 2.8857645137234824,
+            "turn": 0,
+            "lookYaw": 0,
+            "lookPitch": 0,
+            "look": 0,
+            "excite": 0,
+            "alarm": 0,
+            "cry": 0
+          },
+          {
+            "id": 11,
+            "kind": "crab",
+            "mode": "sched",
+            "x": -14.999927030451847,
+            "y": -0.9391421321164433,
+            "z": 23.39991660623068,
+            "yaw": 2.4227626539681673,
+            "pitch": 0,
+            "action": "walk",
+            "mood": "none",
+            "rest": null,
+            "moving": true,
+            "airborne": false,
+            "phase": 0.9998957577883517,
+            "distance": 1.0629037702824962,
+            "speed": 0.01879159448263454,
+            "restWeight": 0,
+            "age": 2.1142354862765167,
+            "remaining": 0.01179367627040806,
+            "turn": 0,
+            "lookYaw": 0,
+            "lookPitch": 0,
+            "look": 0,
+            "excite": 0,
+            "alarm": 0,
+            "cry": 0
+          },
+          {
+            "id": 12,
+            "kind": "crab",
+            "mode": "sched",
+            "x": -14.708667932890185,
+            "y": -0.9398937086898501,
+            "z": 22.902166983222546,
+            "yaw": 1.8157749899217612,
+            "pitch": 0,
+            "action": "walk",
+            "mood": "none",
+            "rest": null,
+            "moving": true,
+            "airborne": false,
+            "phase": 0.007223277408488216,
+            "distance": 1.0089347007154998,
+            "speed": 0.15642601098357142,
+            "restWeight": 0,
+            "age": 0.11423548627651847,
+            "remaining": 2.3596278890940803,
+            "turn": 0,
+            "lookYaw": 0,
+            "lookPitch": 0,
+            "look": 0,
+            "excite": 0,
+            "alarm": 0,
+            "cry": 0
+          },
+          {
+            "id": 13,
+            "kind": "crab",
+            "mode": "sched",
+            "x": -16.4,
+            "y": -0.9361956342736023,
+            "z": 23.6,
+            "yaw": -0.3947911196997617,
+            "pitch": 0,
+            "action": "sit",
+            "mood": "none",
+            "rest": "cove",
+            "moving": false,
+            "airborne": false,
+            "phase": 0.4662483090073628,
+            "distance": 2.124621125123533,
+            "speed": 0,
+            "restWeight": 1,
+            "age": 1.8649932360294512,
+            "remaining": 2.135006763970549,
+            "turn": 0,
+            "lookYaw": 0,
+            "lookPitch": 0,
+            "look": 0,
+            "excite": 0,
+            "alarm": 0,
+            "cry": 0
+          },
+          {
+            "id": 14,
+            "kind": "dog",
+            "mode": "run",
+            "x": 2.560161804152444,
+            "y": 0,
+            "z": 6.852940670200046,
+            "yaw": 1.4587019542442978,
+            "pitch": 0,
+            "action": "walk",
+            "mood": "alert",
+            "rest": null,
+            "moving": true,
+            "airborne": false,
+            "phase": 0,
+            "distance": 18.890569214513008,
+            "speed": 2.7999999999999967,
+            "restWeight": 0,
+            "age": 3.6622999999998065,
+            "remaining": 10.337700000000194,
+            "turn": 0,
+            "lookYaw": 1.648846256133586e-18,
+            "lookPitch": 0,
+            "look": 0.9994649765605645,
+            "excite": 0.7,
+            "alarm": 0,
+            "cry": 0
+          }
+        ]
+      },
+      "ask": -1,
+      "photoCard": false,
+      "ball": {
+        "x": 0,
+        "y": 0.34,
+        "z": 3.6,
+        "vx": 0,
+        "vy": 0,
+        "vz": 0,
+        "kicks": 0,
+        "bounces": 0,
+        "wet": 0,
+        "still": 20,
+        "known": true,
+        "corrections": 0,
+        "tau": 0,
+        "shown": true,
+        "screen": [
+          0,
+          0.34,
+          3.6
+        ]
+      },
+      "fish": [
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        },
+        {
+          "ph": 0,
+          "anim": 0,
+          "n": 0,
+          "sp": -1
+        }
+      ],
+      "fishSpot": -1,
+      "fishCard": false,
+      "fish2": {
+        "on": true,
+        "reel": false,
+        "running": false,
+        "p": 0,
+        "card": false,
+        "book": false,
+        "npc": false,
+        "rain": false,
+        "season": false,
+        "seasonEnds": 0,
+        "eventUntil": 0,
+        "board": {
+          "x": -15,
+          "y": 0,
+          "z": 20.8,
+          "yaw": 0,
+          "w": 3.6,
+          "d": 0.16,
+          "h": 2.45,
+          "panelY": 0.8
+        },
+        "podium": [],
+        "progress": {
+          "xp": 0,
+          "questsDone": 0,
+          "questCaught": 0,
+          "rod": 0,
+          "beerUntil": 0,
+          "aleUntil": 0,
+          "bagTier": 0,
+          "lure": 0,
+          "bag": [],
+          "bagSeq": 0
+        }
+      },
+      "fishHold": null,
+      "fishJumps": {
+        "on": false,
+        "flying": 0
+      },
+      "weather": {
+        "on": false,
+        "overcast": 0,
+        "rain": 0,
+        "dark": 0,
+        "wind": 0,
+        "wet": 0,
+        "storm": 0,
+        "plan": null,
+        "strikes": 0,
+        "next": 0
+      },
+      "folk": {
+        "caught": [
+          0,
+          0
+        ],
+        "fish": [
+          {
+            "ph": 2,
+            "anim": 0,
+            "n": 0,
+            "sp": -1
+          },
+          {
+            "ph": 0,
+            "anim": 0,
+            "n": 0,
+            "sp": -1
+          }
+        ]
+      },
+      "boats": {
+        "passing": false,
+        "x": 0,
+        "z": 0,
+        "launch": {
+          "riding": false,
+          "x": 8,
+          "z": 23.42,
+          "yaw": -1.571,
+          "speed": 0
+        }
+      },
+      "respect": null,
+      "mermaid": {
+        "active": false,
+        "age": -1,
+        "forced": false,
+        "key": -1,
+        "hearts": false,
+        "drops": 0,
+        "at": null,
+        "sides": [
+          {
+            "name": "запад",
+            "spots": 8,
+            "lanes": [
+              [
+                -20.5,
+                50.5
+              ],
+              [
+                -21,
+                33.75
+              ],
+              [
+                -21,
+                30.25
+              ]
+            ]
+          },
+          {
+            "name": "восток",
+            "spots": 9,
+            "lanes": [
+              [
+                -17,
+                30.25
+              ],
+              [
+                -17,
+                33.75
+              ],
+              [
+                -17.5,
+                48.75
+              ],
+              [
+                -12.5,
+                58.7
+              ]
+            ]
+          }
+        ]
+      },
+      "boat": {
+        "ph": 0,
+        "at": 0,
+        "n": 0,
+        "nick": "",
+        "secs": 0
+      },
+      "aqua": {
+        "at": 0,
+        "fin": 0,
+        "top": 0,
+        "done": 0,
+        "vt": 306.5,
+        "knock": 0
+      },
+      "wheel": {
+        "until": 0,
+        "secs": 0
+      }
+    },
+    "programs": 205,
+    "tasks": [
+      {
+        "start": 350.1999999997206,
+        "duration": 198
+      },
+      {
+        "start": 566.5,
+        "duration": 1174
+      },
+      {
+        "start": 1949.6999999997206,
+        "duration": 1205
+      },
+      {
+        "start": 3345,
+        "duration": 428
+      },
+      {
+        "start": 4106.799999999814,
+        "duration": 123
+      },
+      {
+        "start": 4292.0999999996275,
+        "duration": 368
+      },
+      {
+        "start": 6846.399999999907,
+        "duration": 750
+      }
+    ]
+  },
+  "drawFrame": {
+    "rows": [
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "ShaderMaterial",
+        "calls": 1,
+        "triangles": 960,
+        "instances": null
+      },
+      {
+        "owner": "cat-1",
+        "object": "cat-1",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 5500,
+        "instances": null
+      },
+      {
+        "owner": "cat-3",
+        "object": "cat-3",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 5500,
+        "instances": null
+      },
+      {
+        "owner": "dog-0",
+        "object": "dog-0",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 5598,
+        "instances": null
+      },
+      {
+        "owner": "cat-0",
+        "object": "cat-0",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 5500,
+        "instances": null
+      },
+      {
+        "owner": "gull-0",
+        "object": "gull-0",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 3572,
+        "instances": null
+      },
+      {
+        "owner": "gull-0",
+        "object": "gull-0",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 3572,
+        "instances": null
+      },
+      {
+        "owner": "gull-0",
+        "object": "gull-0",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 3572,
+        "instances": null
+      },
+      {
+        "owner": "crab-0",
+        "object": "crab-0",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 5002,
+        "instances": null
+      },
+      {
+        "owner": "crab-1",
+        "object": "crab-1",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 5002,
+        "instances": null
+      },
+      {
+        "owner": "crab-1",
+        "object": "crab-1",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 5002,
+        "instances": null
+      },
+      {
+        "owner": "crab-0",
+        "object": "crab-0",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 5002,
+        "instances": null
+      },
+      {
+        "owner": "gull-0",
+        "object": "gull-0",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 3572,
+        "instances": null
+      },
+      {
+        "owner": "gull-0",
+        "object": "gull-0",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 3572,
+        "instances": null
+      },
+      {
+        "owner": "gull-0",
+        "object": "gull-0",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 3572,
+        "instances": null
+      },
+      {
+        "owner": "cat-2",
+        "object": "cat-2",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 5500,
+        "instances": null
+      },
+      {
+        "owner": "podium-label-3",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 12,
+        "instances": null
+      },
+      {
+        "owner": "podium-label-5",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 12,
+        "instances": null
+      },
+      {
+        "owner": "podium-label-4",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 12,
+        "instances": null
+      },
+      {
+        "owner": "podium-label-2",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 12,
+        "instances": null
+      },
+      {
+        "owner": "podium-label-1",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 12,
+        "instances": null
+      },
+      {
+        "owner": "podium-label-3",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 12,
+        "instances": null
+      },
+      {
+        "owner": "podium-label-3",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 12,
+        "instances": null
+      },
+      {
+        "owner": "podium-label-5",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 12,
+        "instances": null
+      },
+      {
+        "owner": "podium-label-5",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 12,
+        "instances": null
+      },
+      {
+        "owner": "podium-label-4",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 12,
+        "instances": null
+      },
+      {
+        "owner": "podium-label-4",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 12,
+        "instances": null
+      },
+      {
+        "owner": "podium-label-2",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 12,
+        "instances": null
+      },
+      {
+        "owner": "podium-label-2",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 12,
+        "instances": null
+      },
+      {
+        "owner": "podium-label-4",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 12,
+        "instances": null
+      },
+      {
+        "owner": "podium-label-3",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 12,
+        "instances": null
+      },
+      {
+        "owner": "podium-label-5",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 12,
+        "instances": null
+      },
+      {
+        "owner": "podium-label-2",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 12,
+        "instances": null
+      },
+      {
+        "owner": "podium-label-1",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 12,
+        "instances": null
+      },
+      {
+        "owner": "podium-label-1",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 12,
+        "instances": null
+      },
+      {
+        "owner": "podium-label-1",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 12,
+        "instances": null
+      },
+      {
+        "owner": "lobby/fish2/podium/titlePosts/0",
+        "object": "podium-title-post",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 12,
+        "instances": null
+      },
+      {
+        "owner": "lobby/fish2/podium/titlePosts/1",
+        "object": "podium-title-post",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 12,
+        "instances": null
+      },
+      {
+        "owner": "lobby/fishing/me/eyesNode",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 704,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 704,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 704,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 704,
+        "instances": null
+      },
+      {
+        "owner": "lobby/folk/fishers/1/eyesNode",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 704,
+        "instances": null
+      },
+      {
+        "owner": "lobby/folk/fishers/0/eyesNode",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 704,
+        "instances": null
+      },
+      {
+        "owner": "lobby/fishing/me/eyesNode",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 432,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 432,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 432,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 432,
+        "instances": null
+      },
+      {
+        "owner": "lobby/folk/fishers/1/eyesNode",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 432,
+        "instances": null
+      },
+      {
+        "owner": "lobby/folk/fishers/0/eyesNode",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 432,
+        "instances": null
+      },
+      {
+        "owner": "lobby/fishing/me/body",
+        "object": "Mesh",
+        "material": "MeshPhysicalMaterial",
+        "calls": 1,
+        "triangles": 2016,
+        "instances": null
+      },
+      {
+        "owner": "lobby/fishing/me/hat/geo",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 740,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/lighthouse/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 5436,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/lighthouse/lamp",
+        "object": "lighthouse-fresnel-lamp",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 64,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "ShaderMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 12,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "LineSegments",
+        "material": "LineBasicMaterial",
+        "calls": 1,
+        "triangles": 0,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/powered/15",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 34000,
+        "instances": 425
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 198,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 188,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 242,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 7990,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/powered/27",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 984,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 12,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 83192,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "LineSegments",
+        "material": "LineBasicMaterial",
+        "calls": 1,
+        "triangles": 0,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 89,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshLambertMaterial",
+        "calls": 1,
+        "triangles": 23218,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshLambertMaterial",
+        "calls": 1,
+        "triangles": 2834,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshLambertMaterial",
+        "calls": 1,
+        "triangles": 27000,
+        "instances": 1125
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshLambertMaterial",
+        "calls": 1,
+        "triangles": 39660,
+        "instances": 1983
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshLambertMaterial",
+        "calls": 1,
+        "triangles": 21440,
+        "instances": 268
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshLambertMaterial",
+        "calls": 1,
+        "triangles": 35200,
+        "instances": 3520
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 24232,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 15600,
+        "instances": 2600
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 2912,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshLambertMaterial",
+        "calls": 1,
+        "triangles": 24,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshLambertMaterial",
+        "calls": 1,
+        "triangles": 22,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/floaters/1/obj",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 24,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/floaters/1/obj",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 48,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/floaters/3/obj",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 320,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/floaters/3/obj",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 104,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/floaters/3/obj",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 12,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/floaters/3/obj",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 12,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 4128,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/powered/28",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 1008,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 800,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 144,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 36,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 48,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 96,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/boats/fenders",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 576,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/boats/launch",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 3003,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/boats/launchMotorMesh",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 96,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/boats/launch",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 104,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 150,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 150,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/barkas/ship/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/barkas/ship/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 10289,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/barkas/ship/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 4004,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/barkas/ship/group",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 592,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/barkas/ship/group",
+        "object": "LineSegments",
+        "material": "LineBasicMaterial",
+        "calls": 1,
+        "triangles": 0,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/barkas/ship/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 94,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/barkas/ship/rynda",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 356,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/barkas/ship/gateBell",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 356,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/barkas/ship/buoy",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 308,
+        "instances": null
+      },
+      {
+        "owner": "lobby/fish2/fisherman/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 1102,
+        "instances": null
+      },
+      {
+        "owner": "lobby/fish2/fisherman/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 1102,
+        "instances": null
+      },
+      {
+        "owner": "lobby/fish2/fisherman/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 1102,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/barkas/ship/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 4408,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/barkas/ferry/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 2901,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/barkas/ferry/tiller",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 72,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/barkas/ferry/group",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 32,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/barkas/ferry/flag",
+        "object": "flag",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/barkas/ferry/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 512,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/barkas/ferry/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 266,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/barkas/ferry/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 266,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/barkas/ferry/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 2026,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/barkas/ferry/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 516,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 32,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 16,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 4456,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 21828,
+        "instances": null
+      },
+      {
+        "owner": "lobby/ball/mesh",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 1216,
+        "instances": null
+      },
+      {
+        "owner": "lobby/juke/models/0/group",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 4800,
+        "instances": null
+      },
+      {
+        "owner": "lobby/critters/hearts",
+        "object": "critter-pet-hearts",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 1128,
+        "instances": 6
+      },
+      {
+        "owner": "critter-cove-sand",
+        "object": "critter-cove-sand",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 11502,
+        "instances": null
+      },
+      {
+        "owner": "lobby/critters/cove/sandBits",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 360,
+        "instances": 18
+      },
+      {
+        "owner": "lobby/entryCircles/hide/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 24,
+        "instances": null
+      },
+      {
+        "owner": "lobby/blackjack3d/chipMeshes/50",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 180,
+        "instances": 5
+      },
+      {
+        "owner": "lobby/blackjack3d/chipMeshes/50",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 90,
+        "instances": 5
+      },
+      {
+        "owner": "lobby/blackjack3d/chipMeshes/50",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 90,
+        "instances": 5
+      },
+      {
+        "owner": "lobby/blackjack3d/chipMeshes/20",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 216,
+        "instances": 6
+      },
+      {
+        "owner": "lobby/blackjack3d/chipMeshes/20",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 108,
+        "instances": 6
+      },
+      {
+        "owner": "lobby/blackjack3d/chipMeshes/20",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 108,
+        "instances": 6
+      },
+      {
+        "owner": "lobby/blackjack3d/chipMeshes/10",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 288,
+        "instances": 8
+      },
+      {
+        "owner": "lobby/blackjack3d/chipMeshes/10",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 144,
+        "instances": 8
+      },
+      {
+        "owner": "lobby/blackjack3d/chipMeshes/10",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 144,
+        "instances": 8
+      },
+      {
+        "owner": "lobby/billiards/view3d/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 11520,
+        "instances": 16
+      },
+      {
+        "owner": "lobby/billiards/view3d/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 11520,
+        "instances": 16
+      },
+      {
+        "owner": "lobby/billiards/view3d/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 11520,
+        "instances": 16
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 132,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 24,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 132,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 24,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 132,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 132,
+        "instances": null
+      },
+      {
+        "owner": "blank",
+        "object": "blank",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 32,
+        "instances": null
+      },
+      {
+        "owner": "blank",
+        "object": "blank",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 32,
+        "instances": null
+      },
+      {
+        "owner": "blank",
+        "object": "blank",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 32,
+        "instances": null
+      },
+      {
+        "owner": "blank",
+        "object": "blank",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 32,
+        "instances": null
+      },
+      {
+        "owner": "blank",
+        "object": "blank",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 32,
+        "instances": null
+      },
+      {
+        "owner": "blank",
+        "object": "blank",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 32,
+        "instances": null
+      },
+      {
+        "owner": "blank",
+        "object": "blank",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 32,
+        "instances": null
+      },
+      {
+        "owner": "blank",
+        "object": "blank",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 32,
+        "instances": null
+      },
+      {
+        "owner": "blank",
+        "object": "blank",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 32,
+        "instances": null
+      },
+      {
+        "owner": "blank",
+        "object": "blank",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 32,
+        "instances": null
+      },
+      {
+        "owner": "blank",
+        "object": "blank",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 32,
+        "instances": null
+      },
+      {
+        "owner": "blank",
+        "object": "blank",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 32,
+        "instances": null
+      },
+      {
+        "owner": "tip",
+        "object": "tip",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 32,
+        "instances": null
+      },
+      {
+        "owner": "tip",
+        "object": "tip",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 32,
+        "instances": null
+      },
+      {
+        "owner": "handle",
+        "object": "handle",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 32,
+        "instances": null
+      },
+      {
+        "owner": "knob",
+        "object": "knob",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 80,
+        "instances": null
+      },
+      {
+        "owner": "knob",
+        "object": "knob",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 80,
+        "instances": null
+      },
+      {
+        "owner": "handle",
+        "object": "handle",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 32,
+        "instances": null
+      },
+      {
+        "owner": "reel",
+        "object": "reel",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 56,
+        "instances": null
+      },
+      {
+        "owner": "reel",
+        "object": "reel",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 12,
+        "instances": null
+      },
+      {
+        "owner": "reel",
+        "object": "reel",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 12,
+        "instances": null
+      },
+      {
+        "owner": "reel",
+        "object": "reel",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 12,
+        "instances": null
+      },
+      {
+        "owner": "reel",
+        "object": "reel",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 56,
+        "instances": null
+      },
+      {
+        "owner": "reel",
+        "object": "reel",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 12,
+        "instances": null
+      },
+      {
+        "owner": "fishing-deck-moorings",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 1136,
+        "instances": null
+      },
+      {
+        "owner": "fishing-deck-moorings",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 4192,
+        "instances": null
+      },
+      {
+        "owner": "lobby/fishHouse/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 9708,
+        "instances": null
+      },
+      {
+        "owner": "lobby/fishHouse/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 8,
+        "instances": null
+      },
+      {
+        "owner": "lobby/fishHouse/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 144,
+        "instances": null
+      },
+      {
+        "owner": "lobby/fishHouse/group",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 32,
+        "instances": null
+      },
+      {
+        "owner": "lobby/roulette3d/board/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/roulette3d/board/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 36,
+        "instances": null
+      },
+      {
+        "owner": "lobby/roulette3d/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 504,
+        "instances": null
+      },
+      {
+        "owner": "lobby/roulette3d/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/roulette3d/wheel",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 74,
+        "instances": null
+      },
+      {
+        "owner": "lobby/roulette3d/wheel",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 140,
+        "instances": null
+      },
+      {
+        "owner": "lobby/roulette3d/wheel",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 140,
+        "instances": null
+      },
+      {
+        "owner": "lobby/roulette3d/wheel",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 140,
+        "instances": null
+      },
+      {
+        "owner": "lobby/roulette3d/wheel",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 140,
+        "instances": null
+      },
+      {
+        "owner": "lobby/roulette3d/wheel",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 48,
+        "instances": null
+      },
+      {
+        "owner": "lobby/roulette3d/wheel",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 32,
+        "instances": null
+      },
+      {
+        "owner": "lobby/roulette3d/wheel",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 32,
+        "instances": null
+      },
+      {
+        "owner": "lobby/roulette3d/wheel",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 32,
+        "instances": null
+      },
+      {
+        "owner": "lobby/roulette3d/wheel",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 32,
+        "instances": null
+      },
+      {
+        "owner": "lobby/roulette3d/wheel",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 140,
+        "instances": null
+      },
+      {
+        "owner": "lobby/roulette3d/wheel",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 140,
+        "instances": null
+      },
+      {
+        "owner": "lobby/roulette3d/wheel",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 140,
+        "instances": null
+      },
+      {
+        "owner": "lobby/roulette3d/wheel",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 140,
+        "instances": null
+      },
+      {
+        "owner": "lobby/roulette3d/ball",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 252,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 12,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/gateArm",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 72,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 2298,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/board/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/0/head",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 192,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/0/body",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 252,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/0/body",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 168,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/0/head",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 80,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/0/head",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 100,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/0/g",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 80,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/0/head",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 100,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/0/g",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 80,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/0/g",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 80,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/0/g",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 80,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/0/tail",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 24,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/0/head",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 80,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/0/head",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 80,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/0/body",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 132,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/1/body",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 252,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/1/head",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 192,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/1/body",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 168,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/1/tail",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 24,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/1/g",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 80,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/1/g",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 80,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/1/g",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 80,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/1/g",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 80,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/1/head",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 100,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/1/head",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 100,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/1/head",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 80,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/1/head",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 80,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/1/head",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 80,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/1/body",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 132,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/2/head",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 192,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/2/body",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 252,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/2/body",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 168,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/2/g",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 80,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/2/head",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 100,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/2/head",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 80,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/2/g",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 80,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/2/head",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 100,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/2/tail",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 24,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/2/g",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 80,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/2/g",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 80,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/2/head",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 80,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/2/head",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 80,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/2/body",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 132,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/3/body",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 252,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/3/head",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 192,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/3/body",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 168,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/3/tail",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 24,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/3/g",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 80,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/3/g",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 80,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/3/g",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 80,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/3/g",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 80,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/3/head",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 100,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/3/head",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 100,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/3/head",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 80,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/3/head",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 80,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/3/head",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 80,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/3/body",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 132,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/4/head",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 192,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/4/body",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 252,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/4/body",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 168,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/4/head",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 80,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/4/head",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 100,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/4/head",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 100,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/4/g",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 80,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/4/g",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 80,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/4/g",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 80,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/4/g",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 80,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/4/tail",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 24,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/4/head",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 80,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/4/head",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 80,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/4/body",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 132,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/5/head",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 192,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/5/body",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 252,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/5/body",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 168,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/5/head",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 80,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/5/head",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 100,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/5/g",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 80,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/5/head",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 100,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/5/g",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 80,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/5/g",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 80,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/5/g",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 80,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/5/tail",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 24,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/5/head",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 80,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/5/head",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 80,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rat3d/rats/5/body",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 132,
+        "instances": null
+      },
+      {
+        "owner": "lobby/folk/fishers/0/body",
+        "object": "Mesh",
+        "material": "MeshPhysicalMaterial",
+        "calls": 1,
+        "triangles": 2016,
+        "instances": null
+      },
+      {
+        "owner": "lobby/folk/fishers/0/squashNode",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 252,
+        "instances": null
+      },
+      {
+        "owner": "lobby/folk/fishers/0/squashNode",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 252,
+        "instances": null
+      },
+      {
+        "owner": "lobby/folk/fishers/0/eyesNode",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 396,
+        "instances": null
+      },
+      {
+        "owner": "lobby/folk/fishers/0/eyesNode",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 396,
+        "instances": null
+      },
+      {
+        "owner": "lobby/folk/fishers/0/squashNode",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 480,
+        "instances": null
+      },
+      {
+        "owner": "lobby/folk/fishers/0/squashNode",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 736,
+        "instances": null
+      },
+      {
+        "owner": "lobby/folk/fishers/1/body",
+        "object": "Mesh",
+        "material": "MeshPhysicalMaterial",
+        "calls": 1,
+        "triangles": 2016,
+        "instances": null
+      },
+      {
+        "owner": "lobby/folk/fishers/1/squashNode",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 252,
+        "instances": null
+      },
+      {
+        "owner": "lobby/folk/fishers/1/squashNode",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 252,
+        "instances": null
+      },
+      {
+        "owner": "lobby/folk/fishers/1/eyesNode",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 396,
+        "instances": null
+      },
+      {
+        "owner": "lobby/folk/fishers/1/eyesNode",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 396,
+        "instances": null
+      },
+      {
+        "owner": "lobby/folk/fishers/1/squashNode",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 672,
+        "instances": null
+      },
+      {
+        "owner": "lobby/folk/fishers/1/squashNode",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 1156,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 812,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 32,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/plaza/harbor/yard/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 7686,
+        "instances": null
+      },
+      {
+        "owner": "lobby/plaza/harbor/boat/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 924,
+        "instances": null
+      },
+      {
+        "owner": "lobby/plaza/harbor/regatta/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 840,
+        "instances": null
+      },
+      {
+        "owner": "lobby/plaza/venues/13/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 48,
+        "instances": null
+      },
+      {
+        "owner": "lobby/plaza/harbor/regatta/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 1088,
+        "instances": null
+      },
+      {
+        "owner": "lobby/plaza/north/paint/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 40,
+        "instances": null
+      },
+      {
+        "owner": "lobby/plaza/north/fortKeep/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 98,
+        "instances": null
+      },
+      {
+        "owner": "lobby/plaza/north/skyTower/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 10,
+        "instances": null
+      },
+      {
+        "owner": "lobby/plaza/harbor/yard/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/plaza/harbor/yard/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 120,
+        "instances": null
+      },
+      {
+        "owner": "lobby/plaza/harbor/yard/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 32,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/powered/37",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 24,
+        "instances": null
+      },
+      {
+        "owner": "lobby/plaza/harbor/yard/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 20,
+        "instances": null
+      },
+      {
+        "owner": "lobby/plaza/harbor/regatta/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/plaza/harbor/regatta/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 112,
+        "instances": null
+      },
+      {
+        "owner": "lobby/plaza/harbor/boat/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/plaza/harbor/boatPlate/mesh",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/plaza/harbor/boat/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 20,
+        "instances": null
+      },
+      {
+        "owner": "lobby/plaza/venues/10/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/plaza/venues/10/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 46,
+        "instances": null
+      },
+      {
+        "owner": "lobby/plaza/venues/12/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 20,
+        "instances": null
+      },
+      {
+        "owner": "lobby/plaza/venues/13/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 9940,
+        "instances": 71
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshPhysicalMaterial",
+        "calls": 1,
+        "triangles": 2016,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 396,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 396,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 480,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 736,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshPhysicalMaterial",
+        "calls": 1,
+        "triangles": 2016,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 252,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 252,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 592,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 64,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 736,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshPhysicalMaterial",
+        "calls": 1,
+        "triangles": 2016,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 396,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 396,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 1608,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 1736,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 3198,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 1440,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 61600,
+        "instances": null
+      },
+      {
+        "owner": "lobby/aqua/movers/7/mesh",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 1774,
+        "instances": null
+      },
+      {
+        "owner": "lobby/aqua/bags",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 3288,
+        "instances": 3
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "regatta-rope",
+        "object": "regatta-rope",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 2204,
+        "instances": null
+      },
+      {
+        "owner": "regatta-floats",
+        "object": "regatta-floats",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 50520,
+        "instances": 421
+      },
+      {
+        "owner": "lobby/rg/course3d/root",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 1680,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rg/course3d/root",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 1,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rg/course3d/root",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 1,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rg/course3d/root",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 1,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rg/course3d/root",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 1,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rg/course3d/root",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 1,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rg/course3d/root",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 1,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rg/course3d/root",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 720,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rg/course3d/root",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 320,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rg/course3d/root",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 104,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rg/course3d/root",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 12,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rg/course3d/root",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 12,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rg/course3d/root",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 320,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rg/course3d/root",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 104,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rg/course3d/root",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 12,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rg/course3d/root",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 12,
+        "instances": null
+      },
+      {
+        "owner": "regatta-rocks",
+        "object": "regatta-rocks",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 800,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rg/course3d/root",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 308,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rg/course3d/root",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 48,
+        "instances": null
+      },
+      {
+        "owner": "regatta-ramp",
+        "object": "regatta-ramp",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 8,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rg/course3d/root",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 168,
+        "instances": null
+      },
+      {
+        "owner": "lobby/ferris/bulbs",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 20480,
+        "instances": 256
+      },
+      {
+        "owner": "lobby/fish2/board/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 84,
+        "instances": null
+      },
+      {
+        "owner": "lobby/fish2/board/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "mythic-greenland-shark",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 1460,
+        "instances": null
+      },
+      {
+        "owner": "podium-catch-label",
+        "object": "podium-catch-label",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "podium-rank-label",
+        "object": "podium-rank-label",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "podium-catch-label",
+        "object": "podium-catch-label",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "podium-rank-label",
+        "object": "podium-rank-label",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "podium-catch-label",
+        "object": "podium-catch-label",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "podium-rank-label",
+        "object": "podium-rank-label",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "podium-catch-label",
+        "object": "podium-catch-label",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "podium-rank-label",
+        "object": "podium-rank-label",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "podium-catch-label",
+        "object": "podium-catch-label",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "podium-rank-label",
+        "object": "podium-rank-label",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/fish2/podium/titleRail",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 12,
+        "instances": null
+      },
+      {
+        "owner": "lobby/fish2/podium/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 132,
+        "instances": null
+      },
+      {
+        "owner": "lobby/fish2/podium/titleRail",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/fish2/fisherman/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 52,
+        "instances": null
+      },
+      {
+        "owner": "lobby/fish2/fisherman/shuttle",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 24,
+        "instances": null
+      },
+      {
+        "owner": "lobby/fish2/fisherman/armL/hand",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 220,
+        "instances": null
+      },
+      {
+        "owner": "lobby/fish2/fisherman/armR/hand",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 220,
+        "instances": null
+      },
+      {
+        "owner": "lobby/fish2/fisherman/armL/elbow",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 220,
+        "instances": null
+      },
+      {
+        "owner": "lobby/fish2/fisherman/armR/elbow",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 220,
+        "instances": null
+      },
+      {
+        "owner": "lobby/fish2/fisherman/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 448,
+        "instances": null
+      },
+      {
+        "owner": "lobby/fish2/fisherman/body",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 900,
+        "instances": null
+      },
+      {
+        "owner": "lobby/fish2/fisherman/armL/shoulder",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 320,
+        "instances": null
+      },
+      {
+        "owner": "lobby/fish2/fisherman/armR/shoulder",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 320,
+        "instances": null
+      },
+      {
+        "owner": "lobby/fish2/fisherman/head",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 3572,
+        "instances": null
+      },
+      {
+        "owner": "lobby/fish2/fisherman/torso",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 2768,
+        "instances": null
+      },
+      {
+        "owner": "lobby/fish2/fisherman/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/fish2/seasonSigns/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/fish2/seasonSigns/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 2148,
+        "instances": null
+      },
+      {
+        "owner": "lobby/fish2/seasonSigns/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 94,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 72,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 192,
+        "instances": null
+      },
+      {
+        "owner": "lobby/plaza/harbor/yard/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/plaza/harbor/regatta/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Points",
+        "material": "PointsMaterial",
+        "calls": 1,
+        "triangles": 0,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Points",
+        "material": "PointsMaterial",
+        "calls": 1,
+        "triangles": 0,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rg/course3d/root",
+        "object": "Sprite",
+        "material": "SpriteMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/barkas/ship/group",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 6,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/barkas/ship/group",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 6,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rg/course3d/root",
+        "object": "Sprite",
+        "material": "SpriteMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rg/course3d/root",
+        "object": "Sprite",
+        "material": "SpriteMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rg/course3d/root",
+        "object": "Sprite",
+        "material": "SpriteMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rg/course3d/beaconGlow",
+        "object": "Sprite",
+        "material": "SpriteMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rg/course3d/root",
+        "object": "Sprite",
+        "material": "SpriteMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rg/course3d/root",
+        "object": "Sprite",
+        "material": "SpriteMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/effects/rings/2/mesh",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Line",
+        "material": "LineBasicMaterial",
+        "calls": 1,
+        "triangles": 0,
+        "instances": null
+      },
+      {
+        "owner": "lobby/folk/fishers/0/squashNode",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 128,
+        "instances": null
+      },
+      {
+        "owner": "lobby/fishHouse/puffs/1",
+        "object": "Sprite",
+        "material": "SpriteMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/fishHouse/puffs/0",
+        "object": "Sprite",
+        "material": "SpriteMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/fishHouse/puffs/6",
+        "object": "Sprite",
+        "material": "SpriteMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/fishHouse/puffs/5",
+        "object": "Sprite",
+        "material": "SpriteMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/fishHouse/puffs/4",
+        "object": "Sprite",
+        "material": "SpriteMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/fishHouse/puffs/3",
+        "object": "Sprite",
+        "material": "SpriteMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/fishHouse/puffs/2",
+        "object": "Sprite",
+        "material": "SpriteMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/beam",
+        "object": "Mesh",
+        "material": "ShaderMaterial",
+        "calls": 1,
+        "triangles": 24,
+        "instances": null
+      },
+      {
+        "owner": "lobby/fishHouse/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 144,
+        "instances": null
+      },
+      {
+        "owner": "lobby/fishHouse/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 144,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/barkas/ferry/group",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 4,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/barkas/ferry/group",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 4,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/barkas/ferry/lampGlow",
+        "object": "Sprite",
+        "material": "SpriteMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/fish2/fisherman/puffs/0",
+        "object": "Sprite",
+        "material": "SpriteMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/fishHouse/lamp",
+        "object": "Sprite",
+        "material": "SpriteMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/fish2/fisherman/armL/hand",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 32,
+        "instances": null
+      },
+      {
+        "owner": "lobby/fish2/fisherman/armL/hand",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 32,
+        "instances": null
+      },
+      {
+        "owner": "lobby/folk/fishers/1/squashNode",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 128,
+        "instances": null
+      },
+      {
+        "owner": "lobby/effects/rings/20/mesh",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Line",
+        "material": "LineBasicMaterial",
+        "calls": 1,
+        "triangles": 0,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/lighthouse/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 24,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/lighthouse/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 24,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/beamFlash",
+        "object": "Sprite",
+        "material": "SpriteMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/photoGlow",
+        "object": "Sprite",
+        "material": "SpriteMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/beam",
+        "object": "Mesh",
+        "material": "ShaderMaterial",
+        "calls": 1,
+        "triangles": 24,
+        "instances": null
+      },
+      {
+        "owner": "lobby/plaza/harbor/regatta/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/boats/launch",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 4,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/boats/launch",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 4,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/boats/launch",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 4,
+        "instances": null
+      },
+      {
+        "owner": "lobby/plaza/harbor/regatta/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/plaza/harbor/boat/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/plaza/harbor/regatta/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 128,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 128,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 128,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Sprite",
+        "material": "SpriteMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Sprite",
+        "material": "SpriteMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Sprite",
+        "material": "SpriteMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/entryCircles/hide/group",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/entryCircles/hide/group",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/plaza/harbor/yard/group",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/powered/34",
+        "object": "Sprite",
+        "material": "SpriteMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/powered/35",
+        "object": "Sprite",
+        "material": "SpriteMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/fishing/me/face/mesh",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 128,
+        "instances": null
+      },
+      {
+        "owner": "lobby/ball/shadow",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/powered/16",
+        "object": "Points",
+        "material": "PointsMaterial",
+        "calls": 1,
+        "triangles": 0,
+        "instances": null
+      },
+      {
+        "owner": "lobby/critters/cove/bubbles",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 1440,
+        "instances": 18
+      },
+      {
+        "owner": "lobby/folk/fishers/0/shadow",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/folk/fishers/1/shadow",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshStandardMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "critter-cove-foam",
+        "object": "critter-cove-foam",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 616,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/critters/shadows",
+        "object": "critter-contact-shadows",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 3600,
+        "instances": 15
+      },
+      {
+        "owner": "lobby/fishing/me/shadow",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rg/course3d/chevrons/3",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rg/course3d/chevrons/2",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/rg/course3d/chevrons/4",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/entryCircles/boatrace/group",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 128,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/powered/20",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/powered/21",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/powered/22",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/entryCircles/hide/group",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 128,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/powered/26",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/billiards/view3d/group",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 32,
+        "instances": 16
+      },
+      {
+        "owner": "lobby/billiards/view3d/group",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 32,
+        "instances": 16
+      },
+      {
+        "owner": "lobby/billiards/view3d/group",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 32,
+        "instances": 16
+      },
+      {
+        "owner": "lobby/world/powered/39",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/powered/38",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/entryCircles/boatrace/group",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 64,
+        "instances": null
+      },
+      {
+        "owner": "lobby/entryCircles/hide/group",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 64,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/powered/36",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/barkas/ship/group",
+        "object": "Mesh",
+        "material": "ShaderMaterial",
+        "calls": 1,
+        "triangles": 16,
+        "instances": null
+      },
+      {
+        "owner": "lobby/world/barkas/smoke/points",
+        "object": "Points",
+        "material": "ShaderMaterial",
+        "calls": 1,
+        "triangles": 0,
+        "instances": null
+      },
+      {
+        "owner": "lobby/plaza/harbor/boat/group",
+        "object": "Points",
+        "material": "PointsMaterial",
+        "calls": 1,
+        "triangles": 0,
+        "instances": null
+      },
+      {
+        "owner": "lobby/plaza/harbor/regatta/group",
+        "object": "Points",
+        "material": "PointsMaterial",
+        "calls": 1,
+        "triangles": 0,
+        "instances": null
+      },
+      {
+        "owner": "lobby/plaza/harbor/yard/group",
+        "object": "Points",
+        "material": "PointsMaterial",
+        "calls": 1,
+        "triangles": 0,
+        "instances": null
+      },
+      {
+        "owner": "lobby/plaza/venues/12/group",
+        "object": "Points",
+        "material": "PointsMaterial",
+        "calls": 1,
+        "triangles": 0,
+        "instances": null
+      },
+      {
+        "owner": "lobby/plaza/venues/9/group",
+        "object": "Points",
+        "material": "PointsMaterial",
+        "calls": 1,
+        "triangles": 0,
+        "instances": null
+      },
+      {
+        "owner": "lobby/plaza/venues/11/group",
+        "object": "Points",
+        "material": "PointsMaterial",
+        "calls": 1,
+        "triangles": 0,
+        "instances": null
+      },
+      {
+        "owner": "lobby/plaza/north/paint/group",
+        "object": "Points",
+        "material": "PointsMaterial",
+        "calls": 1,
+        "triangles": 0,
+        "instances": null
+      },
+      {
+        "owner": "lobby/plaza/north/kart/group",
+        "object": "Points",
+        "material": "PointsMaterial",
+        "calls": 1,
+        "triangles": 0,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Sprite",
+        "material": "SpriteMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Sprite",
+        "material": "SpriteMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Sprite",
+        "material": "SpriteMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Sprite",
+        "material": "SpriteMaterial",
+        "calls": 1,
+        "triangles": 2,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 0,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 0,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 0,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 0,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 0,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Mesh",
+        "material": "MeshBasicMaterial",
+        "calls": 1,
+        "triangles": 0,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Points",
+        "material": "PointsMaterial",
+        "calls": 1,
+        "triangles": 0,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Points",
+        "material": "PointsMaterial",
+        "calls": 1,
+        "triangles": 0,
+        "instances": null
+      },
+      {
+        "owner": "scene static / unnamed",
+        "object": "Points",
+        "material": "PointsMaterial",
+        "calls": 1,
+        "triangles": 0,
+        "instances": null
+      }
+    ],
+    "info": {
+      "frame": 1174,
+      "calls": 520,
+      "triangles": 773038,
+      "points": 3748,
+      "lines": 1047,
+      "ratio": 1,
+      "screen": "game",
+      "paused": false,
+      "cpuMs": 12.5,
+      "gpuMs": 3.481708,
+      "frameMedianMs": 6.099999904632568,
+      "frameP95Ms": 9.5,
+      "quality": "high",
+      "gfx": {
+        "renderScale": 1,
+        "shadows": "high",
+        "effects": "normal",
+        "viewDistance": "far",
+        "fpsCap": 0,
+        "ratio": 1,
+        "tier": "high",
+        "auto": false,
+        "shadowsEnabled": true,
+        "viewK": 1,
+        "fx": 1
+      },
+      "memory": {
+        "geometries": 647,
+        "textures": 214
+      }
+    }
+  },
+  "drawGroups": [
+    {
+      "name": "scene static / unnamed",
+      "calls": 102,
+      "triangles": 402745,
+      "materials": {
+        "ShaderMaterial": 2,
+        "MeshStandardMaterial": 60,
+        "LineBasicMaterial": 4,
+        "MeshBasicMaterial": 13,
+        "MeshLambertMaterial": 8,
+        "MeshPhysicalMaterial": 3,
+        "PointsMaterial": 5,
+        "SpriteMaterial": 7
+      }
+    },
+    {
+      "name": "lobby/rg/course3d/root",
+      "calls": 25,
+      "triangles": 3838,
+      "materials": {
+        "MeshStandardMaterial": 19,
+        "SpriteMaterial": 6
+      }
+    },
+    {
+      "name": "lobby/roulette3d/wheel",
+      "calls": 14,
+      "triangles": 1370,
+      "materials": {
+        "MeshStandardMaterial": 14
+      }
+    },
+    {
+      "name": "blank",
+      "calls": 12,
+      "triangles": 384,
+      "materials": {
+        "MeshStandardMaterial": 12
+      }
+    },
+    {
+      "name": "lobby/world/barkas/ship/group",
+      "calls": 10,
+      "triangles": 19417,
+      "materials": {
+        "MeshStandardMaterial": 5,
+        "MeshBasicMaterial": 3,
+        "LineBasicMaterial": 1,
+        "ShaderMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/world/barkas/ferry/group",
+      "calls": 9,
+      "triangles": 6527,
+      "materials": {
+        "MeshStandardMaterial": 6,
+        "MeshBasicMaterial": 3
+      }
+    },
+    {
+      "name": "lobby/plaza/harbor/regatta/group",
+      "calls": 9,
+      "triangles": 2050,
+      "materials": {
+        "MeshStandardMaterial": 8,
+        "PointsMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/plaza/harbor/yard/group",
+      "calls": 8,
+      "triangles": 7864,
+      "materials": {
+        "MeshStandardMaterial": 7,
+        "PointsMaterial": 1
+      }
+    },
+    {
+      "name": "gull-0",
+      "calls": 6,
+      "triangles": 21432,
+      "materials": {
+        "MeshStandardMaterial": 6
+      }
+    },
+    {
+      "name": "lobby/fish2/fisherman/group",
+      "calls": 6,
+      "triangles": 3808,
+      "materials": {
+        "MeshStandardMaterial": 6
+      }
+    },
+    {
+      "name": "lobby/billiards/view3d/group",
+      "calls": 6,
+      "triangles": 34656,
+      "materials": {
+        "MeshStandardMaterial": 3,
+        "MeshBasicMaterial": 3
+      }
+    },
+    {
+      "name": "reel",
+      "calls": 6,
+      "triangles": 160,
+      "materials": {
+        "MeshStandardMaterial": 6
+      }
+    },
+    {
+      "name": "lobby/fishHouse/group",
+      "calls": 6,
+      "triangles": 10180,
+      "materials": {
+        "MeshStandardMaterial": 5,
+        "MeshBasicMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/rat3d/rats/0/head",
+      "calls": 6,
+      "triangles": 632,
+      "materials": {
+        "MeshStandardMaterial": 6
+      }
+    },
+    {
+      "name": "lobby/rat3d/rats/1/head",
+      "calls": 6,
+      "triangles": 632,
+      "materials": {
+        "MeshStandardMaterial": 6
+      }
+    },
+    {
+      "name": "lobby/rat3d/rats/2/head",
+      "calls": 6,
+      "triangles": 632,
+      "materials": {
+        "MeshStandardMaterial": 6
+      }
+    },
+    {
+      "name": "lobby/rat3d/rats/3/head",
+      "calls": 6,
+      "triangles": 632,
+      "materials": {
+        "MeshStandardMaterial": 6
+      }
+    },
+    {
+      "name": "lobby/rat3d/rats/4/head",
+      "calls": 6,
+      "triangles": 632,
+      "materials": {
+        "MeshStandardMaterial": 6
+      }
+    },
+    {
+      "name": "lobby/rat3d/rats/5/head",
+      "calls": 6,
+      "triangles": 632,
+      "materials": {
+        "MeshStandardMaterial": 6
+      }
+    },
+    {
+      "name": "lobby/world/boats/launch",
+      "calls": 5,
+      "triangles": 3119,
+      "materials": {
+        "MeshStandardMaterial": 4,
+        "MeshBasicMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/entryCircles/hide/group",
+      "calls": 5,
+      "triangles": 220,
+      "materials": {
+        "MeshStandardMaterial": 1,
+        "MeshBasicMaterial": 4
+      }
+    },
+    {
+      "name": "lobby/folk/fishers/0/squashNode",
+      "calls": 5,
+      "triangles": 1848,
+      "materials": {
+        "MeshStandardMaterial": 5
+      }
+    },
+    {
+      "name": "lobby/folk/fishers/1/squashNode",
+      "calls": 5,
+      "triangles": 2460,
+      "materials": {
+        "MeshStandardMaterial": 5
+      }
+    },
+    {
+      "name": "lobby/plaza/harbor/boat/group",
+      "calls": 5,
+      "triangles": 948,
+      "materials": {
+        "MeshStandardMaterial": 4,
+        "PointsMaterial": 1
+      }
+    },
+    {
+      "name": "podium-catch-label",
+      "calls": 5,
+      "triangles": 10,
+      "materials": {
+        "MeshBasicMaterial": 5
+      }
+    },
+    {
+      "name": "podium-rank-label",
+      "calls": 5,
+      "triangles": 10,
+      "materials": {
+        "MeshBasicMaterial": 5
+      }
+    },
+    {
+      "name": "podium-label-3",
+      "calls": 4,
+      "triangles": 48,
+      "materials": {
+        "MeshStandardMaterial": 4
+      }
+    },
+    {
+      "name": "podium-label-5",
+      "calls": 4,
+      "triangles": 48,
+      "materials": {
+        "MeshStandardMaterial": 4
+      }
+    },
+    {
+      "name": "podium-label-4",
+      "calls": 4,
+      "triangles": 48,
+      "materials": {
+        "MeshStandardMaterial": 4
+      }
+    },
+    {
+      "name": "podium-label-2",
+      "calls": 4,
+      "triangles": 48,
+      "materials": {
+        "MeshStandardMaterial": 4
+      }
+    },
+    {
+      "name": "podium-label-1",
+      "calls": 4,
+      "triangles": 48,
+      "materials": {
+        "MeshStandardMaterial": 4
+      }
+    },
+    {
+      "name": "lobby/folk/fishers/1/eyesNode",
+      "calls": 4,
+      "triangles": 1928,
+      "materials": {
+        "MeshStandardMaterial": 4
+      }
+    },
+    {
+      "name": "lobby/folk/fishers/0/eyesNode",
+      "calls": 4,
+      "triangles": 1928,
+      "materials": {
+        "MeshStandardMaterial": 4
+      }
+    },
+    {
+      "name": "lobby/world/floaters/3/obj",
+      "calls": 4,
+      "triangles": 448,
+      "materials": {
+        "MeshStandardMaterial": 4
+      }
+    },
+    {
+      "name": "lobby/rat3d/group",
+      "calls": 4,
+      "triangles": 2314,
+      "materials": {
+        "MeshStandardMaterial": 4
+      }
+    },
+    {
+      "name": "lobby/rat3d/rats/0/g",
+      "calls": 4,
+      "triangles": 320,
+      "materials": {
+        "MeshStandardMaterial": 4
+      }
+    },
+    {
+      "name": "lobby/rat3d/rats/1/g",
+      "calls": 4,
+      "triangles": 320,
+      "materials": {
+        "MeshStandardMaterial": 4
+      }
+    },
+    {
+      "name": "lobby/rat3d/rats/2/g",
+      "calls": 4,
+      "triangles": 320,
+      "materials": {
+        "MeshStandardMaterial": 4
+      }
+    },
+    {
+      "name": "lobby/rat3d/rats/3/g",
+      "calls": 4,
+      "triangles": 320,
+      "materials": {
+        "MeshStandardMaterial": 4
+      }
+    },
+    {
+      "name": "lobby/rat3d/rats/4/g",
+      "calls": 4,
+      "triangles": 320,
+      "materials": {
+        "MeshStandardMaterial": 4
+      }
+    },
+    {
+      "name": "lobby/rat3d/rats/5/g",
+      "calls": 4,
+      "triangles": 320,
+      "materials": {
+        "MeshStandardMaterial": 4
+      }
+    },
+    {
+      "name": "lobby/world/lighthouse/group",
+      "calls": 3,
+      "triangles": 5484,
+      "materials": {
+        "MeshStandardMaterial": 3
+      }
+    },
+    {
+      "name": "lobby/blackjack3d/chipMeshes/50",
+      "calls": 3,
+      "triangles": 360,
+      "materials": {
+        "MeshStandardMaterial": 3
+      }
+    },
+    {
+      "name": "lobby/blackjack3d/chipMeshes/20",
+      "calls": 3,
+      "triangles": 432,
+      "materials": {
+        "MeshStandardMaterial": 3
+      }
+    },
+    {
+      "name": "lobby/blackjack3d/chipMeshes/10",
+      "calls": 3,
+      "triangles": 576,
+      "materials": {
+        "MeshStandardMaterial": 3
+      }
+    },
+    {
+      "name": "lobby/rat3d/rats/0/body",
+      "calls": 3,
+      "triangles": 552,
+      "materials": {
+        "MeshStandardMaterial": 3
+      }
+    },
+    {
+      "name": "lobby/rat3d/rats/1/body",
+      "calls": 3,
+      "triangles": 552,
+      "materials": {
+        "MeshStandardMaterial": 3
+      }
+    },
+    {
+      "name": "lobby/rat3d/rats/2/body",
+      "calls": 3,
+      "triangles": 552,
+      "materials": {
+        "MeshStandardMaterial": 3
+      }
+    },
+    {
+      "name": "lobby/rat3d/rats/3/body",
+      "calls": 3,
+      "triangles": 552,
+      "materials": {
+        "MeshStandardMaterial": 3
+      }
+    },
+    {
+      "name": "lobby/rat3d/rats/4/body",
+      "calls": 3,
+      "triangles": 552,
+      "materials": {
+        "MeshStandardMaterial": 3
+      }
+    },
+    {
+      "name": "lobby/rat3d/rats/5/body",
+      "calls": 3,
+      "triangles": 552,
+      "materials": {
+        "MeshStandardMaterial": 3
+      }
+    },
+    {
+      "name": "lobby/fish2/fisherman/armL/hand",
+      "calls": 3,
+      "triangles": 284,
+      "materials": {
+        "MeshStandardMaterial": 3
+      }
+    },
+    {
+      "name": "lobby/fish2/seasonSigns/group",
+      "calls": 3,
+      "triangles": 2244,
+      "materials": {
+        "MeshStandardMaterial": 3
+      }
+    },
+    {
+      "name": "crab-0",
+      "calls": 2,
+      "triangles": 10004,
+      "materials": {
+        "MeshStandardMaterial": 2
+      }
+    },
+    {
+      "name": "crab-1",
+      "calls": 2,
+      "triangles": 10004,
+      "materials": {
+        "MeshStandardMaterial": 2
+      }
+    },
+    {
+      "name": "lobby/fishing/me/eyesNode",
+      "calls": 2,
+      "triangles": 1136,
+      "materials": {
+        "MeshStandardMaterial": 2
+      }
+    },
+    {
+      "name": "lobby/world/floaters/1/obj",
+      "calls": 2,
+      "triangles": 72,
+      "materials": {
+        "MeshStandardMaterial": 2
+      }
+    },
+    {
+      "name": "tip",
+      "calls": 2,
+      "triangles": 64,
+      "materials": {
+        "MeshStandardMaterial": 2
+      }
+    },
+    {
+      "name": "handle",
+      "calls": 2,
+      "triangles": 64,
+      "materials": {
+        "MeshStandardMaterial": 2
+      }
+    },
+    {
+      "name": "knob",
+      "calls": 2,
+      "triangles": 160,
+      "materials": {
+        "MeshStandardMaterial": 2
+      }
+    },
+    {
+      "name": "fishing-deck-moorings",
+      "calls": 2,
+      "triangles": 5328,
+      "materials": {
+        "MeshStandardMaterial": 2
+      }
+    },
+    {
+      "name": "lobby/roulette3d/board/group",
+      "calls": 2,
+      "triangles": 38,
+      "materials": {
+        "MeshStandardMaterial": 2
+      }
+    },
+    {
+      "name": "lobby/roulette3d/group",
+      "calls": 2,
+      "triangles": 506,
+      "materials": {
+        "MeshStandardMaterial": 2
+      }
+    },
+    {
+      "name": "lobby/plaza/venues/13/group",
+      "calls": 2,
+      "triangles": 9988,
+      "materials": {
+        "MeshStandardMaterial": 2
+      }
+    },
+    {
+      "name": "lobby/plaza/north/paint/group",
+      "calls": 2,
+      "triangles": 40,
+      "materials": {
+        "MeshStandardMaterial": 1,
+        "PointsMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/plaza/venues/10/group",
+      "calls": 2,
+      "triangles": 48,
+      "materials": {
+        "MeshStandardMaterial": 2
+      }
+    },
+    {
+      "name": "lobby/plaza/venues/12/group",
+      "calls": 2,
+      "triangles": 20,
+      "materials": {
+        "MeshStandardMaterial": 1,
+        "PointsMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/fish2/board/group",
+      "calls": 2,
+      "triangles": 86,
+      "materials": {
+        "MeshStandardMaterial": 2
+      }
+    },
+    {
+      "name": "lobby/fish2/podium/titleRail",
+      "calls": 2,
+      "triangles": 14,
+      "materials": {
+        "MeshStandardMaterial": 2
+      }
+    },
+    {
+      "name": "lobby/world/beam",
+      "calls": 2,
+      "triangles": 48,
+      "materials": {
+        "ShaderMaterial": 2
+      }
+    },
+    {
+      "name": "lobby/entryCircles/boatrace/group",
+      "calls": 2,
+      "triangles": 192,
+      "materials": {
+        "MeshBasicMaterial": 2
+      }
+    },
+    {
+      "name": "cat-1",
+      "calls": 1,
+      "triangles": 5500,
+      "materials": {
+        "MeshStandardMaterial": 1
+      }
+    },
+    {
+      "name": "cat-3",
+      "calls": 1,
+      "triangles": 5500,
+      "materials": {
+        "MeshStandardMaterial": 1
+      }
+    },
+    {
+      "name": "dog-0",
+      "calls": 1,
+      "triangles": 5598,
+      "materials": {
+        "MeshStandardMaterial": 1
+      }
+    },
+    {
+      "name": "cat-0",
+      "calls": 1,
+      "triangles": 5500,
+      "materials": {
+        "MeshStandardMaterial": 1
+      }
+    },
+    {
+      "name": "cat-2",
+      "calls": 1,
+      "triangles": 5500,
+      "materials": {
+        "MeshStandardMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/fish2/podium/titlePosts/0",
+      "calls": 1,
+      "triangles": 12,
+      "materials": {
+        "MeshStandardMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/fish2/podium/titlePosts/1",
+      "calls": 1,
+      "triangles": 12,
+      "materials": {
+        "MeshStandardMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/fishing/me/body",
+      "calls": 1,
+      "triangles": 2016,
+      "materials": {
+        "MeshPhysicalMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/fishing/me/hat/geo",
+      "calls": 1,
+      "triangles": 740,
+      "materials": {
+        "MeshStandardMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/world/lighthouse/lamp",
+      "calls": 1,
+      "triangles": 64,
+      "materials": {
+        "MeshBasicMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/world/powered/15",
+      "calls": 1,
+      "triangles": 34000,
+      "materials": {
+        "MeshBasicMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/world/powered/27",
+      "calls": 1,
+      "triangles": 984,
+      "materials": {
+        "MeshBasicMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/world/powered/28",
+      "calls": 1,
+      "triangles": 1008,
+      "materials": {
+        "MeshBasicMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/world/boats/fenders",
+      "calls": 1,
+      "triangles": 576,
+      "materials": {
+        "MeshStandardMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/world/boats/launchMotorMesh",
+      "calls": 1,
+      "triangles": 96,
+      "materials": {
+        "MeshStandardMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/world/barkas/ship/rynda",
+      "calls": 1,
+      "triangles": 356,
+      "materials": {
+        "MeshStandardMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/world/barkas/ship/gateBell",
+      "calls": 1,
+      "triangles": 356,
+      "materials": {
+        "MeshStandardMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/world/barkas/ship/buoy",
+      "calls": 1,
+      "triangles": 308,
+      "materials": {
+        "MeshStandardMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/world/barkas/ferry/tiller",
+      "calls": 1,
+      "triangles": 72,
+      "materials": {
+        "MeshStandardMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/world/barkas/ferry/flag",
+      "calls": 1,
+      "triangles": 2,
+      "materials": {
+        "MeshStandardMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/ball/mesh",
+      "calls": 1,
+      "triangles": 1216,
+      "materials": {
+        "MeshStandardMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/juke/models/0/group",
+      "calls": 1,
+      "triangles": 4800,
+      "materials": {
+        "MeshBasicMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/critters/hearts",
+      "calls": 1,
+      "triangles": 1128,
+      "materials": {
+        "MeshStandardMaterial": 1
+      }
+    },
+    {
+      "name": "critter-cove-sand",
+      "calls": 1,
+      "triangles": 11502,
+      "materials": {
+        "MeshStandardMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/critters/cove/sandBits",
+      "calls": 1,
+      "triangles": 360,
+      "materials": {
+        "MeshStandardMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/roulette3d/ball",
+      "calls": 1,
+      "triangles": 252,
+      "materials": {
+        "MeshStandardMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/rat3d/gateArm",
+      "calls": 1,
+      "triangles": 72,
+      "materials": {
+        "MeshStandardMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/rat3d/board/group",
+      "calls": 1,
+      "triangles": 2,
+      "materials": {
+        "MeshStandardMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/rat3d/rats/0/tail",
+      "calls": 1,
+      "triangles": 24,
+      "materials": {
+        "MeshStandardMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/rat3d/rats/1/tail",
+      "calls": 1,
+      "triangles": 24,
+      "materials": {
+        "MeshStandardMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/rat3d/rats/2/tail",
+      "calls": 1,
+      "triangles": 24,
+      "materials": {
+        "MeshStandardMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/rat3d/rats/3/tail",
+      "calls": 1,
+      "triangles": 24,
+      "materials": {
+        "MeshStandardMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/rat3d/rats/4/tail",
+      "calls": 1,
+      "triangles": 24,
+      "materials": {
+        "MeshStandardMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/rat3d/rats/5/tail",
+      "calls": 1,
+      "triangles": 24,
+      "materials": {
+        "MeshStandardMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/folk/fishers/0/body",
+      "calls": 1,
+      "triangles": 2016,
+      "materials": {
+        "MeshPhysicalMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/folk/fishers/1/body",
+      "calls": 1,
+      "triangles": 2016,
+      "materials": {
+        "MeshPhysicalMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/plaza/north/fortKeep/group",
+      "calls": 1,
+      "triangles": 98,
+      "materials": {
+        "MeshStandardMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/plaza/north/skyTower/group",
+      "calls": 1,
+      "triangles": 10,
+      "materials": {
+        "MeshStandardMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/world/powered/37",
+      "calls": 1,
+      "triangles": 24,
+      "materials": {
+        "MeshBasicMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/plaza/harbor/boatPlate/mesh",
+      "calls": 1,
+      "triangles": 2,
+      "materials": {
+        "MeshStandardMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/aqua/movers/7/mesh",
+      "calls": 1,
+      "triangles": 1774,
+      "materials": {
+        "MeshStandardMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/aqua/bags",
+      "calls": 1,
+      "triangles": 3288,
+      "materials": {
+        "MeshStandardMaterial": 1
+      }
+    },
+    {
+      "name": "regatta-rope",
+      "calls": 1,
+      "triangles": 2204,
+      "materials": {
+        "MeshStandardMaterial": 1
+      }
+    },
+    {
+      "name": "regatta-floats",
+      "calls": 1,
+      "triangles": 50520,
+      "materials": {
+        "MeshStandardMaterial": 1
+      }
+    },
+    {
+      "name": "regatta-rocks",
+      "calls": 1,
+      "triangles": 800,
+      "materials": {
+        "MeshStandardMaterial": 1
+      }
+    },
+    {
+      "name": "regatta-ramp",
+      "calls": 1,
+      "triangles": 8,
+      "materials": {
+        "MeshStandardMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/ferris/bulbs",
+      "calls": 1,
+      "triangles": 20480,
+      "materials": {
+        "MeshBasicMaterial": 1
+      }
+    },
+    {
+      "name": "mythic-greenland-shark",
+      "calls": 1,
+      "triangles": 1460,
+      "materials": {
+        "MeshStandardMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/fish2/podium/group",
+      "calls": 1,
+      "triangles": 132,
+      "materials": {
+        "MeshStandardMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/fish2/fisherman/shuttle",
+      "calls": 1,
+      "triangles": 24,
+      "materials": {
+        "MeshStandardMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/fish2/fisherman/armR/hand",
+      "calls": 1,
+      "triangles": 220,
+      "materials": {
+        "MeshStandardMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/fish2/fisherman/armL/elbow",
+      "calls": 1,
+      "triangles": 220,
+      "materials": {
+        "MeshStandardMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/fish2/fisherman/armR/elbow",
+      "calls": 1,
+      "triangles": 220,
+      "materials": {
+        "MeshStandardMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/fish2/fisherman/body",
+      "calls": 1,
+      "triangles": 900,
+      "materials": {
+        "MeshStandardMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/fish2/fisherman/armL/shoulder",
+      "calls": 1,
+      "triangles": 320,
+      "materials": {
+        "MeshStandardMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/fish2/fisherman/armR/shoulder",
+      "calls": 1,
+      "triangles": 320,
+      "materials": {
+        "MeshStandardMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/fish2/fisherman/head",
+      "calls": 1,
+      "triangles": 3572,
+      "materials": {
+        "MeshStandardMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/fish2/fisherman/torso",
+      "calls": 1,
+      "triangles": 2768,
+      "materials": {
+        "MeshStandardMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/rg/course3d/beaconGlow",
+      "calls": 1,
+      "triangles": 2,
+      "materials": {
+        "SpriteMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/effects/rings/2/mesh",
+      "calls": 1,
+      "triangles": 2,
+      "materials": {
+        "MeshBasicMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/fishHouse/puffs/1",
+      "calls": 1,
+      "triangles": 2,
+      "materials": {
+        "SpriteMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/fishHouse/puffs/0",
+      "calls": 1,
+      "triangles": 2,
+      "materials": {
+        "SpriteMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/fishHouse/puffs/6",
+      "calls": 1,
+      "triangles": 2,
+      "materials": {
+        "SpriteMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/fishHouse/puffs/5",
+      "calls": 1,
+      "triangles": 2,
+      "materials": {
+        "SpriteMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/fishHouse/puffs/4",
+      "calls": 1,
+      "triangles": 2,
+      "materials": {
+        "SpriteMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/fishHouse/puffs/3",
+      "calls": 1,
+      "triangles": 2,
+      "materials": {
+        "SpriteMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/fishHouse/puffs/2",
+      "calls": 1,
+      "triangles": 2,
+      "materials": {
+        "SpriteMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/world/barkas/ferry/lampGlow",
+      "calls": 1,
+      "triangles": 2,
+      "materials": {
+        "SpriteMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/fish2/fisherman/puffs/0",
+      "calls": 1,
+      "triangles": 2,
+      "materials": {
+        "SpriteMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/fishHouse/lamp",
+      "calls": 1,
+      "triangles": 2,
+      "materials": {
+        "SpriteMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/effects/rings/20/mesh",
+      "calls": 1,
+      "triangles": 2,
+      "materials": {
+        "MeshBasicMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/world/beamFlash",
+      "calls": 1,
+      "triangles": 2,
+      "materials": {
+        "SpriteMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/world/photoGlow",
+      "calls": 1,
+      "triangles": 2,
+      "materials": {
+        "SpriteMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/world/powered/34",
+      "calls": 1,
+      "triangles": 2,
+      "materials": {
+        "SpriteMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/world/powered/35",
+      "calls": 1,
+      "triangles": 2,
+      "materials": {
+        "SpriteMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/fishing/me/face/mesh",
+      "calls": 1,
+      "triangles": 128,
+      "materials": {
+        "MeshStandardMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/ball/shadow",
+      "calls": 1,
+      "triangles": 2,
+      "materials": {
+        "MeshBasicMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/world/powered/16",
+      "calls": 1,
+      "triangles": 0,
+      "materials": {
+        "PointsMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/critters/cove/bubbles",
+      "calls": 1,
+      "triangles": 1440,
+      "materials": {
+        "MeshBasicMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/folk/fishers/0/shadow",
+      "calls": 1,
+      "triangles": 2,
+      "materials": {
+        "MeshBasicMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/folk/fishers/1/shadow",
+      "calls": 1,
+      "triangles": 2,
+      "materials": {
+        "MeshBasicMaterial": 1
+      }
+    },
+    {
+      "name": "critter-cove-foam",
+      "calls": 1,
+      "triangles": 616,
+      "materials": {
+        "MeshBasicMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/critters/shadows",
+      "calls": 1,
+      "triangles": 3600,
+      "materials": {
+        "MeshBasicMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/fishing/me/shadow",
+      "calls": 1,
+      "triangles": 2,
+      "materials": {
+        "MeshBasicMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/rg/course3d/chevrons/3",
+      "calls": 1,
+      "triangles": 2,
+      "materials": {
+        "MeshBasicMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/rg/course3d/chevrons/2",
+      "calls": 1,
+      "triangles": 2,
+      "materials": {
+        "MeshBasicMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/rg/course3d/chevrons/4",
+      "calls": 1,
+      "triangles": 2,
+      "materials": {
+        "MeshBasicMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/world/powered/20",
+      "calls": 1,
+      "triangles": 2,
+      "materials": {
+        "MeshBasicMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/world/powered/21",
+      "calls": 1,
+      "triangles": 2,
+      "materials": {
+        "MeshBasicMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/world/powered/22",
+      "calls": 1,
+      "triangles": 2,
+      "materials": {
+        "MeshBasicMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/world/powered/26",
+      "calls": 1,
+      "triangles": 2,
+      "materials": {
+        "MeshBasicMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/world/powered/39",
+      "calls": 1,
+      "triangles": 2,
+      "materials": {
+        "MeshBasicMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/world/powered/38",
+      "calls": 1,
+      "triangles": 2,
+      "materials": {
+        "MeshBasicMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/world/powered/36",
+      "calls": 1,
+      "triangles": 2,
+      "materials": {
+        "MeshBasicMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/world/barkas/smoke/points",
+      "calls": 1,
+      "triangles": 0,
+      "materials": {
+        "ShaderMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/plaza/venues/9/group",
+      "calls": 1,
+      "triangles": 0,
+      "materials": {
+        "PointsMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/plaza/venues/11/group",
+      "calls": 1,
+      "triangles": 0,
+      "materials": {
+        "PointsMaterial": 1
+      }
+    },
+    {
+      "name": "lobby/plaza/north/kart/group",
+      "calls": 1,
+      "triangles": 0,
+      "materials": {
+        "PointsMaterial": 1
+      }
+    }
+  ],
+  "spector": {
+    "commands": 3649,
+    "commandCounts": {
+      "isContextLost": 1,
+      "clear": 2,
+      "bindBuffer": 31,
+      "bufferSubData": 31,
+      "useProgram": 214,
+      "uniform1f": 277,
+      "frontFace": 32,
+      "disable": 44,
+      "depthMask": 16,
+      "bindVertexArray": 458,
+      "drawElements": 362,
+      "bindTexture": 248,
+      "uniformMatrix4fv": 1055,
+      "activeTexture": 123,
+      "texParameteri": 60,
+      "texSubImage2D": 15,
+      "uniformMatrix3fv": 243,
+      "enable": 44,
+      "uniform3f": 152,
+      "drawArrays": 126,
+      "drawElementsInstanced": 24,
+      "drawArraysInstanced": 7,
+      "uniform1i": 22,
+      "uniform3fv": 1,
+      "uniform4f": 4,
+      "polygonOffset": 19,
+      "blendFuncSeparate": 32,
+      "uniform2f": 6
+    },
+    "drawCalls": 519,
+    "raw": "spector-full-game.json.gz",
+    "capturedAt": "2026-10-07T17:29:54.619Z",
+    "inspectorVersion": "0.9.33"
+  }
+}

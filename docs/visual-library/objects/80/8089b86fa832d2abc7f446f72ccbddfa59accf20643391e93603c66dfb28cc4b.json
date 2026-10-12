@@ -1,0 +1,16 @@
+{
+  "case": "atlas",
+  "automated": "FAIL",
+  "visual": "NOT_ACCEPTED",
+  "error": "Missing registration: softMapBound",
+  "flags": {
+    "ticksAdvanced": true,
+    "serverParity": true,
+    "sameActualRendererPose": true,
+    "softShaderLinked": true,
+    "softMapBound": false,
+    "defaultRestored": true
+  },
+  "elapsedMs": 6580,
+  "sourceFreeze": "79c7aa9061682aefdbf130d1fcc03e5689c7ecfd3dde341bcc65a9eac089b332"
+}

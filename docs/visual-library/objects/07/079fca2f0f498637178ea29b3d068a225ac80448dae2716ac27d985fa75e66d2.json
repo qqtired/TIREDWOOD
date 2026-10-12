@@ -1,0 +1,743 @@
+{
+  "version": 1,
+  "artifact": "Подземелье: второй ярус",
+  "dated": "2026-10-11",
+  "assembledAt": "2026-10-11T21:02:33.887Z",
+  "sourceCommit": "62f814f",
+  "status": "proposal; not game implementation",
+  "preserved": [
+    "Старый Повидл на 10-й",
+    "Все прежние враги",
+    "Восемь прежних оружий и четыре эволюции",
+    "Карта-тор240м, прежние постройки",
+    "Пять оружий и пять пассивок",
+    "Хвосты/ярость/HP-долг",
+    "Бесконечность и босс каждые10волн",
+    "XP и серверные жетоны"
+  ],
+  "enemies": [
+    {
+      "id": "hookclaw",
+      "name": "Крюколап",
+      "role": "Фланкер",
+      "tier": "mob",
+      "firstWave": 16,
+      "hp": 52,
+      "speed": 3.6,
+      "dmg": 9,
+      "xp": 3,
+      "radius": 0.5,
+      "size": [
+        1.55,
+        1.45,
+        0.7
+      ],
+      "cue": "Низкий широкий карапакс и один огромный кованый крюк",
+      "attack": "Подходит дугой. В 3 м поднимает крюк на 0.8 с и фиксирует сектор 100° / 3.2 м. Щелчок 14 базового урона; затем 0.8 с отдыха, цикл 4.2 с.",
+      "counter": "Уйти за спину или наружу. Полный Q срывает замах; Кирка и Светляки защищают фланг.",
+      "animation": "idle, walk, windup, attack, hit, death",
+      "read": "Крюк вверху — сектор зафиксирован; сбоку безопасно. Направление после фиксации не следует за героем.",
+      "limit": 18,
+      "color": "#b8893a"
+    },
+    {
+      "id": "wickmole",
+      "name": "Фитильщик",
+      "role": "Сапёр",
+      "tier": "mob",
+      "firstWave": 17,
+      "hp": 66,
+      "speed": 2.5,
+      "dmg": 8,
+      "xp": 4,
+      "radius": 0.45,
+      "size": [
+        1.1,
+        1.05,
+        1.5
+      ],
+      "cue": "Большой терракотовый сосуд и защищённый ладонью фитиль",
+      "attack": "В 5–9 м приседает на 0.9 с и ставит один заряд. Красный круг 2.3 м раскрывается 1.8 с; хлопок 20 базового урона, без лужи. Цикл 6 с.",
+      "counter": "Убить до постановки, попасть оружием в заряд или обезвредить его полным Q. Отойти в заранее видимый проход.",
+      "animation": "idle, walk, windup, attack/plant, hit, death",
+      "read": "Горит только фитиль; полоса круга на земле растёт до хлопка. Заряд не самонаводится и не исчезает молча.",
+      "limit": 6,
+      "color": "#c58655"
+    },
+    {
+      "id": "railhopper",
+      "name": "Рельсовый щелкун",
+      "role": "Линейный стрелок",
+      "tier": "mob",
+      "firstWave": 18,
+      "hp": 44,
+      "speed": 2.8,
+      "dmg": 7,
+      "xp": 3,
+      "radius": 0.45,
+      "size": [
+        0.9,
+        1.85,
+        0.85
+      ],
+      "cue": "Вытянутое тело, задние бедра и железная спинная направляющая",
+      "attack": "Держит 9–13 м, раскрывает направляющую и фиксирует линию 0.8 × 15 м на 1 с. Один сгусток летит 11 м/с; стены останавливают его, лужи нет. После выстрела 1 с отдыха; цикл 4.8 с.",
+      "counter": "Боковой шаг, скала, рывок по безопасной стороне. Угольки и Луч достают издалека.",
+      "animation": "idle, walk, windup, attack, hit, death",
+      "read": "Узкая прямая линия отличается от круга Плевуна. Линия не доворачивает после фиксации.",
+      "limit": 8,
+      "color": "#91a0a5"
+    },
+    {
+      "id": "chainwarden",
+      "name": "Цепной пристав",
+      "role": "Элита: два сектора",
+      "tier": "elite",
+      "firstWave": 18,
+      "hp": 720,
+      "speed": 2.15,
+      "dmg": 18,
+      "xp": 40,
+      "radius": 0.72,
+      "size": [
+        1.6,
+        1.35,
+        2.55
+      ],
+      "cue": "Высокий барсук, вертикальный барабан и крупная цепь с грузом",
+      "attack": "Цикл 7 с: первый сектор 140° / 6 м за 1.2 с, пауза 0.55 с, зеркальный сектор за 0.9 с. Каждый удар 22 базового урона. После второго 2.2 с отдыха, урон по нему ×1.25.",
+      "counter": "Сначала свободная сторона, потом за спину. Q, Шашки или 12% его HP за подготовку срывают текущий взмах. Притягивания нет.",
+      "animation": "idle, walk, windup_l, attack_l, windup_r, attack_r, recover, hit, death",
+      "read": "Два последовательных сектора, всегда остаётся безопасная сторона. Не лечит и не повторяет таран Бочара.",
+      "limit": 1,
+      "color": "#b79568"
+    }
+  ],
+  "boss": {
+    "id": "cauldronmaster",
+    "name": "Казанщик Бурдюк",
+    "firstWave": 20,
+    "hp": 64000,
+    "radius": 1.8,
+    "size": [
+      4.8,
+      4.3,
+      4
+    ],
+    "speed": 2.3,
+    "contactBase": 24,
+    "xp": 300,
+    "timer": 120,
+    "enrageAt": 180,
+    "animation": "idle, move, appear, lid_open, ladle_wind, ladle_swing, pour_wind, pour, boil_wind, boil, phase2, phase3, recover, hit, death",
+    "cue": "Широкий земноводный котельщик, медный чан и огромный ковш. Лицо выступает под ободом, видно сверху.",
+    "counter": "Двигаться за ковш, выбирать просвет между струями и пользоваться открытым чаном. Все оружия могут наносить урон, обязательной эволюции нет.",
+    "phases": [
+      {
+        "n": 1,
+        "name": "Ковш",
+        "hp": "100–66%",
+        "tone": "Учит одной стороне",
+        "telegraph": "Ковш поднят, на полу сектор 110° / 7 м, 1.3 с. Выплеск — 3 отдельных круга 1.8 м, 1.2 с.",
+        "attack": "Ковш 24 базового урона. Выплеск 18; лужи 4 с, замедление 25%, без постоянного урона.",
+        "window": "После ковша крышка открыта 2 с: ×1.3 урона. Между атаками 2.2 с.",
+        "counter": "Один шаг за спину или наружу; не тратить рывок на все три круга.",
+        "geometry": "sector"
+      },
+      {
+        "n": 2,
+        "name": "Кипение",
+        "hp": "66–33%",
+        "tone": "Проверяет смену стороны",
+        "telegraph": "Переход 1.5 с. Первый ковш 1.3 с, второй 1.0 с; затем две полосы 1.2 × 14 м за 1.4 с, угол между ними ≥80°.",
+        "attack": "Ковши 24, полосы 22 базового урона. Не накладывать две подготовки на одну позицию героя.",
+        "window": "После пары крышка открыта 2.5 с: ×1.3. Свита — 4 Крюколапа каждые 20 с, всего не более 12 из заранее выделенного бюджета.",
+        "counter": "Менять сторону между ковшами; выйти в широкий просвет полос. Свита не блокирует каждый выход.",
+        "geometry": "lanes"
+      },
+      {
+        "n": 3,
+        "name": "Открытый чан",
+        "hp": "33–0%",
+        "tone": "Даёт риск и награду",
+        "telegraph": "Крышка сорвана. Кольцо 3–8 м за 1.5 с с безопасным центром; затем три разнесённые полосы за 1.2 с.",
+        "attack": "Кольцо 26, полосы 22 базового урона. Идея для приемки: полный Q в последнюю 0.6 с подготовки отменяет кольцо, если герой у чана.",
+        "window": "После серии 3 с открытое ядро: ×1.4. Без спама личинок, без новых фитилей поверх кольца.",
+        "counter": "Остаться в безопасном центре или заранее выйти за 8 м. Защитный круг полезен в центре; дальняя сборка — снаружи.",
+        "geometry": "ring"
+      }
+    ]
+  },
+  "waves": [
+    {
+      "n": 16,
+      "name": "Крюки погреба",
+      "targetHp": 94910,
+      "oldShare": 0.85,
+      "shares": {
+        "rat": 0.3825,
+        "slime": 0.085,
+        "shroom": 0.1275,
+        "beetle": 0.1275,
+        "spitter": 0.085,
+        "bat": 0.0425,
+        "hookclaw": 0.15
+      },
+      "elites": {
+        "barrel": 1,
+        "shaman": 1
+      },
+      "events": [
+        {
+          "at": 4,
+          "type": "teach",
+          "mob": "hookclaw",
+          "n": 3,
+          "text": "Первые крюки с одного фланга, без второго нового вида"
+        },
+        {
+          "at": 10.5,
+          "type": "elite",
+          "mob": "barrel",
+          "n": 1
+        },
+        {
+          "at": 24.5,
+          "type": "swarm",
+          "mob": "bat",
+          "n": 36
+        },
+        {
+          "at": 31.5,
+          "type": "elite",
+          "mob": "shaman",
+          "n": 1
+        },
+        {
+          "at": 55,
+          "type": "horde",
+          "text": "Последние 15 с: поток ×2, новый вид уже знаком"
+        }
+      ],
+      "duration": 70,
+      "dmgMul": 1.9,
+      "hpMul": 7.923856257762723,
+      "minAlive": 94,
+      "counts": {
+        "rat": 425,
+        "slime": 16,
+        "shroom": 16,
+        "beetle": 23,
+        "spitter": 27,
+        "bat": 59,
+        "hookclaw": 31
+      },
+      "regularCounts": {
+        "rat": 425,
+        "slime": 16,
+        "shroom": 16,
+        "beetle": 23,
+        "spitter": 27,
+        "bat": 23,
+        "hookclaw": 28
+      },
+      "bodies": 599,
+      "hp": 94849,
+      "xp": 935,
+      "oldBodyShare": 0.948073701842546,
+      "needDps": 1594.1,
+      "current": {
+        "n": 16,
+        "duration": 70,
+        "hpMul": 8.49613476526781,
+        "dmgMul": 1.9,
+        "minAlive": 94,
+        "regular": {
+          "rat": 448,
+          "bat": 62,
+          "slime": 17,
+          "shroom": 17,
+          "beetle": 24,
+          "spitter": 29
+        },
+        "events": [
+          {
+            "at": 10.5,
+            "type": "elite",
+            "mob": "barrel",
+            "n": 1,
+            "done": 0
+          },
+          {
+            "at": 24.5,
+            "type": "swarm",
+            "mob": "bat",
+            "n": 36,
+            "done": 0
+          },
+          {
+            "at": 31.5,
+            "type": "elite",
+            "mob": "shaman",
+            "n": 1,
+            "done": 0
+          },
+          {
+            "at": 55,
+            "type": "horde",
+            "mob": "",
+            "n": 0,
+            "done": 0
+          }
+        ],
+        "totals": {
+          "rat": 448,
+          "bat": 98,
+          "slime": 17,
+          "shroom": 17,
+          "beetle": 24,
+          "spitter": 29,
+          "barrel": 1,
+          "shaman": 1
+        },
+        "bodies": 635,
+        "hp": 94910,
+        "xp": 921,
+        "mix": "all",
+        "boss": null
+      }
+    },
+    {
+      "n": 17,
+      "name": "Короткие фитили",
+      "targetHp": 100436,
+      "oldShare": 0.75,
+      "shares": {
+        "rat": 0.525,
+        "slime": 0.075,
+        "spitter": 0.075,
+        "beetle": 0.075,
+        "hookclaw": 0.1,
+        "wickmole": 0.15
+      },
+      "elites": {
+        "barrel": 1,
+        "shaman": 1
+      },
+      "events": [
+        {
+          "at": 5,
+          "type": "teach",
+          "mob": "wickmole",
+          "n": 2,
+          "text": "Первая постановка видна в стороне от героя"
+        },
+        {
+          "at": 10.5,
+          "type": "elite",
+          "mob": "shaman",
+          "n": 1
+        },
+        {
+          "at": 31.5,
+          "type": "elite",
+          "mob": "barrel",
+          "n": 1
+        },
+        {
+          "at": 45,
+          "type": "teach",
+          "mob": "hookclaw",
+          "n": 4,
+          "text": "Фланг на фоне сапёров; не выдавать кольцо и Орду"
+        }
+      ],
+      "duration": 70,
+      "dmgMul": 1.96,
+      "hpMul": 9.514790508626861,
+      "minAlive": 98,
+      "counts": {
+        "rat": 513,
+        "slime": 12,
+        "spitter": 21,
+        "beetle": 11,
+        "hookclaw": 18,
+        "wickmole": 22
+      },
+      "regularCounts": {
+        "rat": 513,
+        "slime": 12,
+        "spitter": 21,
+        "beetle": 11,
+        "hookclaw": 14,
+        "wickmole": 20
+      },
+      "bodies": 599,
+      "hp": 101218,
+      "xp": 879,
+      "oldBodyShare": 0.932998324958124,
+      "needDps": 1701.1,
+      "current": {
+        "n": 17,
+        "duration": 70,
+        "hpMul": 11.328253056063168,
+        "dmgMul": 1.96,
+        "minAlive": 98,
+        "regular": {
+          "rat": 550,
+          "slime": 13,
+          "beetle": 13,
+          "spitter": 23
+        },
+        "events": [
+          {
+            "at": 10.5,
+            "type": "elite",
+            "mob": "shaman",
+            "n": 1,
+            "done": 0
+          },
+          {
+            "at": 31.5,
+            "type": "elite",
+            "mob": "barrel",
+            "n": 1,
+            "done": 0
+          }
+        ],
+        "totals": {
+          "rat": 550,
+          "slime": 13,
+          "beetle": 13,
+          "spitter": 23,
+          "shaman": 1,
+          "barrel": 1
+        },
+        "bodies": 601,
+        "hp": 100436,
+        "xp": 790,
+        "mix": "rats",
+        "boss": null
+      }
+    },
+    {
+      "n": 18,
+      "name": "Направляющие шахты",
+      "targetHp": 122000,
+      "oldShare": 0.7,
+      "shares": {
+        "rat": 0.3,
+        "shroom": 0.25,
+        "spitter": 0.1,
+        "bat": 0.05,
+        "hookclaw": 0.1,
+        "wickmole": 0.1,
+        "railhopper": 0.1
+      },
+      "elites": {
+        "barrel": 1,
+        "shaman": 1,
+        "chainwarden": 1
+      },
+      "events": [
+        {
+          "at": 4,
+          "type": "teach",
+          "mob": "railhopper",
+          "n": 2,
+          "text": "Первые две линии из разных сторон, подготовка по очереди"
+        },
+        {
+          "at": 10.5,
+          "type": "elite",
+          "mob": "barrel",
+          "n": 1
+        },
+        {
+          "at": 24.5,
+          "type": "swarm",
+          "mob": "bat",
+          "n": 40
+        },
+        {
+          "at": 31,
+          "type": "elite",
+          "mob": "shaman",
+          "n": 1
+        },
+        {
+          "at": 38.5,
+          "type": "ring",
+          "mob": "shroom",
+          "n": 20,
+          "text": "20 грибников вместо 40: новый стрелок уже делит внимание"
+        },
+        {
+          "at": 47,
+          "type": "elite",
+          "mob": "chainwarden",
+          "n": 1,
+          "text": "Первый Пристав после кольца, без Орды"
+        }
+      ],
+      "duration": 70,
+      "dmgMul": 2.02,
+      "hpMul": 8.668822005978653,
+      "minAlive": 102,
+      "counts": {
+        "rat": 375,
+        "shroom": 36,
+        "spitter": 36,
+        "bat": 78,
+        "hookclaw": 24,
+        "wickmole": 19,
+        "railhopper": 28
+      },
+      "regularCounts": {
+        "rat": 375,
+        "shroom": 16,
+        "spitter": 36,
+        "bat": 38,
+        "hookclaw": 24,
+        "wickmole": 19,
+        "railhopper": 26
+      },
+      "bodies": 599,
+      "hp": 122768,
+      "xp": 1057,
+      "oldBodyShare": 0.8808724832214765,
+      "needDps": 2063.3,
+      "current": {
+        "n": 18,
+        "duration": 70,
+        "hpMul": 7.875019990896305,
+        "dmgMul": 2.02,
+        "minAlive": 102,
+        "regular": {
+          "rat": 474,
+          "shroom": 55,
+          "spitter": 70
+        },
+        "events": [
+          {
+            "at": 10.5,
+            "type": "elite",
+            "mob": "barrel",
+            "n": 1,
+            "done": 0
+          },
+          {
+            "at": 24.5,
+            "type": "swarm",
+            "mob": "bat",
+            "n": 40,
+            "done": 0
+          },
+          {
+            "at": 24.5,
+            "type": "elite",
+            "mob": "shaman",
+            "n": 1,
+            "done": 0
+          },
+          {
+            "at": 38.5,
+            "type": "ring",
+            "mob": "shroom",
+            "n": 40,
+            "done": 0
+          },
+          {
+            "at": 38.5,
+            "type": "elite",
+            "mob": "barrel",
+            "n": 1,
+            "done": 0
+          }
+        ],
+        "totals": {
+          "rat": 474,
+          "shroom": 95,
+          "spitter": 70,
+          "barrel": 2,
+          "bat": 40,
+          "shaman": 1
+        },
+        "bodies": 682,
+        "hp": 135175,
+        "xp": 1224,
+        "mix": "grove",
+        "boss": null
+      }
+    },
+    {
+      "n": 19,
+      "name": "Смена караула",
+      "targetHp": 129000,
+      "oldShare": 0.65,
+      "shares": {
+        "rat": 0.26,
+        "beetle": 0.2925,
+        "spitter": 0.0975,
+        "hookclaw": 0.12,
+        "wickmole": 0.1,
+        "railhopper": 0.13
+      },
+      "elites": {
+        "barrel": 1,
+        "shaman": 1,
+        "chainwarden": 1
+      },
+      "events": [
+        {
+          "at": 10.5,
+          "type": "elite",
+          "mob": "shaman",
+          "n": 1
+        },
+        {
+          "at": 27,
+          "type": "elite",
+          "mob": "barrel",
+          "n": 1
+        },
+        {
+          "at": 44,
+          "type": "elite",
+          "mob": "chainwarden",
+          "n": 1
+        },
+        {
+          "at": 55,
+          "type": "pressure",
+          "text": "Поднять частоту обычной очереди на 25% на 8 с; без нового набора атак"
+        }
+      ],
+      "duration": 70,
+      "dmgMul": 2.08,
+      "hpMul": 8.089220534648685,
+      "minAlive": 106,
+      "counts": {
+        "rat": 369,
+        "beetle": 69,
+        "spitter": 41,
+        "hookclaw": 33,
+        "wickmole": 21,
+        "railhopper": 42
+      },
+      "regularCounts": {
+        "rat": 369,
+        "beetle": 69,
+        "spitter": 41,
+        "hookclaw": 33,
+        "wickmole": 21,
+        "railhopper": 42
+      },
+      "bodies": 578,
+      "hp": 128975,
+      "xp": 1128,
+      "oldBodyShare": 0.8330434782608696,
+      "needDps": 2167.6,
+      "current": {
+        "n": 19,
+        "duration": 70,
+        "hpMul": 8.49368156138112,
+        "dmgMul": 2.08,
+        "minAlive": 106,
+        "regular": {
+          "rat": 461,
+          "beetle": 86,
+          "spitter": 51
+        },
+        "events": [
+          {
+            "at": 10.5,
+            "type": "elite",
+            "mob": "shaman",
+            "n": 1,
+            "done": 0
+          },
+          {
+            "at": 24.5,
+            "type": "elite",
+            "mob": "barrel",
+            "n": 1,
+            "done": 0
+          },
+          {
+            "at": 38.5,
+            "type": "elite",
+            "mob": "shaman",
+            "n": 1,
+            "done": 0
+          }
+        ],
+        "totals": {
+          "rat": 461,
+          "beetle": 86,
+          "spitter": 51,
+          "shaman": 2,
+          "barrel": 1
+        },
+        "bodies": 601,
+        "hp": 110452,
+        "xp": 992,
+        "mix": "wall",
+        "boss": null
+      }
+    }
+  ],
+  "limits": {
+    "liveBodies": 300,
+    "regularAndEventBodiesPerWave": 600,
+    "after20Bodies": 700,
+    "hookclawLive": 18,
+    "wickmoleLive": 6,
+    "railhopperLive": 8,
+    "chainwardenLive": 1,
+    "newTelegraphsAtOnce": 2,
+    "enemyChargesOnMap": 6,
+    "redDangerGroundCoverage": 0.35
+  },
+  "after20": {
+    "duration": 75,
+    "oldShareMin": 0.55,
+    "newShareMax": 0.45,
+    "hpGrowth": 1.07,
+    "budgetGrowth": 1.05,
+    "rule": "21–25: две новые роли в одной смеси, максимум45% HP новым; после25 можно три. Не повторять одинаковую смесь дважды. Новые элиты заменяют часть старых элит, а не добавляются сверху. 30 — нынешние Близнецы;40 — нынешний ПовидлIII;50 — нынешний базовыйПовидл;60 — Бурдюк с ростом, дальше цикл продолжается.",
+    "bossGrowth": "64000 × 1.07^(w−20) × (1+0.25×cycleOf(w)) для20/60/100…; приёмка дальнейнихволн отдельно"
+  },
+  "rewards": {
+    "newMobsXp": "Крюколап3, Фитильщик4, Щелкун3, Пристав40. Предложение.",
+    "boss20Xp": 300,
+    "boss20Coins": 30,
+    "wave16to20CoinsEach": 18,
+    "runCap": 600,
+    "record": 15,
+    "change": "Сохраняем фактическую формулу жетонов. Новая элита даёт один сундук вместо заменённой старой; новая отдельная валюта и дополнительный сундук за каждого рядового не нужны."
+  },
+  "acceptance": [
+    "Референс и реальная GLB подписаны раздельно, все клипы видны",
+    "Старые враги и хвосты остаются после16–20",
+    "На20 новыйбосс;21начинается, финаланет",
+    "Не более300 живых длявсехпутей рождения, очередьиHPдолг сохраняют бюджет",
+    "Путь отхода есть укаждойновойатаки, нетнеобходимости конкретнойэволюции",
+    "Водные/вареньевые замедления не складываются, времятелеграфа учитывает slow",
+    "Триразные5+5сборки доходятдо20 в ручнойприёмке с разнымиtradeoffs",
+    "Сотни мобов инстансами/запечёнными частями;FPS/GPU/CPUнепроверены"
+  ],
+  "source": {
+    "shared/dungeon/data.ts": "c21539acba025551a0ee3d78bf2ca7c33cf901158300f2f078f3d241741480e1",
+    "shared/dungeon/weapons.ts": "03058ae16e7834896d9b2e8755801985fae5cce99464694b1d395eb9bc4056e8",
+    "shared/dungeon/director.ts": "4b033c10503d063ae3f2c1a88eca96940e45d101b9694942ef608eefe92fb461",
+    "shared/dungeon/boss.ts": "8ad8b1efb4e4048e15e1b156eea1703ce1f1efe58da2436684815eadcf87a603",
+    "shared/dungeon/mobs.ts": "438adaa6975e816b0e83d9c0df932eec9ad9016dd0a799f3eac9ac5e744c0dc2",
+    "shared/dungeon/progress.ts": "db3f5a7b140e7a7715072f11774575f77b7345f5c5e51dbbb1fa08b8386db868",
+    "shared/dungeon/core.ts": "3ef7b116784784f496da03c167ba4bbb2f93fee7c6f5a1fb82ab3f94f5c00a26",
+    "shared/dungeon/api.ts": "0f61ef35fd3a982ead4c38a711d8b548389d0f71546e81ac9f66f78530f16b08",
+    "docs/survivors/design-data.json": "68880be96eb18939f5629cee5304885f7938d43981ffdb11fd4d63c37f2027a9",
+    "docs/survivors/level-data.json": "a9a47bd09a0453581d9bbbca7f86492dc8899b423dab4965e995ee4a8489c506",
+    "tools/survivors/balance.mjs": "bdd518a78fd9168d7f148184e584211f62b5b8102abe26a0a3f6e29180b400ec"
+  }
+}

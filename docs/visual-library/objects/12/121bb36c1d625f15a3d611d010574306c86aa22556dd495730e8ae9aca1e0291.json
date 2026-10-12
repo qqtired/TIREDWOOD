@@ -1,0 +1,757 @@
+{
+  "schema": 1,
+  "scope": "Original waterfront/HUD/island owner requests as enumerated in root task and preserved implementation handoffs; no model-lab alternative acceptance substituted",
+  "checkpoint": {
+    "branch": "mode/farm-pack1",
+    "head": "41b91a8",
+    "parent": "bd182c2",
+    "worktree": "[LOCAL_PATH]",
+    "status": "clean tracked; only .playwright-cli untracked",
+    "fresh_read": true
+  },
+  "audit": {
+    "mode": "source+existingruntimeJSON+existingPNG only",
+    "new_runtime_launched": false,
+    "game_changes": false,
+    "tests_rerun": false,
+    "rule": "Commit/greenunit test/filenameaccepted isnot proof; source,actualinput,rootvisual,remaining are separate.",
+    "root_board": "quality-review-board.md:latest05:03acceptance supersedesinitialtable"
+  },
+  "summary": {
+    "matrix_rows": 35,
+    "confirmed_new_P1": 0,
+    "confirmed_new_P2_source_bugs": 0,
+    "remaining_evidence_findings": 2,
+    "strongest": [
+      "RealArcRun+SlotSpin with nativeinput/mouse+exit",
+      "Two sunsetplayers24/25 facewater+nativeE/Space/W",
+      "QuayW0→−.5 route plusfreshvisiblecontinuousstone andbeamabsence",
+      "Fountain29partialshaderframes/allpartsagree/0↔1 endpoints",
+      "Realboatberth15→authoritativeElanding;113footpoints;13finalterraincameraturns",
+      "Actualray3060g plusack-gatedkeep/recast andfreshpondroach"
+    ]
+  },
+  "evidence_version_boundaries": [
+    "waterfront-remaining.json:d4c2f562 build:21operationalPASS butsky/quayframesfailedvisually;fresh032c01d4 focusedPNGssupersedethem",
+    "waterfront-focused.json:roofroute guardfailure isretained;waterfront-roof-targeted.json5PASS supersedesit withoutgamechange",
+    "islandall8nativecasts arefinal4;final5b1cast/113pointmaterialphysics replay;final6actual13turnterraincamera;final7unchangedrelevantruntime gate1916pass/1skip recordedbyroot",
+    "qa-hud-final/fixed and 80/80 prototypechecks concernLab alternatives,not these liveHUD proofgaps",
+    "Fountaindistantview tiny/partlyoccluded: shader/layertransition valid,aestheticcloseupnotclaimed",
+    "Roofp3keep intentionallybypassesfade;partialrooffade isnotrequired byroot’s05:03decision",
+    "Ratflicker focusedsequence phaseidle,not racestart;thiscoversrequestedstaticgeometry tearing only",
+    "Correction found during this audit: island-boat-browser/resume JSONs have no place1..8 castchecks and failed boat stages. The real8cast evidence is island-second-attempt3.json individualsubchecks; unrelated failing phases remainexcluded."
+  ],
+  "matrix": [
+    {
+      "id": "hud-scale",
+      "request": "HUD уменьшен ещё на10%; размеры окон и входа сохранены",
+      "code_evidence": [
+        "client/ui/kit/scale.ts:10 hudScale=uiBaseScale*.9",
+        "client/ui/kit/kit.css --ui-base-k для окон; client/ui/entry.css",
+        "test/ui-kit.test.ts масштаб1440/2560/coarse"
+      ],
+      "actual_input": {
+        "required": true,
+        "status": "not_saved_as_separate_game_runtime",
+        "note": "Lab qa-hud*.json is variant QA, not live-game scale100↔90 proof"
+      },
+      "root_visual": [
+        "final-lobby-spawn.png and final WF PNGs show integrated HUD; dynamic ratio acceptance pending"
+      ],
+      "remaining": [
+        "HUD_UI_RUNTIME"
+      ],
+      "status": "evidence_incomplete"
+    },
+    {
+      "id": "hud-emojis",
+      "request": "Эмоции без общей подложки, с тенью у рисунков",
+      "code_evidence": [
+        "client/lobby/hud.ts:54 pz-emotes безk-plate; nativebuttons1–6",
+        "client/styles.css:977..1032 transparent button/tray styles",
+        "client/ui/kit/kit.css:28 inherited icon drop-shadow"
+      ],
+      "actual_input": {
+        "status": "native_handler_exists; separate mouse/hotkey trace absent",
+        "required": false
+      },
+      "root_visual": [
+        "Fresh waterfront-focused PNGs: six separate icons, no commonplate; independently viewed"
+      ],
+      "remaining": [
+        "HUD_UI_RUNTIME"
+      ],
+      "status": "evidence_incomplete"
+    },
+    {
+      "id": "hud-stats",
+      "request": "Удалён сегмент кадрNмс; FPS,пинг,буфер сохранены",
+      "code_evidence": [
+        "client/lobby/scene.ts:2877 FPS/ping/buffer; frameMs stays only debugState"
+      ],
+      "actual_input": {
+        "required": false,
+        "boundary": "Static placement/render request; no new game mechanic claimed."
+      },
+      "root_visual": [
+        "Fresh stone/arch/cornice/rats PNG stats containFPS/ping/buffer without frame segment"
+      ],
+      "remaining": [],
+      "status": "covered_with_stated_boundaries"
+    },
+    {
+      "id": "hud-avatar",
+      "request": "Свой образ вместо видимого ника в верхнем бейдже",
+      "code_evidence": [
+        "client/ui/kit/badge.ts:34 avatar+XP+tokens, no visible nick",
+        "client/ui/kit/avatar.ts normalized Outfit→cachedSVG",
+        "client/app.ts:691 serverMe;729 paintBadge passes confirmed outfit",
+        "test/ui-kit.test.ts changes visible Outfit fields"
+      ],
+      "actual_input": {
+        "required": true,
+        "status": "current confirmed portrait observed; normal UI change not yet recorded"
+      },
+      "root_visual": [
+        "Actual game PNGs show matching red/cap portrait; dynamic Outfit acceptance pending"
+      ],
+      "remaining": [
+        "HUD_UI_RUNTIME"
+      ],
+      "status": "evidence_incomplete"
+    },
+    {
+      "id": "fountain-position",
+      "request": "Фонтан перенесён вместе с игровым кварталом",
+      "code_evidence": [
+        "client/lobby/plaza3/pavdata.ts fountain38,7.3;live_water",
+        "docs/plaza3/level/layout.json synced footprint/colliders"
+      ],
+      "actual_input": {
+        "required": false,
+        "boundary": "Static placement/render request; no new game mechanic claimed."
+      },
+      "root_visual": [
+        "wf-cafe-casino.png independently viewed: new fountain beside moved café/cards"
+      ],
+      "remaining": [],
+      "status": "covered_with_stated_boundaries"
+    },
+    {
+      "id": "fountain-fade",
+      "request": "Вода фонтана плавно исчезает целиком",
+      "code_evidence": [
+        "client/lobby/plaza3/pavilions.ts:241 semantic110 on live-water pivot",
+        "client/lobby/plaza3/visibility.ts whole-object fade",
+        "client/lobby/plaza3/perf.ts actual shader uniform/layer transition"
+      ],
+      "actual_input": {
+        "required": true,
+        "status": "verified_native",
+        "record": "waterfront-focused.json",
+        "proof": "nativeS/W mole segment;29partialframes;0/1 endpoints;distance102.4288..114.8544;all descendantmaterial values equal"
+      },
+      "root_visual": [
+        "Root accepted actual transition; distant fountain tiny/partlyoccluded: numerical realshader proof, not aesthetic closeup"
+      ],
+      "remaining": [],
+      "status": "covered_with_stated_boundaries"
+    },
+    {
+      "id": "garden-ground",
+      "request": "Огород на уровне газона, seam без двойного слоя",
+      "code_evidence": [
+        "client/lobby/plaza3/garden-data.ts FIELD_Y=.003,GARDEN_Y=.018",
+        "client/lobby/plaza3/ground.ts outsideGardenField clip",
+        "shared/plaza3/layout.ts floor.field upper0; test/plaza3-landscape/waterfront"
+      ],
+      "actual_input": {
+        "required": true,
+        "status": "verified_native",
+        "record": "waterfront-remaining.json",
+        "proof": "nativeW75,−12.8→−19; actual beds/sunflowers/fences loaded"
+      },
+      "root_visual": [
+        "12-garden-seam-before/13-garden-field; latter independently viewed; grass/bed field visible"
+      ],
+      "remaining": [],
+      "status": "covered_with_stated_boundaries"
+    },
+    {
+      "id": "fish-showcase",
+      "request": "Витрина: три крупные вертикальные рыбы и реальные подписи",
+      "code_evidence": [
+        "client/lobby/plaza3/showcase.ts serverrows→three mounted trophies",
+        "showcase-trophy.ts shareduniformscale min1.2m,maxH2.45/maxW1.55; actualmasslabels",
+        "pav_fishshowcase.glb currentcounter/anchors; test/plaza3-showcase.test.ts"
+      ],
+      "actual_input": {
+        "status": "real received daily records plus synthetic prerequisites; no fakecatch claimed for display"
+      },
+      "root_visual": [
+        "fish-display-accepted.png independently viewed: actual150/300/15kg labels, three upright fish, ray broadface"
+      ],
+      "remaining": [],
+      "status": "covered_with_stated_boundaries"
+    },
+    {
+      "id": "fish-canopy",
+      "request": "Навес витрины не закрывает рыбы и доску",
+      "code_evidence": [
+        "pav_fishshowcase.glb V2geometry/counter/awning; SOURCE.md",
+        "models-impl fieldboard bottom4.9/top7.65,posttop4.565"
+      ],
+      "actual_input": {
+        "required": false,
+        "boundary": "Static placement/render request; no new game mechanic claimed."
+      },
+      "root_visual": [
+        "fish-display-accepted.png independently viewed: all fish clear under awning, board above"
+      ],
+      "remaining": [],
+      "status": "covered_with_stated_boundaries"
+    },
+    {
+      "id": "roof-fish",
+      "request": "Крупная верхняя рыба как цельный landmark",
+      "code_evidence": [
+        "client/lobby/fishboard.ts:229 makeRoofShark carvedgeometry +p3keep",
+        "fishboard.ts:84..93 actualroofanchor8.69+.66",
+        "actual current anchor−12,9.35,21.435"
+      ],
+      "actual_input": {
+        "required": true,
+        "status": "verified_native_continuity",
+        "record": "waterfront-roof-targeted.json",
+        "proof": "108.1323..115.7031m, allkeep/noFadeUnit, all drawablelayerscontinuous"
+      },
+      "root_visual": [
+        "Root reports near drawable/form inspection; distantgarden PNGs occlude behindcasino; available nearfish-display PNG crops roof, so this auditor does not infer silhouette from it"
+      ],
+      "remaining": [
+        "ROOF_UNOBSTRUCTED_VISUAL"
+      ],
+      "status": "evidence_incomplete"
+    },
+    {
+      "id": "distant-hill",
+      "request": "Дальний холм с деревьями и кустами; буквы не закрыты",
+      "code_evidence": [
+        "client/lobby/plaza3/hillplants.ts grouped deterministic greenery + signcorridor/projection",
+        "client/lobby/world.ts plan added to existing cityinstances",
+        "test/plaza3-landscape.test.ts/tree/sign budget; currentfile no new hill omission"
+      ],
+      "actual_input": {
+        "required": false,
+        "boundary": "Static placement/render request; no new game mechanic claimed."
+      },
+      "root_visual": [
+        "final-lobby-spawn.png independently viewed: treegroups and completeTIREDWOOD sign; positions unaffected by41b91a8fix"
+      ],
+      "remaining": [],
+      "status": "covered_with_stated_boundaries"
+    },
+    {
+      "id": "cafe-move",
+      "request": "Кафе перенесено; вид на TIREDWOOD свободен",
+      "code_evidence": [
+        "pavdata.ts café49,0 yawπ/2;cardveranda38.25,−2.2;kursaal61,1",
+        "layout/generated anchors+cafeagenda+npc/cols/slotposes",
+        "test/plaza3-waterfront-pack1 actualGLB raystoallletters"
+      ],
+      "actual_input": {
+        "required": false,
+        "boundary": "Static placement/render request; no new game mechanic claimed."
+      },
+      "root_visual": [
+        "wf-cafe-casino.png and final-lobby-spawn.png independently viewed; movedfacade/fountain/fullletters"
+      ],
+      "remaining": [],
+      "status": "covered_with_stated_boundaries"
+    },
+    {
+      "id": "cards-canopy-symbols",
+      "request": "Карточный навес поднят; 3Dчайка и медальон сохранены",
+      "code_evidence": [
+        "pav_cardveranda.glb modeltop3.825;5postcols3.73",
+        "pav_cafe.glb anchor_seagull; actualstonegull and woodcardmedallion",
+        "SOURCE.md + models-impl; c013114/bd182c2 integrated source"
+      ],
+      "actual_input": {
+        "required": false,
+        "boundary": "Static placement/render request; no new game mechanic claimed."
+      },
+      "root_visual": [
+        "wf-cafe-casino.png independently viewed: taller occupiedcanopy + prominent woodenmedallion; root modelcafe/cardpreviews accepted"
+      ],
+      "remaining": [],
+      "status": "covered_with_stated_boundaries"
+    },
+    {
+      "id": "arcade-slot",
+      "request": "После переноса доступны настоящие аркада и автомат",
+      "code_evidence": [
+        "actualmap arcade0..5 at62.3,z2..8.25;slot0 use59.15,−6.4,yaw4.712",
+        "shared/maps/lobby.ts; client/lobby/plaza3/arcade;slots2Dposes"
+      ],
+      "actual_input": {
+        "required": true,
+        "status": "verified_native",
+        "record": "waterfront-remaining.json",
+        "proof": "E→realArcOpen;Space→receivedArcRun;Esc;mouseИграть+close. SlotE→ACT_SLOT6,arg0→Space→receivedslotSpin→nativeWleave"
+      },
+      "root_visual": [
+        "Root inspected actual arcade/slot PNGs;21checks are operational evidence only, oldfailedquay/skyPNGsuperseded"
+      ],
+      "remaining": [],
+      "status": "covered_with_stated_boundaries"
+    },
+    {
+      "id": "mole-surface-ramp",
+      "request": "Каменный настил мола и проходимая рампа",
+      "code_evidence": [
+        "molefloor.ts recessMoleSupport returns2supportvertices to−.515;replacement8tris+ramp−28..−26",
+        "world.ts dressMole hook; port.ts5physicalsteps; noanchors/colliderchange",
+        "test/plaza3-molefloor actualGLB first-hit rays+attributes/bounds preservation"
+      ],
+      "actual_input": {
+        "required": true,
+        "status": "verified_native",
+        "record": "waterfront-remaining.json",
+        "proof": "nativeW−25..−67,z45 andback;actualheight0→−.5;34routepoints includesquay/garden/approaches"
+      },
+      "root_visual": [
+        "Fresh focused03/04 PNGs root accepted;04 independently viewed: continuousstone texture. Old flatbrown09/10 explicitly excluded"
+      ],
+      "remaining": [],
+      "status": "covered_with_stated_boundaries"
+    },
+    {
+      "id": "semyon-transom",
+      "request": "У Семёна исправлена фрамуга/лишнийframe",
+      "code_evidence": [
+        "pav_semyon.glb V2 plus SOURCE.md; model source/manifest preserved",
+        "commonplacement−58.6,50.8,y−.5 unchanged"
+      ],
+      "actual_input": {
+        "required": false,
+        "boundary": "Static placement/render request; no new game mechanic claimed."
+      },
+      "root_visual": [
+        "Root modeltransompreview accepted; freshstone04 showsassembled house/window; no newgamemode behavior claimed"
+      ],
+      "remaining": [],
+      "status": "covered_with_stated_boundaries"
+    },
+    {
+      "id": "one-ferry-sign",
+      "request": "Один указатель Удалой с правилами и живым статусом",
+      "code_evidence": [
+        "client/lobby/barkas/index.ts:48 oldFerrySign=null onlyPLAZA3",
+        "P3.signs exactlyoneudalaya1.4×.8; no old jettyarchsign",
+        "dress.ts:64;scene.ts:2517→signStatus ferry phases;test/plaza3-signs.test.ts"
+      ],
+      "actual_input": {
+        "required": false,
+        "status": "data callbacks verified in source; all ferryphase UI cycles not replayed"
+      },
+      "root_visual": [
+        "Root duplicate sign review/sourceasset audit; no claim allferryphase visualtimers were manually exercised"
+      ],
+      "remaining": [],
+      "status": "covered_with_stated_boundaries"
+    },
+    {
+      "id": "removed-signs",
+      "request": "Лишние вывески ротонды/маяка/заката/фермы убраны",
+      "code_evidence": [
+        "CurrentP3.signs excludescafe/cards/rotunda/honor/online/jettyarch/sunset/farmarch/farmgate",
+        "Read-only actualGLB anchorinventory rotunda/sunset/lighthouse_arch/farm_arch/honor/online: no sign/headeranchors",
+        "model V2 prep/source keepscentralФЕРМА,woodenlighthousefish,honorcup"
+      ],
+      "actual_input": {
+        "required": false,
+        "boundary": "Static placement/render request; no new game mechanic claimed."
+      },
+      "root_visual": [
+        "Root model/layout review accepted; staticasset removal covered by source and localfullgate; no fabricated per-objectE acceptance"
+      ],
+      "remaining": [],
+      "status": "covered_with_stated_boundaries"
+    },
+    {
+      "id": "cloud-beam",
+      "request": "Белая поперечина облачной арки удалена",
+      "code_evidence": [
+        "pav_skytower.glb upperbeam alreadyremoved; culprit wasproceduralSkillPortal",
+        "client/skilltest/portal.ts frameflag;scene.ts:558 !PLAZA3",
+        "test/skill-portal-geometry keepslegacyframe/controller"
+      ],
+      "actual_input": {
+        "required": false,
+        "boundary": "Static placement/render request; no new game mechanic claimed."
+      },
+      "root_visual": [
+        "Fresh focused02-new-cloud-arch-close.png independently viewed: lowerwhitebeamgone; prior01/02withbeamfailedandsuperseded"
+      ],
+      "remaining": [],
+      "status": "covered_with_stated_boundaries"
+    },
+    {
+      "id": "rat-left",
+      "request": "Бега сдвинуты влево в игровом ракурсе целиком",
+      "code_evidence": [
+        "P3.anchors.rat dx7;actualrat root−.4,24.4;sharedRAT_TRACK−.4,24.7",
+        "sharedratrace deck/pen/board/use+map/NPC/sign transforms",
+        "test/plaza3-waterfront-pack1 linkedcoords"
+      ],
+      "actual_input": {
+        "required": false,
+        "boundary": "Static placement/render request; no new game mechanic claimed."
+      },
+      "root_visual": [
+        "rat-clear-view.png rootaccepted; actualfocused06series shows relocatedarena. Screenleft is world+X from north-facing south, not a missing−X shift"
+      ],
+      "remaining": [],
+      "status": "covered_with_stated_boundaries"
+    },
+    {
+      "id": "one-bench-two-seats",
+      "request": "Одна лавка на двоих, оба места смотрят в воду",
+      "code_evidence": [
+        "actualpav_sunset onebench;anchorsseat24/25",
+        "shared/maps/lobby.ts119/120 appendstableIDs;heldy.255+sitlift.3"
+      ],
+      "actual_input": {
+        "required": true,
+        "status": "verified_native_multiplayer",
+        "record": "waterfront-remaining.json",
+        "proof": "Tester11/12 ACT_SIT24/25 simultaneous;cross-snapshotoccupiedseats;realavatar−Z directiondot>.9;E/Space/Wexit"
+      },
+      "root_visual": [
+        "07-sunset-two-seated.png independently viewed;actualonebench/twoactors/waterview"
+      ],
+      "remaining": [],
+      "status": "covered_with_stated_boundaries"
+    },
+    {
+      "id": "spawn-boards",
+      "request": "Два читаемых функциональных экрана у spawn",
+      "code_evidence": [
+        "pavdatahonor4,−16.8;online17,−16.8 facingπ",
+        "modelboardfieldhonor4.2×2.8,online3×2.42; worldcurrentcanvases/cols"
+      ],
+      "actual_input": {
+        "required": true,
+        "status": "verified_native_approach",
+        "record": "waterfront-remaining.json",
+        "proof": "nativeW toactualhonor/recentpoints;realpassivehints. Thesearepassiveboards,not missingE windows"
+      },
+      "root_visual": [
+        "Root viewedspawn/honor/recent PNGs; finalspawn independentlyviewed"
+      ],
+      "remaining": [],
+      "status": "covered_with_stated_boundaries"
+    },
+    {
+      "id": "fishcourt-180",
+      "request": "Рыбный двор развёрнут на180° вместе с твёрдым",
+      "code_evidence": [
+        "pavdatafishyard yawπ;P3.anchors.hide rot2 around−4,13.4",
+        "shared/plaza2.ts forMode hideYARD_SOLIDS/CRATES;mapslobby hideCircle/return xf",
+        "test/plaza3-games-beach-arenas"
+      ],
+      "actual_input": {
+        "required": false,
+        "status": "rotation/static-map scope; newhide roundnot replayed"
+      },
+      "root_visual": [
+        "wf-fish-rats.png independentlyviewed shows reorientedcourt/gate; source/map relationship confirmed"
+      ],
+      "remaining": [],
+      "status": "covered_with_stated_boundaries"
+    },
+    {
+      "id": "regatta-180",
+      "request": "Круг сбора регаты развёрнут на180°",
+      "code_evidence": [
+        "client/lobby/scene.ts:510..513 boatrace StartCircle.group.rotation.y=πonlyPLAZA3",
+        "sameBOAT_RACE_CIRCLE and sharedserverinteraction untouched"
+      ],
+      "actual_input": {
+        "required": false,
+        "status": "orientation-only; no newregattarace acceptanceclaimed"
+      },
+      "root_visual": [
+        "Root source/layout review;wf-cafe-casino showsretainedregattazone; current source exactπ"
+      ],
+      "remaining": [],
+      "status": "covered_with_stated_boundaries"
+    },
+    {
+      "id": "paint-flicker",
+      "request": "Копланарная краска у склада исправлена",
+      "code_evidence": [
+        "tools/plaza3/v2/paint-cloud.mjs actualtriangle clipping/depth separation",
+        "pav_paintball.glb corrected;test/plaza3-paint-cloud genuineoverlaparea checks"
+      ],
+      "actual_input": {
+        "required": false,
+        "status": "native shortcamera sequence captured",
+        "record": "waterfront-remaining.json motion-paint-entry"
+      },
+      "root_visual": [
+        "Root actual03motionframes accepted; fresharch02 also showscurrentpaint façade; root no tearingobserved"
+      ],
+      "remaining": [],
+      "status": "covered_with_stated_boundaries"
+    },
+    {
+      "id": "cornice-flicker",
+      "request": "Карниз казино без копланарного мерцания",
+      "code_evidence": [
+        "pav_kursaal.glb V3 repaired23pairs/3.44089m²",
+        "test/plaza3-cornice.test.ts actualmodeloverlap",
+        "currentglb SHA inSOURCE/assetrecord"
+      ],
+      "actual_input": {
+        "required": false,
+        "status": "actual followcamera orbit10frames/2.4s",
+        "record": "waterfront-focused.json"
+      },
+      "root_visual": [
+        "Root viewedfirst/middle/last; middle independentlyviewed: trueuppercornice. Priorlowerentry14framesexcluded"
+      ],
+      "remaining": [],
+      "status": "covered_with_stated_boundaries"
+    },
+    {
+      "id": "rat-flicker",
+      "request": "Дорожка и ограждения бегов без двойной статики",
+      "code_evidence": [
+        "plaza3/ratmount.ts legacybody.visible=false onlyafterGLBready",
+        "rat-race livegameplay remains; pavilions currentactualGLB track/fence",
+        "test/plaza3-cornice/runtime"
+      ],
+      "actual_input": {
+        "required": false,
+        "status": "10actualarena camera frames, realphaseidle/race1; no fabricatedrace",
+        "record": "waterfront-focused.json"
+      },
+      "root_visual": [
+        "Root first/middle/last accepted;middleindependentlyviewed. Scope isstaticflicker; idlephase isexplicit"
+      ],
+      "remaining": [],
+      "status": "covered_with_stated_boundaries"
+    },
+    {
+      "id": "island-uv",
+      "request": "Остров: метрические UV и фактура поверхностей",
+      "code_evidence": [
+        "client/lobby/isle/surfaceuv.ts dominantgeometricface axis, metreprojection",
+        "surfaces.ts/island3d.ts actualstaticparts+terrain materials",
+        "test/isle-surfaces.test.ts planarUV/bounds/requiredsurfaces"
+      ],
+      "actual_input": {
+        "required": true,
+        "status": "actual textures/terrain reread onfoot",
+        "record": "island-final-foot-browser.json"
+      },
+      "root_visual": [
+        "Root finalsurface PNGs accepted; lighthousehills/camera PNGindependentlyviewed; failedCSScoveroverviewexcluded"
+      ],
+      "remaining": [],
+      "status": "covered_with_stated_boundaries"
+    },
+    {
+      "id": "island-access",
+      "request": "Остров доступен настоящей лодкой и E-высадкой",
+      "code_evidence": [
+        "shared/ownboat.ts realpontoon berthpositions/landingheight; isle-disembarktest",
+        "sameislandcentre−950,180 retained"
+      ],
+      "actual_input": {
+        "required": true,
+        "status": "verified_native_voyage",
+        "record": "island-boat-landing-final.json",
+        "proof": "samevoyagemarina→berth15;secondEafterauthoritativeph0;before−856.691,−.76,175.983→after−856.3,−.85,172.25;nodebugTPsince marina"
+      },
+      "root_visual": [
+        "Root actualboatlandingPNGaccepted; firstwrongAlbatros route andearlypredictedphE failures excluded"
+      ],
+      "remaining": [],
+      "status": "covered_with_stated_boundaries"
+    },
+    {
+      "id": "island-fishing",
+      "request": "Все8 мест ловли и Игнат доступны",
+      "code_evidence": [
+        "sharedfishplaces8islepoints;mapfisherarg2;islecentreunchanged"
+      ],
+      "actual_input": {
+        "required": true,
+        "status": "real8casts onfinal4;newmaterial/physics replay1actualcast plus8realmappoints",
+        "records": [
+          "island-second-attempt3.json individualplace1..8checks",
+          "island-final-foot-browser.json laterIgnat+1cast/113points"
+        ],
+        "boundary": "All8 actual cast subchecks are PASS in the earlier attempt3 JSON, although its separate boat/upperstair stages failed. They are not claimed as one successfulvoyage. Later realboatlanding and113points are their own successful evidence; finalfoot stage title all8casts means only1replayedcast."
+      },
+      "root_visual": [
+        "Root NPC dataset/titleIgnat,E,cast/hook accepted; no syntheticcatch/controller success"
+      ],
+      "remaining": [],
+      "status": "covered_with_stated_boundaries"
+    },
+    {
+      "id": "island-rise-collisions",
+      "request": "Понтон, лестница, подъём и коллизии проходимы",
+      "code_evidence": [
+        "shared/maps/isleterrain.ts rampstepcontact/directions",
+        "shared/maps/types.ts worldterrain fields;shared/world.ts/sim.ts terraincontact",
+        "test/isle-step-contact/isle-disembark/island-rework"
+      ],
+      "actual_input": {
+        "required": true,
+        "status": "113nativefootwaypoints",
+        "record": "island-final-foot-browser.json",
+        "proof": "pontoon→stairs→lighthouse→ridge→return;teleports only separate segmentsetup"
+      },
+      "root_visual": [
+        "Root material/routePNG accepted; lighthousehills independentlyviewed"
+      ],
+      "remaining": [],
+      "status": "covered_with_stated_boundaries"
+    },
+    {
+      "id": "island-camera-far",
+      "request": "Дальний вид и камера острова не режут рельеф",
+      "code_evidence": [
+        "client/lobby/isle/island3d.ts farlandmark/detailvisible",
+        "shared/aim.ts terrain-onlysphere/normalpad;isle-cameratest nearcorners/radius"
+      ],
+      "actual_input": {
+        "required": true,
+        "status": "fresh actual finalcamera regression",
+        "record": "island-camera-radius-browser.json",
+        "proof": "13turns,clearance.289693vsold.04793,JS/CSP0"
+      },
+      "root_visual": [
+        "island-camera-radius-final.png independentlyviewed: ground doesn’tcutloweredge; old08-camera-after wasrejectedandexcluded"
+      ],
+      "remaining": [],
+      "status": "covered_with_stated_boundaries"
+    },
+    {
+      "id": "space-keep-recast",
+      "request": "СвежийSpace: одинkeep,FE_DONE,один новыйcast",
+      "code_evidence": [
+        "client/lobby/fishnextcast.ts acknowledgementstate",
+        "fish2hud.ts:489..503 quickKeepSpace;shared/serverauthority unchanged",
+        "test/fish-nextcast repeatedkey/fullbag/leave/typingguards"
+      ],
+      "actual_input": {
+        "required": true,
+        "status": "verified_native_actual_catch",
+        "records": [
+          "fishing-space-browser-final.json",
+          "farm-runtime-pond-recast-final.json"
+        ],
+        "proof": "cast→hook→realray3060g→oneSpacekeep(+repeat)→realFE_DONE→onecast;bag0→1;freshpondroach pathwayalso passed"
+      },
+      "root_visual": [
+        "Root actualreel/catch/recast PNGsaccepted; no injectedreelDone/fakecatch"
+      ],
+      "remaining": [],
+      "status": "covered_with_stated_boundaries"
+    },
+    {
+      "id": "fishing-glass",
+      "request": "Мягкое стекло шкалы рыбалки без квадратной каймы",
+      "code_evidence": [
+        "client/lobby/fishkit.css:101 reeltransparentborder0shadowNone;maskedradialblur16px",
+        "single::before layer;gauge/zone/specieslogicunchanged"
+      ],
+      "actual_input": {
+        "required": true,
+        "status": "same realcatch/reel flow asSpace proof",
+        "record": "fishing-space-browser-final.json"
+      },
+      "root_visual": [
+        "fishing-glass-final.png independentlyviewed: softedgeglass aroundlivegauge; rootaccepted"
+      ],
+      "remaining": [],
+      "status": "covered_with_stated_boundaries"
+    },
+    {
+      "id": "legacy-preserved",
+      "request": "Сохранены старые покрытия, маяк и любимые интерфейсы",
+      "code_evidence": [
+        "legacyground.ts pavers+mosaic generators;PLAZA3guard aroundchangedpaths",
+        "HUDwindowbaseindependentfrom.9;legacyplaza test fingerprint",
+        "noSVG/worldrendererreplacement beyondcompactHUDportrait"
+      ],
+      "actual_input": {
+        "required": false,
+        "boundary": "Static placement/render request; no new game mechanic claimed."
+      },
+      "root_visual": [
+        "finalspawn+quay+glass+sunset PNGsindependentlyviewed; no claimalllegacygamemodes fullyreplayed"
+      ],
+      "remaining": [],
+      "status": "covered_with_stated_boundaries"
+    }
+  ],
+  "findings": [
+    {
+      "severity": "P2",
+      "kind": "acceptance_evidence_gap",
+      "id": "HUD_UI_RUNTIME",
+      "new_source_bug": false,
+      "items": [
+        "hud-scale",
+        "hud-emojis",
+        "hud-avatar"
+      ],
+      "description": "Сохранённого игрового измерения100→90→100 и смены Outfit через штатную UI пока нет. Lab80/80 относится к другому артефакту; код и статический вид игрового HUD подтверждены.",
+      "next": "Root scheduled short existingChrome9222 callback afterProductLab; qa-hud-live-coverage.js + selector-map prepared,syntaxchecked only."
+    },
+    {
+      "severity": "P2",
+      "kind": "visual_evidence_gap",
+      "id": "ROOF_UNOBSTRUCTED_VISUAL",
+      "new_source_bug": false,
+      "items": [
+        "roof-fish"
+      ],
+      "description": "Проверены p3keep и непрерывность drawables при переходе через110м. Доступные близкие PNG обрезают верхнюю акулу, дальние кадры закрывает казино; незакрытый силуэт этим аудитом не подтверждён. Дефект модели не установлен.",
+      "next": "Separate source-derived frontview player−12,14,y0,aim actualsharkcentre−12,9.35,21.435 withupwardpitch; root must viewwholefishPNG. Camera proposal inselector-map."
+    }
+  ],
+  "known_separate_release_boundary": {
+    "id": "PLAZA_PERF",
+    "severity": "P2",
+    "not_new_finding": true,
+    "description": "Отдельная Opt приёмка остаётся открытой: baseline41b91a8 piermain403/refresh656; кандидат385/refresh500 и86программ в общемcache. Кандидат не входит в этот checkpoint; оба превышают300draw/80programbudget. Fullgate или60FPSPNG этого не закрывают.",
+    "evidence": "quality-review-board.md05:36; no independentnewbenchmarkrun"
+  },
+  "reviewed_pngs": [
+    "waterfront-focused-shots/2026-10-12T04-54-01-828Z/02-new-cloud-arch-close.png",
+    "waterfront-focused-shots/2026-10-12T04-54-01-828Z/04-new-stone-length.png",
+    "waterfront-focused-shots/2026-10-12T04-54-01-828Z/05-casino-roof-cornice-04.png",
+    "waterfront-focused-shots/2026-10-12T04-54-01-828Z/06-rats-track-posts-04.png",
+    "fish-display-accepted.png",
+    "final-lobby-spawn.png",
+    "fishing-glass-final.png",
+    "island-camera-radius-final.png",
+    "waterfront-remaining-shots/2026-10-12T04-15-34-174Z/13-garden-field.png",
+    "wf-fish-rats.png",
+    "wf-cafe-casino.png",
+    "island-second-shots/2026-10-12T02-16-24-217Z/04-lighthouse-hills.png",
+    "waterfront-remaining-shots/2026-10-12T04-15-34-174Z/07-sunset-two-seated.png"
+  ],
+  "next_callbacks": [
+    "qa-hud-live-coverage.js",
+    "qa-hud-live-selector-map.md"
+  ]
+}

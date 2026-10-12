@@ -1,0 +1,36 @@
+/* Крысиные бега на ките 2.0 (client/lobby/ratracehud.ts): окно ставки (.k-scrim > .k-window.mo-bet-win), у арены — плитка
+   своей ставки и список крыс под бейджем (.mo-ratlist), клавиши внизу. Вид — классы кита и .mo-* (client/ui/kit/modes.css);
+   здесь только мелочи. Цвет седла — данные игры (--sd, как попона на крысе). */
+.rr-scrim[hidden] { display: none; }
+.rr-scrim { pointer-events: auto; }
+.rr-scrim .k-window:focus { outline: none; }
+
+/* окно: карточка крысы — кнопка; нельзя (ставка сделана, забег идёт) — бледнее и без подскока */
+.mo-rat:disabled { cursor: default; }
+.mo-rat:disabled:hover { transform: none; }
+.mo-rat:disabled:not(.is-on) { opacity: 0.55; }
+.mo-rat:focus-visible { outline: none; box-shadow: var(--focus); }
+.mo-rat .mo-rat-who:empty { visibility: hidden; }
+.mo-rat-who { overflow: hidden; color: var(--gold-text); text-overflow: ellipsis; white-space: nowrap; }
+.rr-reset { align-self: center; }
+.rr-go { min-width: 260px; }
+.rr-go > small:empty { display: none; }
+.rr-state { margin: -4px 0 0; color: var(--surf-text); font: 700 var(--fs-15)/1.3 var(--font-text); text-align: center; }
+.rr-state.is-err { color: var(--bad-text); }
+.rr-state[hidden] { display: none; }
+
+/* у арены: список крыс под бейджем */
+.rr-rows { display: flex; flex-direction: column; gap: 1px; }
+.rr-list .mo-row b > span { line-height: 1.15; }
+.rr-list .mo-row b > small { max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rr-list .mo-row.rr-lost { opacity: 0.55; }
+.rr-list .mo-row.rr-hit { animation: rr-row-hit 0.55s ease-out; }
+@keyframes rr-row-hit { 0% { background: var(--gold-soft); box-shadow: inset 0 0 0 2px var(--gold); } }
+.rr-cam { margin-top: 5px; }
+/* на телефоне по крысе в списке можно нажать — болеть */
+.touch .rr-list .mo-row { pointer-events: auto; cursor: pointer; }
+
+@media (max-width: 760px) {
+  .mo-bet-win .mo-rats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mo-bet-win .mo-rat-trait { display: none; }
+}

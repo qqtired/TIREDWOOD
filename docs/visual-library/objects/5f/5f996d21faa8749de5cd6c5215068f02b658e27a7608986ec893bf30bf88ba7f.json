@@ -1,0 +1,1303 @@
+{
+ "units": "m",
+ "axes": "GLB: +Y вверх, лицо павильона −Z; мир игры: x — восток, z — юг",
+ "pavilions": {
+  "paintball": {
+   "file": "./pav_paintball.glb",
+   "tris_static": 11829,
+   "tris_live": 2,
+   "draws_static": 3,
+   "draws_live": 1,
+   "nodes": {
+    "live_screen": {
+     "tris": 2,
+     "draws": 1,
+     "primitives": [
+      {
+       "material": "p3_glow",
+       "tris": 2,
+       "attrs": [
+        "COLOR_0",
+        "NORMAL",
+        "POSITION",
+        "TEXCOORD_0"
+       ]
+      }
+     ]
+    },
+    "static_paintball": {
+     "tris": 11829,
+     "draws": 3,
+     "primitives": [
+      {
+       "material": "p3_matte",
+       "tris": 7576,
+       "attrs": [
+        "COLOR_0",
+        "NORMAL",
+        "POSITION"
+       ]
+      },
+      {
+       "material": "p3_gloss",
+       "tris": 4213,
+       "attrs": [
+        "COLOR_0",
+        "NORMAL",
+        "POSITION"
+       ]
+      },
+      {
+       "material": "p3_glow",
+       "tris": 40,
+       "attrs": [
+        "COLOR_0",
+        "NORMAL",
+        "POSITION"
+       ]
+      }
+     ]
+    }
+   },
+   "anchors": [
+    "anchor_entry",
+    "anchor_garland_a",
+    "anchor_garland_b",
+    "anchor_prop",
+    "anchor_resident",
+    "anchor_screen",
+    "anchor_sign_face",
+    "anchor_spawn_back",
+    "anchor_start"
+   ],
+   "bulbs": 138,
+   "colliders": 10,
+   "textures": 0,
+   "extensions": [
+    "KHR_materials_emissive_strength"
+   ],
+   "props": {
+    "crate_paint": 2,
+    "drum_paint": 2,
+    "lantern_wall": 6,
+    "pallets": 1,
+    "planter_cypress": 2,
+    "sandbags": 1
+   },
+   "props_files": {
+    "lantern_wall": "kit",
+    "pallets": "./pav_props.glb",
+    "drum_paint": "./pav_props.glb",
+    "sandbags": "./pav_props.glb",
+    "crate_paint": "./pav_props.glb",
+    "planter_cypress": "kit"
+   },
+   "props_count": 14,
+   "name": "Пейнтбол — «Склад №3»",
+   "world_origin": [
+    8.0,
+    0,
+    -37.0
+   ],
+   "yaw": 3.141592653589793,
+   "footprint_m": [
+    20,
+    16
+   ],
+   "height_m": [
+    9.6,
+    16.0
+   ]
+  },
+  "fort": {
+   "file": "./pav_fort.glb",
+   "tris_static": 9412,
+   "tris_live": 0,
+   "draws_static": 5,
+   "draws_live": 0,
+   "nodes": {
+    "static_fort": {
+     "tris": 4356,
+     "draws": 3,
+     "primitives": [
+      {
+       "material": "p3_matte",
+       "tris": 3468,
+       "attrs": [
+        "COLOR_0",
+        "NORMAL",
+        "POSITION"
+       ]
+      },
+      {
+       "material": "p3_gloss",
+       "tris": 868,
+       "attrs": [
+        "COLOR_0",
+        "NORMAL",
+        "POSITION"
+       ]
+      },
+      {
+       "material": "p3_glow",
+       "tris": 20,
+       "attrs": [
+        "COLOR_0",
+        "NORMAL",
+        "POSITION"
+       ]
+      }
+     ]
+    },
+    "static_keep": {
+     "tris": 5056,
+     "draws": 2,
+     "primitives": [
+      {
+       "material": "p3_matte",
+       "tris": 4820,
+       "attrs": [
+        "COLOR_0",
+        "NORMAL",
+        "POSITION"
+       ]
+      },
+      {
+       "material": "p3_gloss",
+       "tris": 236,
+       "attrs": [
+        "COLOR_0",
+        "NORMAL",
+        "POSITION"
+       ]
+      }
+     ]
+    }
+   },
+   "anchors": [
+    "anchor_entry",
+    "anchor_garland_a",
+    "anchor_garland_b",
+    "anchor_keep",
+    "anchor_prop",
+    "anchor_resident",
+    "anchor_sign_face",
+    "anchor_spawn_back",
+    "anchor_start"
+   ],
+   "bulbs": 0,
+   "colliders": 9,
+   "textures": 0,
+   "extensions": [
+    "KHR_materials_emissive_strength"
+   ],
+   "props": {
+    "barrel_wood": 2,
+    "flowerbox_1m": 2,
+    "lantern_wall": 2,
+    "planter_cypress": 1,
+    "planter_oleander": 1,
+    "pot": 1
+   },
+   "props_files": {
+    "lantern_wall": "kit",
+    "barrel_wood": "./pav_props.glb",
+    "planter_cypress": "kit",
+    "planter_oleander": "kit",
+    "pot": "kit",
+    "flowerbox_1m": "kit"
+   },
+   "props_count": 9,
+   "name": "Крепость: барбакан + донжон",
+   "world_origin": [
+    26.0,
+    0,
+    -32.0
+   ],
+   "yaw": 3.141592653589793,
+   "footprint_m": [
+    10,
+    6
+   ],
+   "height_m": [
+    10.1,
+    18.0
+   ],
+   "keep": {
+    "node": "static_keep",
+    "anchor": "anchor_keep",
+    "world_center": [
+     26.0,
+     0,
+     -42.0
+    ],
+    "footprint_m": [
+     8,
+     8
+    ]
+   }
+  },
+  "skytower": {
+   "file": "./pav_skytower.glb",
+   "tris_static": 9680,
+   "tris_live": 0,
+   "draws_static": 3,
+   "draws_live": 0,
+   "nodes": {
+    "static_skytower": {
+     "tris": 9680,
+     "draws": 3,
+     "primitives": [
+      {
+       "material": "p3_matte",
+       "tris": 7554,
+       "attrs": [
+        "COLOR_0",
+        "NORMAL",
+        "POSITION"
+       ]
+      },
+      {
+       "material": "p3_gloss",
+       "tris": 2046,
+       "attrs": [
+        "COLOR_0",
+        "NORMAL",
+        "POSITION"
+       ]
+      },
+      {
+       "material": "p3_glow",
+       "tris": 80,
+       "attrs": [
+        "COLOR_0",
+        "NORMAL",
+        "POSITION"
+       ]
+      }
+     ]
+    }
+   },
+   "anchors": [
+    "anchor_bell",
+    "anchor_entry",
+    "anchor_garland_a",
+    "anchor_garland_b",
+    "anchor_prop",
+    "anchor_resident",
+    "anchor_sign_face",
+    "anchor_spawn_back",
+    "anchor_start"
+   ],
+   "bulbs": 0,
+   "colliders": 7,
+   "textures": 0,
+   "extensions": [
+    "KHR_materials_emissive_strength"
+   ],
+   "props": {
+    "bench": 1,
+    "cloud_puff": 44,
+    "lantern_wall": 2,
+    "planter_cypress": 2,
+    "planter_oleander": 1,
+    "pot": 1
+   },
+   "props_files": {
+    "lantern_wall": "kit",
+    "cloud_puff": "./pav_props.glb",
+    "bench": "kit",
+    "planter_cypress": "kit",
+    "pot": "kit",
+    "planter_oleander": "kit"
+   },
+   "props_count": 51,
+   "name": "«Выше облаков» — каланча",
+   "world_origin": [
+    -7.0,
+    0,
+    -39.0
+   ],
+   "yaw": 3.141592653589793,
+   "footprint_m": [
+    6,
+    6
+   ],
+   "height_m": 26.15,
+   "portal": {
+    "posts_build_x": [
+     -1.5,
+     1.5
+    ],
+    "build_y": -9.8,
+    "height_m": 5.3,
+    "sign_center_y": 4.4
+   }
+  },
+  "karting": {
+   "file": "./pav_karting.glb",
+   "tris_static": 6666,
+   "tris_live": 112,
+   "draws_static": 4,
+   "draws_live": 1,
+   "nodes": {
+    "live_door": {
+     "tris": 112,
+     "draws": 1,
+     "primitives": [
+      {
+       "material": "p3_gloss",
+       "tris": 112,
+       "attrs": [
+        "COLOR_0",
+        "NORMAL",
+        "POSITION"
+       ]
+      }
+     ]
+    },
+    "static_karting": {
+     "tris": 6434,
+     "draws": 3,
+     "primitives": [
+      {
+       "material": "p3_matte",
+       "tris": 3854,
+       "attrs": [
+        "COLOR_0",
+        "NORMAL",
+        "POSITION"
+       ]
+      },
+      {
+       "material": "p3_gloss",
+       "tris": 2380,
+       "attrs": [
+        "COLOR_0",
+        "NORMAL",
+        "POSITION"
+       ]
+      },
+      {
+       "material": "p3_glow",
+       "tris": 200,
+       "attrs": [
+        "COLOR_0",
+        "NORMAL",
+        "POSITION"
+       ]
+      }
+     ]
+    },
+    "static_startgrid": {
+     "tris": 232,
+     "draws": 1,
+     "primitives": [
+      {
+       "material": "p3_matte",
+       "tris": 232,
+       "attrs": [
+        "COLOR_0",
+        "NORMAL",
+        "POSITION"
+       ]
+      }
+     ]
+    }
+   },
+   "anchors": [
+    "anchor_entry",
+    "anchor_garland_a",
+    "anchor_garland_b",
+    "anchor_kboard",
+    "anchor_kboard_face",
+    "anchor_prop",
+    "anchor_resident",
+    "anchor_sign_face",
+    "anchor_spawn_back",
+    "anchor_start"
+   ],
+   "bulbs": 42,
+   "colliders": 5,
+   "textures": 0,
+   "extensions": [
+    "KHR_materials_emissive_strength"
+   ],
+   "props": {
+    "cone": 3,
+    "flag_checkered": 2,
+    "kart_green": 1,
+    "kart_red": 1,
+    "lantern_wall": 6,
+    "tyre_stack_black": 3,
+    "tyre_stack_red": 4,
+    "tyre_stack_tall": 2
+   },
+   "props_files": {
+    "lantern_wall": "kit",
+    "tyre_stack_red": "./pav_props.glb",
+    "tyre_stack_black": "./pav_props.glb",
+    "kart_red": "./pav_props.glb",
+    "kart_green": "./pav_props.glb",
+    "tyre_stack_tall": "./pav_props.glb",
+    "cone": "./pav_props.glb",
+    "flag_checkered": "./pav_props.glb"
+   },
+   "props_count": 22,
+   "name": "Картинг — гараж",
+   "world_origin": [
+    40.5,
+    0,
+    -37.0
+   ],
+   "yaw": 3.141592653589793,
+   "footprint_m": [
+    13,
+    16
+   ],
+   "height_m": [
+    4.4,
+    6.84
+   ],
+   "top_m": 7.0,
+   "sign_face_center_y": 5.275,
+   "layout_note": "v5: фронтон ≤ 7 м (было 9,5); вывеска 5,3 вместо 7,6 из раскладки — под дугой",
+   "live_door": {
+    "pivot_build": [
+     0.0,
+     -7.78,
+     3.6
+    ],
+    "scale_y": "1 = закрыта, 0,5 = по умолчанию, ~0,08 = открыта",
+    "size_m": [
+     7.0,
+     3.6
+    ]
+   },
+   "startgrid": {
+    "node": "static_startgrid",
+    "z_m": [
+     0.015,
+     0.03
+    ],
+    "note": "на Аренной улице, без коллизии"
+   }
+  },
+  "dungeon_cliff": {
+   "file": "./pav_dungeon_cliff.glb",
+   "tris_static": 9811,
+   "tris_live": 0,
+   "draws_static": 3,
+   "draws_live": 0,
+   "nodes": {
+    "static_dungeon_cliff": {
+     "tris": 9811,
+     "draws": 3,
+     "primitives": [
+      {
+       "material": "p3_matte",
+       "tris": 8865,
+       "attrs": [
+        "COLOR_0",
+        "NORMAL",
+        "POSITION"
+       ]
+      },
+      {
+       "material": "p3_gloss",
+       "tris": 546,
+       "attrs": [
+        "COLOR_0",
+        "NORMAL",
+        "POSITION"
+       ]
+      },
+      {
+       "material": "p3_foliage",
+       "tris": 400,
+       "attrs": [
+        "COLOR_0",
+        "NORMAL",
+        "POSITION"
+       ]
+      }
+     ]
+    }
+   },
+   "anchors": [
+    "anchor_entrance",
+    "anchor_entry",
+    "anchor_garland_a",
+    "anchor_garland_b",
+    "anchor_prop",
+    "anchor_records_board",
+    "anchor_resident",
+    "anchor_sign_face",
+    "anchor_spawn_back",
+    "anchor_start"
+   ],
+   "bulbs": 0,
+   "colliders": 48,
+   "textures": 0,
+   "extensions": [],
+   "props": {
+    "grass_tuft": 129,
+    "lantern_post_wood": 2,
+    "mine_cart": 1,
+    "shrub": 48
+   },
+   "props_files": {
+    "grass_tuft": "./pav_props.glb",
+    "shrub": "./pav_props.glb",
+    "mine_cart": "./pav_props.glb",
+    "lantern_post_wood": "./pav_props.glb"
+   },
+   "props_count": 180,
+   "name": "Подземелье — скальный массив",
+   "world_origin": [
+    -18.0,
+    0,
+    -41.0
+   ],
+   "yaw": 3.141592653589793,
+   "footprint_m": [
+    24,
+    29.5
+   ],
+   "height_m": 20.5,
+   "entrance": {
+    "model": "client/assets/dungeon/plaza/plaza_entrance.glb",
+    "node": "plaza_cave_entrance",
+    "anchor": "anchor_entrance",
+    "world": [
+     -20.25,
+     0,
+     -34.8
+    ],
+    "yaw_world": 0.803,
+    "E_world": [
+     -17.44,
+     -32.01
+    ],
+    "E_r": 1.8,
+    "spawn_back_world": [
+     -16.0,
+     -30.6
+    ],
+    "portal": "фасад по плоскости портала (локально z 2,8), изломы скалы у боковин (−20,56; −30,45) и (−15,66; −35,52); простенки до края пилонов арки (|x| 2,0), перемычка над балкой с вывеской от y 3,85; крыльцо снаружи",
+    "colliders": "растр по кромке, у портала граница на локальном z 2,5; col_ent_barrel, col_ent_cart_0…3 — бочка и вагонетка входа; col_ent_face_0…9 — ряд по лицу портала (игрок встаёт на верхнюю ступень у дверей)"
+   },
+   "records_board": {
+    "node": "plaza_records_board",
+    "anchor": "anchor_records_board",
+    "world": [
+     -16.64,
+     0,
+     -26.45
+    ],
+    "yaw_world": 0.803,
+    "layout_was": [
+     -12.5,
+     -27.8
+    ]
+   }
+  },
+  "farm_arch": {
+   "file": "./pav_farm_arch.glb",
+   "tris_static": 4106,
+   "tris_live": 0,
+   "draws_static": 2,
+   "draws_live": 0,
+   "nodes": {
+    "static_farm_arch": {
+     "tris": 4106,
+     "draws": 2,
+     "primitives": [
+      {
+       "material": "p3_matte",
+       "tris": 3910,
+       "attrs": [
+        "COLOR_0",
+        "NORMAL",
+        "POSITION"
+       ]
+      },
+      {
+       "material": "p3_gloss",
+       "tris": 196,
+       "attrs": [
+        "COLOR_0",
+        "NORMAL",
+        "POSITION"
+       ]
+      }
+     ]
+    }
+   },
+   "anchors": [
+    "anchor_entry",
+    "anchor_farm_gate",
+    "anchor_garland_a",
+    "anchor_garland_b",
+    "anchor_prop",
+    "anchor_resident",
+    "anchor_sign_face"
+   ],
+   "bulbs": 0,
+   "colliders": 16,
+   "textures": 0,
+   "extensions": [],
+   "props": {
+    "grass_tuft": 34,
+    "haystack": 1,
+    "lantern_wall": 2,
+    "pumpkin": 9,
+    "shrub": 1,
+    "sunflower_clump": 12,
+    "wattle_2m": 12
+   },
+   "props_files": {
+    "lantern_wall": "kit",
+    "grass_tuft": "./pav_props.glb",
+    "wattle_2m": "./pav_props.glb",
+    "sunflower_clump": "./pav_props.glb",
+    "pumpkin": "./pav_props.glb",
+    "haystack": "./pav_props.glb",
+    "shrub": "./pav_props.glb"
+   },
+   "props_count": 71,
+   "name": "Арка «Огороды»",
+   "world_origin": [
+    55.1,
+    0,
+    -21.5
+   ],
+   "yaw": 1.8495,
+   "face_azimuth_deg": 254.0,
+   "footprint_m": [
+    7.2,
+    0.8
+   ],
+   "span_m": 6.4,
+   "height_m": 5.35,
+   "sign_face_center_y": 3.95,
+   "posts_world": [
+    [
+     54.22,
+     -24.58
+    ],
+    [
+     55.98,
+     -18.43
+    ]
+   ],
+   "road": {
+    "width_m": 5.0,
+    "fences_m": [
+     -2.7,
+     2.7
+    ],
+    "length_m": [
+     -1.4,
+     12.3
+    ]
+   },
+   "farm_gate": {
+    "model": "client/assets/farm/models/plaza_gate.glb",
+    "anchor": "anchor_farm_gate",
+    "world": [
+     61.3,
+     0,
+     -23.3
+    ],
+    "yaw_world": -1.5707963267948966,
+    "anchor_rz_build_deg": -15.97,
+    "cart_world": [
+     64.7,
+     -23.0
+    ],
+    "note": "plazaGate (29,8; −12) → (61,3; −23,3), сдвиг (+31,5; −11,3), yaw тот же −π/2; use/spawnBack/cart/signpost/tout — тем же сдвигом. Калитка повёрнута на −16° к оси колеи — крылья плетня (col_wing_*) по её линии. Телега «В город» в игре стоит на y −0,6 — на ровной колее нужен y 0"
+   },
+   "windmill": {
+    "file": "./pav_windmill.glb",
+    "world": [
+     84.0,
+     0,
+     -62.0
+    ],
+    "note": "отдельный GLB, см. pavilions.windmill"
+   },
+   "colliders_note": "yaw не кратен 90°: col_* повёрнуты внутри узла на −yaw — в мире они по осям (масштаб = половины размеров в мире); те же боксы в мировых координатах — colliders_world",
+   "colliders_world": [
+    {
+     "name": "col_post_n",
+     "x": [
+      53.82,
+      54.62
+     ],
+     "z": [
+      -24.976,
+      -24.176
+     ],
+     "h": 5.0
+    },
+    {
+     "name": "col_post_s",
+     "x": [
+      55.58,
+      56.38
+     ],
+     "z": [
+      -18.824,
+      -18.024
+     ],
+     "h": 5.0
+    },
+    {
+     "name": "col_fence_n_0",
+     "x": [
+      54.542,
+      56.828
+     ],
+     "z": [
+      -24.932,
+      -24.02
+     ],
+     "h": 1.2
+    },
+    {
+     "name": "col_fence_n_1",
+     "x": [
+      56.468,
+      58.755
+     ],
+     "z": [
+      -25.483,
+      -24.572
+     ],
+     "h": 1.2
+    },
+    {
+     "name": "col_fence_n_2",
+     "x": [
+      58.395,
+      60.681
+     ],
+     "z": [
+      -26.034,
+      -25.123
+     ],
+     "h": 1.2
+    },
+    {
+     "name": "col_fence_n_3",
+     "x": [
+      60.321,
+      62.607
+     ],
+     "z": [
+      -26.585,
+      -25.674
+     ],
+     "h": 1.2
+    },
+    {
+     "name": "col_fence_n_4",
+     "x": [
+      62.247,
+      64.533
+     ],
+     "z": [
+      -27.136,
+      -26.225
+     ],
+     "h": 1.2
+    },
+    {
+     "name": "col_fence_n_5",
+     "x": [
+      64.173,
+      66.459
+     ],
+     "z": [
+      -27.687,
+      -26.776
+     ],
+     "h": 1.2
+    },
+    {
+     "name": "col_fence_s_0",
+     "x": [
+      56.028,
+      58.314
+     ],
+     "z": [
+      -19.74,
+      -18.829
+     ],
+     "h": 1.2
+    },
+    {
+     "name": "col_fence_s_1",
+     "x": [
+      57.954,
+      60.24
+     ],
+     "z": [
+      -20.291,
+      -19.38
+     ],
+     "h": 1.2
+    },
+    {
+     "name": "col_fence_s_2",
+     "x": [
+      59.88,
+      62.166
+     ],
+     "z": [
+      -20.842,
+      -19.931
+     ],
+     "h": 1.2
+    },
+    {
+     "name": "col_fence_s_3",
+     "x": [
+      61.806,
+      64.092
+     ],
+     "z": [
+      -21.393,
+      -20.482
+     ],
+     "h": 1.2
+    },
+    {
+     "name": "col_fence_s_4",
+     "x": [
+      63.732,
+      66.018
+     ],
+     "z": [
+      -21.945,
+      -21.033
+     ],
+     "h": 1.2
+    },
+    {
+     "name": "col_fence_s_5",
+     "x": [
+      65.658,
+      67.944
+     ],
+     "z": [
+      -22.496,
+      -21.585
+     ],
+     "h": 1.2
+    },
+    {
+     "name": "col_wing_n",
+     "x": [
+      61.15,
+      61.45
+     ],
+     "z": [
+      -26.133,
+      -24.05
+     ],
+     "h": 1.2
+    },
+    {
+     "name": "col_wing_s",
+     "x": [
+      61.15,
+      61.45
+     ],
+     "z": [
+      -22.55,
+      -20.416
+     ],
+     "h": 1.2
+    }
+   ]
+  },
+  "windmill": {
+   "file": "./pav_windmill.glb",
+   "tris_static": 906,
+   "tris_live": 508,
+   "draws_static": 2,
+   "draws_live": 1,
+   "nodes": {
+    "live_sails": {
+     "tris": 508,
+     "draws": 1,
+     "primitives": [
+      {
+       "material": "p3_matte",
+       "tris": 508,
+       "attrs": [
+        "COLOR_0",
+        "NORMAL",
+        "POSITION"
+       ]
+      }
+     ]
+    },
+    "static_windmill": {
+     "tris": 906,
+     "draws": 2,
+     "primitives": [
+      {
+       "material": "p3_matte",
+       "tris": 730,
+       "attrs": [
+        "COLOR_0",
+        "NORMAL",
+        "POSITION"
+       ]
+      },
+      {
+       "material": "p3_gloss",
+       "tris": 176,
+       "attrs": [
+        "COLOR_0",
+        "NORMAL",
+        "POSITION"
+       ]
+      }
+     ]
+    }
+   },
+   "anchors": [
+    "anchor_hub"
+   ],
+   "bulbs": 0,
+   "colliders": 1,
+   "textures": 0,
+   "extensions": [],
+   "props": {},
+   "props_files": {},
+   "props_count": 0,
+   "name": "Мельница поля «Огороды»",
+   "world_origin": [
+    84.0,
+    0,
+    -62.0
+   ],
+   "yaw": 2.2092,
+   "face_azimuth_deg": 233.4,
+   "footprint_m": [
+    16,
+    16
+   ],
+   "height_m": 15.0,
+   "note": "начало узла — центр основания башни (холм r 8, h 1,55); лицо GLB −Z (дверь и крылья) — к спавну",
+   "sails": {
+    "node": "live_sails",
+    "pivot_build": [
+     0.0,
+     -2.55,
+     9.7
+    ],
+    "axis": "локальная Z узла (вал)",
+    "radius_m": 5.2
+   },
+   "colliders_note": "col_tower повёрнут внутри узла на −yaw — в мире он по осям",
+   "colliders_world": [
+    {
+     "name": "col_tower",
+     "x": [
+      81.4,
+      86.6
+     ],
+     "z": [
+      -64.6,
+      -59.4
+     ],
+     "h": 13.0
+    }
+   ]
+  }
+ },
+ "props": {
+  "file": "./pav_props.glb",
+  "textures": 0,
+  "pieces": {
+   "cloud_puff": {
+    "tris": 288,
+    "draws": 1,
+    "materials": [
+     "p3_matte"
+    ],
+    "size_m": [
+     1.65,
+     0.89,
+     1.01
+    ]
+   },
+   "tyre_stack_black": {
+    "tris": 768,
+    "draws": 1,
+    "materials": [
+     "p3_matte"
+    ],
+    "size_m": [
+     0.65,
+     0.89,
+     0.64
+    ]
+   },
+   "tyre_stack_red": {
+    "tris": 768,
+    "draws": 1,
+    "materials": [
+     "p3_gloss"
+    ],
+    "size_m": [
+     0.65,
+     0.89,
+     0.62
+    ]
+   },
+   "tyre_stack_tall": {
+    "tris": 1152,
+    "draws": 1,
+    "materials": [
+     "p3_matte"
+    ],
+    "size_m": [
+     0.63,
+     1.33,
+     0.63
+    ]
+   },
+   "cone": {
+    "tris": 100,
+    "draws": 1,
+    "materials": [
+     "p3_gloss"
+    ],
+    "size_m": [
+     0.4,
+     0.53,
+     0.4
+    ]
+   },
+   "drum_paint": {
+    "tris": 456,
+    "draws": 1,
+    "materials": [
+     "p3_gloss"
+    ],
+    "size_m": [
+     0.62,
+     0.9,
+     0.6
+    ]
+   },
+   "crate_paint": {
+    "tris": 277,
+    "draws": 2,
+    "materials": [
+     "p3_matte",
+     "p3_gloss"
+    ],
+    "size_m": [
+     0.84,
+     0.8,
+     0.84
+    ]
+   },
+   "crate_plain": {
+    "tris": 78,
+    "draws": 1,
+    "materials": [
+     "p3_matte"
+    ],
+    "size_m": [
+     0.72,
+     0.7,
+     0.74
+    ]
+   },
+   "pallets": {
+    "tris": 474,
+    "draws": 1,
+    "materials": [
+     "p3_matte"
+    ],
+    "size_m": [
+     1.28,
+     0.74,
+     1.29
+    ]
+   },
+   "sandbags": {
+    "tris": 480,
+    "draws": 1,
+    "materials": [
+     "p3_matte"
+    ],
+    "size_m": [
+     1.64,
+     0.42,
+     0.4
+    ]
+   },
+   "barrel_wood": {
+    "tris": 228,
+    "draws": 2,
+    "materials": [
+     "p3_matte",
+     "p3_gloss"
+    ],
+    "size_m": [
+     0.62,
+     0.8,
+     0.62
+    ]
+   },
+   "wattle_2m": {
+    "tris": 672,
+    "draws": 1,
+    "materials": [
+     "p3_matte"
+    ],
+    "size_m": [
+     2.11,
+     1.22,
+     0.16
+    ]
+   },
+   "sunflower_clump": {
+    "tris": 276,
+    "draws": 2,
+    "materials": [
+     "p3_matte",
+     "p3_foliage"
+    ],
+    "size_m": [
+     1.22,
+     1.88,
+     0.46
+    ]
+   },
+   "haystack": {
+    "tris": 132,
+    "draws": 1,
+    "materials": [
+     "p3_matte"
+    ],
+    "size_m": [
+     2.0,
+     1.85,
+     2.0
+    ]
+   },
+   "shrub": {
+    "tris": 80,
+    "draws": 1,
+    "materials": [
+     "p3_foliage"
+    ],
+    "size_m": [
+     1.23,
+     0.73,
+     0.89
+    ]
+   },
+   "grass_tuft": {
+    "tris": 14,
+    "draws": 1,
+    "materials": [
+     "p3_foliage"
+    ],
+    "size_m": [
+     0.41,
+     0.5,
+     0.43
+    ]
+   },
+   "lantern_post_wood": {
+    "tris": 236,
+    "draws": 3,
+    "materials": [
+     "p3_matte",
+     "p3_gloss",
+     "p3_glow"
+    ],
+    "size_m": [
+     0.36,
+     2.7,
+     0.8
+    ]
+   },
+   "mine_cart": {
+    "tris": 656,
+    "draws": 3,
+    "materials": [
+     "p3_matte",
+     "p3_gloss",
+     "p3_glow"
+    ],
+    "size_m": [
+     1.36,
+     1.18,
+     0.86
+    ]
+   },
+   "kart_red": {
+    "tris": 558,
+    "draws": 2,
+    "materials": [
+     "p3_matte",
+     "p3_gloss"
+    ],
+    "size_m": [
+     1.48,
+     0.68,
+     1.8
+    ]
+   },
+   "kart_green": {
+    "tris": 558,
+    "draws": 2,
+    "materials": [
+     "p3_matte",
+     "p3_gloss"
+    ],
+    "size_m": [
+     1.48,
+     0.68,
+     1.8
+    ]
+   },
+   "flag_checkered": {
+    "tris": 204,
+    "draws": 1,
+    "materials": [
+     "p3_gloss"
+    ],
+    "size_m": [
+     1.36,
+     3.82,
+     0.24
+    ]
+   },
+   "pumpkin": {
+    "tris": 112,
+    "draws": 1,
+    "materials": [
+     "p3_matte"
+    ],
+    "size_m": [
+     0.56,
+     0.51,
+     0.53
+    ]
+   }
+  }
+ }
+}

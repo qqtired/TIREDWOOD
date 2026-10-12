@@ -1,0 +1,2329 @@
+{
+  "stage": "after-rathead",
+  "baseline": "41b91a842ce1367edde22d165705fc811365b37e",
+  "gitHead": "41b91a842ce1367edde22d165705fc811365b37e",
+  "trackedDiffHash": "3e46dbca4e8b77646305472586b1398d77503075c1b7584b8c77502058ca9266",
+  "sourceHashes": {
+    "client/lobby/plaza3/perf.ts": "d99f64e42171ccfcf1f5d279321dd0b5d4ad2e157f39f354b7553067f197a47d",
+    "client/lobby/plaza3/npc.ts": "45bc12fcfcd99e54d4635af74774dcb7ce3c6b8dda5396fe28dcb45f165ffb77",
+    "client/lobby/ratrace3d.ts": "de3f0759b3ad684cab2582bf460abee24252f26849205174005b126bbac07a2d",
+    "client/lobby/plaza3/rathead-batch.ts": "63e701724f7055e047a7ad850a957d0588ec12315d5df316ffa1f396aec68d95",
+    "client/lobby/plaza3/visibility.ts": "6278aa51c2a59033eaa0eb3102a5b901c6bdda5709ca05504b75dcf4ad1ed4f4",
+    "client/lobby/plaza3/pavilions.ts": "dd5e7dddeb4c462b3ecccd9c694dd3166df96937af923f8c04308664d07a7b04",
+    "client/lobby/scene.ts": "e02da793078f95c6141d9732c6928d254009c88a4e744b37c7decfe456258f8f",
+    "client/lobby/world.ts": "499d7f4bce61bf981d351db1f64adb5705a97e1592debf6490dbc91eb54cf8dd",
+    "client/lobby/durakdecor.ts": "223442c28249964c81a7c390817affff9101040c1d642f1aa8ffe4306d470a4c",
+    "client/render/renderer.ts": "c8c0ceaebacf0a0f05ce8a4be86727fb3b15118d87f86bd23c25bbff0d5a5b68"
+  },
+  "distIndexHash": "605fd8362e560cf457c753f91e6879dc52c11e66d0e1e2fd97df2419a1bc214b",
+  "root": "[LOCAL_PATH]",
+  "origin": "http://127.0.0.1:5328",
+  "flags": {
+    "PLAZA3": "1",
+    "FISH2": "1",
+    "ISLE": "1",
+    "FARM": "1",
+    "FARM_POND": "1",
+    "DUNGEON": "1",
+    "FORTRESS": "1",
+    "RATRACE": "1",
+    "BILLIARDS": "1",
+    "BOATRACE": "1",
+    "HIDE": "1",
+    "SKILL": "1",
+    "JUKEBOX": "1"
+  },
+  "viewport": [
+    1440,
+    900
+  ],
+  "fixedTime": 120,
+  "profile": "/tmp/tiredwood-waterfront-opt-fYhwid/chrome-profile",
+  "data": "/tmp/tiredwood-waterfront-opt-fYhwid/data",
+  "serverPid": 6242,
+  "scenes": [
+    {
+      "name": "pier-day",
+      "eye": [
+        -35,
+        2.4,
+        44
+      ],
+      "target": [
+        -19,
+        5.5,
+        43
+      ],
+      "climate": "clear",
+      "clean": {
+        "frames": 180,
+        "cpuMedian": 4.600000001490116,
+        "cpuP95": 5.200000002980232,
+        "frameMedian": 16.700000002980232,
+        "frameP95": 17.900000005960464,
+        "callsMedian": 387,
+        "callsPeak": 387,
+        "trianglesMedian": 1097108,
+        "trianglesPeak": 1100662,
+        "globalPrograms": 79,
+        "perf": {
+          "canon": 441,
+          "single": 41,
+          "normals": 13,
+          "colors": 358,
+          "maps": 295,
+          "cubes": 1,
+          "flat": 1,
+          "instColor": 38,
+          "copies": 7,
+          "late": 23,
+          "missed": 0,
+          "empty": 41,
+          "warmMs": 319,
+          "warmPrograms": 68,
+          "units": 857,
+          "culled": 162,
+          "fading": 0,
+          "occluders": 70,
+          "programs": 79
+        },
+        "npc": {
+          "loaded": 17,
+          "failed": [],
+          "triangles": 126895,
+          "bones": 135,
+          "shown": [
+            [
+              "zhetonych",
+              98.6
+            ],
+            [
+              "lyonya",
+              89.2
+            ],
+            [
+              "tonya",
+              92.3
+            ],
+            [
+              "miron",
+              18.9
+            ],
+            [
+              "seva",
+              45.4
+            ],
+            [
+              "boris",
+              55.8
+            ],
+            [
+              "bochka",
+              45.9
+            ],
+            [
+              "tolik",
+              42.1
+            ],
+            [
+              "asya",
+              57.1
+            ],
+            [
+              "lyova",
+              33.3
+            ],
+            [
+              "liza",
+              43.5
+            ],
+            [
+              "pasha",
+              80.4
+            ],
+            [
+              "gena",
+              101.3
+            ],
+            [
+              "zuko",
+              96.6
+            ],
+            [
+              "vova",
+              75.8
+            ],
+            [
+              "shura",
+              80.3
+            ],
+            [
+              "galya",
+              115.2
+            ]
+          ],
+          "bubbles": 0
+        }
+      },
+      "gpu": {
+        "samples": 8,
+        "median": 6.012375,
+        "p95": 7.37175
+      },
+      "census": {
+        "activePrograms": 63,
+        "activeIds": [
+          9,
+          10,
+          11,
+          12,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30,
+          31,
+          32,
+          33,
+          34,
+          35,
+          36,
+          37,
+          39,
+          40,
+          41,
+          42,
+          43,
+          44,
+          45,
+          46,
+          47,
+          48,
+          49,
+          50,
+          53,
+          54,
+          55,
+          56,
+          57,
+          58,
+          59,
+          60,
+          61,
+          62,
+          64,
+          65,
+          76,
+          77,
+          78,
+          79,
+          80,
+          81,
+          82,
+          83,
+          84,
+          86,
+          87
+        ],
+        "families": {
+          "Mesh": 49,
+          "city-critters": 21,
+          "route-buoys": 1,
+          "Group": 123,
+          "plaza3": 10,
+          "plaza3-garden": 3,
+          "plaza3-lights": 4,
+          "plaza3-pavilions": 17,
+          "plaza3-town-terrain": 2,
+          "plaza3-hill-bushes": 1,
+          "barkas-albatros": 2,
+          "mermaid-drops": 1,
+          "fishing-deck-moorings": 2,
+          "regatta-course": 41,
+          "fish-records-board": 2,
+          "start-circle-ПОРТОВАЯ РЕГАТА": 5,
+          "start-circle-ПРЯТКИ: РЫБНЫЙ ДВОР": 5,
+          "billiards": 24,
+          "rat-race": 71,
+          "plaza3-npcs": 1,
+          "daily-catch-podium": 2,
+          "tokarevsky-lighthouse": 1,
+          "plaza3-signs": 1,
+          "plaza3-signs-status": 1,
+          "Points": 3,
+          "Sprite": 6,
+          "Line": 2,
+          "plaza3-npc-shadows": 1,
+          "plaza3-npc-tags": 1,
+          "isle": 2
+        },
+        "objects": 2586,
+        "materials": 1078,
+        "castShadow": 203,
+        "matrixAuto": 2406,
+        "worldMatrixAuto": 2586,
+        "shaderSyncEntries": 0,
+        "shaderSyncTuples": 0,
+        "npcTagPositionVersions": 0,
+        "npcTagAlphaVersions": 0
+      },
+      "micro": null,
+      "shadowRefresh": {
+        "cpu": 6.100000001490116,
+        "frame": 791,
+        "calls": 498,
+        "triangles": 1454410,
+        "points": 604,
+        "lines": 508,
+        "globalPrograms": 79
+      }
+    },
+    {
+      "name": "spawn-day",
+      "eye": [
+        8,
+        2.9,
+        -3
+      ],
+      "target": [
+        27,
+        1.8,
+        -24
+      ],
+      "climate": "clear",
+      "clean": {
+        "frames": 180,
+        "cpuMedian": 3.6999999955296516,
+        "cpuP95": 4.0999999940395355,
+        "frameMedian": 16.600000001490116,
+        "frameP95": 17.799999997019768,
+        "callsMedian": 153,
+        "callsPeak": 154,
+        "trianglesMedian": 989961,
+        "trianglesPeak": 991483,
+        "globalPrograms": 81,
+        "perf": {
+          "canon": 441,
+          "single": 41,
+          "normals": 13,
+          "colors": 358,
+          "maps": 295,
+          "cubes": 1,
+          "flat": 1,
+          "instColor": 38,
+          "copies": 7,
+          "late": 23,
+          "missed": 0,
+          "empty": 41,
+          "warmMs": 319,
+          "warmPrograms": 68,
+          "units": 857,
+          "culled": 129,
+          "fading": 0,
+          "occluders": 70,
+          "programs": 81
+        },
+        "npc": {
+          "loaded": 17,
+          "failed": [],
+          "triangles": 126895,
+          "bones": 135,
+          "shown": [
+            [
+              "zhetonych",
+              46.5
+            ],
+            [
+              "lyonya",
+              45.6
+            ],
+            [
+              "tonya",
+              37.7
+            ],
+            [
+              "miron",
+              50.9
+            ],
+            [
+              "seva",
+              23.8
+            ],
+            [
+              "boris",
+              19.9
+            ],
+            [
+              "bochka",
+              17.8
+            ],
+            [
+              "tolik",
+              26.4
+            ],
+            [
+              "asya",
+              35.7
+            ],
+            [
+              "lyova",
+              38.1
+            ],
+            [
+              "liza",
+              32.8
+            ],
+            [
+              "pasha",
+              25.4
+            ],
+            [
+              "gena",
+              37.8
+            ],
+            [
+              "zuko",
+              32.9
+            ],
+            [
+              "vova",
+              31
+            ],
+            [
+              "shura",
+              37.3
+            ],
+            [
+              "galya",
+              54.8
+            ]
+          ],
+          "bubbles": 0
+        }
+      },
+      "gpu": {
+        "samples": 8,
+        "median": 6.105624,
+        "p95": 8.193125
+      },
+      "census": {
+        "activePrograms": 59,
+        "activeIds": [
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30,
+          31,
+          32,
+          33,
+          34,
+          39,
+          40,
+          41,
+          42,
+          43,
+          44,
+          45,
+          46,
+          47,
+          48,
+          49,
+          50,
+          52,
+          53,
+          54,
+          55,
+          56,
+          57,
+          58,
+          60,
+          61,
+          62,
+          64,
+          65,
+          76,
+          77,
+          78,
+          79,
+          82,
+          83,
+          86,
+          87,
+          88,
+          89
+        ],
+        "families": {
+          "Mesh": 46,
+          "city-critters": 20,
+          "route-buoys": 1,
+          "Group": 26,
+          "plaza3": 9,
+          "plaza3-garden": 3,
+          "plaza3-lights": 4,
+          "plaza3-pavilions": 21,
+          "plaza3-town-terrain": 2,
+          "plaza3-hill-bushes": 1,
+          "barkas-albatros": 2,
+          "mermaid-drops": 1,
+          "regatta-course": 1,
+          "Object3D": 4,
+          "billiards": 6,
+          "plaza3-npcs": 1,
+          "farm-gate": 8,
+          "plaza3-signs": 1,
+          "plaza3-signs-status": 1,
+          "Points": 4,
+          "Sprite": 3,
+          "Line": 2,
+          "plaza3-npc-shadows": 1,
+          "start-circle-КРЕПОСТЬ": 2,
+          "start-circle-ПЕЙНТБОЛ": 2,
+          "plaza3-npc-tags": 1,
+          "isle": 2
+        },
+        "objects": 2586,
+        "materials": 1078,
+        "castShadow": 203,
+        "matrixAuto": 2406,
+        "worldMatrixAuto": 2586,
+        "shaderSyncEntries": 0,
+        "shaderSyncTuples": 0,
+        "npcTagPositionVersions": 0,
+        "npcTagAlphaVersions": 0
+      },
+      "micro": {
+        "fadeFrame": {
+          "median": 0.19200000002980233,
+          "p95": 0.19899999998509885,
+          "blocks": 20,
+          "callsPerBlock": 100
+        },
+        "npcIdle": {
+          "median": 0.01,
+          "p95": 0.01899999998509884,
+          "blocks": 20,
+          "callsPerBlock": 100
+        }
+      },
+      "shadowRefresh": {
+        "cpu": 4.399999998509884,
+        "frame": 1400,
+        "calls": 269,
+        "triangles": 1365553,
+        "points": 709,
+        "lines": 508,
+        "globalPrograms": 81
+      }
+    },
+    {
+      "name": "games-day",
+      "eye": [
+        55,
+        2.2,
+        8
+      ],
+      "target": [
+        61,
+        2.4,
+        -3.2
+      ],
+      "climate": "clear",
+      "clean": {
+        "frames": 180,
+        "cpuMedian": 3.7000000029802322,
+        "cpuP95": 5.100000001490116,
+        "frameMedian": 16.799999997019768,
+        "frameP95": 17.799999997019768,
+        "callsMedian": 139,
+        "callsPeak": 140,
+        "trianglesMedian": 906540,
+        "trianglesPeak": 907342,
+        "globalPrograms": 82,
+        "perf": {
+          "canon": 441,
+          "single": 41,
+          "normals": 13,
+          "colors": 358,
+          "maps": 295,
+          "cubes": 1,
+          "flat": 1,
+          "instColor": 38,
+          "copies": 7,
+          "late": 23,
+          "missed": 0,
+          "empty": 41,
+          "warmMs": 319,
+          "warmPrograms": 68,
+          "units": 859,
+          "culled": 91,
+          "fading": 0,
+          "occluders": 70,
+          "programs": 82
+        },
+        "npc": {
+          "loaded": 17,
+          "failed": [],
+          "triangles": 126895,
+          "bones": 135,
+          "shown": [
+            [
+              "zhetonych",
+              6.1
+            ],
+            [
+              "lyonya",
+              9.3
+            ],
+            [
+              "tonya",
+              13
+            ],
+            [
+              "miron",
+              78.8
+            ],
+            [
+              "seva",
+              52.7
+            ],
+            [
+              "boris",
+              42.4
+            ],
+            [
+              "bochka",
+              59
+            ],
+            [
+              "tolik",
+              55.8
+            ],
+            [
+              "asya",
+              83.9
+            ],
+            [
+              "lyova",
+              82.3
+            ],
+            [
+              "liza",
+              79.6
+            ],
+            [
+              "pasha",
+              64.2
+            ],
+            [
+              "gena",
+              40.4
+            ],
+            [
+              "zuko",
+              43.6
+            ],
+            [
+              "vova",
+              74.7
+            ],
+            [
+              "shura",
+              80.1
+            ],
+            [
+              "galya",
+              30.4
+            ]
+          ],
+          "bubbles": 3
+        }
+      },
+      "gpu": {
+        "samples": 8,
+        "median": 6.473666,
+        "p95": 7.760333
+      },
+      "census": {
+        "activePrograms": 51,
+        "activeIds": [
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          17,
+          19,
+          21,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30,
+          31,
+          32,
+          33,
+          34,
+          39,
+          40,
+          41,
+          42,
+          43,
+          44,
+          45,
+          46,
+          48,
+          49,
+          50,
+          52,
+          53,
+          54,
+          55,
+          56,
+          62,
+          64,
+          65,
+          66,
+          76,
+          77,
+          78,
+          79,
+          82,
+          83,
+          86,
+          87,
+          88,
+          89
+        ],
+        "families": {
+          "Mesh": 39,
+          "city-critters": 16,
+          "route-buoys": 1,
+          "plaza3": 7,
+          "plaza3-garden": 3,
+          "plaza3-pavilions": 11,
+          "plaza3-town-terrain": 2,
+          "plaza3-hill-bushes": 1,
+          "barkas-albatros": 2,
+          "mermaid-drops": 1,
+          "regatta-course": 1,
+          "Object3D": 28,
+          "Group": 20,
+          "plaza3-arcade": 2,
+          "billiards": 6,
+          "plaza3-npcs": 1,
+          "farm-gate": 6,
+          "plaza3-signs": 1,
+          "plaza3-signs-status": 1,
+          "Points": 4,
+          "Sprite": 1,
+          "Line": 2,
+          "plaza3-npc-shadows": 1,
+          "plaza3-lights": 1,
+          "plaza3-npc-tags": 1,
+          "isle": 2
+        },
+        "objects": 2590,
+        "materials": 1082,
+        "castShadow": 203,
+        "matrixAuto": 2410,
+        "worldMatrixAuto": 2590,
+        "shaderSyncEntries": 0,
+        "shaderSyncTuples": 0,
+        "npcTagPositionVersions": 0,
+        "npcTagAlphaVersions": 0
+      },
+      "micro": null,
+      "shadowRefresh": {
+        "cpu": 6.399999998509884,
+        "frame": 2005,
+        "calls": 255,
+        "triangles": 1277090,
+        "points": 471,
+        "lines": 32,
+        "globalPrograms": 82
+      }
+    },
+    {
+      "name": "marina-day",
+      "eye": [
+        -49,
+        2.4,
+        46
+      ],
+      "target": [
+        -54,
+        1.3,
+        61.5
+      ],
+      "climate": "clear",
+      "clean": {
+        "frames": 180,
+        "cpuMedian": 3.5999999940395355,
+        "cpuP95": 4,
+        "frameMedian": 16.69999999552965,
+        "frameP95": 17.399999998509884,
+        "callsMedian": 150,
+        "callsPeak": 150,
+        "trianglesMedian": 665629,
+        "trianglesPeak": 668425,
+        "globalPrograms": 86,
+        "perf": {
+          "canon": 441,
+          "single": 41,
+          "normals": 13,
+          "colors": 358,
+          "maps": 295,
+          "cubes": 1,
+          "flat": 1,
+          "instColor": 38,
+          "copies": 7,
+          "late": 23,
+          "missed": 0,
+          "empty": 41,
+          "warmMs": 319,
+          "warmPrograms": 68,
+          "units": 852,
+          "culled": 91,
+          "fading": 0,
+          "occluders": 70,
+          "programs": 86
+        },
+        "npc": {
+          "loaded": 17,
+          "failed": [],
+          "triangles": 126895,
+          "bones": 135,
+          "shown": [
+            [
+              "zhetonych",
+              112.2
+            ],
+            [
+              "lyonya",
+              103.2
+            ],
+            [
+              "tonya",
+              105.6
+            ],
+            [
+              "miron",
+              33.1
+            ],
+            [
+              "seva",
+              58.7
+            ],
+            [
+              "boris",
+              69.2
+            ],
+            [
+              "bochka",
+              57.6
+            ],
+            [
+              "tolik",
+              55.4
+            ],
+            [
+              "asya",
+              62.6
+            ],
+            [
+              "lyova",
+              40.7
+            ],
+            [
+              "liza",
+              50.6
+            ],
+            [
+              "pasha",
+              89.3
+            ],
+            [
+              "gena",
+              112.9
+            ],
+            [
+              "zuko",
+              107.8
+            ],
+            [
+              "vova",
+              83.2
+            ],
+            [
+              "shura",
+              86.9
+            ],
+            [
+              "galya",
+              128
+            ]
+          ],
+          "bubbles": 0
+        }
+      },
+      "gpu": {
+        "samples": 8,
+        "median": 3.526166,
+        "p95": 5.241124
+      },
+      "census": {
+        "activePrograms": 54,
+        "activeIds": [
+          9,
+          10,
+          11,
+          13,
+          14,
+          15,
+          16,
+          17,
+          21,
+          23,
+          24,
+          25,
+          26,
+          27,
+          29,
+          30,
+          33,
+          34,
+          36,
+          37,
+          38,
+          39,
+          40,
+          41,
+          42,
+          43,
+          44,
+          45,
+          46,
+          47,
+          48,
+          49,
+          50,
+          53,
+          54,
+          55,
+          56,
+          62,
+          63,
+          64,
+          65,
+          76,
+          77,
+          78,
+          79,
+          82,
+          83,
+          84,
+          86,
+          87,
+          91,
+          92,
+          93,
+          94
+        ],
+        "families": {
+          "Mesh": 23,
+          "city-critters": 20,
+          "boat-pier": 3,
+          "route-buoys": 1,
+          "plaza3-pavilions": 3,
+          "plaza3-town-terrain": 2,
+          "barkas-albatros": 12,
+          "barkas-crew": 23,
+          "barkas-angler": 9,
+          "Group": 48,
+          "mermaid-drops": 1,
+          "fishing-deck-moorings": 2,
+          "season-signs": 4,
+          "billiards": 6,
+          "plaza3-npcs": 1,
+          "plaza3": 1,
+          "plaza3-signs": 1,
+          "plaza3-signs-status": 1,
+          "Points": 3,
+          "Line": 2,
+          "plaza3-npc-shadows": 1,
+          "isle": 2,
+          "plaza3-npc-tags": 1
+        },
+        "objects": 2590,
+        "materials": 1082,
+        "castShadow": 203,
+        "matrixAuto": 2410,
+        "worldMatrixAuto": 2590,
+        "shaderSyncEntries": 0,
+        "shaderSyncTuples": 0,
+        "npcTagPositionVersions": 0,
+        "npcTagAlphaVersions": 0
+      },
+      "micro": null,
+      "shadowRefresh": {
+        "cpu": 4,
+        "frame": 2609,
+        "calls": 264,
+        "triangles": 984827,
+        "points": 218,
+        "lines": 113,
+        "globalPrograms": 86
+      }
+    },
+    {
+      "name": "spawn-night",
+      "eye": [
+        8,
+        2.9,
+        -3
+      ],
+      "target": [
+        27,
+        1.8,
+        -24
+      ],
+      "climate": "dark-blackout",
+      "clean": {
+        "frames": 180,
+        "cpuMedian": 3.899999998509884,
+        "cpuP95": 4.399999998509884,
+        "frameMedian": 16.599999994039536,
+        "frameP95": 18.399999998509884,
+        "callsMedian": 149,
+        "callsPeak": 150,
+        "trianglesMedian": 955497,
+        "trianglesPeak": 957257,
+        "globalPrograms": 86,
+        "perf": {
+          "canon": 441,
+          "single": 41,
+          "normals": 13,
+          "colors": 358,
+          "maps": 295,
+          "cubes": 1,
+          "flat": 1,
+          "instColor": 38,
+          "copies": 7,
+          "late": 23,
+          "missed": 0,
+          "empty": 41,
+          "warmMs": 319,
+          "warmPrograms": 68,
+          "units": 845,
+          "culled": 89,
+          "fading": 0,
+          "occluders": 70,
+          "programs": 86
+        },
+        "npc": {
+          "loaded": 17,
+          "failed": [],
+          "triangles": 126895,
+          "bones": 135,
+          "shown": [
+            [
+              "zhetonych",
+              46.5
+            ],
+            [
+              "lyonya",
+              45.6
+            ],
+            [
+              "tonya",
+              37.7
+            ],
+            [
+              "miron",
+              50.9
+            ],
+            [
+              "seva",
+              23.8
+            ],
+            [
+              "boris",
+              19.9
+            ],
+            [
+              "bochka",
+              17.8
+            ],
+            [
+              "tolik",
+              26.4
+            ],
+            [
+              "asya",
+              35.7
+            ],
+            [
+              "lyova",
+              38.1
+            ],
+            [
+              "liza",
+              32.8
+            ],
+            [
+              "pasha",
+              25.4
+            ],
+            [
+              "gena",
+              37.8
+            ],
+            [
+              "zuko",
+              32.9
+            ],
+            [
+              "vova",
+              31
+            ],
+            [
+              "shura",
+              37.3
+            ],
+            [
+              "galya",
+              54.8
+            ]
+          ],
+          "bubbles": 0
+        }
+      },
+      "gpu": {
+        "samples": 8,
+        "median": 4.970666,
+        "p95": 7.805
+      },
+      "census": {
+        "activePrograms": 58,
+        "activeIds": [
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          21,
+          22,
+          24,
+          25,
+          27,
+          28,
+          29,
+          30,
+          31,
+          32,
+          33,
+          34,
+          39,
+          40,
+          41,
+          42,
+          43,
+          44,
+          45,
+          46,
+          47,
+          48,
+          49,
+          50,
+          52,
+          53,
+          54,
+          55,
+          56,
+          57,
+          58,
+          60,
+          61,
+          62,
+          64,
+          65,
+          67,
+          76,
+          77,
+          78,
+          79,
+          82,
+          83,
+          86,
+          87,
+          88,
+          89
+        ],
+        "families": {
+          "Mesh": 45,
+          "city-critters": 20,
+          "route-buoys": 1,
+          "Group": 27,
+          "plaza3": 9,
+          "plaza3-garden": 3,
+          "plaza3-pavilions": 21,
+          "plaza3-town-terrain": 2,
+          "plaza3-hill-bushes": 1,
+          "barkas-albatros": 2,
+          "mermaid-drops": 1,
+          "regatta-course": 1,
+          "Object3D": 4,
+          "billiards": 6,
+          "plaza3-npcs": 1,
+          "farm-gate": 8,
+          "plaza3-signs": 1,
+          "plaza3-signs-status": 1,
+          "Points": 4,
+          "Sprite": 3,
+          "Line": 2,
+          "plaza3-npc-shadows": 1,
+          "start-circle-КРЕПОСТЬ": 2,
+          "start-circle-ПЕЙНТБОЛ": 2,
+          "plaza3-npc-tags": 1,
+          "isle": 2
+        },
+        "objects": 2594,
+        "materials": 1082,
+        "castShadow": 205,
+        "matrixAuto": 2414,
+        "worldMatrixAuto": 2594,
+        "shaderSyncEntries": 0,
+        "shaderSyncTuples": 0,
+        "npcTagPositionVersions": 0,
+        "npcTagAlphaVersions": 0
+      },
+      "micro": null,
+      "shadowRefresh": {
+        "cpu": 4.399999998509884,
+        "frame": 3218,
+        "calls": 267,
+        "triangles": 1338277,
+        "points": 471,
+        "lines": 32,
+        "globalPrograms": 86
+      }
+    },
+    {
+      "name": "marina-rain",
+      "eye": [
+        -49,
+        2.4,
+        46
+      ],
+      "target": [
+        -54,
+        1.3,
+        61.5
+      ],
+      "climate": "rain",
+      "clean": {
+        "frames": 180,
+        "cpuMedian": 3.6999999955296516,
+        "cpuP95": 4.199999995529652,
+        "frameMedian": 16.69999999552965,
+        "frameP95": 18.600000001490116,
+        "callsMedian": 152,
+        "callsPeak": 153,
+        "trianglesMedian": 661579,
+        "trianglesPeak": 663427,
+        "globalPrograms": 86,
+        "perf": {
+          "canon": 441,
+          "single": 41,
+          "normals": 13,
+          "colors": 358,
+          "maps": 295,
+          "cubes": 1,
+          "flat": 1,
+          "instColor": 38,
+          "copies": 7,
+          "late": 23,
+          "missed": 0,
+          "empty": 41,
+          "warmMs": 319,
+          "warmPrograms": 68,
+          "units": 844,
+          "culled": 89,
+          "fading": 0,
+          "occluders": 70,
+          "programs": 86
+        },
+        "npc": {
+          "loaded": 17,
+          "failed": [],
+          "triangles": 126895,
+          "bones": 135,
+          "shown": [
+            [
+              "zhetonych",
+              112.2
+            ],
+            [
+              "lyonya",
+              103.2
+            ],
+            [
+              "tonya",
+              105.6
+            ],
+            [
+              "miron",
+              33.1
+            ],
+            [
+              "seva",
+              58.7
+            ],
+            [
+              "boris",
+              69.2
+            ],
+            [
+              "bochka",
+              57.6
+            ],
+            [
+              "tolik",
+              55.4
+            ],
+            [
+              "asya",
+              62.6
+            ],
+            [
+              "lyova",
+              40.7
+            ],
+            [
+              "liza",
+              50.6
+            ],
+            [
+              "pasha",
+              89.3
+            ],
+            [
+              "gena",
+              112.9
+            ],
+            [
+              "zuko",
+              107.8
+            ],
+            [
+              "vova",
+              83.2
+            ],
+            [
+              "shura",
+              86.9
+            ],
+            [
+              "galya",
+              128
+            ]
+          ],
+          "bubbles": 0
+        }
+      },
+      "gpu": {
+        "samples": 8,
+        "median": 3.858749,
+        "p95": 5.772791
+      },
+      "census": {
+        "activePrograms": 58,
+        "activeIds": [
+          9,
+          10,
+          11,
+          13,
+          14,
+          15,
+          16,
+          17,
+          21,
+          23,
+          24,
+          25,
+          26,
+          27,
+          29,
+          30,
+          33,
+          34,
+          36,
+          37,
+          38,
+          39,
+          40,
+          41,
+          42,
+          43,
+          44,
+          45,
+          46,
+          47,
+          48,
+          49,
+          50,
+          53,
+          54,
+          55,
+          56,
+          62,
+          63,
+          64,
+          65,
+          67,
+          68,
+          69,
+          71,
+          76,
+          77,
+          78,
+          79,
+          82,
+          83,
+          84,
+          86,
+          87,
+          91,
+          92,
+          93,
+          94
+        ],
+        "families": {
+          "Mesh": 27,
+          "city-critters": 19,
+          "boat-pier": 3,
+          "route-buoys": 1,
+          "plaza3-pavilions": 3,
+          "plaza3-town-terrain": 2,
+          "barkas-albatros": 12,
+          "barkas-crew": 23,
+          "barkas-angler": 9,
+          "Group": 42,
+          "mermaid-drops": 1,
+          "fishing-deck-moorings": 2,
+          "season-signs": 4,
+          "billiards": 6,
+          "plaza3-npcs": 1,
+          "plaza3": 1,
+          "plaza3-signs": 1,
+          "plaza3-signs-status": 1,
+          "Points": 3,
+          "Line": 2,
+          "plaza3-npc-shadows": 1,
+          "isle": 2,
+          "plaza3-npc-tags": 1
+        },
+        "objects": 2591,
+        "materials": 1083,
+        "castShadow": 203,
+        "matrixAuto": 2411,
+        "worldMatrixAuto": 2591,
+        "shaderSyncEntries": 0,
+        "shaderSyncTuples": 0,
+        "npcTagPositionVersions": 0,
+        "npcTagAlphaVersions": 0
+      },
+      "micro": null,
+      "shadowRefresh": {
+        "cpu": 4.299999997019768,
+        "frame": 3823,
+        "calls": 261,
+        "triangles": 1025923,
+        "points": 218,
+        "lines": 113,
+        "globalPrograms": 86
+      }
+    }
+  ],
+  "errors": [],
+  "backend": {
+    "title": "TIREDWOOD",
+    "url": "http://127.0.0.1:5328/?debug",
+    "vendor": "Google Inc. (Apple)",
+    "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Pro, Unspecified Version)",
+    "timer": true,
+    "gfx": {
+      "renderScale": 1,
+      "shadows": "high",
+      "effects": "normal",
+      "viewDistance": "far",
+      "fpsCap": 0,
+      "ratio": 1,
+      "tier": "high",
+      "auto": false,
+      "shadowsEnabled": true,
+      "viewK": 1,
+      "fx": 1
+    },
+    "quality": "high",
+    "ratio": 1
+  },
+  "runningRats": {
+    "raceBefore": {
+      "phase": "idle",
+      "race": 1,
+      "pos": [
+        -0.4,
+        0,
+        22.5
+      ]
+    },
+    "beginRace": [
+      {
+        "i": 0,
+        "x": -0.40000000000000036,
+        "z": 24.099999994039536,
+        "head": 0,
+        "paws": [
+          [
+            -0.045,
+            0.018,
+            0.04876439860069694
+          ],
+          [
+            0.045,
+            0.03299177222817318,
+            0.10123560139930306
+          ],
+          [
+            -0.045,
+            0.03299177222817318,
+            -0.04876439860069694
+          ],
+          [
+            0.045,
+            0.018,
+            -0.10123560139930306
+          ]
+        ],
+        "mode": "race"
+      },
+      {
+        "i": 1,
+        "x": -0.40000000000000036,
+        "z": 23.95999999344349,
+        "head": 0,
+        "paws": [
+          [
+            -0.045,
+            0.018,
+            0.06362736383374952
+          ],
+          [
+            0.045,
+            0.024498649237857415,
+            0.08637263616625047
+          ],
+          [
+            -0.045,
+            0.024498649237857415,
+            -0.06362736383374952
+          ],
+          [
+            0.045,
+            0.018,
+            -0.08637263616625047
+          ]
+        ],
+        "mode": "race"
+      },
+      {
+        "i": 2,
+        "x": -0.40000000000000036,
+        "z": 23.820000000298023,
+        "head": 0,
+        "paws": [
+          [
+            -0.045,
+            0.02151898544870597,
+            0.08115822453523544
+          ],
+          [
+            0.045,
+            0.018,
+            0.06884177546476455
+          ],
+          [
+            -0.045,
+            0.018,
+            -0.08115822453523544
+          ],
+          [
+            0.045,
+            0.02151898544870597,
+            -0.06884177546476455
+          ]
+        ],
+        "mode": "race"
+      },
+      {
+        "i": 3,
+        "x": -0.40000000000000036,
+        "z": 23.679999999701977,
+        "head": 0,
+        "paws": [
+          [
+            -0.045,
+            0.018,
+            0.04265047304302189
+          ],
+          [
+            0.045,
+            0.03648544397541606,
+            0.10734952695697811
+          ],
+          [
+            -0.045,
+            0.03648544397541606,
+            -0.04265047304302189
+          ],
+          [
+            0.045,
+            0.018,
+            -0.10734952695697811
+          ]
+        ],
+        "mode": "race"
+      },
+      {
+        "i": 4,
+        "x": -0.40000000000000036,
+        "z": 23.54000000655651,
+        "head": 0,
+        "paws": [
+          [
+            -0.045,
+            0.018,
+            0.05777008402767851
+          ],
+          [
+            0.045,
+            0.02784566626989799,
+            0.09222991597232148
+          ],
+          [
+            -0.045,
+            0.02784566626989799,
+            -0.05777008402767851
+          ],
+          [
+            0.045,
+            0.018,
+            -0.09222991597232148
+          ]
+        ],
+        "mode": "race"
+      },
+      {
+        "i": 5,
+        "x": -0.40000000000000036,
+        "z": 23.400000005960464,
+        "head": 0,
+        "paws": [
+          [
+            -0.045,
+            0.021902372888521173,
+            0.08182915255491205
+          ],
+          [
+            0.045,
+            0.018,
+            0.06817084744508795
+          ],
+          [
+            -0.045,
+            0.018,
+            -0.08182915255491205
+          ],
+          [
+            0.045,
+            0.021902372888521173,
+            -0.06817084744508795
+          ]
+        ],
+        "mode": "race"
+      }
+    ],
+    "midRace": {
+      "phase": "run",
+      "gate": -1.3499488233157477,
+      "headMeshes": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+      ],
+      "rats": [
+        {
+          "i": 0,
+          "x": -2.1058691924228023,
+          "z": 24.27094804013522,
+          "head": 0,
+          "paws": [
+            [
+              -0.045,
+              0.033811298504253975,
+              0.10266977238244446
+            ],
+            [
+              0.045,
+              0.018,
+              0.04733022761755554
+            ],
+            [
+              -0.045,
+              0.018,
+              -0.10266977238244446
+            ],
+            [
+              0.045,
+              0.033811298504253975,
+              -0.04733022761755554
+            ]
+          ],
+          "mode": "race"
+        },
+        {
+          "i": 1,
+          "x": -1.2891453588569153,
+          "z": 23.937297751393007,
+          "head": 0,
+          "paws": [
+            [
+              -0.045,
+              0.018,
+              0.05578074864954362
+            ],
+            [
+              0.045,
+              0.028982429343117927,
+              0.09421925135045638
+            ],
+            [
+              -0.045,
+              0.028982429343117927,
+              -0.05578074864954362
+            ],
+            [
+              0.045,
+              0.018,
+              -0.09421925135045638
+            ]
+          ],
+          "mode": "race"
+        },
+        {
+          "i": 2,
+          "x": -1.8506193437300424,
+          "z": 23.80655943181595,
+          "head": 0,
+          "paws": [
+            [
+              -0.045,
+              0.02402660342933171,
+              0.08554655600133049
+            ],
+            [
+              0.045,
+              0.018,
+              0.06445344399866951
+            ],
+            [
+              -0.045,
+              0.018,
+              -0.08554655600133049
+            ],
+            [
+              0.045,
+              0.02402660342933171,
+              -0.06445344399866951
+            ]
+          ],
+          "mode": "race"
+        },
+        {
+          "i": 3,
+          "x": -2.3566567771891123,
+          "z": 23.83581883749597,
+          "head": 0,
+          "paws": [
+            [
+              -0.045,
+              0.018,
+              0.040257725205434185
+            ],
+            [
+              0.045,
+              0.0378527284540376,
+              0.1097422747945658
+            ],
+            [
+              -0.045,
+              0.0378527284540376,
+              -0.040257725205434185
+            ],
+            [
+              0.045,
+              0.018,
+              -0.1097422747945658
+            ]
+          ],
+          "mode": "race"
+        },
+        {
+          "i": 4,
+          "x": -1.9728714913508174,
+          "z": 23.61764363031618,
+          "head": 0,
+          "paws": [
+            [
+              -0.045,
+              0.03089740841747092,
+              0.09757046473057411
+            ],
+            [
+              0.045,
+              0.018,
+              0.052429535269425884
+            ],
+            [
+              -0.045,
+              0.018,
+              -0.09757046473057411
+            ],
+            [
+              0.045,
+              0.03089740841747092,
+              -0.052429535269425884
+            ]
+          ],
+          "mode": "race"
+        },
+        {
+          "i": 5,
+          "x": -1.4785006278529433,
+          "z": 23.43541037410782,
+          "head": 0,
+          "paws": [
+            [
+              -0.045,
+              0.020753587500702442,
+              0.07981877812622927
+            ],
+            [
+              0.045,
+              0.018,
+              0.07018122187377072
+            ],
+            [
+              -0.045,
+              0.018,
+              -0.07981877812622927
+            ],
+            [
+              0.045,
+              0.020753587500702442,
+              -0.07018122187377072
+            ]
+          ],
+          "mode": "race"
+        }
+      ],
+      "board": true,
+      "catWanted": true,
+      "critters": {
+        "enabled": true,
+        "count": 15,
+        "modelsReady": 15,
+        "animals": [
+          {
+            "id": 0,
+            "kind": "cat",
+            "mode": "perch",
+            "x": 2.4400000000000004,
+            "y": 0.69,
+            "z": 23.16,
+            "yaw": 2.7336622432182187,
+            "pitch": 0,
+            "action": "sit",
+            "mood": "alert",
+            "rest": null,
+            "moving": false,
+            "airborne": false,
+            "phase": 0,
+            "distance": 10.303590768787414,
+            "speed": 0,
+            "restWeight": 0.9999999999999989,
+            "age": 14.25,
+            "remaining": 0,
+            "turn": 0,
+            "lookYaw": -0.9531670729671248,
+            "lookPitch": -0.35,
+            "look": 0.9999999999999992,
+            "excite": 0.55,
+            "alarm": 0,
+            "cry": 0
+          },
+          {
+            "id": 1,
+            "kind": "cat",
+            "mode": "sched",
+            "x": -13.147415915919714,
+            "y": 0,
+            "z": -22.677303803812666,
+            "yaw": 0.4048917862850833,
+            "pitch": 0,
+            "action": "walk",
+            "mood": "none",
+            "rest": null,
+            "moving": true,
+            "airborne": false,
+            "phase": 0.30411995328873004,
+            "distance": 17.189673857116784,
+            "speed": 0.6193039888556934,
+            "restWeight": 0,
+            "age": 2.4939143970241524,
+            "remaining": 5.384471574559207,
+            "turn": 0,
+            "lookYaw": 0,
+            "lookPitch": 0,
+            "look": 0,
+            "excite": 0,
+            "alarm": 0,
+            "cry": 0
+          },
+          {
+            "id": 2,
+            "kind": "cat",
+            "mode": "sched",
+            "x": -16.3,
+            "y": 0,
+            "z": 44,
+            "yaw": -3.141592653589793,
+            "pitch": 0,
+            "action": "sleep",
+            "mood": "none",
+            "rest": "lighthouse-warm-floor",
+            "moving": false,
+            "airborne": false,
+            "phase": 0.12670216122798755,
+            "distance": 12.720526275297413,
+            "speed": 0,
+            "restWeight": 1,
+            "age": 3.2942561919276763,
+            "remaining": 22.705743808072324,
+            "turn": 0,
+            "lookYaw": 0,
+            "lookPitch": 0,
+            "look": 0,
+            "excite": 0,
+            "alarm": 0,
+            "cry": 0
+          },
+          {
+            "id": 3,
+            "kind": "cat",
+            "mode": "sched",
+            "x": 22.6,
+            "y": 0,
+            "z": 5.5,
+            "yaw": -0.06656816377582475,
+            "pitch": 0,
+            "action": "sleep",
+            "mood": "none",
+            "rest": "veranda-shade",
+            "moving": false,
+            "airborne": false,
+            "phase": 0.3331355611517272,
+            "distance": 14.890254959818023,
+            "speed": 0,
+            "restWeight": 1,
+            "age": 7.662117906489726,
+            "remaining": 15.337882093510274,
+            "turn": 0,
+            "lookYaw": 0,
+            "lookPitch": 0,
+            "look": 0,
+            "excite": 0,
+            "alarm": 0,
+            "cry": 0
+          },
+          {
+            "id": 4,
+            "kind": "gull",
+            "mode": "sched",
+            "x": -4.356806005969457,
+            "y": 1.7643297987028745,
+            "z": 22.288175277352593,
+            "yaw": 2.7594615456512117,
+            "pitch": 0.6499439048301316,
+            "action": "fly",
+            "mood": "none",
+            "rest": null,
+            "moving": true,
+            "airborne": true,
+            "phase": 0.07213803117558137,
+            "distance": 7.734661495858171,
+            "speed": 1.8951638470979295,
+            "restWeight": 0,
+            "age": 0.5673582489726563,
+            "remaining": 4.331961275013488,
+            "turn": 0,
+            "lookYaw": 1.2983292598630758,
+            "lookPitch": 0,
+            "look": 0.986134571074011,
+            "excite": 0,
+            "alarm": 0,
+            "cry": 0
+          },
+          {
+            "id": 5,
+            "kind": "gull",
+            "mode": "sched",
+            "x": 12,
+            "y": 0.54,
+            "z": 21.2,
+            "yaw": -0.25614735644995906,
+            "pitch": 0,
+            "action": "perch",
+            "mood": "none",
+            "rest": "east-bollard",
+            "moving": false,
+            "airborne": false,
+            "phase": 0.1783285316761784,
+            "distance": 21.250698847556965,
+            "speed": 0,
+            "restWeight": 1,
+            "age": 3.5665706335235683,
+            "remaining": 16.43342936647643,
+            "turn": 0,
+            "lookYaw": 0,
+            "lookPitch": 0,
+            "look": 0,
+            "excite": 0,
+            "alarm": 0,
+            "cry": 0
+          },
+          {
+            "id": 6,
+            "kind": "gull",
+            "mode": "sched",
+            "x": -19.5,
+            "y": 0,
+            "z": 26.1,
+            "yaw": 1.5135432877528663,
+            "pitch": 0,
+            "action": "peck",
+            "mood": "none",
+            "rest": "fishing-pier",
+            "moving": false,
+            "airborne": false,
+            "phase": 0.540234637987138,
+            "distance": 15.39345140629377,
+            "speed": 0,
+            "restWeight": 1,
+            "age": 6.4828156558456556,
+            "remaining": 5.5171843441543444,
+            "turn": 0,
+            "lookYaw": 0,
+            "lookPitch": 0,
+            "look": 0,
+            "excite": 0,
+            "alarm": 0,
+            "cry": 0
+          },
+          {
+            "id": 7,
+            "kind": "gull",
+            "mode": "sched",
+            "x": -18.7,
+            "y": 0,
+            "z": 31.3,
+            "yaw": -2.2142974355881817,
+            "pitch": 0,
+            "action": "peck",
+            "mood": "none",
+            "rest": "fishing-pier",
+            "moving": false,
+            "airborne": false,
+            "phase": 0.7767151833031631,
+            "distance": 12.862153541355374,
+            "speed": 0,
+            "restWeight": 1,
+            "age": 10.874012566244284,
+            "remaining": 3.125987433755716,
+            "turn": 0,
+            "lookYaw": 0,
+            "lookPitch": 0,
+            "look": 0,
+            "excite": 0,
+            "alarm": 0,
+            "cry": 0
+          },
+          {
+            "id": 8,
+            "kind": "gull",
+            "mode": "sched",
+            "x": -22.1,
+            "y": 0,
+            "z": 40,
+            "yaw": -2.5213431676069735,
+            "pitch": 0,
+            "action": "peck",
+            "mood": "none",
+            "rest": "lighthouse-apron",
+            "moving": false,
+            "airborne": false,
+            "phase": 0.6572893290727672,
+            "distance": 40.625455553737424,
+            "speed": 0,
+            "restWeight": 1,
+            "age": 6.572893290727672,
+            "remaining": 3.427106709272328,
+            "turn": 0,
+            "lookYaw": 0,
+            "lookPitch": 0,
+            "look": 0,
+            "excite": 0,
+            "alarm": 0,
+            "cry": 0
+          },
+          {
+            "id": 9,
+            "kind": "gull",
+            "mode": "flush",
+            "x": 19.797228320239835,
+            "y": 0.9143266096571401,
+            "z": 21.55301286725798,
+            "yaw": -2.5705890567498173,
+            "pitch": 0.5005601149020515,
+            "action": "fly",
+            "mood": "none",
+            "rest": null,
+            "moving": true,
+            "airborne": true,
+            "phase": 0.10144927536231926,
+            "distance": 15.127476203368783,
+            "speed": 2.5949555077359627,
+            "restWeight": 0,
+            "age": 0.46666666666666856,
+            "remaining": 4.133333333333331,
+            "turn": 0,
+            "lookYaw": 0,
+            "lookPitch": 0,
+            "look": 0,
+            "excite": 0.8,
+            "alarm": 0,
+            "cry": 0
+          },
+          {
+            "id": 10,
+            "kind": "crab",
+            "mode": "sched",
+            "x": -17.2,
+            "y": -0.9386299597738158,
+            "z": 24.5,
+            "yaw": 2.418613300188302,
+            "pitch": 0,
+            "action": "burrow",
+            "mood": "none",
+            "rest": "cove",
+            "moving": false,
+            "airborne": false,
+            "phase": 0.3128862792539091,
+            "distance": 13.616109254245618,
+            "speed": 0,
+            "restWeight": 1,
+            "age": 2.503090234031273,
+            "remaining": 5.496909765968727,
+            "turn": 0,
+            "lookYaw": 0,
+            "lookPitch": 0,
+            "look": 0,
+            "excite": 0,
+            "alarm": 0,
+            "cry": 0
+          },
+          {
+            "id": 11,
+            "kind": "crab",
+            "mode": "sched",
+            "x": -14.391276175025666,
+            "y": -0.9389978552512569,
+            "z": 23.323909521878207,
+            "yaw": -1.446441332248138,
+            "pitch": 0,
+            "action": "walk",
+            "mood": "none",
+            "rest": null,
+            "moving": true,
+            "airborne": false,
+            "phase": 0.7609047812179172,
+            "distance": 9.405517039952214,
+            "speed": 0.6097560975610009,
+            "restWeight": 0,
+            "age": 1.1511967562363914,
+            "remaining": 0.46125479342331954,
+            "turn": 0,
+            "lookYaw": 0,
+            "lookPitch": 0,
+            "look": 0,
+            "excite": 0,
+            "alarm": 0,
+            "cry": 0
+          },
+          {
+            "id": 12,
+            "kind": "crab",
+            "mode": "sched",
+            "x": -14.7,
+            "y": -0.9401663695963034,
+            "z": 22.9,
+            "yaw": -2.6989803477067444,
+            "pitch": 0,
+            "action": "burrow",
+            "mood": "none",
+            "rest": "cove",
+            "moving": false,
+            "airborne": false,
+            "phase": 0.9255504919166315,
+            "distance": 10.665452403594724,
+            "speed": 0,
+            "restWeight": 0.7848829874163268,
+            "age": 7.404403935333052,
+            "remaining": 0.5955960646669478,
+            "turn": 0,
+            "lookYaw": 0,
+            "lookPitch": 0,
+            "look": 0,
+            "excite": 0,
+            "alarm": 0,
+            "cry": 0
+          },
+          {
+            "id": 13,
+            "kind": "crab",
+            "mode": "sched",
+            "x": -16.402456451121374,
+            "y": -0.9359281228060989,
+            "z": 23.6058954826913,
+            "yaw": -0.3947911196997617,
+            "pitch": 0,
+            "action": "walk",
+            "mood": "none",
+            "rest": null,
+            "moving": true,
+            "airborne": false,
+            "phase": 0.9950870977572517,
+            "distance": 10.910775052068129,
+            "speed": 0.12900628966661237,
+            "restWeight": 0,
+            "age": 2.500985092555105,
+            "remaining": 0.09901490744489383,
+            "turn": 0,
+            "lookYaw": 0,
+            "lookPitch": 0,
+            "look": 0,
+            "excite": 0,
+            "alarm": 0,
+            "cry": 0
+          },
+          {
+            "id": 14,
+            "kind": "dog",
+            "mode": "sched",
+            "x": 19.803409415537867,
+            "y": 0,
+            "z": 18.8948858766932,
+            "yaw": 2.553590050042226,
+            "pitch": 0,
+            "action": "walk",
+            "mood": "none",
+            "rest": null,
+            "moving": true,
+            "airborne": false,
+            "phase": 0.9273537801650475,
+            "distance": 49.9362320407563,
+            "speed": 1.4229738136810126,
+            "restWeight": 0,
+            "age": 3.5311793073835673,
+            "remaining": 0.5070381211360999,
+            "turn": 0,
+            "lookYaw": 0,
+            "lookPitch": 0,
+            "look": 0,
+            "excite": 0,
+            "alarm": 0,
+            "cry": 0
+          }
+        ]
+      },
+      "legacy": false
+    },
+    "moved": true,
+    "finished": {
+      "race": 1,
+      "order": [
+        3,
+        5,
+        0,
+        2,
+        1,
+        4
+      ],
+      "gate": -1.3499999999999992,
+      "tokens": 95
+    }
+  }
+}

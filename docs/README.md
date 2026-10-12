@@ -30,6 +30,8 @@
 | Башня 185 м | `shared/skilltower.ts`, `client/skilltest/cloudworld.ts` | [cloudtower/README.md](cloudtower/README.md), `skill-cloudtower*.test.ts` |
 | Аквапарк-подкова | `shared/aqua.ts`, `client/lobby/aquamodels.ts` | [aquapark-v3/README.md](aquapark-v3/README.md), `aqua-model.test.ts` |
 | Памятка Подземелья и метки атак | `client/dungeon/pause-data.ts`, `hud.ts`, `game.ts` | `dungeon-pause-info.test.ts`, `dungeon-telegraph-visibility.test.ts` |
+| Восемь визуалов эволюций на герое | `client/dungeon/evolutions.ts`, `client/assets/dungeon/evolutions/` | `dungeon-evolutions-render.test.ts`, [происхождение моделей](../client/assets/dungeon/evolutions/PROVENANCE.md) |
+| Все HTML-концепты и превью TIREDWOOD | [Библиотека](visual-library/index.html), `tools/visual-library/` | [Инструкция и границы автономности](visual-library/README.md), `manifest.json` |
 
 ## 2. Карта кода по системам
 

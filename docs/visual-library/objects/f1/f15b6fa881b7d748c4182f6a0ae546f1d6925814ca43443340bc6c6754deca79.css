@@ -1,0 +1,14 @@
+@font-face {
+  font-family: 'Rubik';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url(./536b4af8c047a76e.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'Rubik Mono One';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(./41630f570be50c72.ttf) format('truetype');
+}

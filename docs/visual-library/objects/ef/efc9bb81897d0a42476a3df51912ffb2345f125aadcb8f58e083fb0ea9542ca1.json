@@ -1,0 +1,547 @@
+{
+  "verifiedAt": "2026-10-11T21:31:36.807Z",
+  "sourceCommit": "62f814f",
+  "checks": 100,
+  "passed": true,
+  "htmlBytes": 26249497,
+  "models": [
+    {
+      "id": "hookclaw",
+      "bytes": 99340,
+      "clips": 6,
+      "skins": 0,
+      "sha256": "682089869b5957031345c919350d3bed63d9501977b728da3b9dbbb7c65e3983"
+    },
+    {
+      "id": "wickmole",
+      "bytes": 124788,
+      "clips": 6,
+      "skins": 0,
+      "sha256": "d9e1c3b7d78f31a56fcf012f61cb3c9ca44d02eb39917699edaeec9e3ef3976c"
+    },
+    {
+      "id": "railhopper",
+      "bytes": 99412,
+      "clips": 6,
+      "skins": 0,
+      "sha256": "d3c3981952c2323ecbd022eb7b552b44a42b513c1377b0a80a0c6addb2039528"
+    },
+    {
+      "id": "chainwarden",
+      "bytes": 217468,
+      "clips": 9,
+      "skins": 0,
+      "sha256": "518ffb2838104ceb9513d0227c11a4fcceb14635dc95bdd5fb33d480eac1e8ff"
+    },
+    {
+      "id": "cauldronmaster",
+      "bytes": 630128,
+      "clips": 16,
+      "skins": 1,
+      "sha256": "5dcece4f0c41ae7b3a54177f3328b64f360c0a75962624d55c037f62d4747f8c"
+    }
+  ],
+  "limits": "Static structure/binary and read-only native traces only. Browser, animations visually, FPS and game survival remain root runner/manual acceptance.",
+  "details": [
+    {
+      "name": "embeddedData",
+      "passed": true,
+      "detail": "One JSON payload inside standalone HTML"
+    },
+    {
+      "name": "uniqueDOMIDs",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "allControlBindingsPresent",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "noRemoteRenderDependencies",
+      "passed": true,
+      "detail": "Images/fonts/models/scripts inline; source hyperlinks are intentional"
+    },
+    {
+      "name": "fiveImageReferences",
+      "passed": true,
+      "detail": "5 one-character ImageGen boards"
+    },
+    {
+      "name": "originalUnchanged:hookclaw",
+      "passed": true,
+      "detail": "0638cf6dea1cd824b66f39275388773f9802b85c0a5852174725ba16bc1e8e8d"
+    },
+    {
+      "name": "imageEmbedded:hookclaw",
+      "passed": true,
+      "detail": "Image inline equals original bytes"
+    },
+    {
+      "name": "originalUnchanged:wickmole",
+      "passed": true,
+      "detail": "d078f1dac40e47b1ffe6a79387415355e91d31b016068aad0730164ef7032723"
+    },
+    {
+      "name": "imageEmbedded:wickmole",
+      "passed": true,
+      "detail": "Image inline equals original bytes"
+    },
+    {
+      "name": "originalUnchanged:railhopper",
+      "passed": true,
+      "detail": "66e39703ccf4fa1d993c9f31d977bd4400836f22a9ae2823cd1751fcf67ea062"
+    },
+    {
+      "name": "imageEmbedded:railhopper",
+      "passed": true,
+      "detail": "Image inline equals original bytes"
+    },
+    {
+      "name": "originalUnchanged:chainwarden",
+      "passed": true,
+      "detail": "275acbb0ebc6e9491c46992099c478f151e40c7431f34d460c185cdbcb8efaea"
+    },
+    {
+      "name": "imageEmbedded:chainwarden",
+      "passed": true,
+      "detail": "Image inline equals original bytes"
+    },
+    {
+      "name": "originalUnchanged:cauldronmaster",
+      "passed": true,
+      "detail": "0d75afa2d9487d4950803d09015935d436bb7c11650dc63be6b4c8fdecdd695c"
+    },
+    {
+      "name": "imageEmbedded:cauldronmaster",
+      "passed": true,
+      "detail": "Image inline equals original bytes"
+    },
+    {
+      "name": "realModelEmbedded:hookclaw",
+      "passed": true,
+      "detail": "No placeholder geometry"
+    },
+    {
+      "name": "glbMagic",
+      "passed": true,
+      "detail": "GLB magic"
+    },
+    {
+      "name": "glbLength",
+      "passed": true,
+      "detail": "Full binary length"
+    },
+    {
+      "name": "embeddedModelMatchesFile:hookclaw",
+      "passed": true,
+      "detail": "Latest GLB at build time"
+    },
+    {
+      "name": "canonicalManifestSHA:hookclaw",
+      "passed": true,
+      "detail": "682089869b5957031345c919350d3bed63d9501977b728da3b9dbbb7c65e3983"
+    },
+    {
+      "name": "noExternalGLBResources:hookclaw",
+      "passed": true,
+      "detail": "Binary contains required resources"
+    },
+    {
+      "name": "clip:hookclaw_idle",
+      "passed": true,
+      "detail": "Required animation"
+    },
+    {
+      "name": "clip:hookclaw_walk",
+      "passed": true,
+      "detail": "Required animation"
+    },
+    {
+      "name": "clip:hookclaw_windup",
+      "passed": true,
+      "detail": "Required animation"
+    },
+    {
+      "name": "clip:hookclaw_attack",
+      "passed": true,
+      "detail": "Required animation"
+    },
+    {
+      "name": "clip:hookclaw_hit",
+      "passed": true,
+      "detail": "Required animation"
+    },
+    {
+      "name": "clip:hookclaw_death",
+      "passed": true,
+      "detail": "Required animation"
+    },
+    {
+      "name": "nonemptyAnimationTracks:hookclaw",
+      "passed": true,
+      "detail": "Actual channel/sampler tracks"
+    },
+    {
+      "name": "realModelEmbedded:wickmole",
+      "passed": true,
+      "detail": "No placeholder geometry"
+    },
+    {
+      "name": "glbMagic",
+      "passed": true,
+      "detail": "GLB magic"
+    },
+    {
+      "name": "glbLength",
+      "passed": true,
+      "detail": "Full binary length"
+    },
+    {
+      "name": "embeddedModelMatchesFile:wickmole",
+      "passed": true,
+      "detail": "Latest GLB at build time"
+    },
+    {
+      "name": "canonicalManifestSHA:wickmole",
+      "passed": true,
+      "detail": "d9e1c3b7d78f31a56fcf012f61cb3c9ca44d02eb39917699edaeec9e3ef3976c"
+    },
+    {
+      "name": "noExternalGLBResources:wickmole",
+      "passed": true,
+      "detail": "Binary contains required resources"
+    },
+    {
+      "name": "clip:wickmole_idle",
+      "passed": true,
+      "detail": "Required animation"
+    },
+    {
+      "name": "clip:wickmole_walk",
+      "passed": true,
+      "detail": "Required animation"
+    },
+    {
+      "name": "clip:wickmole_windup",
+      "passed": true,
+      "detail": "Required animation"
+    },
+    {
+      "name": "clip:wickmole_attack",
+      "passed": true,
+      "detail": "Required animation"
+    },
+    {
+      "name": "clip:wickmole_hit",
+      "passed": true,
+      "detail": "Required animation"
+    },
+    {
+      "name": "clip:wickmole_death",
+      "passed": true,
+      "detail": "Required animation"
+    },
+    {
+      "name": "nonemptyAnimationTracks:wickmole",
+      "passed": true,
+      "detail": "Actual channel/sampler tracks"
+    },
+    {
+      "name": "realModelEmbedded:railhopper",
+      "passed": true,
+      "detail": "No placeholder geometry"
+    },
+    {
+      "name": "glbMagic",
+      "passed": true,
+      "detail": "GLB magic"
+    },
+    {
+      "name": "glbLength",
+      "passed": true,
+      "detail": "Full binary length"
+    },
+    {
+      "name": "embeddedModelMatchesFile:railhopper",
+      "passed": true,
+      "detail": "Latest GLB at build time"
+    },
+    {
+      "name": "canonicalManifestSHA:railhopper",
+      "passed": true,
+      "detail": "d3c3981952c2323ecbd022eb7b552b44a42b513c1377b0a80a0c6addb2039528"
+    },
+    {
+      "name": "noExternalGLBResources:railhopper",
+      "passed": true,
+      "detail": "Binary contains required resources"
+    },
+    {
+      "name": "clip:railhopper_idle",
+      "passed": true,
+      "detail": "Required animation"
+    },
+    {
+      "name": "clip:railhopper_walk",
+      "passed": true,
+      "detail": "Required animation"
+    },
+    {
+      "name": "clip:railhopper_windup",
+      "passed": true,
+      "detail": "Required animation"
+    },
+    {
+      "name": "clip:railhopper_attack",
+      "passed": true,
+      "detail": "Required animation"
+    },
+    {
+      "name": "clip:railhopper_hit",
+      "passed": true,
+      "detail": "Required animation"
+    },
+    {
+      "name": "clip:railhopper_death",
+      "passed": true,
+      "detail": "Required animation"
+    },
+    {
+      "name": "nonemptyAnimationTracks:railhopper",
+      "passed": true,
+      "detail": "Actual channel/sampler tracks"
+    },
+    {
+      "name": "realModelEmbedded:chainwarden",
+      "passed": true,
+      "detail": "No placeholder geometry"
+    },
+    {
+      "name": "glbMagic",
+      "passed": true,
+      "detail": "GLB magic"
+    },
+    {
+      "name": "glbLength",
+      "passed": true,
+      "detail": "Full binary length"
+    },
+    {
+      "name": "embeddedModelMatchesFile:chainwarden",
+      "passed": true,
+      "detail": "Latest GLB at build time"
+    },
+    {
+      "name": "canonicalManifestSHA:chainwarden",
+      "passed": true,
+      "detail": "518ffb2838104ceb9513d0227c11a4fcceb14635dc95bdd5fb33d480eac1e8ff"
+    },
+    {
+      "name": "noExternalGLBResources:chainwarden",
+      "passed": true,
+      "detail": "Binary contains required resources"
+    },
+    {
+      "name": "clip:chainwarden_idle",
+      "passed": true,
+      "detail": "Required animation"
+    },
+    {
+      "name": "clip:chainwarden_walk",
+      "passed": true,
+      "detail": "Required animation"
+    },
+    {
+      "name": "clip:chainwarden_windup",
+      "passed": true,
+      "detail": "Required animation"
+    },
+    {
+      "name": "clip:chainwarden_attack",
+      "passed": true,
+      "detail": "Required animation"
+    },
+    {
+      "name": "clip:chainwarden_hit",
+      "passed": true,
+      "detail": "Required animation"
+    },
+    {
+      "name": "clip:chainwarden_death",
+      "passed": true,
+      "detail": "Required animation"
+    },
+    {
+      "name": "nonemptyAnimationTracks:chainwarden",
+      "passed": true,
+      "detail": "Actual channel/sampler tracks"
+    },
+    {
+      "name": "realModelEmbedded:cauldronmaster",
+      "passed": true,
+      "detail": "No placeholder geometry"
+    },
+    {
+      "name": "glbMagic",
+      "passed": true,
+      "detail": "GLB magic"
+    },
+    {
+      "name": "glbLength",
+      "passed": true,
+      "detail": "Full binary length"
+    },
+    {
+      "name": "embeddedModelMatchesFile:cauldronmaster",
+      "passed": true,
+      "detail": "Latest GLB at build time"
+    },
+    {
+      "name": "canonicalManifestSHA:cauldronmaster",
+      "passed": true,
+      "detail": "5dcece4f0c41ae7b3a54177f3328b64f360c0a75962624d55c037f62d4747f8c"
+    },
+    {
+      "name": "noExternalGLBResources:cauldronmaster",
+      "passed": true,
+      "detail": "Binary contains required resources"
+    },
+    {
+      "name": "clip:cauldronmaster_idle",
+      "passed": true,
+      "detail": "Required animation"
+    },
+    {
+      "name": "clip:cauldronmaster_walk",
+      "passed": true,
+      "detail": "Required animation"
+    },
+    {
+      "name": "clip:cauldronmaster_windup",
+      "passed": true,
+      "detail": "Required animation"
+    },
+    {
+      "name": "clip:cauldronmaster_attack",
+      "passed": true,
+      "detail": "Required animation"
+    },
+    {
+      "name": "clip:cauldronmaster_hit",
+      "passed": true,
+      "detail": "Required animation"
+    },
+    {
+      "name": "clip:cauldronmaster_death",
+      "passed": true,
+      "detail": "Required animation"
+    },
+    {
+      "name": "nonemptyAnimationTracks:cauldronmaster",
+      "passed": true,
+      "detail": "Actual channel/sampler tracks"
+    },
+    {
+      "name": "bossArmature",
+      "passed": true,
+      "detail": "Boss has exported skin/armature"
+    },
+    {
+      "name": "sharesSum:16",
+      "passed": true,
+      "detail": "HP shares sum to1"
+    },
+    {
+      "name": "oldShareRetained:16",
+      "passed": true,
+      "detail": "Old types stay in mix"
+    },
+    {
+      "name": "bodyBudget:16",
+      "passed": true,
+      "detail": "Events reserved from same composition"
+    },
+    {
+      "name": "eventReservation:16",
+      "passed": true,
+      "detail": "Events and stream equal total composition"
+    },
+    {
+      "name": "sharesSum:17",
+      "passed": true,
+      "detail": "HP shares sum to1"
+    },
+    {
+      "name": "oldShareRetained:17",
+      "passed": true,
+      "detail": "Old types stay in mix"
+    },
+    {
+      "name": "bodyBudget:17",
+      "passed": true,
+      "detail": "Events reserved from same composition"
+    },
+    {
+      "name": "eventReservation:17",
+      "passed": true,
+      "detail": "Events and stream equal total composition"
+    },
+    {
+      "name": "sharesSum:18",
+      "passed": true,
+      "detail": "HP shares sum to1"
+    },
+    {
+      "name": "oldShareRetained:18",
+      "passed": true,
+      "detail": "Old types stay in mix"
+    },
+    {
+      "name": "bodyBudget:18",
+      "passed": true,
+      "detail": "Events reserved from same composition"
+    },
+    {
+      "name": "eventReservation:18",
+      "passed": true,
+      "detail": "Events and stream equal total composition"
+    },
+    {
+      "name": "sharesSum:19",
+      "passed": true,
+      "detail": "HP shares sum to1"
+    },
+    {
+      "name": "oldShareRetained:19",
+      "passed": true,
+      "detail": "Old types stay in mix"
+    },
+    {
+      "name": "bodyBudget:19",
+      "passed": true,
+      "detail": "Events reserved from same composition"
+    },
+    {
+      "name": "eventReservation:19",
+      "passed": true,
+      "detail": "Events and stream equal total composition"
+    },
+    {
+      "name": "noFinalAt20",
+      "passed": true,
+      "detail": "21+ and future boss cycle retained"
+    },
+    {
+      "name": "runtimeTracesFinite",
+      "passed": true,
+      "detail": "Native weapon traces finite/nonnegative"
+    },
+    {
+      "name": "threeBuildsFivePlusFive",
+      "passed": true,
+      "detail": "Comparable late builds"
+    }
+  ]
+}

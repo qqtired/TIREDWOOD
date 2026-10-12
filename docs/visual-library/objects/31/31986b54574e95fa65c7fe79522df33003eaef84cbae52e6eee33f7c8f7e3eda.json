@@ -1,0 +1,25 @@
+{
+  "case": "timer20-to21",
+  "type": "timerFixture",
+  "seed": 704317,
+  "accelerated": true,
+  "initialHash": 3280030446,
+  "edits": [
+    "skip to wave20",
+    "assume previous 19 waves for local fixture counters",
+    "invT1e9 and delayed autoattack for timer/carryover proof only; all budgets, boss and wave clocks unchanged"
+  ],
+  "seconds": 125,
+  "normalHP": false,
+  "heroHp": 100,
+  "weapons": [
+    {
+      "id": "lantern",
+      "lv": 1,
+      "evo": 0
+    }
+  ],
+  "passives": [],
+  "source": "original game.d.makeRun returned actual run; setup before first view/hash",
+  "receivedAt": 962341
+}

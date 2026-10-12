@@ -1,0 +1,940 @@
+{
+  "base": "41b91a842ce1367edde22d165705fc811365b37e",
+  "camera": {
+    "eye": [
+      -35,
+      2.4,
+      44
+    ],
+    "target": [
+      -19,
+      5.5,
+      43
+    ]
+  },
+  "normal": 385,
+  "refresh": 500,
+  "refreshShadow": 115,
+  "actualGLActivePrograms": 56,
+  "globalAtPier": 79,
+  "top": [
+    {
+      "id": 3719,
+      "name": "rat-race",
+      "main": 71,
+      "shadow": 7,
+      "owner": [
+        "lobby.rat3d.group"
+      ]
+    },
+    {
+      "id": 4003,
+      "name": "regatta-course",
+      "main": 41,
+      "shadow": 4,
+      "owner": [
+        "lobby.rg.course3d.root"
+      ]
+    },
+    {
+      "id": 1397,
+      "name": "billiards",
+      "main": 24,
+      "shadow": 1,
+      "owner": [
+        "lobby.billiards.view3d.group"
+      ]
+    },
+    {
+      "id": 3889,
+      "name": "lobby.folk.fishers[1].root",
+      "main": 22,
+      "shadow": 12,
+      "owner": [
+        "lobby.folk.fishers[1].root"
+      ]
+    },
+    {
+      "id": 3860,
+      "name": "lobby.folk.fishers[0].root",
+      "main": 22,
+      "shadow": 12,
+      "owner": [
+        "lobby.folk.fishers[0].root"
+      ]
+    },
+    {
+      "id": 528,
+      "name": "city-critters",
+      "main": 21,
+      "shadow": 0,
+      "owner": [
+        "lobby.critters.group"
+      ]
+    },
+    {
+      "id": 145,
+      "name": "plaza3-pavilions",
+      "main": 17,
+      "shadow": 30,
+      "owner": [
+        "world.pavilions.group"
+      ]
+    },
+    {
+      "id": 488,
+      "name": "lobby.juke.models[0].group",
+      "main": 12,
+      "shadow": 4,
+      "owner": [
+        "lobby.juke.models[0].group"
+      ]
+    },
+    {
+      "id": 4063,
+      "name": "lobby.rg.course3d.starter.root",
+      "main": 10,
+      "shadow": 0,
+      "owner": [
+        "lobby.rg.course3d.starter.root"
+      ]
+    },
+    {
+      "id": 92,
+      "name": "plaza3",
+      "main": 10,
+      "shadow": 6,
+      "owner": [
+        "world.plaza3.group"
+      ]
+    },
+    {
+      "id": 1368,
+      "name": "lobby.blackjack3d.dealer.root",
+      "main": 8,
+      "shadow": 0,
+      "owner": [
+        "lobby.blackjack3d.dealer.root"
+      ]
+    },
+    {
+      "id": 225,
+      "name": "world.boats.launch",
+      "main": 6,
+      "shadow": 0,
+      "owner": [
+        "world.boats.launch"
+      ]
+    },
+    {
+      "id": 1239,
+      "name": "lobby.decor.root",
+      "main": 6,
+      "shadow": 0,
+      "owner": [
+        "lobby.decor.root"
+      ]
+    }
+  ],
+  "topSum": 270,
+  "remainingMain": 115,
+  "allRootMainSum": 385,
+  "anonymousRootCount": 15,
+  "anonymousSum": 110,
+  "anonymousUnowned": [],
+  "scannerBounded": {
+    "objects": 7232,
+    "capped": true,
+    "depthLimit": 6,
+    "maxObjects": 8000
+  },
+  "allRoots": [
+    {
+      "id": 3719,
+      "name": "rat-race",
+      "main": 71,
+      "shadow": 7,
+      "owner": [
+        "lobby.rat3d.group"
+      ]
+    },
+    {
+      "id": 4003,
+      "name": "regatta-course",
+      "main": 41,
+      "shadow": 4,
+      "owner": [
+        "lobby.rg.course3d.root"
+      ]
+    },
+    {
+      "id": 1397,
+      "name": "billiards",
+      "main": 24,
+      "shadow": 1,
+      "owner": [
+        "lobby.billiards.view3d.group"
+      ]
+    },
+    {
+      "id": 3889,
+      "name": "lobby.folk.fishers[1].root",
+      "main": 22,
+      "shadow": 12,
+      "owner": [
+        "lobby.folk.fishers[1].root"
+      ]
+    },
+    {
+      "id": 3860,
+      "name": "lobby.folk.fishers[0].root",
+      "main": 22,
+      "shadow": 12,
+      "owner": [
+        "lobby.folk.fishers[0].root"
+      ]
+    },
+    {
+      "id": 528,
+      "name": "city-critters",
+      "main": 21,
+      "shadow": 0,
+      "owner": [
+        "lobby.critters.group"
+      ]
+    },
+    {
+      "id": 145,
+      "name": "plaza3-pavilions",
+      "main": 17,
+      "shadow": 30,
+      "owner": [
+        "world.pavilions.group"
+      ]
+    },
+    {
+      "id": 488,
+      "name": "lobby.juke.models[0].group",
+      "main": 12,
+      "shadow": 4,
+      "owner": [
+        "lobby.juke.models[0].group"
+      ]
+    },
+    {
+      "id": 4063,
+      "name": "lobby.rg.course3d.starter.root",
+      "main": 10,
+      "shadow": 0,
+      "owner": [
+        "lobby.rg.course3d.starter.root"
+      ]
+    },
+    {
+      "id": 92,
+      "name": "plaza3",
+      "main": 10,
+      "shadow": 6,
+      "owner": [
+        "world.plaza3.group"
+      ]
+    },
+    {
+      "id": 1368,
+      "name": "lobby.blackjack3d.dealer.root",
+      "main": 8,
+      "shadow": 0,
+      "owner": [
+        "lobby.blackjack3d.dealer.root"
+      ]
+    },
+    {
+      "id": 225,
+      "name": "world.boats.launch",
+      "main": 6,
+      "shadow": 0,
+      "owner": [
+        "world.boats.launch"
+      ]
+    },
+    {
+      "id": 1239,
+      "name": "lobby.decor.root",
+      "main": 6,
+      "shadow": 0,
+      "owner": [
+        "lobby.decor.root"
+      ]
+    },
+    {
+      "id": 1102,
+      "name": "start-circle-ПОРТОВАЯ РЕГАТА",
+      "main": 5,
+      "shadow": 1,
+      "owner": [
+        "lobby.entryCircles.values[2].group"
+      ]
+    },
+    {
+      "id": 1109,
+      "name": "start-circle-ПРЯТКИ: РЫБНЫЙ ДВОР",
+      "main": 5,
+      "shadow": 1,
+      "owner": [
+        "lobby.entryCircles.values[3].group"
+      ]
+    },
+    {
+      "id": 1338,
+      "name": "lobby.blackjack3d.group",
+      "main": 5,
+      "shadow": 0,
+      "owner": [
+        "lobby.blackjack3d.group"
+      ]
+    },
+    {
+      "id": 41,
+      "name": "world.kartStart.group",
+      "main": 4,
+      "shadow": 0,
+      "owner": [
+        "world.kartStart.group"
+      ]
+    },
+    {
+      "id": 140,
+      "name": "plaza3-lights",
+      "main": 4,
+      "shadow": 0,
+      "owner": []
+    },
+    {
+      "id": 200,
+      "name": "world.floaters[3].obj",
+      "main": 4,
+      "shadow": 0,
+      "owner": [
+        "world.floaters[3].obj"
+      ]
+    },
+    {
+      "id": 100,
+      "name": "plaza3-garden",
+      "main": 3,
+      "shadow": 0,
+      "owner": []
+    },
+    {
+      "id": 3920,
+      "name": "lobby.folk.spots.spots[0].float",
+      "main": 3,
+      "shadow": 0,
+      "owner": [
+        "lobby.folk.spots.spots[0].float"
+      ]
+    },
+    {
+      "id": 153,
+      "name": "plaza3-town-terrain",
+      "main": 2,
+      "shadow": 0,
+      "owner": []
+    },
+    {
+      "id": 178,
+      "name": "world.backdrop.sails[3].obj",
+      "main": 2,
+      "shadow": 0,
+      "owner": [
+        "world.backdrop.sails[3].obj"
+      ]
+    },
+    {
+      "id": 243,
+      "name": "barkas-albatros",
+      "main": 2,
+      "shadow": 0,
+      "owner": [
+        "world.barkas.ship.group"
+      ]
+    },
+    {
+      "id": 3689,
+      "name": "fishing-deck-moorings",
+      "main": 2,
+      "shadow": 2,
+      "owner": []
+    },
+    {
+      "id": 4117,
+      "name": "lobby.ferris.wheel",
+      "main": 2,
+      "shadow": 0,
+      "owner": [
+        "lobby.ferris.wheel"
+      ]
+    },
+    {
+      "id": 4129,
+      "name": "fish-records-board",
+      "main": 2,
+      "shadow": 1,
+      "owner": []
+    },
+    {
+      "id": 192,
+      "name": "world.floaters[1].obj",
+      "main": 2,
+      "shadow": 0,
+      "owner": [
+        "world.floaters[1].obj"
+      ]
+    },
+    {
+      "id": 4134,
+      "name": "daily-catch-podium",
+      "main": 2,
+      "shadow": 0,
+      "owner": []
+    },
+    {
+      "id": 61,
+      "name": "world.beam",
+      "main": 2,
+      "shadow": 0,
+      "owner": [
+        "world.beam",
+        "world.pavilions.hooks.lighthouse.beam[0]"
+      ]
+    },
+    {
+      "id": 6892,
+      "name": "isle",
+      "main": 2,
+      "shadow": 0,
+      "owner": [
+        "lobby.isle.island.root"
+      ]
+    },
+    {
+      "id": 90,
+      "name": "Mesh#90[7]",
+      "main": 1,
+      "shadow": 0,
+      "owner": []
+    },
+    {
+      "id": 4223,
+      "name": "route-buoys",
+      "main": 1,
+      "shadow": 0,
+      "owner": [
+        "lobby.ob.buoys.mesh"
+      ]
+    },
+    {
+      "id": 91,
+      "name": "world.sea",
+      "main": 1,
+      "shadow": 0,
+      "owner": [
+        "world.sea",
+        "world.isleSky.sea",
+        "lobby.isle.sky.sea"
+      ]
+    },
+    {
+      "id": 149,
+      "name": "Mesh#149[30]",
+      "main": 1,
+      "shadow": 1,
+      "owner": []
+    },
+    {
+      "id": 150,
+      "name": "Mesh#150[31]",
+      "main": 1,
+      "shadow": 1,
+      "owner": []
+    },
+    {
+      "id": 151,
+      "name": "Mesh#151[32]",
+      "main": 1,
+      "shadow": 1,
+      "owner": []
+    },
+    {
+      "id": 152,
+      "name": "world.powered[4]",
+      "main": 1,
+      "shadow": 0,
+      "owner": [
+        "world.powered[4]",
+        "lobby.plaza.ctx.powered[4]"
+      ]
+    },
+    {
+      "id": 154,
+      "name": "Mesh#154[35]",
+      "main": 1,
+      "shadow": 0,
+      "owner": []
+    },
+    {
+      "id": 156,
+      "name": "Mesh#156[37]",
+      "main": 1,
+      "shadow": 0,
+      "owner": []
+    },
+    {
+      "id": 157,
+      "name": "Mesh#157[38]",
+      "main": 1,
+      "shadow": 0,
+      "owner": []
+    },
+    {
+      "id": 158,
+      "name": "plaza3-hill-bushes",
+      "main": 1,
+      "shadow": 0,
+      "owner": []
+    },
+    {
+      "id": 155,
+      "name": "Mesh#155[36]",
+      "main": 1,
+      "shadow": 0,
+      "owner": []
+    },
+    {
+      "id": 160,
+      "name": "Mesh#160[41]",
+      "main": 1,
+      "shadow": 0,
+      "owner": []
+    },
+    {
+      "id": 161,
+      "name": "Mesh#161[43]",
+      "main": 1,
+      "shadow": 0,
+      "owner": []
+    },
+    {
+      "id": 162,
+      "name": "Mesh#162[44]",
+      "main": 1,
+      "shadow": 0,
+      "owner": []
+    },
+    {
+      "id": 163,
+      "name": "Mesh#163[45]",
+      "main": 1,
+      "shadow": 0,
+      "owner": []
+    },
+    {
+      "id": 164,
+      "name": "Mesh#164[46]",
+      "main": 1,
+      "shadow": 0,
+      "owner": []
+    },
+    {
+      "id": 166,
+      "name": "Mesh#166[48]",
+      "main": 1,
+      "shadow": 0,
+      "owner": []
+    },
+    {
+      "id": 205,
+      "name": "Mesh#205[67]",
+      "main": 1,
+      "shadow": 1,
+      "owner": []
+    },
+    {
+      "id": 206,
+      "name": "world.powered[5]",
+      "main": 1,
+      "shadow": 0,
+      "owner": [
+        "world.powered[5]",
+        "lobby.plaza.ctx.powered[5]"
+      ]
+    },
+    {
+      "id": 411,
+      "name": "lobby.effects.dropMesh",
+      "main": 1,
+      "shadow": 0,
+      "owner": [
+        "lobby.effects.dropMesh"
+      ]
+    },
+    {
+      "id": 4000,
+      "name": "lobby.aqua.bags",
+      "main": 1,
+      "shadow": 0,
+      "owner": [
+        "lobby.aqua.bags"
+      ]
+    },
+    {
+      "id": 4128,
+      "name": "lobby.ferris.cabins[7]",
+      "main": 1,
+      "shadow": 0,
+      "owner": [
+        "lobby.ferris.cabins[7]"
+      ]
+    },
+    {
+      "id": 4121,
+      "name": "lobby.ferris.cabins[0]",
+      "main": 1,
+      "shadow": 0,
+      "owner": [
+        "lobby.ferris.cabins[0]"
+      ]
+    },
+    {
+      "id": 4127,
+      "name": "lobby.ferris.cabins[6]",
+      "main": 1,
+      "shadow": 0,
+      "owner": [
+        "lobby.ferris.cabins[6]"
+      ]
+    },
+    {
+      "id": 4122,
+      "name": "lobby.ferris.cabins[1]",
+      "main": 1,
+      "shadow": 0,
+      "owner": [
+        "lobby.ferris.cabins[1]"
+      ]
+    },
+    {
+      "id": 4126,
+      "name": "lobby.ferris.cabins[5]",
+      "main": 1,
+      "shadow": 0,
+      "owner": [
+        "lobby.ferris.cabins[5]"
+      ]
+    },
+    {
+      "id": 4123,
+      "name": "lobby.ferris.cabins[2]",
+      "main": 1,
+      "shadow": 0,
+      "owner": [
+        "lobby.ferris.cabins[2]"
+      ]
+    },
+    {
+      "id": 4125,
+      "name": "lobby.ferris.cabins[4]",
+      "main": 1,
+      "shadow": 0,
+      "owner": [
+        "lobby.ferris.cabins[4]"
+      ]
+    },
+    {
+      "id": 4124,
+      "name": "lobby.ferris.cabins[3]",
+      "main": 1,
+      "shadow": 0,
+      "owner": [
+        "lobby.ferris.cabins[3]"
+      ]
+    },
+    {
+      "id": 234,
+      "name": "world.boats.ropes[0].mesh",
+      "main": 1,
+      "shadow": 0,
+      "owner": [
+        "world.boats.ropes[0].mesh"
+      ]
+    },
+    {
+      "id": 235,
+      "name": "world.boats.ropes[1].mesh",
+      "main": 1,
+      "shadow": 0,
+      "owner": [
+        "world.boats.ropes[1].mesh"
+      ]
+    },
+    {
+      "id": 3918,
+      "name": "Mesh#3918[453]",
+      "main": 1,
+      "shadow": 1,
+      "owner": []
+    },
+    {
+      "id": 3971,
+      "name": "Mesh#3971[458]",
+      "main": 1,
+      "shadow": 1,
+      "owner": []
+    },
+    {
+      "id": 3972,
+      "name": "Mesh#3972[459]",
+      "main": 1,
+      "shadow": 0,
+      "owner": []
+    },
+    {
+      "id": 4118,
+      "name": "Mesh#4118[493]",
+      "main": 1,
+      "shadow": 1,
+      "owner": []
+    },
+    {
+      "id": 6825,
+      "name": "plaza3-npcs",
+      "main": 1,
+      "shadow": 0,
+      "owner": [
+        "lobby.plaza.npc.mesh"
+      ]
+    },
+    {
+      "id": 56,
+      "name": "tokarevsky-lighthouse",
+      "main": 1,
+      "shadow": 0,
+      "owner": [
+        "world.lighthouse.group",
+        "world.pavilions.hooks.lighthouse.model.group"
+      ]
+    },
+    {
+      "id": 3974,
+      "name": "plaza3-signs",
+      "main": 1,
+      "shadow": 0,
+      "owner": [
+        "lobby.plaza.signs.meshA"
+      ]
+    },
+    {
+      "id": 3975,
+      "name": "plaza3-signs-status",
+      "main": 1,
+      "shadow": 0,
+      "owner": [
+        "lobby.plaza.signs.meshB"
+      ]
+    },
+    {
+      "id": 159,
+      "name": "Points#159[40]",
+      "main": 1,
+      "shadow": 0,
+      "owner": []
+    },
+    {
+      "id": 184,
+      "name": "Sprite#184[58]",
+      "main": 1,
+      "shadow": 0,
+      "owner": []
+    },
+    {
+      "id": 185,
+      "name": "Sprite#185[59]",
+      "main": 1,
+      "shadow": 0,
+      "owner": []
+    },
+    {
+      "id": 3919,
+      "name": "lobby.folk.spots.spots[0].line",
+      "main": 1,
+      "shadow": 0,
+      "owner": [
+        "lobby.folk.spots.spots[0].line"
+      ]
+    },
+    {
+      "id": 481,
+      "name": "lobby.effects.rings[21].mesh",
+      "main": 1,
+      "shadow": 0,
+      "owner": [
+        "lobby.effects.rings[21].mesh"
+      ]
+    },
+    {
+      "id": 62,
+      "name": "world.beamFlash",
+      "main": 1,
+      "shadow": 0,
+      "owner": [
+        "world.beamFlash",
+        "world.pavilions.hooks.lighthouse.beam[1]"
+      ]
+    },
+    {
+      "id": 64,
+      "name": "world.photoGlow",
+      "main": 1,
+      "shadow": 0,
+      "owner": [
+        "world.photoGlow"
+      ]
+    },
+    {
+      "id": 167,
+      "name": "Points#167[49]",
+      "main": 1,
+      "shadow": 0,
+      "owner": []
+    },
+    {
+      "id": 3945,
+      "name": "lobby.folk.spots.spots[1].line",
+      "main": 1,
+      "shadow": 0,
+      "owner": [
+        "lobby.folk.spots.spots[1].line"
+      ]
+    },
+    {
+      "id": 4091,
+      "name": "lobby.rg.course3d.starter.shadow",
+      "main": 1,
+      "shadow": 0,
+      "owner": [
+        "lobby.rg.course3d.starter.shadow"
+      ]
+    },
+    {
+      "id": 1396,
+      "name": "lobby.blackjack3d.dealer.shadow",
+      "main": 1,
+      "shadow": 0,
+      "owner": [
+        "lobby.blackjack3d.dealer.shadow"
+      ]
+    },
+    {
+      "id": 6827,
+      "name": "plaza3-npc-shadows",
+      "main": 1,
+      "shadow": 0,
+      "owner": [
+        "lobby.plaza.npc.shadows"
+      ]
+    },
+    {
+      "id": 3888,
+      "name": "lobby.folk.fishers[0].shadow",
+      "main": 1,
+      "shadow": 0,
+      "owner": [
+        "lobby.folk.fishers[0].shadow"
+      ]
+    },
+    {
+      "id": 139,
+      "name": "Mesh#139[27]",
+      "main": 1,
+      "shadow": 0,
+      "owner": []
+    },
+    {
+      "id": 3917,
+      "name": "lobby.folk.fishers[1].shadow",
+      "main": 1,
+      "shadow": 0,
+      "owner": [
+        "lobby.folk.fishers[1].shadow"
+      ]
+    },
+    {
+      "id": 287,
+      "name": "world.barkas.smoke.points",
+      "main": 1,
+      "shadow": 0,
+      "owner": [
+        "world.barkas.smoke.points"
+      ]
+    },
+    {
+      "id": 6826,
+      "name": "plaza3-npc-tags",
+      "main": 1,
+      "shadow": 0,
+      "owner": [
+        "lobby.plaza.npc.tags"
+      ]
+    },
+    {
+      "id": 1337,
+      "name": "lobby.decor.signs.values[1].sprite",
+      "main": 1,
+      "shadow": 0,
+      "owner": [
+        "lobby.decor.signs.values[1].sprite"
+      ]
+    },
+    {
+      "id": 1304,
+      "name": "lobby.decor.signs.values[0].sprite",
+      "main": 1,
+      "shadow": 0,
+      "owner": [
+        "lobby.decor.signs.values[0].sprite"
+      ]
+    },
+    {
+      "id": 1211,
+      "name": "lobby.tables3d.tables[0].swish.mesh",
+      "main": 1,
+      "shadow": 0,
+      "owner": [
+        "lobby.tables3d.tables[0].swish.mesh"
+      ]
+    },
+    {
+      "id": 1215,
+      "name": "lobby.tables3d.tables[1].swish.mesh",
+      "main": 1,
+      "shadow": 0,
+      "owner": [
+        "lobby.tables3d.tables[1].swish.mesh"
+      ]
+    },
+    {
+      "id": 1219,
+      "name": "lobby.tables3d.tables[2].swish.mesh",
+      "main": 1,
+      "shadow": 0,
+      "owner": [
+        "lobby.tables3d.tables[2].swish.mesh"
+      ]
+    }
+  ],
+  "residualBudget": {
+    "normalOverBy": 85,
+    "refreshOverBy": 200,
+    "cacheRouteOverBy": 6
+  }
+}

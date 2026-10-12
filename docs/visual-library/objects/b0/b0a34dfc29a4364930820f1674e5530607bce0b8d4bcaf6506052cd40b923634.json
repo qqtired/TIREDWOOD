@@ -1,0 +1,213 @@
+{
+  "case": "timer20-to21",
+  "seedCase": "timer20-to21",
+  "automated": "PASS",
+  "visual": "PENDING_ROOT_REVIEW",
+  "sourceFreeze": "79c7aa9061682aefdbf130d1fcc03e5689c7ecfd3dde341bcc65a9eac089b332",
+  "flags": {
+    "nativeGlobalMenuResumed": true,
+    "ticksAdvanced": true,
+    "serverParity": true,
+    "actualTimer": true,
+    "bossCarryover": true
+  },
+  "captures": [
+    "entry",
+    "boss-actually-spawned",
+    "actual-endless21",
+    "final-checkpoint"
+  ],
+  "elapsedMs": 126111,
+  "state": {
+    "tick": 3601,
+    "hash": 1480689889,
+    "wave": 21,
+    "stage": "wave",
+    "end": "running",
+    "hero": {
+      "x": 120,
+      "z": 120,
+      "hp": 100,
+      "hpMax": 100,
+      "level": 1,
+      "qHold": 0,
+      "qCd": 0
+    },
+    "cards": false,
+    "chest": false,
+    "alive": 41,
+    "mobs": [
+      {
+        "id": 207,
+        "k": "cauldronmaster",
+        "x": 119.9968737202924,
+        "z": 120.02312295006355,
+        "hp": 64000,
+        "die": 0,
+        "st": "walk",
+        "attackKind": "walk",
+        "attackAt": 3563,
+        "attackStep": 0,
+        "ax": -0.13398341603906663,
+        "az": 0.9909835741456579,
+        "kx": 0,
+        "kz": 0,
+        "stunT": 0
+      }
+    ],
+    "bosses": [
+      {
+        "id": 207,
+        "family": "cauldronmaster",
+        "phase": 1,
+        "act": "pause",
+        "actT": 3563
+      }
+    ],
+    "marks": [],
+    "enemyCharges": [],
+    "weapons": [
+      {
+        "id": "lantern",
+        "lv": 1,
+        "evo": 0
+      }
+    ],
+    "stats": {
+      "kills": 0,
+      "bosses": 0,
+      "dmg": {},
+      "killedBy": "",
+      "waves": 20,
+      "ms": 120000,
+      "chests": 0,
+      "lamps": 0
+    },
+    "fx": []
+  },
+  "frames": [
+    {
+      "tick": 0,
+      "hp": 100,
+      "alive": 0,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 1,
+      "hp": 100,
+      "alive": 5,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [
+        {
+          "k": "boss",
+          "what": "spawn"
+        }
+      ],
+      "phase": 1,
+      "act": "appear",
+      "missing": 0
+    },
+    {
+      "tick": 3601,
+      "hp": 100,
+      "alive": 41,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [
+        {
+          "k": "waveWin"
+        },
+        {
+          "k": "rage"
+        },
+        {
+          "k": "wave"
+        }
+      ],
+      "phase": 1,
+      "act": "pause",
+      "missing": 0
+    },
+    {
+      "tick": 3601,
+      "hp": 100,
+      "alive": 41,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [
+        {
+          "k": "waveWin"
+        },
+        {
+          "k": "rage"
+        },
+        {
+          "k": "wave"
+        }
+      ],
+      "phase": 1,
+      "act": "pause",
+      "missing": 0
+    },
+    {
+      "tick": 3601,
+      "hp": 100,
+      "alive": 41,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [
+        {
+          "k": "waveWin"
+        },
+        {
+          "k": "rage"
+        },
+        {
+          "k": "wave"
+        }
+      ],
+      "phase": 1,
+      "act": "pause",
+      "missing": 0
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "case": "recipes-kite",
+  "type": "recipeFixture",
+  "seed": 704307,
+  "accelerated": true,
+  "initialHash": 3147219336,
+  "edits": [
+    "skip to wave16",
+    "assume previous 15 waves for local fixture counters",
+    "finished legal5+5 inventory and temper5 supplied by setup, not earned",
+    "isolated fixture: no director background/props/map pickups; actual map collision stays",
+    "lantern6→7 must be obtained from the actual level card; 5 real chest pickups and 1 real XP gem placed by setup; pickup/recipe/card handling remains real"
+  ],
+  "seconds": 60,
+  "normalHP": false,
+  "heroHp": 100,
+  "weapons": [
+    {
+      "id": "lantern",
+      "lv": 6,
+      "evo": 0
+    },
+    {
+      "id": "embers",
+      "lv": 7,
+      "evo": 0
+    },
+    {
+      "id": "pickaxe",
+      "lv": 7,
+      "evo": 0
+    },
+    {
+      "id": "charges",
+      "lv": 7,
+      "evo": 0
+    },
+    {
+      "id": "spark",
+      "lv": 7,
+      "evo": 0
+    }
+  ],
+  "passives": [
+    {
+      "id": "might",
+      "lv": 5
+    },
+    {
+      "id": "cooldown",
+      "lv": 5
+    },
+    {
+      "id": "amount",
+      "lv": 2
+    },
+    {
+      "id": "speed",
+      "lv": 5
+    },
+    {
+      "id": "magnet",
+      "lv": 5
+    }
+  ],
+  "source": "original game.d.makeRun returned actual run; setup before first view/hash",
+  "receivedAt": 30475.69999999553
+}

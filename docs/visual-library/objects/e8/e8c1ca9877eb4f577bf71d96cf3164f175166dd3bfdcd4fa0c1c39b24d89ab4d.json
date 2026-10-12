@@ -1,0 +1,262 @@
+{
+  "at": "2026-10-12T01:28:27.805Z",
+  "cases": [
+    {
+      "id": "battery",
+      "at": 23,
+      "action": "lock",
+      "before": {
+        "gateHp": 0.8400000000000001,
+        "turretHp": 0.92,
+        "passed": 0,
+        "boarded": 0,
+        "savedCrates": 0,
+        "burnedCrates": 0
+      },
+      "after": {
+        "gateHp": 0.8400000000000001,
+        "turretHp": 0.92,
+        "passed": 0,
+        "boarded": 0,
+        "savedCrates": 0,
+        "burnedCrates": 0
+      },
+      "outcome": "failure",
+      "note": "Ворота 84%, башня 92%. Отменено будущих залпов 0; уже выпущенные долетели."
+    },
+    {
+      "id": "battery",
+      "at": 23,
+      "action": "bell",
+      "before": {
+        "gateHp": 0.8400000000000001,
+        "turretHp": 0.92,
+        "passed": 0,
+        "boarded": 0,
+        "savedCrates": 0,
+        "burnedCrates": 0
+      },
+      "after": {
+        "gateHp": 0.8400000000000001,
+        "turretHp": 0.92,
+        "passed": 0,
+        "boarded": 0,
+        "savedCrates": 0,
+        "burnedCrates": 0
+      },
+      "outcome": "failure",
+      "note": "Ворота 84%, башня 92%. Отменено будущих залпов 0; уже выпущенные долетели."
+    },
+    {
+      "id": "gate",
+      "at": 23,
+      "action": "abort",
+      "before": {
+        "gateHp": 0.79,
+        "turretHp": 1,
+        "passed": 6,
+        "boarded": 0,
+        "savedCrates": 0,
+        "burnedCrates": 0
+      },
+      "after": {
+        "gateHp": 0.79,
+        "turretHp": 1,
+        "passed": 6,
+        "boarded": 0,
+        "savedCrates": 0,
+        "burnedCrates": 0
+      },
+      "outcome": "failure",
+      "note": "Створки закрыты, но 6 уже прошли. Потерянные HP не восстановлены."
+    },
+    {
+      "id": "stores",
+      "at": 20,
+      "action": "salvage",
+      "before": {
+        "gateHp": 1,
+        "turretHp": 1,
+        "passed": 0,
+        "boarded": 0,
+        "savedCrates": 0,
+        "burnedCrates": 3
+      },
+      "after": {
+        "gateHp": 1,
+        "turretHp": 1,
+        "passed": 0,
+        "boarded": 0,
+        "savedCrates": 0,
+        "burnedCrates": 3
+      },
+      "outcome": "failure",
+      "note": "Работа закончилась бы на 23.0 с, позже дедлайна 19 с. Сгоревшие запасы не спасены."
+    },
+    {
+      "id": "stores",
+      "at": 15,
+      "action": "water",
+      "before": {
+        "gateHp": 1,
+        "turretHp": 1,
+        "passed": 0,
+        "boarded": 0,
+        "savedCrates": 0,
+        "burnedCrates": 0
+      },
+      "after": {
+        "gateHp": 1,
+        "turretHp": 1,
+        "passed": 0,
+        "boarded": 0,
+        "savedCrates": 0,
+        "burnedCrates": 3
+      },
+      "outcome": "failure",
+      "note": "Работа закончилась бы на 27.0 с, позже дедлайна 19 с. Сгоревшие запасы не спасены."
+    },
+    {
+      "id": "tower",
+      "at": 25,
+      "action": "wheel",
+      "before": {
+        "gateHp": 0.88,
+        "turretHp": 1,
+        "passed": 0,
+        "boarded": 6,
+        "savedCrates": 0,
+        "burnedCrates": 0
+      },
+      "after": {
+        "gateHp": 0.88,
+        "turretHp": 1,
+        "passed": 0,
+        "boarded": 6,
+        "savedCrates": 0,
+        "burnedCrates": 0
+      },
+      "outcome": "failure",
+      "note": "Башня остановлена после высадки 6/6. Эти враги остаются на стене."
+    }
+  ],
+  "grenadeExample": {
+    "n": 4,
+    "w": 100,
+    "skill": "newbie",
+    "tactic": "gate_trap",
+    "structures": "max",
+    "seconds": 259.957,
+    "workHp": 6926657.64,
+    "personalDps": 2833.668,
+    "towerDps": 3909.088,
+    "grenadeStockPerDefender": 1,
+    "grenadeStockTeam": 4,
+    "grenadesThrown": 4,
+    "grenadesExploded": 4,
+    "grenadeDamage": 51767.592,
+    "eventCrowd": 6,
+    "eventTowerSuppression": 1,
+    "extraPersonSeconds": 4,
+    "prepSeconds": 0,
+    "goldSpent": 0,
+    "available": false,
+    "unavailable": "Нужны 2 гранаты; в этой траектории запас 1",
+    "ballistaAvailable": true,
+    "guideOutcome": "partial",
+    "guideDamageGateHp": 168,
+    "guideDamageTowerFraction": 0,
+    "guidePassed": 1,
+    "guideBoarded": 0,
+    "grateChargesSpent": 1,
+    "guideGrenadesSpent": 2,
+    "futureRepairBonus": 0,
+    "futureGrenadeBonus": 0,
+    "incomePerDefender": 19961.5,
+    "clean": true,
+    "repairBudgetTeam": 11976.9,
+    "gateHp": 4800,
+    "crystalHp": 5000,
+    "gateHeal": 1200,
+    "crystalHeal": 500,
+    "gatePrice": 440,
+    "crystalPrice": 660,
+    "financialGateRepairs": 27,
+    "financialCrystalRepairs": 18,
+    "physicalRepairs": 22,
+    "channelGateRepairHp": 26400,
+    "channelCrystalRepairHp": 9000,
+    "stockGateRepairHp": 6000,
+    "stockCrystalRepairHp": 2500,
+    "maxGateRepairHpPerSecond": 100,
+    "maxCrystalRepairHpPerSecond": 41.667,
+    "oneBruteGateDps": 312.75,
+    "oneBruteSecondsToGate": 15.348,
+    "repairCountsAreAlternatives": true,
+    "repairCountsAreDedicatedOperatorUpperBounds": true
+  },
+  "master98": [
+    {
+      "id": "one_point",
+      "seconds": 51.764,
+      "grenadesExploded": 12,
+      "stock": 12
+    },
+    {
+      "id": "dense",
+      "seconds": 35.053,
+      "grenadesExploded": 12,
+      "stock": 12
+    },
+    {
+      "id": "spread_ignore",
+      "seconds": 59.871,
+      "grenadesExploded": 12,
+      "stock": 12
+    },
+    {
+      "id": "spread_counter",
+      "seconds": 53.928,
+      "grenadesExploded": 12,
+      "stock": 12
+    },
+    {
+      "id": "gate_trap",
+      "seconds": 55.082,
+      "grenadesExploded": 12,
+      "stock": 12
+    },
+    {
+      "id": "one_down",
+      "seconds": 53.176,
+      "grenadesExploded": 12,
+      "stock": 12
+    },
+    {
+      "id": "two_repairs",
+      "seconds": 52.894,
+      "grenadesExploded": 12,
+      "stock": 12
+    }
+  ],
+  "v1Preserved": true,
+  "sourceHashes": {
+    "scenarios.mjs": "63e3d77f2d3f72b9c917dae021d31cedea0abfb7c397f57cb314cf598558d876",
+    "scenarios.test.mjs": "1fd82d81754d69e5687e87fb62c38c41cefdfdea2acac7e55629ac09a9ab5d3c",
+    "work-model.mjs": "390ded14c6e04f5ee8af41dc60fca171d13219c10db27db69b35682c66e0d805",
+    "work-model.test.mjs": "6a48394575c8644103a0de6d8e824c1c95b5cb6787cab9c1adb4cf970a4c26ce",
+    "scenario-tactics.mjs": "1ec8c780a906b4213c96b97ad038969340444e4ab70aec597c5b49b7e15275a6",
+    "calculate-v2.mjs": "32d3f45270a85def853e6666c6324136aefe102d3ae093fdd74272bf0bcc3727",
+    "event-lab.js": "bb7382da9026e76186482ccb09977d60beedd344dc79b9c88782d12d9faec5f5",
+    "report.js": "9fffe4b22a1a866765399c33ab6d6b27165f7ff17f6c7a56ed810904376b1b10",
+    "report.html": "2be8b26d7f2512b7fdb2c56874468d69d42a0dbb94bc0d0d5ce74e94dd5449cd",
+    "report.test.mjs": "02b01ca02c6ad317cdb71a8d7a0be371b8349d8b43db5247b8561abb2736c0bd",
+    "check-lab.mjs": "21d8939e8c49e01892751b5fc71494ba27baba2d76690ac9be0bbc82d9c4f88a"
+  },
+  "htmlHash": "b9240cd0258b032c3651d9b975b4ef0d71f6ca9f1de59c05e3726995ae4878a2",
+  "browserChecked": false,
+  "newModelsV2": false,
+  "finalLabelsAt": "2026-10-12T01:36:22.055Z",
+  "htmlBytes": 6345306,
+  "independentSourceModelRecheck": "Five P2 groups closed by farm_pack_review; final two scope labels added; browser/GLB pending"
+}

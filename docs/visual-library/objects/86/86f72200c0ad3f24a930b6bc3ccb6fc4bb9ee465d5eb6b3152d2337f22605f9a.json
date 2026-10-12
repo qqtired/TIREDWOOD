@@ -1,0 +1,43 @@
+{
+  "at": "2026-10-12T09:11:47.986Z",
+  "bytes": 66840200,
+  "events": 8,
+  "currentSourceCastle": true,
+  "currentSourceReferenceMobs": 6,
+  "newModelsV2": true,
+  "nativeVersions": [
+    {
+      "id": "ropecrab",
+      "version": "r2-07",
+      "hash": "8cad56396653cfa2b49aa9885cc6d42949a782be2927e0cd61ded48b36c712c0"
+    },
+    {
+      "id": "jampump",
+      "version": "r2-06",
+      "hash": "819c21d515fc4be2d4a94c613ab6de30a7822da29493a6cf9484aaf923e29791"
+    },
+    {
+      "id": "canopy",
+      "version": "r2-07",
+      "hash": "da211a74ffa180edc8ce5f532dd595015776ff8373456d7fa9bf1f2d522b986a"
+    },
+    {
+      "id": "foreman",
+      "version": "r2-06",
+      "hash": "7fdd7c654e15e7f55056e0e7c00d77191c11f812e9dfaeed9d5545b74660bc92"
+    },
+    {
+      "id": "crabcrane",
+      "version": "r2-06",
+      "hash": "553d4ad2279a93faf7650b034cb484953717e856655819217c26ae1844acdf94"
+    },
+    {
+      "id": "miller",
+      "version": "r2-06",
+      "hash": "572bd02f66b44077150f9150880f9c34b03a16efc227cfe470f03357537ceeb3"
+    }
+  ],
+  "textureAB": true,
+  "standalone": true,
+  "browserChecked": false
+}

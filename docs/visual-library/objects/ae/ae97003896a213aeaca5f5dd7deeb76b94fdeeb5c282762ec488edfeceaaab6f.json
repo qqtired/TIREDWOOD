@@ -1,0 +1,296 @@
+{
+  "id": "jampump",
+  "background": true,
+  "blender": "5.2.2 LTS",
+  "pid": 87358,
+  "transport": "native MCP execute_blender_code; existing unchanged command handlers",
+  "summary": {
+    "triangles": 3950,
+    "materials": 5,
+    "meshPrimitives": 43,
+    "textures": 0,
+    "images": 0,
+    "clips": [
+      {
+        "name": "jampump_idle",
+        "seconds": 2.0,
+        "runtimeDuration": 2.041667,
+        "inputStart": 0.041667,
+        "inputEnd": 2.041667,
+        "channels": 108
+      },
+      {
+        "name": "jampump_walk",
+        "seconds": 1.0,
+        "runtimeDuration": 1.041667,
+        "inputStart": 0.041667,
+        "inputEnd": 1.041667,
+        "channels": 108
+      },
+      {
+        "name": "jampump_windup",
+        "seconds": 1.833333,
+        "runtimeDuration": 1.875,
+        "inputStart": 0.041667,
+        "inputEnd": 1.875,
+        "channels": 108
+      },
+      {
+        "name": "jampump_attack",
+        "seconds": 0.833333,
+        "runtimeDuration": 0.875,
+        "inputStart": 0.041667,
+        "inputEnd": 0.875,
+        "channels": 108
+      },
+      {
+        "name": "jampump_recover",
+        "seconds": 1.833333,
+        "runtimeDuration": 1.875,
+        "inputStart": 0.041667,
+        "inputEnd": 1.875,
+        "channels": 108
+      },
+      {
+        "name": "jampump_hit",
+        "seconds": 0.583333,
+        "runtimeDuration": 0.625,
+        "inputStart": 0.041667,
+        "inputEnd": 0.625,
+        "channels": 108
+      },
+      {
+        "name": "jampump_death",
+        "seconds": 2.208333,
+        "runtimeDuration": 2.25,
+        "inputStart": 0.041667,
+        "inputEnd": 2.25,
+        "channels": 108
+      },
+      {
+        "name": "jampump_open",
+        "seconds": 2.0,
+        "runtimeDuration": 2.041667,
+        "inputStart": 0.041667,
+        "inputEnd": 2.041667,
+        "channels": 108
+      },
+      {
+        "name": "jampump_pump",
+        "seconds": 1.833333,
+        "runtimeDuration": 1.875,
+        "inputStart": 0.041667,
+        "inputEnd": 1.875,
+        "channels": 108
+      },
+      {
+        "name": "jampump_redirect_windup",
+        "seconds": 3.0,
+        "runtimeDuration": 3.041667,
+        "inputStart": 0.041667,
+        "inputEnd": 3.041667,
+        "channels": 108
+      },
+      {
+        "name": "jampump_redirect_attack",
+        "seconds": 6.0,
+        "runtimeDuration": 6.041667,
+        "inputStart": 0.041667,
+        "inputEnd": 6.041667,
+        "channels": 108
+      }
+    ],
+    "nodes": 75,
+    "bytes": 1174396,
+    "sha256": "819c21d515fc4be2d4a94c613ab6de30a7822da29493a6cf9484aaf923e29791",
+    "binSHA256": "2b37fb799e63ffd0613be60845f0c78bda94a0667203c7cc823a803464238fbb"
+  },
+  "authored": [
+    {
+      "name": "jampump_idle",
+      "requestedSeconds": 2,
+      "keySeconds": 2.0,
+      "frames": 49
+    },
+    {
+      "name": "jampump_walk",
+      "requestedSeconds": 1,
+      "keySeconds": 1.0,
+      "frames": 25
+    },
+    {
+      "name": "jampump_windup",
+      "requestedSeconds": 1.8,
+      "keySeconds": 1.8333333333333333,
+      "frames": 45
+    },
+    {
+      "name": "jampump_attack",
+      "requestedSeconds": 0.8,
+      "keySeconds": 0.8333333333333334,
+      "frames": 21
+    },
+    {
+      "name": "jampump_recover",
+      "requestedSeconds": 1.8,
+      "keySeconds": 1.8333333333333333,
+      "frames": 45
+    },
+    {
+      "name": "jampump_hit",
+      "requestedSeconds": 0.55,
+      "keySeconds": 0.5833333333333334,
+      "frames": 15
+    },
+    {
+      "name": "jampump_death",
+      "requestedSeconds": 2.2,
+      "keySeconds": 2.2083333333333335,
+      "frames": 54
+    },
+    {
+      "name": "jampump_open",
+      "requestedSeconds": 2,
+      "keySeconds": 2.0,
+      "frames": 49
+    },
+    {
+      "name": "jampump_pump",
+      "requestedSeconds": 1.8,
+      "keySeconds": 1.8333333333333333,
+      "frames": 45
+    },
+    {
+      "name": "jampump_redirect_windup",
+      "requestedSeconds": 3,
+      "keySeconds": 3.0,
+      "frames": 73
+    },
+    {
+      "name": "jampump_redirect_attack",
+      "requestedSeconds": 6,
+      "keySeconds": 6.0,
+      "frames": 145
+    }
+  ],
+  "source": "[LOCAL_PATH]",
+  "sourceSHA256": "3030e61f64ab2a9e4d768a5ee544a3e5d6ea0251133781451db195b9bd250008",
+  "storyboardSHA256": "805a4ecbd88d0e7464de32348cdec00a50544878d82e20941a38dbdf199db0f0",
+  "reference": "../../../../../v1/art/originals/01-mobs.png",
+  "referenceSHA256": "c6df3db8168aad218b9006c165210c9bab2c2ccf3b43c485512b567b56f8a64c",
+  "anchors": {
+    "footL": [
+      -0.30000001192092896,
+      -0.07500000298023224,
+      0.08500000089406967
+    ],
+    "footR": [
+      0.30000001192092896,
+      -0.07500000298023224,
+      0.08500000089406967
+    ]
+  },
+  "storyboard": {
+    "id": "jampump",
+    "windup": 1.8,
+    "attack": 0.8,
+    "death": 2.2,
+    "silhouette": "Stocky badger, long muzzle, weighted hips, stitched apron, two actual grip contacts, flexible segmented hose",
+    "events": [
+      [
+        0,
+        "valve_release"
+      ],
+      [
+        0.3,
+        "hose_whip_first"
+      ],
+      [
+        0.65,
+        "hose_whip_second"
+      ],
+      [
+        1.0,
+        "jam_residue_up"
+      ],
+      [
+        1.1,
+        "tank_deflate"
+      ],
+      [
+        1.45,
+        "seat_hips"
+      ],
+      [
+        1.8,
+        "body_roll_toward_tank"
+      ],
+      [
+        2.05,
+        "nozzle_land"
+      ],
+      [
+        2.2,
+        "rest"
+      ]
+    ],
+    "deathStages": [
+      [
+        0,
+        0.3,
+        "Valve ejects with body still supported"
+      ],
+      [
+        0.3,
+        1.1,
+        "Two short hose loops and a harmless upward residue splash"
+      ],
+      [
+        1.1,
+        2.2,
+        "Tank deflates; badger sits then rests on its side; nozzle settles last"
+      ]
+    ],
+    "attackEvents": [
+      [
+        0,
+        "two_feet_braced"
+      ],
+      [
+        0.14,
+        "lever_contact"
+      ],
+      [
+        0.25,
+        "nozzle_recoil"
+      ],
+      [
+        0.3,
+        "stream_start_at_nozzle"
+      ],
+      [
+        0.55,
+        "cheek_recoil"
+      ],
+      [
+        0.8,
+        "valve_open"
+      ]
+    ],
+    "measure": {
+      "plantDriftMaxM": 0.02,
+      "handGripErrorMaxM": 0.025,
+      "minimumFloorY": -0.025,
+      "hoseWhips": 2,
+      "nozzleMustLandAfterBody": true
+    },
+    "reviewSeconds": [
+      0,
+      0.3,
+      0.65,
+      1.1,
+      1.8,
+      2.2
+    ]
+  }
+}

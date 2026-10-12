@@ -1,0 +1,292 @@
+{
+  "recordedAt": "2026-10-12T08:25:40.261Z",
+  "status": "R6_LOCAL_GAMEPLAY_ACCEPTED_ROOT",
+  "testedSourceSHA": "79c7aa9061682aefdbf130d1fcc03e5689c7ecfd3dde341bcc65a9eac089b332",
+  "testedSourceFilesArchived": 40,
+  "docOnlySuccessor": {
+    "revision": "R6 doc-only successor",
+    "commit": "4d354e33310ba3bd20272b27a90de552ccfa2732",
+    "testedSourceSHA": "79c7aa9061682aefdbf130d1fcc03e5689c7ecfd3dde341bcc65a9eac089b332",
+    "testedBase": "41b91a8",
+    "testedFiles": 40,
+    "currentExactTestedFiles": 39,
+    "changedAfterGameplay": [
+      {
+        "path": "docs/survivors/expansion-v2.md",
+        "testedSHA": "26312b3265d657e785ecc53f7807744e51264ef3c91387a7be88cff59ceb64ab",
+        "currentSHA": "be1e3533c9102a86b67ee024cae80ec847cb8196f0ee6f9934b12b03de360dc1",
+        "reason": "Root report/handoff doc only after actual acceptance"
+      }
+    ],
+    "gameCodeAndGLBUntouched": true,
+    "mainMerged": false,
+    "pushed": false,
+    "deployed": false,
+    "phoneVerified": false,
+    "htmlBrowserSmoke": "pending root after Product Lab window"
+  },
+  "currentExactTestedCodePaths": 39,
+  "game5GLBMatch": true,
+  "embeddedGLBHashes": {
+    "old_rat": "1ab016a07fab797b15b450eba0e459a30b24e34db62d9e4fd4b9072affc834dc",
+    "old_beetle": "03c892798a5ca4d7b17d068ac8b43d72949085b681a7c71a6f39fe82a1e461dc",
+    "old_cooper": "cd5bc0964948483862cff80e0b7191ba0b1fa741df04ef1c33b6a6de8a7fcc34",
+    "old_boss": "3f3922c3d08702ed3c9100b031754bbd9e69092f694435b384b0dfcd97fdafc4",
+    "old_hero": "107a479700a65663a31fb137d4a81319ea38878d17c0ab3e902b3441c47939bd",
+    "hookclaw": "b09162ef0c6aa575b461bdddb36100d9b761a254661da42045645fae0d31e79f",
+    "wickmole": "24c549c3ce061e7e393ff08f73b173e37e74077544ea9f6745747f34744245cb",
+    "railhopper": "edf92d78c331f45deeee75db8a53b6e41b6df4ad9efe31857a9cdb0b99efe02f",
+    "chainwarden": "129a73308dd0afcb3ec0c315dfde44af66b0edf5f783098a7152f1de5b5f5653",
+    "cauldronmaster": "66b7e7d7b492090875add0ab7242f097b65ff33facb5eedeaea7fb88a19a6350",
+    "chainwarden_soft": "2636c003be7aba00de57dd7a6dd1e3be4db8495e3d436ee991019aa4ba69a00f"
+  },
+  "viewerScriptSHA": "cda5e1ebf6e2985c083b346d7cb3ae24efa8682e913e7cfbcc3969664cb719ef",
+  "viewerBundleUnchanged": true,
+  "metadataOnly": true,
+  "htmlSHA256": "e125b4eb4d881985064907d8e4a9d2a0a30b17f5c4ff45be9bb0bbafb8f1b79e",
+  "htmlBytes": 38526969,
+  "copiedEvidenceFiles": 259,
+  "copiedEvidenceBytes": 35819816,
+  "selectedPNG": 24,
+  "evidence": "evidence/runtime-r6-root/",
+  "inlineScreenshots": [
+    {
+      "path": "../evidence/runtime-r6-root/cases/recipes-kite/final-checkpoint.png",
+      "title": "Пять эволюций: Кайт",
+      "caption": "Реальные XP-карточка и пять сундуков; legal5+5,100HP.",
+      "sha256": "869ff13c15b6f18101c34057f7522625cec2f733dc3df48c379096e2abb9437f",
+      "bytes": 1419195
+    },
+    {
+      "path": "../evidence/runtime-r6-root/cases/recipes-guard/final-checkpoint.png",
+      "title": "Пять эволюций: Защита",
+      "caption": "Реальные XP-карточка и пять сундуков; вместе с Кайтом покрыты8 эволюций.",
+      "sha256": "29e6edf5c3af3b842b48b4e5f8e644de83a57ef9e9923ef07b35bfbc08f410d1",
+      "bytes": 1451190
+    },
+    {
+      "path": "../evidence/runtime-r6-root/cases/boss-phases/phase-3.png",
+      "title": "Вход в третью фазу",
+      "caption": "Регистрационный fixture10000HP. Кадр перехода; последующие clip/morph/lid checks сохранены в receipt.",
+      "sha256": "d7997beb29a743e05a85975265aa39a8c8bfa4ad8817bfd8db3082bc701065d9",
+      "bytes": 1263481
+    },
+    {
+      "path": "../evidence/runtime-r6-root/cases/distinct-deaths/boss-death-late.png",
+      "title": "Поздний кадр смерти Казанщика",
+      "caption": "Fixture enemyHP50, геройlevel40. Босс остаётся видимым после удаления sim-тела; полный цикл4с.",
+      "sha256": "e77d5b266276caa8d6af3f1f6c338fa31c02c9c510e6865012e35789f89f9bdf",
+      "bytes": 1142918
+    }
+  ],
+  "acceptance": {
+    "status": "ACCEPTED_LOCALLY_BY_ROOT",
+    "scope": "Actual client/server game, normal no-hook entry and accelerated initial fixtures using real native input; not continuous first15 waves or mass balance playtest",
+    "reviewer": "root",
+    "rootReviewedPNGs": true,
+    "evidence": "../evidence/runtime-r6-root/summary.json",
+    "manifest": "../evidence/runtime-r6-root/manifest.json",
+    "testedSourceSHA": "79c7aa9061682aefdbf130d1fcc03e5689c7ecfd3dde341bcc65a9eac089b332",
+    "testedFiles": 40,
+    "docOnlySuccessor": {
+      "revision": "R6 doc-only successor",
+      "commit": "4d354e33310ba3bd20272b27a90de552ccfa2732",
+      "testedSourceSHA": "79c7aa9061682aefdbf130d1fcc03e5689c7ecfd3dde341bcc65a9eac089b332",
+      "testedBase": "41b91a8",
+      "testedFiles": 40,
+      "currentExactTestedFiles": 39,
+      "changedAfterGameplay": [
+        {
+          "path": "docs/survivors/expansion-v2.md",
+          "testedSHA": "26312b3265d657e785ecc53f7807744e51264ef3c91387a7be88cff59ceb64ab",
+          "currentSHA": "be1e3533c9102a86b67ee024cae80ec847cb8196f0ee6f9934b12b03de360dc1",
+          "reason": "Root report/handoff doc only after actual acceptance"
+        }
+      ],
+      "gameCodeAndGLBUntouched": true,
+      "mainMerged": false,
+      "pushed": false,
+      "deployed": false,
+      "phoneVerified": false,
+      "htmlBrowserSmoke": "pending root after Product Lab window"
+    },
+    "normal": {
+      "withoutHooks": true,
+      "naturalDeathKills": 85,
+      "level": 2,
+      "clientServerResultParity": true,
+      "restartPauseResumeExit": "PASS root observed"
+    },
+    "bosses": [
+      {
+        "id": "boss20-kite",
+        "eventTick": 1465,
+        "seconds": 48.833333333333336,
+        "postVictoryHp": 74,
+        "hpMax": 100,
+        "policy": "actual movement/dash/Q/mouse cards",
+        "timeBasis": "die FX evaluated on event tick; shared step increments t at end",
+        "hpBasis": "Final result after normal level-up heal, not immediate pre-heal death frame"
+      },
+      {
+        "id": "boss20-range",
+        "eventTick": 1555,
+        "seconds": 51.833333333333336,
+        "postVictoryHp": 46,
+        "hpMax": 100,
+        "policy": "actual movement/dash/Q/mouse cards",
+        "timeBasis": "die FX evaluated on event tick; shared step increments t at end",
+        "hpBasis": "Final result after normal level-up heal, not immediate pre-heal death frame"
+      },
+      {
+        "id": "boss20-guard",
+        "eventTick": 1698,
+        "seconds": 56.6,
+        "postVictoryHp": 89,
+        "hpMax": 200,
+        "policy": "outer-ring-no-charge",
+        "timeBasis": "die FX evaluated on event tick; shared step increments t at end",
+        "hpBasis": "Final result after normal level-up heal, not immediate pre-heal death frame"
+      }
+    ],
+    "recipes": {
+      "legalFivePlusFive": true,
+      "uniqueEvos": 8,
+      "ids": [
+        "lantern",
+        "embers",
+        "pickaxe",
+        "charges",
+        "spark",
+        "fireflies",
+        "stalactites",
+        "beam"
+      ],
+      "realXpCardAndFiveChestPickupsPerBuild": true,
+      "catalystsRetained": true,
+      "serverHashesMatch": true,
+      "fixtureCorrection": "One initial chest moved out of actual stairs collision before run; identical setup on client/server; no game change"
+    },
+    "registration": {
+      "cases": [
+        "hook-contact",
+        "mole-Q",
+        "rail-KB",
+        "chain-twohits",
+        "crowd-mixed",
+        "crowd-beetles",
+        "distinct-deaths",
+        "boss-phases",
+        "timer20-to21"
+      ],
+      "families": [
+        "ladle",
+        "ladle2",
+        "pour",
+        "boil"
+      ],
+      "morphMotion": true,
+      "phaseBoneClip": true,
+      "lidWorldLocked": true,
+      "fullDeaths": true,
+      "bossDeathSec": 4,
+      "crowd300MissingVisibleLives": 0,
+      "timer21Carryover": true,
+      "scope": "10000HP/invulnerability/enemyHP50 fixtures prove registration, not normal balance"
+    },
+    "atlas": {
+      "status": "NOT_ACCEPTED",
+      "reason": "Production CSP blocks embedded blob fetch; actual map=null",
+      "plainDefault": true
+    },
+    "fullGate": {
+      "check": true,
+      "tests": 1962,
+      "passed": 1961,
+      "failed": 0,
+      "skipped": 1,
+      "build": true
+    },
+    "failuresPreserved": 13,
+    "boundaries": [
+      "Accelerated starting setups, not continuous first15 waves",
+      "Three single-seed normalHP boss battles, not mass balance playtest",
+      "Clean performance benchmark and real phone not claimed",
+      "Atlas under production CSP NOT ACCEPTED; plain remains default",
+      "Offline HTML browser smoke pending root",
+      "Local commit only; not main/push/deploy"
+    ],
+    "htmlBrowserSmoke": "PENDING_ROOT",
+    "phoneVerified": false,
+    "cleanPerformanceBenchmark": false,
+    "deployed": false
+  },
+  "rootHTMLBrowserSmoke": "PENDING",
+  "ranChrome": false,
+  "ranBlender": false,
+  "ranFullBuild": false,
+  "gameSourceEdits": false,
+  "externalHelperEdits": false,
+  "progressionContext": {
+    "status": "POWERED_UPPER_FIXTURE_NOT_TYPICAL_PROGRESSION",
+    "receipt": "./progression-arithmetic.json",
+    "review": "./progression-context.md",
+    "totalUpgradeChoices": [
+      61,
+      64,
+      64
+    ],
+    "xpOnlyRequired": [
+      19520,
+      21440,
+      21440
+    ],
+    "evoChestsEach": 5,
+    "plannedXpThrough15": 8430,
+    "maxSweepThrough15": 600,
+    "plannedXpThrough19": 12429,
+    "maxSweepThrough19": 950,
+    "neededChestUpgradesBefore16": [
+      16,
+      23,
+      19
+    ],
+    "neededChestUpgradesBefore20": [
+      6,
+      14,
+      9
+    ],
+    "minimumRecipeReady": {
+      "upgradeChoices": 39,
+      "xpOnly": 8190,
+      "evoChests": 5
+    },
+    "conclusion": "Full fixture builds are a powered upper comparison requiring active chest collection/favorable choices, not typical or guaranteed at16/20. XP alone is insufficient. Arithmetic does not show impossibility with active chest route; three wins validate full-build functions/tactics, not progression or statistical balance."
+  },
+  "progressionArithmeticReceiptSHA256": "390e213689d89c7090a06f272e712cfe9d98ac5555b0c2a0ec08233b21bc7f36",
+  "topStatusUpdatedAt": "2026-10-12T09:26:50.479Z",
+  "topStatus": {
+    "localCommit": "4d354e33310ba3bd20272b27a90de552ccfa2732",
+    "combatScenarios": "root accepted locally",
+    "fullProgression": "separate boundary",
+    "metadataOnly": true
+  },
+  "finalMetadataVerification": {
+    "recordedAt": "2026-10-12T09:28:32.120Z",
+    "htmlSHA256": "e125b4eb4d881985064907d8e4a9d2a0a30b17f5c4ff45be9bb0bbafb8f1b79e",
+    "htmlBytes": 38526969,
+    "embeddedGLBsVerified": 11,
+    "gamePlainGLBsExact": 5,
+    "testedSourceArchiveExact": 40,
+    "docOnlySuccessorExactCodeFiles": 39,
+    "docOnlyChangedPaths": [
+      "docs/survivors/expansion-v2.md"
+    ],
+    "relativeLinksVerified": 79,
+    "viewerUnchanged": true,
+    "sourceArithmeticOnly": true,
+    "ranGameBuild": false,
+    "ranChrome": false,
+    "ranRuntime": false
+  }
+}

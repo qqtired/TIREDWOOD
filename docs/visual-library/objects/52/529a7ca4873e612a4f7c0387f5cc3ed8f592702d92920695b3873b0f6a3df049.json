@@ -1,0 +1,27 @@
+{
+  "id": "hookclaw",
+  "tris": 2549,
+  "parts": 9,
+  "clips": [
+    "hookclaw_idle",
+    "hookclaw_walk",
+    "hookclaw_windup",
+    "hookclaw_attack",
+    "hookclaw_hit",
+    "hookclaw_death"
+  ],
+  "bbox": [
+    [
+      -0.9494473934173584,
+      -1.1762348413467407,
+      0.0068645477294921875
+    ],
+    [
+      1.1460273265838623,
+      0.7368213534355164,
+      1.3837559223175049
+    ]
+  ],
+  "background": true,
+  "fps": 24
+}

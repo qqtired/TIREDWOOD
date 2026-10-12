@@ -1,0 +1,1598 @@
+{
+  "case": "crowd-mixed",
+  "seedCase": "crowd-mixed",
+  "automated": "PASS",
+  "visual": "PENDING_ROOT_REVIEW",
+  "sourceFreeze": "79c7aa9061682aefdbf130d1fcc03e5689c7ecfd3dde341bcc65a9eac089b332",
+  "flags": {
+    "nativeGlobalMenuResumed": true,
+    "ticksAdvanced": true,
+    "serverParity": true,
+    "live300": true,
+    "noMissingModels": true
+  },
+  "captures": [
+    "entry",
+    "crowd-running-performance",
+    "final-checkpoint"
+  ],
+  "elapsedMs": 12892,
+  "state": {
+    "tick": 230,
+    "hash": 2121164593,
+    "wave": 19,
+    "stage": "wave",
+    "end": "running",
+    "hero": {
+      "x": 120,
+      "z": 120,
+      "hp": 100,
+      "hpMax": 100,
+      "level": 1,
+      "qHold": 0,
+      "qCd": 0
+    },
+    "cards": false,
+    "chest": false,
+    "alive": 300,
+    "mobs": [
+      {
+        "id": 474,
+        "k": "hookclaw",
+        "x": 124.09759597014052,
+        "z": 120.81284656744283,
+        "hp": 421,
+        "die": 0,
+        "st": "walk",
+        "ax": 0,
+        "az": 0,
+        "kx": 0.020641348193260238,
+        "kz": 0.10168914155711234,
+        "stunT": 0
+      },
+      {
+        "id": 475,
+        "k": "hookclaw",
+        "x": 117.12152446859805,
+        "z": 119.56327154873564,
+        "hp": 421,
+        "die": 0,
+        "st": "walk",
+        "ax": 0,
+        "az": 0,
+        "kx": 0,
+        "kz": 0,
+        "stunT": 0
+      },
+      {
+        "id": 476,
+        "k": "hookclaw",
+        "x": 118.92251333149642,
+        "z": 124.5349873849491,
+        "hp": 421,
+        "die": 0,
+        "st": "walk",
+        "ax": 0,
+        "az": 0,
+        "kx": -0.09405681863024326,
+        "kz": 0.04381850790494074,
+        "stunT": 0
+      },
+      {
+        "id": 477,
+        "k": "hookclaw",
+        "x": 116.84433283596637,
+        "z": 120.67132717195666,
+        "hp": 421,
+        "die": 0,
+        "st": "walk",
+        "ax": 0,
+        "az": 0,
+        "kx": 0,
+        "kz": 0,
+        "stunT": 0
+      },
+      {
+        "id": 478,
+        "k": "hookclaw",
+        "x": 118.12520584748256,
+        "z": 123.65273798382509,
+        "hp": 421,
+        "die": 0,
+        "st": "walk",
+        "ax": 0,
+        "az": 0,
+        "kx": -0.10008893804467603,
+        "kz": 0.02736697365341742,
+        "stunT": 0
+      },
+      {
+        "id": 479,
+        "k": "hookclaw",
+        "x": 116.73514500091085,
+        "z": 121.70847535407196,
+        "hp": 421,
+        "die": 0,
+        "st": "walk",
+        "ax": 0,
+        "az": 0,
+        "kx": 0.014037602395514125,
+        "kz": 0.10280900974546583,
+        "stunT": 0
+      },
+      {
+        "id": 480,
+        "k": "hookclaw",
+        "x": 120.174757964435,
+        "z": 124.9700470262661,
+        "hp": 421,
+        "die": 0,
+        "st": "walk",
+        "ax": 0,
+        "az": 0,
+        "kx": -0.08252166045972742,
+        "kz": 0.06290407237077177,
+        "stunT": 0
+      },
+      {
+        "id": 481,
+        "k": "hookclaw",
+        "x": 117.45188551983345,
+        "z": 121.1485942623558,
+        "hp": 421,
+        "die": 0,
+        "st": "walk",
+        "ax": 0,
+        "az": 0,
+        "kx": 0,
+        "kz": 0,
+        "stunT": 0
+      },
+      {
+        "id": 482,
+        "k": "hookclaw",
+        "x": 121.70128329804113,
+        "z": 124.08684484993589,
+        "hp": 421,
+        "die": 0,
+        "st": "walk",
+        "ax": 0,
+        "az": 0,
+        "kx": -0.06179063765928458,
+        "kz": 0.08335864600338011,
+        "stunT": 0
+      },
+      {
+        "id": 483,
+        "k": "hookclaw",
+        "x": 120.05749308096924,
+        "z": 124.13471782838674,
+        "hp": 421,
+        "die": 0,
+        "st": "walk",
+        "ax": 0,
+        "az": 0,
+        "kx": 0,
+        "kz": 0,
+        "stunT": 0
+      },
+      {
+        "id": 484,
+        "k": "hookclaw",
+        "x": 121.15164820460771,
+        "z": 117.84961901333516,
+        "hp": 421,
+        "die": 0,
+        "st": "walk",
+        "ax": 0,
+        "az": 0,
+        "kx": 0,
+        "kz": 0,
+        "stunT": 0
+      },
+      {
+        "id": 485,
+        "k": "hookclaw",
+        "x": 119.1411256802303,
+        "z": 123.74940223069923,
+        "hp": 421,
+        "die": 0,
+        "st": "walk",
+        "ax": 0,
+        "az": 0,
+        "kx": 0.08717988589303903,
+        "kz": 0.05627090066397135,
+        "stunT": 0
+      },
+      {
+        "id": 486,
+        "k": "hookclaw",
+        "x": 115.89871062986109,
+        "z": 121.97230002904081,
+        "hp": 421,
+        "die": 0,
+        "st": "walk",
+        "ax": 0,
+        "az": 0,
+        "kx": -0.09491822217372935,
+        "kz": -0.041919898201646356,
+        "stunT": 0
+      },
+      {
+        "id": 487,
+        "k": "hookclaw",
+        "x": 121.51111767883155,
+        "z": 117.05351714767384,
+        "hp": 421,
+        "die": 0,
+        "st": "walk",
+        "ax": 0,
+        "az": 0,
+        "kx": 0,
+        "kz": 0,
+        "stunT": 0
+      },
+      {
+        "id": 488,
+        "k": "hookclaw",
+        "x": 116.6435263167188,
+        "z": 122.52301071672584,
+        "hp": 421,
+        "die": 0,
+        "st": "walk",
+        "ax": 0,
+        "az": 0,
+        "kx": -0.10197303466128259,
+        "kz": -0.019189762057584117,
+        "stunT": 0
+      },
+      {
+        "id": 489,
+        "k": "hookclaw",
+        "x": 120.15658348844747,
+        "z": 117.0997716969664,
+        "hp": 421,
+        "die": 0,
+        "st": "walk",
+        "ax": 0,
+        "az": 0,
+        "kx": 0,
+        "kz": 0,
+        "stunT": 0
+      },
+      {
+        "id": 490,
+        "k": "hookclaw",
+        "x": 117.36488623819439,
+        "z": 123.07028199427229,
+        "hp": 421,
+        "die": 0,
+        "st": "walk",
+        "ax": 0,
+        "az": 0,
+        "kx": -0.10376002519851409,
+        "kz": 0.0007771336188567156,
+        "stunT": 0
+      },
+      {
+        "id": 491,
+        "k": "hookclaw",
+        "x": 120.9496031734472,
+        "z": 124.33381667319627,
+        "hp": 421,
+        "die": 0,
+        "st": "walk",
+        "ax": 0,
+        "az": 0,
+        "kx": 0,
+        "kz": 0,
+        "stunT": 0
+      },
+      {
+        "id": 492,
+        "k": "wickmole",
+        "x": 114.84821629375944,
+        "z": 118.77790107693765,
+        "hp": 534,
+        "die": 0,
+        "st": "walk",
+        "ax": 0,
+        "az": 0,
+        "kx": 0.0011722029336647352,
+        "kz": -0.10375631405432706,
+        "stunT": 0
+      },
+      {
+        "id": 493,
+        "k": "wickmole",
+        "x": 125.65381972883635,
+        "z": 124.30483126215323,
+        "hp": 534,
+        "die": 0,
+        "st": "walk",
+        "ax": 0,
+        "az": 0,
+        "kx": 0.07870055117901571,
+        "kz": -0.06762373850932057,
+        "stunT": 0
+      },
+      {
+        "id": 494,
+        "k": "wickmole",
+        "x": 112.48624691949526,
+        "z": 122.75,
+        "hp": 534,
+        "die": 0,
+        "st": "walk",
+        "ax": 0,
+        "az": 0,
+        "kx": -0.03808465050410572,
+        "kz": -0.09652101409453773,
+        "stunT": 0
+      },
+      {
+        "id": 495,
+        "k": "wickmole",
+        "x": 126.579380628635,
+        "z": 122.68185651819661,
+        "hp": 534,
+        "die": 0,
+        "st": "walk",
+        "ax": 0,
+        "az": 0,
+        "kx": 0.058356233287288256,
+        "kz": -0.0857979999905442,
+        "stunT": 0
+      },
+      {
+        "id": 496,
+        "k": "wickmole",
+        "x": 113.92835389807007,
+        "z": 122.63779819967097,
+        "hp": 534,
+        "die": 0,
+        "st": "walk",
+        "ax": 0,
+        "az": 0,
+        "kx": -0.041346023051875236,
+        "kz": -0.09516960199376498,
+        "stunT": 0
+      },
+      {
+        "id": 497,
+        "k": "wickmole",
+        "x": 126.90867398989444,
+        "z": 121.14038402750916,
+        "hp": 534,
+        "die": 0,
+        "st": "walk",
+        "ax": 0,
+        "az": 0,
+        "kx": 0.038194243008783914,
+        "kz": -0.09647769984221118,
+        "stunT": 0
+      },
+      {
+        "id": 498,
+        "k": "railhopper",
+        "x": 113.13567605907231,
+        "z": 126.97427876073415,
+        "hp": 356,
+        "die": 0,
+        "st": "walk",
+        "ax": 0,
+        "az": 0,
+        "kx": -0.084126719041992,
+        "kz": -0.060740776329312476,
+        "stunT": 0
+      },
+      {
+        "id": 499,
+        "k": "railhopper",
+        "x": 128.7461332814648,
+        "z": 125.72404190448222,
+        "hp": 356,
+        "die": 0,
+        "st": "walk",
+        "ax": 0,
+        "az": 0,
+        "kx": 0.06856285807300448,
+        "kz": -0.07788376762021004,
+        "stunT": 0
+      },
+      {
+        "id": 500,
+        "k": "railhopper",
+        "x": 116.10619904428472,
+        "z": 128.8198737817268,
+        "hp": 356,
+        "die": 0,
+        "st": "walk",
+        "ax": 0,
+        "az": 0,
+        "kx": -0.10023950784173281,
+        "kz": -0.026810218826130855,
+        "stunT": 0
+      },
+      {
+        "id": 501,
+        "k": "railhopper",
+        "x": 130.27044255139796,
+        "z": 122.01802551078147,
+        "hp": 356,
+        "die": 0,
+        "st": "walk",
+        "ax": 0,
+        "az": 0,
+        "kx": 0.034226999304833854,
+        "kz": -0.09795539436113121,
+        "stunT": 0
+      },
+      {
+        "id": 502,
+        "k": "railhopper",
+        "x": 117.0237044089663,
+        "z": 129.14668983175585,
+        "hp": 356,
+        "die": 0,
+        "st": "walk",
+        "ax": 0,
+        "az": 0,
+        "kx": -0.10244048704977303,
+        "kz": -0.016513430257312424,
+        "stunT": 0
+      },
+      {
+        "id": 503,
+        "k": "railhopper",
+        "x": 130.36561168012676,
+        "z": 120.12756034388732,
+        "hp": 356,
+        "die": 0,
+        "st": "walk",
+        "ax": 0,
+        "az": 0,
+        "kx": 0.016103787263098808,
+        "kz": -0.10250568180175523,
+        "stunT": 0
+      },
+      {
+        "id": 504,
+        "k": "railhopper",
+        "x": 118.2084453352334,
+        "z": 129.44311288525805,
+        "hp": 356,
+        "die": 0,
+        "st": "walk",
+        "ax": 0,
+        "az": 0,
+        "kx": -0.10370776512717575,
+        "kz": -0.0033832260025579847,
+        "stunT": 0
+      },
+      {
+        "id": 505,
+        "k": "railhopper",
+        "x": 130.12012259687842,
+        "z": 118.36482867925794,
+        "hp": 356,
+        "die": 0,
+        "st": "walk",
+        "ax": 0,
+        "az": 0,
+        "kx": -0.0015613468356350186,
+        "kz": -0.10375118776147425,
+        "stunT": 0
+      },
+      {
+        "id": 506,
+        "k": "chainwarden",
+        "x": 117.77105457867347,
+        "z": 122.04363066678388,
+        "hp": 5824,
+        "die": 0,
+        "st": "walk",
+        "ax": 0,
+        "az": 0,
+        "kx": -0.0986940518544482,
+        "kz": -0.032034838760470266,
+        "stunT": 0
+      }
+    ],
+    "bosses": [],
+    "marks": [],
+    "enemyCharges": [],
+    "weapons": [
+      {
+        "id": "lantern",
+        "lv": 1,
+        "evo": 0
+      }
+    ],
+    "stats": {
+      "kills": 0,
+      "bosses": 0,
+      "dmg": {},
+      "killedBy": "",
+      "waves": 18,
+      "ms": 0,
+      "chests": 0,
+      "lamps": 0
+    },
+    "fx": []
+  },
+  "frames": [
+    {
+      "tick": 0,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 21,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 21,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 24,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 27,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 30,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 33,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 37,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 40,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 43,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 46,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 49,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 52,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 55,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 58,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 62,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 65,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 68,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 71,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 74,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 77,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 80,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 83,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 87,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 90,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 93,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 96,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 99,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 102,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 105,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 108,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 111,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 114,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 118,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 121,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 124,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 127,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 130,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 133,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 137,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 139,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 143,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 146,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 149,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 152,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 155,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 159,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 161,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 164,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 167,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 171,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 174,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 177,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 180,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 183,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 186,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 189,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 192,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 195,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 198,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 202,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 205,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 208,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 211,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 214,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 230,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    },
+    {
+      "tick": 230,
+      "hp": 100,
+      "alive": 300,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "missing": 0
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "source": "Actual mesh bounding corners projected by current game camera",
+  "visible": true,
+  "p3keep": true,
+  "bounds": {
+    "x": [
+      -0.13736581362934536,
+      0.09696410487159834
+    ],
+    "y": [
+      0.2555652523749915,
+      0.42470682208542837
+    ]
+  },
+  "wholeMeshOnScreen": true,
+  "screenshot": "/tmp/tiredwood-farm-pack1.NNujvo/roof-shark-final-setup.png"
+}

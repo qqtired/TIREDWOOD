@@ -1,0 +1,1823 @@
+{
+  "recordedAt": "2026-10-12T08:18:26.763Z",
+  "copiedFiles": 259,
+  "bytes": 35819816,
+  "allCopiesSHAExact": true,
+  "originalReceiptsUnchanged": true,
+  "selectedScreenshots": 24,
+  "files": [
+    {
+      "path": "./identity/tested-r6-freeze.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-source-freeze-r6.json",
+      "bytes": 11105,
+      "sha256": "bcb8a0c16bc34e2f521ac81f7683c72e43457eeea2506d228e374cb07c97bfaf",
+      "label": "Original tested identity; never rewritten to doc-only successor"
+    },
+    {
+      "path": "./identity/tested-source/client/assets/dungeon/PROVENANCE-expansion-v2.md",
+      "source": "../../../../../../unavailable.html",
+      "bytes": 1556,
+      "sha256": "56bb738f5d7e65183a9d6c76f0f6182bce87f8865a68678fbc6aa46448b82514",
+      "label": "Exact tested R6 source"
+    },
+    {
+      "path": "./identity/tested-source/client/assets/dungeon/icons/PROVENANCE.md",
+      "source": "../../../../../../unavailable.html",
+      "bytes": 42985,
+      "sha256": "310a04acd6e650b976021a23b6fa0294217a0ef940bdac90eaa2f47bd79a77dc",
+      "label": "Exact tested R6 source"
+    },
+    {
+      "path": "./identity/tested-source/client/dungeon/assets.ts",
+      "source": "../../../../../../unavailable.html",
+      "bytes": 4991,
+      "sha256": "d8d63c769a58b0f5abee2fdedcda4b28cb4d80c2ad72c19885da3a8ba1a51087",
+      "label": "Exact tested R6 source"
+    },
+    {
+      "path": "./identity/tested-source/client/dungeon/boss.ts",
+      "source": "../../../../../../unavailable.html",
+      "bytes": 7898,
+      "sha256": "69767abe83eb4da5cc8dc4025649bd96260ea4ec939c8240aa7c8a251b62e41e",
+      "label": "Exact tested R6 source"
+    },
+    {
+      "path": "./identity/tested-source/client/dungeon/data.ts",
+      "source": "../../../../../../unavailable.html",
+      "bytes": 4911,
+      "sha256": "d25df64b10b8a606541a7b0148cb940632267985c25c74e86ea5002f0881f805",
+      "label": "Exact tested R6 source"
+    },
+    {
+      "path": "./identity/tested-source/client/dungeon/fx.ts",
+      "source": "../../../../../../unavailable.html",
+      "bytes": 20711,
+      "sha256": "4e288c11f0093d7d43c0455fddbc188ca8b4e859964ed2082fc50c2eedfb2d5e",
+      "label": "Exact tested R6 source"
+    },
+    {
+      "path": "./identity/tested-source/client/dungeon/game.ts",
+      "source": "../../../../../../unavailable.html",
+      "bytes": 66172,
+      "sha256": "160deee9061343a1722a736691f1026f0684d06db3999e7eab3cc0ff3cbf8142",
+      "label": "Exact tested R6 source"
+    },
+    {
+      "path": "./identity/tested-source/client/dungeon/hero.ts",
+      "source": "../../../../../../unavailable.html",
+      "bytes": 8210,
+      "sha256": "7a7495779d57d458bf53bff5df930ffc3f2c8aef7cc4bb4f196c5bcecc69f7de",
+      "label": "Exact tested R6 source"
+    },
+    {
+      "path": "./identity/tested-source/client/dungeon/mobs.ts",
+      "source": "../../../../../../unavailable.html",
+      "bytes": 20339,
+      "sha256": "10b4c2b92682699d037a796a9e7823fdcac6436cbf6663f11a97f71aed65263b",
+      "label": "Exact tested R6 source"
+    },
+    {
+      "path": "./identity/tested-source/client/dungeon/mock.ts",
+      "source": "../../../../../../unavailable.html",
+      "bytes": 35313,
+      "sha256": "9cf186e97f7c9b502cc068ea8d943a6398ced96af7d0c265a8bc7b9080af6358",
+      "label": "Exact tested R6 source"
+    },
+    {
+      "path": "./identity/tested-source/client/dungeon/simview.ts",
+      "source": "../../../../../../unavailable.html",
+      "bytes": 32730,
+      "sha256": "b496b80edde01aa72e9188c4512c78a027621de8ce1ad1f62d876b09fa98e7fc",
+      "label": "Exact tested R6 source"
+    },
+    {
+      "path": "./identity/tested-source/client/dungeon/view.ts",
+      "source": "../../../../../../unavailable.html",
+      "bytes": 9392,
+      "sha256": "ae7216c4848807727a6b3b07ce081c51f170ba1a414522390cb6010f2926f2fe",
+      "label": "Exact tested R6 source"
+    },
+    {
+      "path": "./identity/tested-source/client/dungeon/weaponvisuals.ts",
+      "source": "../../../../../../unavailable.html",
+      "bytes": 4388,
+      "sha256": "05938d3968e52edbf34f2109377c86d978de476e88804967099882db23c0645d",
+      "label": "Exact tested R6 source"
+    },
+    {
+      "path": "./identity/tested-source/client/dungeon/zones.ts",
+      "source": "../../../../../../unavailable.html",
+      "bytes": 23113,
+      "sha256": "83dc291dd57e0a160bed63017ee512c38470cfcaef67d09e3b044f8f5eb73d27",
+      "label": "Exact tested R6 source"
+    },
+    {
+      "path": "./identity/tested-source/docs/superpowers/plans/2026-10-12-dungeon-expansion-v2.md",
+      "source": "../../../../../../unavailable.html",
+      "bytes": 7387,
+      "sha256": "f4916b57905fd96284a530c8fabee3133be1ab5596010c5e8e2ab6a30987f1e1",
+      "label": "Exact tested R6 source"
+    },
+    {
+      "path": "./identity/tested-source/docs/survivors/design-data.json",
+      "source": "../../../../../../unavailable.html",
+      "bytes": 90636,
+      "sha256": "932a6775825747f3126c596dea0143cf5b34b1b040e87c3e05e45a20f5965849",
+      "label": "Exact tested R6 source"
+    },
+    {
+      "path": "./identity/tested-source/docs/survivors/expansion-v2.md",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-source-r5-archive/files/docs/survivors/expansion-v2.md",
+      "bytes": 18119,
+      "sha256": "26312b3265d657e785ecc53f7807744e51264ef3c91387a7be88cff59ceb64ab",
+      "label": "Exact tested R6 source"
+    },
+    {
+      "path": "./identity/tested-source/shared/dungeon/boss.ts",
+      "source": "../../../../../../unavailable.html",
+      "bytes": 13368,
+      "sha256": "fd9fd375458225256816fd34ea575d05e53dea348bc70e40a2bec9502b941734",
+      "label": "Exact tested R6 source"
+    },
+    {
+      "path": "./identity/tested-source/shared/dungeon/cauldron.ts",
+      "source": "../../../../../../unavailable.html",
+      "bytes": 5066,
+      "sha256": "186ee5b9921c7a9142f07733f2b3bd043ff4fd7168288426bda7433a485e87c5",
+      "label": "Exact tested R6 source"
+    },
+    {
+      "path": "./identity/tested-source/shared/dungeon/core.ts",
+      "source": "../../../../../../unavailable.html",
+      "bytes": 11618,
+      "sha256": "af9099a0b414de38be0b4a8fec5cb8721d1a403b1a2037d809d84be92acdb6b2",
+      "label": "Exact tested R6 source"
+    },
+    {
+      "path": "./identity/tested-source/shared/dungeon/data.ts",
+      "source": "../../../../../../unavailable.html",
+      "bytes": 12487,
+      "sha256": "2c4dd3483a1cdde6b723e52d7b654793818df4a8f585b4798ce3f32f1ef1121b",
+      "label": "Exact tested R6 source"
+    },
+    {
+      "path": "./identity/tested-source/shared/dungeon/director.ts",
+      "source": "../../../../../../unavailable.html",
+      "bytes": 22073,
+      "sha256": "ffa09a8e4295edcb8a6a0c63df2ac0d018b49c3a31caea21e75da6935eeb62ae",
+      "label": "Exact tested R6 source"
+    },
+    {
+      "path": "./identity/tested-source/shared/dungeon/enemycharges.ts",
+      "source": "../../../../../../unavailable.html",
+      "bytes": 980,
+      "sha256": "ce0e6df23c1ba86acb42d4a3cdbc7ea0f44c8b096a08aecf0aab42cd1180cac1",
+      "label": "Exact tested R6 source"
+    },
+    {
+      "path": "./identity/tested-source/shared/dungeon/expansion.ts",
+      "source": "../../../../../../unavailable.html",
+      "bytes": 5595,
+      "sha256": "df6e201796818accfdab08fb3a9d60c9582f484dbf1f3fe1925b950a8341ca78",
+      "label": "Exact tested R6 source"
+    },
+    {
+      "path": "./identity/tested-source/shared/dungeon/gen-design.ts",
+      "source": "../../../../../../unavailable.html",
+      "bytes": 54087,
+      "sha256": "75a034d8ea926cfb34e9c2c4a64214f60c99f7999b9604f64cb80244c9b2ced1",
+      "label": "Exact tested R6 source"
+    },
+    {
+      "path": "./identity/tested-source/shared/dungeon/hero.ts",
+      "source": "../../../../../../unavailable.html",
+      "bytes": 7119,
+      "sha256": "c2d62fed27934a149d1708da3568ab5f3b63121e3f4feb22bbd283fbe0fc44be",
+      "label": "Exact tested R6 source"
+    },
+    {
+      "path": "./identity/tested-source/shared/dungeon/mobs.ts",
+      "source": "../../../../../../unavailable.html",
+      "bytes": 20649,
+      "sha256": "da51aea88bb3ef3bfaf008b3a41c27811ad715bef2165050f0a9f1f763926299",
+      "label": "Exact tested R6 source"
+    },
+    {
+      "path": "./identity/tested-source/shared/dungeon/pickups.ts",
+      "source": "../../../../../../unavailable.html",
+      "bytes": 8445,
+      "sha256": "90508eac73a77fa121ffe86c1a1b3d2d24662569c5cde2864ec2ae44537af382",
+      "label": "Exact tested R6 source"
+    },
+    {
+      "path": "./identity/tested-source/shared/dungeon/progress.ts",
+      "source": "../../../../../../unavailable.html",
+      "bytes": 10511,
+      "sha256": "b4721b606669d70d824126526605aafd06e898cfd92bcfab851178ed52cdee80",
+      "label": "Exact tested R6 source"
+    },
+    {
+      "path": "./identity/tested-source/shared/dungeon/props.ts",
+      "source": "../../../../../../unavailable.html",
+      "bytes": 23582,
+      "sha256": "163ee32657b4410eb52a13d0dc8aed0705798e1ca5bd017c38b96f0e7da2806b",
+      "label": "Exact tested R6 source"
+    },
+    {
+      "path": "./identity/tested-source/shared/dungeon/sim.ts",
+      "source": "../../../../../../unavailable.html",
+      "bytes": 11053,
+      "sha256": "9e285f3b383603a4c2abc498988f622006c4e5aa3b6d8b6f7b5e1f53c1e7a163",
+      "label": "Exact tested R6 source"
+    },
+    {
+      "path": "./identity/tested-source/shared/dungeon/types.ts",
+      "source": "../../../../../../unavailable.html",
+      "bytes": 27191,
+      "sha256": "9b1c97fcd0bf58efa4c0f2d44968da9e8cb63afb4b7feb624e72d2f568fd8def",
+      "label": "Exact tested R6 source"
+    },
+    {
+      "path": "./identity/tested-source/shared/dungeon/weapons.ts",
+      "source": "../../../../../../unavailable.html",
+      "bytes": 22490,
+      "sha256": "6a7a5bf12bfd51fbdf0493660f5310a307f013e3b2f851cf381a3843b3b09b40",
+      "label": "Exact tested R6 source"
+    },
+    {
+      "path": "./identity/tested-source/test/dungeon-cauldron-view.test.ts",
+      "source": "../../../../../../unavailable.html",
+      "bytes": 2417,
+      "sha256": "b74954665d204e9feb4684042ec9bc33dc8ce5694c8ec01b91cab3ead92ffda9",
+      "label": "Exact tested R6 source"
+    },
+    {
+      "path": "./identity/tested-source/test/dungeon-expansion-boss-callers.test.ts",
+      "source": "../../../../../../unavailable.html",
+      "bytes": 2482,
+      "sha256": "ea9e1b4782d105655f3b361bfc4ac3fb07bfc5231300df686766cefb149b36fb",
+      "label": "Exact tested R6 source"
+    },
+    {
+      "path": "./identity/tested-source/test/dungeon-expansion-capacity.test.ts",
+      "source": "../../../../../../unavailable.html",
+      "bytes": 3169,
+      "sha256": "f6da73648625b98137566e247fa780d0f6e0a812565e3ff91385da40620b8dfb",
+      "label": "Exact tested R6 source"
+    },
+    {
+      "path": "./identity/tested-source/test/dungeon-expansion-curse.test.ts",
+      "source": "../../../../../../unavailable.html",
+      "bytes": 3397,
+      "sha256": "6aa9bee5fc0403a4ec50be405bd1e69ba9b57bfd5599b318c09e2cd52a509281",
+      "label": "Exact tested R6 source"
+    },
+    {
+      "path": "./identity/tested-source/test/dungeon-expansion-visual.test.ts",
+      "source": "../../../../../../unavailable.html",
+      "bytes": 2948,
+      "sha256": "45aa5d25a9875e5f3f17940a3def0e6adfdff8e931531cef9b26f1ca77e4241d",
+      "label": "Exact tested R6 source"
+    },
+    {
+      "path": "./identity/tested-source/test/dungeon-expansion-weapons.test.ts",
+      "source": "../../../../../../unavailable.html",
+      "bytes": 8716,
+      "sha256": "e62dcb1517eb5430d5d9277909dcc02287c02551f0505b65f9ba09fbb48d948a",
+      "label": "Exact tested R6 source"
+    },
+    {
+      "path": "./identity/tested-source/test/dungeon-expansion.test.ts",
+      "source": "../../../../../../unavailable.html",
+      "bytes": 8696,
+      "sha256": "ca30aa00d7e204afd8402a0c29e184c52fd992ba238c20e7ab7dd5e7683a017e",
+      "label": "Exact tested R6 source"
+    },
+    {
+      "path": "./identity/doc-only-successor-expansion-v2.md",
+      "source": "../../../../../../unavailable.html",
+      "bytes": 22515,
+      "sha256": "be1e3533c9102a86b67ee024cae80ec847cb8196f0ee6f9934b12b03de360dc1",
+      "label": "Root doc-only handoff after gameplay acceptance"
+    },
+    {
+      "path": "./cases/chain-twohits/canonical-batch-result.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/batch-result.json",
+      "bytes": 97260,
+      "sha256": "438e3daab58530426ba46f7d5fd6a739bf41ac68d4a8726e635c50549ca07192",
+      "label": "Original chain PASS survives in batch results; per-case result overwritten by later atlas EEXIST retained"
+    },
+    {
+      "path": "./cases/hook-contact/initial-setup.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788845093-C/hook-contact/initial-setup.json",
+      "bytes": 789,
+      "sha256": "f7200776f88f29500a0af1a51cd75ad90ab835145eea5fd57111966cf670c09b",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/hook-contact/entry-server-replay.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788845093-C/hook-contact/entry-server-replay.json",
+      "bytes": 411,
+      "sha256": "d3d684594e6a422ecdc501a44632688ddd786706c22fe10709ab53c8c7c52d52",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788845093-C/hook-contact/final-checkpoint.json",
+      "bytes": 6306,
+      "sha256": "ba8f82d3f5b37338ea4817d30a5819a4d85b8d95df100a82c5c209fe5f231d0b",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/hook-contact/final-checkpoint-server-replay.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788845093-C/hook-contact/final-checkpoint-server-replay.json",
+      "bytes": 415,
+      "sha256": "5b7db137b8151359cfb939ce6070b6435c777c403129d2be614ca828a37adb41",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/hook-contact/result.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788845093-C/hook-contact/result.json",
+      "bytes": 3862,
+      "sha256": "da6dc8c61f62e2a00e8f4945260d0a5b3874a00aacc90b4b8c92446094dd602f",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788845093-C/hook-contact/hook-before.json",
+      "bytes": 6598,
+      "sha256": "0628674333754750a3a2337779f0ed863a55197285de1a1d0d114bbafb064c5a",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/hook-contact/hook-before-server-replay.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788845093-C/hook-contact/hook-before-server-replay.json",
+      "bytes": 414,
+      "sha256": "c459789bd44b4655754c7502b136d9f62a0619eb15d631a394f8cf1a202f42ed",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788845093-C/hook-contact/hook-impact.json",
+      "bytes": 6705,
+      "sha256": "c9d9a5d26dee28c67eff466edb0a4ef257e43a2b2973333bd1889a574a2b8f36",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/hook-contact/hook-impact-server-replay.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788845093-C/hook-contact/hook-impact-server-replay.json",
+      "bytes": 415,
+      "sha256": "d02a0a30f0017222f68f77e04ab095de828580b54b7f80b982f8f2f86a10b5d7",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788845093-C/hook-contact/hook-full-recover.json",
+      "bytes": 6298,
+      "sha256": "e3760b2e8382c002469e7d5ca563a0c0d351a9aeda57e65a1dd0a55aac2b5e55",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/hook-contact/hook-full-recover-server-replay.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788845093-C/hook-contact/hook-full-recover-server-replay.json",
+      "bytes": 415,
+      "sha256": "5b7db137b8151359cfb939ce6070b6435c777c403129d2be614ca828a37adb41",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/hook-contact/hook-impact.png",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788845093-C/hook-contact/hook-impact.png",
+      "bytes": 1211883,
+      "sha256": "0f75ac43ee1c9a9aab3d1b481e02c26047971f0bfe38ba35f767dd893702307a",
+      "label": "Selected actual game screenshot, root reviewed"
+    },
+    {
+      "path": "./cases/mole-Q/initial-setup.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/mole-Q/initial-setup.json",
+      "bytes": 785,
+      "sha256": "df49eb5d994fd66e265ceedffda8daa53f2b11a25963c7013c814ee7fb86b429",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/mole-Q/entry-server-replay.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/mole-Q/entry-server-replay.json",
+      "bytes": 413,
+      "sha256": "5d010c50f7950756923b4a7e8681c3c9515d763317f04feb0299208c718c58a5",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/mole-Q/final-checkpoint.json",
+      "bytes": 6994,
+      "sha256": "d096dc1d4895747d5137ea123492bb6d444c45647e598171589cd2aea611c78d",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/mole-Q/final-checkpoint-server-replay.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/mole-Q/final-checkpoint-server-replay.json",
+      "bytes": 438,
+      "sha256": "21581b9d23ec7996ca65f12345070c4adcc8861f1006f6c5f8f7d4e319d97d35",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/mole-Q/result.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/mole-Q/result.json",
+      "bytes": 14624,
+      "sha256": "607c907cef3e2199f564308e19baa4e4770f311363bc963043be6e2c54eb045f",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/mole-Q/mole-real-full-Q.json",
+      "bytes": 6941,
+      "sha256": "100b4ef753012d1cc88d8395479c3004175ad1313d26bcecaafc1668bfe7ea90",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/mole-Q/mole-real-full-Q-server-replay.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/mole-Q/mole-real-full-Q-server-replay.json",
+      "bytes": 434,
+      "sha256": "ac16203d92ffe17cf1c41fd30e7d46cb0856729cdbab457c45a004c30b88657d",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/mole-Q/mole-planted.json",
+      "bytes": 6994,
+      "sha256": "7e4782fef0a5ded9310a51cd0711b504d48122e61b4c5573a99408d8e494227e",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/mole-Q/mole-planted-server-replay.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/mole-Q/mole-planted-server-replay.json",
+      "bytes": 438,
+      "sha256": "21581b9d23ec7996ca65f12345070c4adcc8861f1006f6c5f8f7d4e319d97d35",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/mole-Q/plant-contact.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/mole-Q/plant-contact.json",
+      "bytes": 533,
+      "sha256": "14ce90603280b2bd08a0c2caec966029d7f5b55f335e8d87581441347589e955",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/mole-Q/mole-planted.png",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/mole-Q/mole-planted.png",
+      "bytes": 1207744,
+      "sha256": "7246fec66798918baef9632c31d90871221e87ba28ba3dc48b9175188e7af6d6",
+      "label": "Selected actual game screenshot, root reviewed"
+    },
+    {
+      "path": "./cases/rail-KB/initial-setup.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/rail-KB/initial-setup.json",
+      "bytes": 707,
+      "sha256": "2e2430bd4c5b22e5bc7e391a0603a021160b8b071d4c88fe20ae0a4ab66ba8f9",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/rail-KB/entry-server-replay.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/rail-KB/entry-server-replay.json",
+      "bytes": 413,
+      "sha256": "8d26418844e4bca19a2453401d9951ab57954e97184e4849e2762b56287e6b0a",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/rail-KB/final-checkpoint.json",
+      "bytes": 6505,
+      "sha256": "2c75c8c34c18ed030c36ecf779919e6eb7307a44d5201650be4f45f9dfcbf78d",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/rail-KB/final-checkpoint-server-replay.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/rail-KB/final-checkpoint-server-replay.json",
+      "bytes": 441,
+      "sha256": "5ac8ea70882ec73572d4d916deed14a80af5e0a5f877afe622900ed278b29c4d",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/rail-KB/result.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/rail-KB/result.json",
+      "bytes": 6140,
+      "sha256": "0589e18dbadcc19f8359e69b7ec1fe7f91dc9db702c86356d8133becb3d261da",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/rail-KB/rail-KB-warning.json",
+      "bytes": 7531,
+      "sha256": "a5a83a51cb58d6fcab100d962b5278262971243783e5d8070976c0f1aa0f199d",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/rail-KB/rail-KB-warning-server-replay.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/rail-KB/rail-KB-warning-server-replay.json",
+      "bytes": 440,
+      "sha256": "1e8fa58ec7742b4512953241c217374a817242e05d8f5e8f1243d0c459ef2b63",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/rail-KB/rail-shot.json",
+      "bytes": 7505,
+      "sha256": "c5887ab3b3925469423b7eb88f2dac4b76d0a3a821ba4a169483864723fcfc7f",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/rail-KB/rail-KB-warning.png",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/rail-KB/rail-KB-warning.png",
+      "bytes": 1220005,
+      "sha256": "5da8ec23724cf0bd046348a6a097da77fb79530c89b2b5a8c6690f5637c855a9",
+      "label": "Selected actual game screenshot, root reviewed"
+    },
+    {
+      "path": "./cases/chain-twohits/initial-setup.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/chain-twohits/initial-setup.json",
+      "bytes": 790,
+      "sha256": "853dca54018553f1793541066346151c90b7d72ab4af69d65b48761dc7421c6f",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/chain-twohits/entry-server-replay.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/chain-twohits/entry-server-replay.json",
+      "bytes": 413,
+      "sha256": "1e27e8c1ac78866e1641e59dd096979eabeb354474c3f20fa371b89a70eb8741",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/chain-twohits/final-checkpoint.json",
+      "bytes": 6602,
+      "sha256": "15b5ae790660971a9de847db2025ea93574df88bde297b563fc5cb3ef15e6136",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/chain-twohits/final-checkpoint-server-replay.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/chain-twohits/final-checkpoint-server-replay.json",
+      "bytes": 416,
+      "sha256": "f05229ea361fdfe2bfbbfb429443c8e04f46563fc036dd69a0d187af8d6140f3",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/chain-twohits/result.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/chain-twohits/result.json",
+      "bytes": 343,
+      "sha256": "c7f9b815d53f477915dddf78e0eb610df2760b485992776b0ba0def9385e23ae",
+      "label": "Raw overwritten atlas/EEXIST FAIL; canonical batch is the chain receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/chain-twohits/chain-first-contact.json",
+      "bytes": 6607,
+      "sha256": "ca36fd00de014f6e9126aaeb957b864ce45cb8fd79ec72792b1c39c128ad2f04",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/chain-twohits/chain-first-contact-server-replay.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/chain-twohits/chain-first-contact-server-replay.json",
+      "bytes": 416,
+      "sha256": "4771b9df01a2c0006e25197cc7d87bcbc20bb1f8790d72c66ef85124118441be",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/chain-twohits/chain-back-contact.json",
+      "bytes": 6608,
+      "sha256": "451c3a184f40cc5dfcb38ee17253a6aca20e4f3e8d4c8568deb50a921d0bfd81",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/chain-twohits/chain-back-contact-server-replay.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/chain-twohits/chain-back-contact-server-replay.json",
+      "bytes": 416,
+      "sha256": "f05229ea361fdfe2bfbbfb429443c8e04f46563fc036dd69a0d187af8d6140f3",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/chain-twohits/chain-first-contact.png",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/chain-twohits/chain-first-contact.png",
+      "bytes": 1217983,
+      "sha256": "a9b3601a0568a01221adf2b1fe8e97cdc3deade8fc19362da95045a195d68b72",
+      "label": "Selected actual game screenshot, root reviewed"
+    },
+    {
+      "path": "./cases/chain-twohits/chain-back-contact.png",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/chain-twohits/chain-back-contact.png",
+      "bytes": 1229862,
+      "sha256": "1e4a814db66311c635775d50860d874efa9e37791d9548af0f6a208d604fb9bd",
+      "label": "Selected actual game screenshot, root reviewed"
+    },
+    {
+      "path": "./cases/crowd-mixed/initial-setup.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/crowd-mixed/initial-setup.json",
+      "bytes": 722,
+      "sha256": "50bf8f36df4dcbd2b0ea26495f322bbb93577ba141d69b346df1fbdc6b3ef621",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/crowd-mixed/entry-server-replay.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/crowd-mixed/entry-server-replay.json",
+      "bytes": 411,
+      "sha256": "25d618fdf9e278da0c78f1f4000303623d8f97ed13a262ce5520708dade6bfa1",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/crowd-mixed/final-checkpoint.json",
+      "bytes": 16921,
+      "sha256": "89a3e65e5069d185794c63a75f8219b5a68cf1f27c4589225fd40ae718b5fab5",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/crowd-mixed/final-checkpoint-server-replay.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/crowd-mixed/final-checkpoint-server-replay.json",
+      "bytes": 418,
+      "sha256": "e96a5592789ea82c2fbcd00eaa6f20e83e4f27df21142c077b39e242750fa9df",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/crowd-mixed/result.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/crowd-mixed/result.json",
+      "bytes": 32392,
+      "sha256": "876a8d7dfa452cde5280aef76a3f8b506a73f06e28b17590ba5fa6f0d7d7df0e",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/crowd-mixed/crowd-running-performance.json",
+      "bytes": 16838,
+      "sha256": "b3b69604c5b44d4a118f8fd8c3ba894f1981c0fd3893b4471359d7bf9ed8e04e",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/crowd-mixed/crowd-running-performance.png",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/crowd-mixed/crowd-running-performance.png",
+      "bytes": 1375813,
+      "sha256": "cd5ff074c6b747c119e33ac382bc1cd1cde18feb3dad99234f6af699c6a9184a",
+      "label": "Selected actual game screenshot, root reviewed"
+    },
+    {
+      "path": "./cases/crowd-beetles/initial-setup.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/crowd-beetles/initial-setup.json",
+      "bytes": 724,
+      "sha256": "eef467b1d5c15dc80d4c7618c499582e3986f4290e8ccdbfe7140c86f887b14f",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/crowd-beetles/entry-server-replay.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/crowd-beetles/entry-server-replay.json",
+      "bytes": 413,
+      "sha256": "e1833c035aa21657cbcbd1c39347c434a3e46f951eadc6f838423d50888984b9",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/crowd-beetles/final-checkpoint.json",
+      "bytes": 5952,
+      "sha256": "0bf7cee7c84f71f66740d224a7d4c53cb50421ce625140f97bd5e715654cfac6",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/crowd-beetles/final-checkpoint-server-replay.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/crowd-beetles/final-checkpoint-server-replay.json",
+      "bytes": 419,
+      "sha256": "0839cf5d9f41d4d89bfad7f94f027701ecb696f946a82760dd813b3c794fa568",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/crowd-beetles/result.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/crowd-beetles/result.json",
+      "bytes": 22441,
+      "sha256": "3c8429fee2b8ef627157cb69750bdaadc0b134db8e60d2706eaee5e49b2a3c95",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/crowd-beetles/crowd-running-performance.json",
+      "bytes": 5949,
+      "sha256": "9ac17aec27a2f33fa7ecb53ea5ffaaa4834566a0f047c57f8b6daa837e3f21a4",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/crowd-beetles/crowd-running-performance.png",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/crowd-beetles/crowd-running-performance.png",
+      "bytes": 1506704,
+      "sha256": "9019cba864cc9ee8d640b9ff0a0a1ff267fb0e7409b8a7583677aacd1dfa18ac",
+      "label": "Selected actual game screenshot, root reviewed"
+    },
+    {
+      "path": "./cases/distinct-deaths/initial-setup.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791789380183-C/distinct-deaths/initial-setup.json",
+      "bytes": 717,
+      "sha256": "f9b7d224496b32417e22ecd9d054773abdf169e82a15913f6d1867145e375af1",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/distinct-deaths/entry-server-replay.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791789380183-C/distinct-deaths/entry-server-replay.json",
+      "bytes": 414,
+      "sha256": "1db7863f0bc65ab36e287f6f0949ca99aa6ee8cc25b8ba976ce3d94db9e7783e",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791789380183-C/distinct-deaths/final-checkpoint.json",
+      "bytes": 9868,
+      "sha256": "caf1b2e9ccce40ef27ffcda9c8dea85dfd50b9adadc31a55d4f36ec5d96bc508",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/distinct-deaths/final-checkpoint-server-replay.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791789380183-C/distinct-deaths/final-checkpoint-server-replay.json",
+      "bytes": 448,
+      "sha256": "300a59930d26e2a49ae8b2264974dce4de03f48a341135d61be8dca853b8b7a6",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/distinct-deaths/result.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791789380183-C/distinct-deaths/result.json",
+      "bytes": 13906,
+      "sha256": "deadde2c2c9701c384adddfea237bc8a889a1badb490520a36051da942baa2ba",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791789380183-C/distinct-deaths/all-five-real-Q-deaths.json",
+      "bytes": 13446,
+      "sha256": "7442c6c3852655d3a94ab61cc660cbb76bd84f6c055b309388beaba0c61eb99e",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791789380183-C/distinct-deaths/deaths-after-old-cut.json",
+      "bytes": 11280,
+      "sha256": "4650ea9f44f37bd9819f00767618621026639481a027a1d70711f17da471547e",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791789380183-C/distinct-deaths/boss-death-late.json",
+      "bytes": 9768,
+      "sha256": "238f98f955c6344efd279025af87bbacc48779f615eb132eaa40196e1bf0952f",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/distinct-deaths/boss-death-late-server-replay.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791789380183-C/distinct-deaths/boss-death-late-server-replay.json",
+      "bytes": 449,
+      "sha256": "fc4b94d25bb4cbe2dd0b8a40d04fedf091bbf5f3388f1c196323cad8df1f00cf",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/distinct-deaths/deaths-after-old-cut.png",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791789380183-C/distinct-deaths/deaths-after-old-cut.png",
+      "bytes": 1261422,
+      "sha256": "295d37e25dd2e86428bfe1bfb987de05612e41c5cde43c4b30a0d57294a59804",
+      "label": "Selected actual game screenshot, root reviewed"
+    },
+    {
+      "path": "./cases/distinct-deaths/boss-death-late.png",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791789380183-C/distinct-deaths/boss-death-late.png",
+      "bytes": 1142918,
+      "sha256": "e77d5b266276caa8d6af3f1f6c338fa31c02c9c510e6865012e35789f89f9bdf",
+      "label": "Selected actual game screenshot, root reviewed"
+    },
+    {
+      "path": "./cases/boss-phases/initial-setup.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791789380183-C/boss-phases/initial-setup.json",
+      "bytes": 1308,
+      "sha256": "2d61bd897a04912c3e50b9fbcee2ef0e5d04476556d9f61d06501c6182f460ce",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/boss-phases/entry-server-replay.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791789380183-C/boss-phases/entry-server-replay.json",
+      "bytes": 413,
+      "sha256": "af3aa5d5e290bc1f6fd977cd3039d72fcf48cc1a41a7033801c43c30e0295b87",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791789380183-C/boss-phases/final-checkpoint.json",
+      "bytes": 17251,
+      "sha256": "06cc2952d2f4777bbc74021e262b39982863d1a2809049240a6f90c6a0154b77",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/boss-phases/final-checkpoint-server-replay.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791789380183-C/boss-phases/final-checkpoint-server-replay.json",
+      "bytes": 556,
+      "sha256": "6bb61e49e6bc710d70b15aaf5c5e906117a84632df27e1b2f8e2ea57c8e082bc",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/boss-phases/result.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791789380183-C/boss-phases/result.json",
+      "bytes": 110574,
+      "sha256": "6c690d3ae40c60269f48ee2c16c5ad1a1553a2b3493afd527a84563bdb8512a3",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791789380183-C/boss-phases/phase-1.json",
+      "bytes": 10621,
+      "sha256": "6b7b6941b28149e90d00264460b41318b3666bce0b6485fd89029ce7f11c48b0",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/boss-phases/phase-1-server-replay.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791789380183-C/boss-phases/phase-1-server-replay.json",
+      "bytes": 413,
+      "sha256": "af3aa5d5e290bc1f6fd977cd3039d72fcf48cc1a41a7033801c43c30e0295b87",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791789380183-C/boss-phases/phase-2.json",
+      "bytes": 17197,
+      "sha256": "a24ede229e3536048e07fafd8f1e5927ab82545ede387ec2ff07f701805d1a13",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/boss-phases/phase-2-server-replay.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791789380183-C/boss-phases/phase-2-server-replay.json",
+      "bytes": 542,
+      "sha256": "e8c059315db11e9212286bef0861e9baa5c4a7a241cff4afd03067d03ca6607b",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791789380183-C/boss-phases/phase-3.json",
+      "bytes": 14946,
+      "sha256": "47b7f563806425bafb186c361210769fbd28c22070f3ee99ecc058412897e23a",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/boss-phases/phase-3-server-replay.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791789380183-C/boss-phases/phase-3-server-replay.json",
+      "bytes": 546,
+      "sha256": "d1835f985c0eb62382adde5b2761d678e40b1d570bf9ac86ccaa3072d55ce2de",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/boss-phases/phase-3.png",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791789380183-C/boss-phases/phase-3.png",
+      "bytes": 1263481,
+      "sha256": "d7997beb29a743e05a85975265aa39a8c8bfa4ad8817bfd8db3082bc701065d9",
+      "label": "Selected actual game screenshot, root reviewed"
+    },
+    {
+      "path": "./cases/timer20-to21/initial-setup.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791789380183-C/timer20-to21/initial-setup.json",
+      "bytes": 609,
+      "sha256": "31986b54574e95fa65c7fe79522df33003eaef84cbae52e6eee33f7c8f7e3eda",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/timer20-to21/entry-server-replay.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791789380183-C/timer20-to21/entry-server-replay.json",
+      "bytes": 413,
+      "sha256": "f2c1fbc65cc48885d4616f0af36b74baf07a23da7c3ee518130425d137bf033d",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791789380183-C/timer20-to21/final-checkpoint.json",
+      "bytes": 10357,
+      "sha256": "b74f9025c90a9e5c5f6f0aa213a4268ba427591ab10ec71a9dc29841ea5749df",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/timer20-to21/final-checkpoint-server-replay.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791789380183-C/timer20-to21/final-checkpoint-server-replay.json",
+      "bytes": 428,
+      "sha256": "3cb1b435b7c9baf27a52df041d0bc8388e13fb2582f445cbf0a66bcffa639769",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/timer20-to21/result.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791789380183-C/timer20-to21/result.json",
+      "bytes": 3965,
+      "sha256": "b0a34dfc29a4364930820f1674e5530607bce0b8d4bcaf6506052cd40b923634",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791789380183-C/timer20-to21/boss-actually-spawned.json",
+      "bytes": 10820,
+      "sha256": "aeb45da36d381816b0541bfedefe4b1c6d8cce73689149f80fe2b518beb6b3fa",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/timer20-to21/boss-actually-spawned-server-replay.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791789380183-C/timer20-to21/boss-actually-spawned-server-replay.json",
+      "bytes": 413,
+      "sha256": "9c04e573700ff4076ad765d3a071cd8b0b8b405c07442742e8b682b185d7eecb",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791789380183-C/timer20-to21/actual-endless21.json",
+      "bytes": 10330,
+      "sha256": "a0d24cef34bec0d190ff3c57f706a288a91b70ae1b52ae95b25e8c45fda56433",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/timer20-to21/actual-endless21-server-replay.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791789380183-C/timer20-to21/actual-endless21-server-replay.json",
+      "bytes": 428,
+      "sha256": "3cb1b435b7c9baf27a52df041d0bc8388e13fb2582f445cbf0a66bcffa639769",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/timer20-to21/actual-endless21.png",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791789380183-C/timer20-to21/actual-endless21.png",
+      "bytes": 1254860,
+      "sha256": "5ed9be5104eca91a275c61b7f4e5687ac82558bb7d0b84a0182c2503310746c9",
+      "label": "Selected actual game screenshot, root reviewed"
+    },
+    {
+      "path": "./cases/wave16-kite/initial-setup.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790167971-A/wave16-kite/initial-setup.json",
+      "bytes": 1083,
+      "sha256": "ed46f3f60e93bd273747392b2d8700ed217ecad1459c2e7a85b07e30465ad41a",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/wave16-kite/entry-server-replay.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790167971-A/wave16-kite/entry-server-replay.json",
+      "bytes": 411,
+      "sha256": "8feabe62a86c9eb52348ea979bb345862d5e015c71f7bdddf23240a9b7202712",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790167971-A/wave16-kite/final-checkpoint.json",
+      "bytes": 22985,
+      "sha256": "aeb4d0ed2de0b3b0e72fb10e9deca73669fe87ca8f710690256ff5a582379222",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/wave16-kite/final-checkpoint-server-replay.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790167971-A/wave16-kite/final-checkpoint-server-replay.json",
+      "bytes": 539,
+      "sha256": "1390fe953c130c3df1313e3564aa4712d50311ce4cc447cbd38ee972c420eb69",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/wave16-kite/result.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790167971-A/wave16-kite/result.json",
+      "bytes": 134192,
+      "sha256": "7023b810b6dd57f6cfaac1b9cf53b7c50f2a4829355165578ff9f039d30d1bdc",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790167971-A/wave16-kite/combat-end.json",
+      "bytes": 20596,
+      "sha256": "62d09b32d447d4bb50d4c878bf52a5b81aa0fc1507bf0edaa0d7590a5fbbe92f",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/wave17-kite/initial-setup.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790167971-A/wave17-kite/initial-setup.json",
+      "bytes": 1083,
+      "sha256": "3a26e67f794e0985685b05419720d39e0151d228b47c89eef88ad49588ce2c06",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/wave17-kite/entry-server-replay.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790167971-A/wave17-kite/entry-server-replay.json",
+      "bytes": 413,
+      "sha256": "b1daf0f4f6c7763b90abce65234fbb0d879a328876b5ca128f10ab5c9a435f3e",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790167971-A/wave17-kite/final-checkpoint.json",
+      "bytes": 20556,
+      "sha256": "5769a14cc5b22520932c984809da99ef57ee04443647e2cefc29cf8fb2559880",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/wave17-kite/final-checkpoint-server-replay.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790167971-A/wave17-kite/final-checkpoint-server-replay.json",
+      "bytes": 540,
+      "sha256": "2c6a0508615fa8c2c25e60249d783b3b1cbc99c1453384d58bcce6a283df940f",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/wave17-kite/result.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790167971-A/wave17-kite/result.json",
+      "bytes": 138306,
+      "sha256": "75a45648be74c857a85ca60d052c5d1387a19eab1a9395ac6e2c0f94c912c13b",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790167971-A/wave17-kite/combat-end.json",
+      "bytes": 19643,
+      "sha256": "95cb2fb98984ed713636fd01bc13340af536160a8f90410d15e84ba8d56fb285",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/wave18-range/initial-setup.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790167971-A/wave18-range/initial-setup.json",
+      "bytes": 1083,
+      "sha256": "2c53d4649ebd423b5fd58aa9cffb52c2555c9d261049f2e5825f6b67bacd4fee",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/wave18-range/entry-server-replay.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790167971-A/wave18-range/entry-server-replay.json",
+      "bytes": 413,
+      "sha256": "986e618b46988d3f3a2213c60e922be1f1eba77b75ffb7b8aa1bc222666c3cb5",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790167971-A/wave18-range/final-checkpoint.json",
+      "bytes": 14606,
+      "sha256": "510abb1ae2891dbe4cdc33b1aeb4d7dc7b3b54828975ec60a7ab9f25f9cee33b",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/wave18-range/final-checkpoint-server-replay.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790167971-A/wave18-range/final-checkpoint-server-replay.json",
+      "bytes": 558,
+      "sha256": "4a8a1eaf386001c52d54ae9271d90bdc251fab5d31f44279b9150e71a2be43b2",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/wave18-range/result.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790167971-A/wave18-range/result.json",
+      "bytes": 148943,
+      "sha256": "aea9b61d703457d3159105e2f63a7a31d5694767c80dcf42b6de3a7f26bb2037",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790167971-A/wave18-range/combat-end.json",
+      "bytes": 14305,
+      "sha256": "da573535d9def16fa7580acfb5de0b779d89850f7f354317f3e8a135793e48fd",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/wave19-guard/initial-setup.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790167971-A/wave19-guard/initial-setup.json",
+      "bytes": 1085,
+      "sha256": "9bb3c4a118d30234a1bfbdbc1ef329d1021617f565c9382cb07947750bb6b5c2",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/wave19-guard/entry-server-replay.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790167971-A/wave19-guard/entry-server-replay.json",
+      "bytes": 411,
+      "sha256": "802034ee8d0d576c58ada14b8c29959c02b695d70938de780ea008028b8bf98b",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790167971-A/wave19-guard/final-checkpoint.json",
+      "bytes": 19006,
+      "sha256": "253540fd691b444e7ae44be191329cd5268c1aa51a9a72c037949c9c96964bae",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/wave19-guard/final-checkpoint-server-replay.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790167971-A/wave19-guard/final-checkpoint-server-replay.json",
+      "bytes": 580,
+      "sha256": "16588a888120c1356a648aebefcf828c5efbf363bde8117f2f857a77b0b020b0",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/wave19-guard/result.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790167971-A/wave19-guard/result.json",
+      "bytes": 179877,
+      "sha256": "effb0dea0ad9ba084c135a9b7c12e4b9c33df9e23fdb4872a49590ed06c4e33e",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790167971-A/wave19-guard/combat-end.json",
+      "bytes": 19729,
+      "sha256": "bffff98ebad841a3d93ff742e2a08bcb9b741fd2322ac58e493e44596c5ec41b",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/wave19-guard/combat-end.png",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790167971-A/wave19-guard/combat-end.png",
+      "bytes": 1403295,
+      "sha256": "8a0bcb3f0b799c1171ed795b3273b28668770e6d7e45597784f22e33e3e3de89",
+      "label": "Selected actual game screenshot, root reviewed"
+    },
+    {
+      "path": "./cases/boss20-kite/initial-setup.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790167971-A/boss20-kite/initial-setup.json",
+      "bytes": 1084,
+      "sha256": "c921656570564151e9f2f55e7fd3fdbbf90227471b258ae01eda6c5212714ee7",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/boss20-kite/entry-server-replay.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790167971-A/boss20-kite/entry-server-replay.json",
+      "bytes": 413,
+      "sha256": "35101f81013672216752e050d7adb7ff2dd6799fd68dac3445bbdd4d6f8f61c1",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790167971-A/boss20-kite/final-checkpoint.json",
+      "bytes": 19860,
+      "sha256": "4a1903a25273ea309d9d15b3e73e9acf6b90ae9c9c96464014ff52f1b4eac9bb",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/boss20-kite/final-checkpoint-server-replay.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790167971-A/boss20-kite/final-checkpoint-server-replay.json",
+      "bytes": 567,
+      "sha256": "0a017af8a786807ff43924db4b19ba0dc0356825545043c3f82621c0f2750647",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/boss20-kite/result.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790167971-A/boss20-kite/result.json",
+      "bytes": 114723,
+      "sha256": "b708b3ecdf9dc21bdc439c5fa4d6c97ee3e556b1198fd0a7d59aa79276886272",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790167971-A/boss20-kite/combat-end.json",
+      "bytes": 20107,
+      "sha256": "da48dc6fbfec937eeb88203d04da44e9a457da58472f906dbd322944a3fd6e78",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/boss20-kite/physics-trace.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790167971-A/boss20-kite/physics-trace.json",
+      "bytes": 597926,
+      "sha256": "40442cfe33703665058c6ce3765a7cb6ea8ccec82e0e6f36ec3100c0f863ba16",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/boss20-kite/combat-end.png",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790167971-A/boss20-kite/combat-end.png",
+      "bytes": 1270973,
+      "sha256": "80aaea1ce3f5ac7d30af5b7de60d51e8537d640a72480babf17b4bd3773f653b",
+      "label": "Selected actual game screenshot, root reviewed"
+    },
+    {
+      "path": "./cases/boss20-range/initial-setup.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790167971-A/boss20-range/initial-setup.json",
+      "bytes": 1074,
+      "sha256": "1fee952ed2bb035dbeb0d450a0626bd355b67a7f4966ec094436cc9d405b541a",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/boss20-range/entry-server-replay.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790167971-A/boss20-range/entry-server-replay.json",
+      "bytes": 413,
+      "sha256": "5c6223a762807c70236e12805df467f06ed114bd57cb40d0c3c83aee41841ca6",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790167971-A/boss20-range/final-checkpoint.json",
+      "bytes": 17433,
+      "sha256": "030fe3ea3a383e21133e402b9d45596cb24f57c6e7f97dad57bc442d96c6a563",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/boss20-range/final-checkpoint-server-replay.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790167971-A/boss20-range/final-checkpoint-server-replay.json",
+      "bytes": 569,
+      "sha256": "2089d3fe334ff9f2e1b0ede6c632b9dc6a0c52d46c7032f2a3373340f7d9567b",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/boss20-range/result.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790167971-A/boss20-range/result.json",
+      "bytes": 114850,
+      "sha256": "45f1b6f7a250eb88ff3672790629a47ba866cd6de714e4776419e190c1d89346",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790167971-A/boss20-range/combat-end.json",
+      "bytes": 19328,
+      "sha256": "3af668feb54ea7dc0b27f48ec5e9b9cf90777ad5a4ed679e762c0d0fdcf747c2",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/boss20-range/physics-trace.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790167971-A/boss20-range/physics-trace.json",
+      "bytes": 706081,
+      "sha256": "79bb746e24a142471822f4515399c1a957dfc733c8a0dc4f2a16c4fe93a4783b",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/boss20-range/combat-end.png",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790167971-A/boss20-range/combat-end.png",
+      "bytes": 1427273,
+      "sha256": "d5ec7a66ebefb3cf0152cbb69d51b509d4dc596ca01814e71cab8e6c16292eb2",
+      "label": "Selected actual game screenshot, root reviewed"
+    },
+    {
+      "path": "./cases/boss20-guard/initial-setup.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790821910-A/boss20-guard/initial-setup.json",
+      "bytes": 1088,
+      "sha256": "c5f8e74c3701d26376e38e296f94e7b31a3463d452f4e7aae6ab778155c64da2",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/boss20-guard/entry-server-replay.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790821910-A/boss20-guard/entry-server-replay.json",
+      "bytes": 411,
+      "sha256": "767f838889ca98224cdd9142f6ca590e9120b4f5dd8afc56cd20e05b77522446",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790821910-A/boss20-guard/final-checkpoint.json",
+      "bytes": 18281,
+      "sha256": "85491bb35f43915db902855b4471d92b2e812bbbd0ef807c862115238094bf6d",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/boss20-guard/final-checkpoint-server-replay.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790821910-A/boss20-guard/final-checkpoint-server-replay.json",
+      "bytes": 555,
+      "sha256": "4186af18fffab7f49b51a143110f1b0f5ff0aae5b435367ea6a9ebf50afc5086",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/boss20-guard/result.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790821910-A/boss20-guard/result.json",
+      "bytes": 106102,
+      "sha256": "a0fbda27ff7702dbf8c6d32cc15ecd0e57032eca86b6d98ece9dd2540f795b3b",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790821910-A/boss20-guard/combat-end.json",
+      "bytes": 19039,
+      "sha256": "9a6bfeffa3c40ea713bed019be606cf3eb65e7e9cd305935ace1ece24211a3f7",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/boss20-guard/physics-trace.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790821910-A/boss20-guard/physics-trace.json",
+      "bytes": 710123,
+      "sha256": "4abe6dc8543b2cae02be729cd0f0915ccb17ea3001f47873b246571bc5c63fae",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/boss20-guard/combat-end.png",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790821910-A/boss20-guard/combat-end.png",
+      "bytes": 1402041,
+      "sha256": "ecbd7d4c8de1eecded9fa201ccc6b6e32d9ba58e745c211c7947ffc4cdb0d827",
+      "label": "Selected actual game screenshot, root reviewed"
+    },
+    {
+      "path": "./cases/recipes-kite/initial-setup.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791791188486-B/recipes-kite/initial-setup.json",
+      "bytes": 1347,
+      "sha256": "7453507e639a07a6c80b284aaf80a541290285124aa81e4d0fbb3fe36486e21a",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/recipes-kite/entry-server-replay.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791791188486-B/recipes-kite/entry-server-replay.json",
+      "bytes": 413,
+      "sha256": "626428505a1dfc830e45ca1816807ae083330716db9e161fbdffbe9b1fe4df65",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791791188486-B/recipes-kite/final-checkpoint.json",
+      "bytes": 8035,
+      "sha256": "aa43bcd0a69dff23dfa3dd85d36aa4c11c4353dfd5897ba960eaba8080656d3a",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/recipes-kite/final-checkpoint-server-replay.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791791188486-B/recipes-kite/final-checkpoint-server-replay.json",
+      "bytes": 445,
+      "sha256": "e61e53940b7b443e10a3d1c4edcfa70352349adea6f2e13dcedf4e88e04552bc",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/recipes-kite/result.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791791188486-B/recipes-kite/result.json",
+      "bytes": 25898,
+      "sha256": "273d4faa76779f118d057630f713911c8c832c4136b88bcee9d51924d170ca3f",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791791188486-B/recipes-kite/card-2.json",
+      "bytes": 8038,
+      "sha256": "82510954d42029573c105e389458844cd29e66f4106f244fd5b3fadae4072422",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791791188486-B/recipes-kite/chest-1.json",
+      "bytes": 8335,
+      "sha256": "7e438a5c855f4951004fb14d76d6e8b9f090b4b97ba1009f9430598ff260fafd",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791791188486-B/recipes-kite/chest-2.json",
+      "bytes": 10131,
+      "sha256": "90722f51e79ff96d8982c7c733a9bc06419f33cbdfe9bd0a86adaba1f08ede58",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791791188486-B/recipes-kite/chest-3.json",
+      "bytes": 12725,
+      "sha256": "0c714f6a479c267b306a666347e8173d6657c1ce8fbc03909e7eaab4ba50fc76",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791791188486-B/recipes-kite/chest-4.json",
+      "bytes": 8145,
+      "sha256": "9ddc0d53c52870405f55abbd1f14b8f1165bcd6517aff142c0645f157f62ee9f",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791791188486-B/recipes-kite/chest-5.json",
+      "bytes": 9085,
+      "sha256": "8229a715bbfb211ab46c32e5fcc342845ea356df910d32da16fe2429ac92fde1",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791791188486-B/recipes-kite/evo-1-embers.json",
+      "bytes": 8333,
+      "sha256": "bfaf1f1e55ca6bcc29fea5247506176fc3fe213de9392552592b075b33c55f81",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791791188486-B/recipes-kite/evo-2-charges.json",
+      "bytes": 11231,
+      "sha256": "a3092f9705d3a35a883f90b434fd0bcf2875724709399a3e4e5d3a3401d0c1fe",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791791188486-B/recipes-kite/evo-3-charges.json",
+      "bytes": 14770,
+      "sha256": "2220aa50d5f80764eaede7976fe96e7ae3b4c199509dffb45c6f0018ed20582c",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791791188486-B/recipes-kite/evo-4-spark.json",
+      "bytes": 8141,
+      "sha256": "35c667a06648388fe6520c04e465962b30799121051739aae4f46902c96afb07",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791791188486-B/recipes-kite/evo-5-spark.json",
+      "bytes": 8670,
+      "sha256": "7b076b41660e3d194efd8582852034491d41269cf9e339ea28861d3f72a8e007",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/recipes-kite/final-checkpoint.png",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791791188486-B/recipes-kite/final-checkpoint.png",
+      "bytes": 1419195,
+      "sha256": "869ff13c15b6f18101c34057f7522625cec2f733dc3df48c379096e2abb9437f",
+      "label": "Selected actual game screenshot, root reviewed"
+    },
+    {
+      "path": "./cases/recipes-guard/initial-setup.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791791188486-B/recipes-guard/initial-setup.json",
+      "bytes": 1338,
+      "sha256": "42a45e56286b4044cbfd47cd9ba4e0c319f8c3d6178cd2eb613d7b5ac7507539",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/recipes-guard/entry-server-replay.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791791188486-B/recipes-guard/entry-server-replay.json",
+      "bytes": 413,
+      "sha256": "0bea2436e57246feb62740c4bf0137f93ee0069fd764b87ccc41c11dcf4a9fc6",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791791188486-B/recipes-guard/final-checkpoint.json",
+      "bytes": 6775,
+      "sha256": "c644f46e2c206895a7b261abba75534d0021188e7a40c4ac08a570962a739acf",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/recipes-guard/final-checkpoint-server-replay.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791791188486-B/recipes-guard/final-checkpoint-server-replay.json",
+      "bytes": 445,
+      "sha256": "1c5e9b8cb180a136a6d3ef21f94176348f84dfe80ac9f0bf37558ddaaa57f7c8",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/recipes-guard/result.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791791188486-B/recipes-guard/result.json",
+      "bytes": 30619,
+      "sha256": "209b2cce124e355fd680bcd1d246da0818fb26c65b5ffd680ddfa6ef48899ed4",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791791188486-B/recipes-guard/card-2.json",
+      "bytes": 7736,
+      "sha256": "b32b03807ccbc8f1eb23dca08f2f7159cc6096dcf7af0eb5f3ab449cc03bfe84",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791791188486-B/recipes-guard/chest-1.json",
+      "bytes": 7315,
+      "sha256": "3275cfff9123fbac8133ebaafe93425b304494006a32d6bb449d4f1c294ebb9a",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791791188486-B/recipes-guard/chest-2.json",
+      "bytes": 8294,
+      "sha256": "a7bf16eef48a7c8df38b83802a5d89aa181b4ae14cb403a5e6f90dc9a9e4e672",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791791188486-B/recipes-guard/chest-3.json",
+      "bytes": 9340,
+      "sha256": "ff872f19e5e2f09faa871723fb556c0bf1254c1ebe7e07bf074d4d5777b3986d",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791791188486-B/recipes-guard/chest-4.json",
+      "bytes": 6878,
+      "sha256": "36e2ef18401c4e92bd8a5896e615cc12144e0eb3d60540fb49f551cf73c67696",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791791188486-B/recipes-guard/chest-5.json",
+      "bytes": 6774,
+      "sha256": "6d69305ab878a83a05571822a0efc2e0975004807143278700e9de230eedfd3b",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791791188486-B/recipes-guard/evo-1-fireflies.json",
+      "bytes": 7318,
+      "sha256": "eef70c1837df46ceee2fa12b12ec8c387c4392623de8437951458d1c9dcd57f4",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791791188486-B/recipes-guard/evo-2-stalactites.json",
+      "bytes": 9337,
+      "sha256": "6c7fcc0f6332c7b2909fd0bd87ce7799aa33c3055737848da9981b0478efec55",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791791188486-B/recipes-guard/evo-3-stalactites.json",
+      "bytes": 8284,
+      "sha256": "e9320d19cecbebae85604cce11d841aaf7834aa61d6dc5684917164ddb26c9e2",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791791188486-B/recipes-guard/evo-4-beam.json",
+      "bytes": 6879,
+      "sha256": "9dfa452e4ff086ccd69e20779fa6efdeb7cd6a2da0540148c932234a28bf1b28",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791791188486-B/recipes-guard/evo-5-beam.json",
+      "bytes": 6764,
+      "sha256": "b297790f7ec4b7fc98ff1932a2009c4e07ad8c9a17c1fd8c7e26a6ef02bc0bce",
+      "label": "Original selected receipt"
+    },
+    {
+      "path": "./cases/recipes-guard/final-checkpoint.png",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791791188486-B/recipes-guard/final-checkpoint.png",
+      "bytes": 1451190,
+      "sha256": "29e6edf5c3af3b842b48b4e5f8e644de83a57ef9e9923ef07b35bfbc08f410d1",
+      "label": "Selected actual game screenshot, root reviewed"
+    },
+    {
+      "path": "./normal/normal-death-parity.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/captures-./normal/normal-death-parity.json",
+      "bytes": 543,
+      "sha256": "3e83964bc58e1e64bb41b9eda6350d912374be9213b9780b1f8da13147645d80",
+      "label": "Actual no-hook run; root reviewed entry/input/death/restart/pause/resume/exit"
+    },
+    {
+      "path": "./normal/normal-result-parity.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/captures-./normal/normal-result-parity.json",
+      "bytes": 382,
+      "sha256": "a88268e14dedcccd12afe366dd6c19a22868e42efed7a3a21cb0d728e1d21e02",
+      "label": "Actual no-hook run; root reviewed entry/input/death/restart/pause/resume/exit"
+    },
+    {
+      "path": "./normal/normal-client-before-exit.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/captures-./normal/normal-client-before-exit.json",
+      "bytes": 179,
+      "sha256": "c4b38e76aca060e4a93edcfd198a28cbeafa22aff9d90588c9d4108ac578fb50",
+      "label": "Actual no-hook run; root reviewed entry/input/death/restart/pause/resume/exit"
+    },
+    {
+      "path": "./normal/normal-client-at-quit.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/captures-./normal/normal-client-at-quit.json",
+      "bytes": 121,
+      "sha256": "671fe10a0ed0caa67e9720918293afd9d1eb8834ce37462e2c4c9eb8f42262cc",
+      "label": "Actual no-hook run; root reviewed entry/input/death/restart/pause/resume/exit"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/captures-../../../../../../unavailable.html",
+      "bytes": 737,
+      "sha256": "be2e3a4190f33615a115abd4a5e02ead80f9f4f10e15d6017acec3ccaf288799",
+      "label": "Actual no-hook run; root reviewed entry/input/death/restart/pause/resume/exit"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/captures-../../../../../../unavailable.html",
+      "bytes": 739,
+      "sha256": "44f94d07293432643790ff8ad6bbefb3f60db068bfe067e25158faba6314040a",
+      "label": "Actual no-hook run; root reviewed entry/input/death/restart/pause/resume/exit"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/captures-../../../../../../unavailable.html",
+      "bytes": 739,
+      "sha256": "60f863035e632eab193771673ba18971408ea28cf231a5eb0aada489f2279e01",
+      "label": "Actual no-hook run; root reviewed entry/input/death/restart/pause/resume/exit"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/captures-../../../../../../unavailable.html",
+      "bytes": 738,
+      "sha256": "adc2f6011cce29c45d29060e1d6b47069aa4648b126ad93bd47bc4a502b988aa",
+      "label": "Actual no-hook run; root reviewed entry/input/death/restart/pause/resume/exit"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/captures-../../../../../../unavailable.html",
+      "bytes": 25658,
+      "sha256": "dffe963225d675ec09a5cfaf1c425f92d7ff7d193d5446f5017e716d3766703f",
+      "label": "Actual no-hook run; root reviewed entry/input/death/restart/pause/resume/exit"
+    },
+    {
+      "path": "./normal/normal-input.png",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/captures-./normal/normal-input.png",
+      "bytes": 1468367,
+      "sha256": "6ed380ab6c7214a644a5fe2125f178ea12610bc8f87af92335172ba221e633d7",
+      "label": "Selected actual no-hook game screenshot, root reviewed"
+    },
+    {
+      "path": "./normal/normal-results.png",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/captures-./normal/normal-results.png",
+      "bytes": 777147,
+      "sha256": "4e32696dd2866b65998dc128ca15840f2c35c5053a63f93da7a1c51b8ba6bfb6",
+      "label": "Selected actual no-hook game screenshot, root reviewed"
+    },
+    {
+      "path": "./normal/normal-restart.png",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/captures-./normal/normal-restart.png",
+      "bytes": 1341784,
+      "sha256": "ae1c167fa9feea6ab89519cc122514ab324c03857d01a7d4ac70c1f4915b6963",
+      "label": "Selected actual no-hook game screenshot, root reviewed"
+    },
+    {
+      "path": "./normal/normal-pause.png",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/captures-./normal/normal-pause.png",
+      "bytes": 1345487,
+      "sha256": "277a1e16a0e069a0906dbce3b47de4c940ce4952d02c462a965bf703dcc8bfbb",
+      "label": "Selected actual no-hook game screenshot, root reviewed"
+    },
+    {
+      "path": "./normal/normal-exit.png",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/captures-./normal/normal-exit.png",
+      "bytes": 893896,
+      "sha256": "e1ad5e161d89981e8539ac2e0181a91c8fba651d8d25bf0dd3f14e36d6a6596a",
+      "label": "Selected actual no-hook game screenshot, root reviewed"
+    },
+    {
+      "path": "./failures/run-1791788563458-C/hook-contact/result.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788563458-C/hook-contact/result.json",
+      "bytes": 400,
+      "sha256": "66efd2e3d81394b0e1c466a8cbf8c136f774ca9f000d740961e0e1d9e9bcd859",
+      "label": "Preserved unsuccessful attempt; never promoted to PASS"
+    },
+    {
+      "path": "./failures/run-1791788667297-C/hook-contact/result.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788667297-C/hook-contact/result.json",
+      "bytes": 286,
+      "sha256": "3a72af92b0132535f0a0d0153aea2c80b695fc923e34b6b78aa647cc34b4b422",
+      "label": "Preserved unsuccessful attempt; never promoted to PASS"
+    },
+    {
+      "path": "./failures/run-1791788762531-C/hook-contact/result.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788762531-C/hook-contact/result.json",
+      "bytes": 324,
+      "sha256": "f6425cc1d9137ba964be51118b8bab29c990af994862f40606c9b6b4c76cfdbe",
+      "label": "Preserved unsuccessful attempt; never promoted to PASS"
+    },
+    {
+      "path": "./failures/run-1791788912099-C/boss-phases/result.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/boss-phases/result.json",
+      "bytes": 472,
+      "sha256": "b627011bf12e6d1f36ec6d7ad6c4081ed2e0db388ef40568823a90e6d9543d11",
+      "label": "Preserved unsuccessful attempt; never promoted to PASS"
+    },
+    {
+      "path": "./failures/run-1791788912099-C/chain-twohits/result.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/chain-twohits/result.json",
+      "bytes": 343,
+      "sha256": "c7f9b815d53f477915dddf78e0eb610df2760b485992776b0ba0def9385e23ae",
+      "label": "Preserved unsuccessful attempt; never promoted to PASS"
+    },
+    {
+      "path": "./failures/run-1791788912099-C/distinct-deaths/result.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/distinct-deaths/result.json",
+      "bytes": 444,
+      "sha256": "5d854c731e4986a9b2543dae61cce9184ad874316b788b57724c4c3ecd01077e",
+      "label": "Preserved unsuccessful attempt; never promoted to PASS"
+    },
+    {
+      "path": "./failures/run-1791788912099-C/timer20-to21/result.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791788912099-C/timer20-to21/result.json",
+      "bytes": 336,
+      "sha256": "6a2561c6b60caa63c83a5f9fefbf46a08d0ff8b8c66443befeeed02ea216982a",
+      "label": "Preserved unsuccessful attempt; never promoted to PASS"
+    },
+    {
+      "path": "./failures/run-1791789380183-C/atlas/result.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791789380183-C/atlas/result.json",
+      "bytes": 583,
+      "sha256": "f5ee4baea6347a1ce98c56e74daffb1386f1dc4623975dafa6dfee76429699a3",
+      "label": "Preserved unsuccessful attempt; never promoted to PASS"
+    },
+    {
+      "path": "./failures/run-1791789653175-C/atlas/result.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791789653175-C/atlas/result.json",
+      "bytes": 421,
+      "sha256": "8089b86fa832d2abc7f446f72ccbddfa59accf20643391e93603c66dfb28cc4b",
+      "label": "Preserved unsuccessful attempt; never promoted to PASS"
+    },
+    {
+      "path": "./failures/run-1791789872798-B/recipes-guard/result.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791789872798-B/recipes-guard/result.json",
+      "bytes": 351,
+      "sha256": "d23d810b03c636caf203d2f9eec81ae6e4bba17d74869f8ba077487b1e7f905f",
+      "label": "Preserved unsuccessful attempt; never promoted to PASS"
+    },
+    {
+      "path": "./failures/run-1791789872798-B/recipes-kite/result.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791789872798-B/recipes-kite/result.json",
+      "bytes": 350,
+      "sha256": "9ccf4cab0175bf1c06a5fb2549e0193bdc25411d46a5522f84ddc4105532e4e2",
+      "label": "Preserved unsuccessful attempt; never promoted to PASS"
+    },
+    {
+      "path": "./failures/run-1791790167971-A/boss20-guard/result.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790167971-A/boss20-guard/result.json",
+      "bytes": 558,
+      "sha256": "6c9a60fae35e4895aa0576611c91ca72c371b27e3a0a05e7685971852774fbdb",
+      "label": "Preserved unsuccessful attempt; never promoted to PASS"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790167971-A/boss20-guard/failure.json",
+      "bytes": 17867,
+      "sha256": "eef2f2066c3529677273f4af3e18de8d399abd0408813e153b025d7d473075f4",
+      "label": "Original failed guard attempt"
+    },
+    {
+      "path": "./failures/run-1791790167971-A/boss20-guard/failure.png",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790167971-A/boss20-guard/failure.png",
+      "bytes": 1211720,
+      "sha256": "1c59342849afd5f5cb4d0e88b85fe6a342ad476a7cc0c79b811c590c8421a072",
+      "label": "Original failed guard attempt"
+    },
+    {
+      "path": "./failures/run-1791790167971-A/boss20-guard/initial-setup.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790167971-A/boss20-guard/initial-setup.json",
+      "bytes": 1076,
+      "sha256": "e4fa1177c1f4f4469eeb46b92434fb5f8e96802d731b6576727955dcc0de13c6",
+      "label": "Original failed guard attempt"
+    },
+    {
+      "path": "./failures/run-1791790637376-A/boss20-guard/result.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790637376-A/boss20-guard/result.json",
+      "bytes": 511,
+      "sha256": "d738ec6115cbdf778f5d55d8cf0efc09295ab898686d6ff80e79e6148416e2bb",
+      "label": "Preserved unsuccessful attempt; never promoted to PASS"
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790637376-A/boss20-guard/failure.json",
+      "bytes": 18380,
+      "sha256": "6e8a0072778108c67e377668f7ee11c3c24d38719f1cc41b1456f575b0098e23",
+      "label": "Original failed guard attempt"
+    },
+    {
+      "path": "./failures/run-1791790637376-A/boss20-guard/failure.png",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790637376-A/boss20-guard/failure.png",
+      "bytes": 1192386,
+      "sha256": "9d6c26727e3aba4f4043f1058da040fb5c4508b3410290f7babedf29acdd6f3d",
+      "label": "Original failed guard attempt"
+    },
+    {
+      "path": "./failures/run-1791790637376-A/boss20-guard/initial-setup.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791790637376-A/boss20-guard/initial-setup.json",
+      "bytes": 1078,
+      "sha256": "72447189d90dd228e5dcc1fafcba08c71549c7b626cc2c37df5d20974b7a340d",
+      "label": "Original failed guard attempt"
+    },
+    {
+      "path": "./failures/earlier-attempts.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/FAILED-ATTEMPTS.json",
+      "bytes": 1968,
+      "sha256": "f740de1baecbaae58882ff22abe3da85b49e11642b370a2c8971b943501a297d",
+      "label": "Previous failed no-hook/transition captures, retained"
+    },
+    {
+      "path": "gate/dungeon-r6-check.log",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-r6-check.log",
+      "bytes": 46,
+      "sha256": "f853a6a0cc82020063ad07caf3ff2d4bb74cac7cf21a899165813cc77a48876b",
+      "label": "Root exact previous R6 full gate log"
+    },
+    {
+      "path": "gate/dungeon-r6-test.log",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-r6-test.log",
+      "bytes": 304760,
+      "sha256": "b6836761b41d4260af80b7162785a0949124a39b33184643a1ba1659e01f88ba",
+      "label": "Root exact previous R6 full gate log"
+    },
+    {
+      "path": "gate/dungeon-r6-build.log",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-r6-build.log",
+      "bytes": 64738,
+      "sha256": "abe5a3bf7cc1efc2e30e6e28a0d5c273bd2cce8e07cf4f26dd7beb1bfb7c3562",
+      "label": "Root exact previous R6 full gate log"
+    },
+    {
+      "path": "./gate/prep-built-receipt.json",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/prep-checks.json",
+      "bytes": 5140,
+      "sha256": "23a6a6594e18ea4b74eb73789f4c59f3f48bd6d2d097124362ccf6ebaa546274",
+      "label": "Root20prep checks +5built assets, not gameplay evidence"
+    },
+    {
+      "path": "./harness-root-successor/setup.mjs",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/setup.mjs",
+      "bytes": 8706,
+      "sha256": "c9edc9ebca78094976646a1b9845149ef983e243ad41d28e21323b04f1e06e0a",
+      "label": "External QA helper after root fixes; not production game source. Current B fixture moved one chest out of stairs collision."
+    },
+    {
+      "path": "./harness-root-successor/client.mjs",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/client.mjs",
+      "bytes": 10692,
+      "sha256": "9c068abae1bedc8e9568f5f83fe22bc3baec11f1f3f8eeba1759709bf9cb8684",
+      "label": "External QA helper after root fixes; not production game source. Current B fixture moved one chest out of stairs collision."
+    },
+    {
+      "path": "./harness-root-successor/late-batches.mjs",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-batches.mjs",
+      "bytes": 24044,
+      "sha256": "55a1aeff27ec661f34cef006c0aa10eeef8adfcc2ec27e69e6754e1f8c5357d6",
+      "label": "External QA helper after root fixes; not production game source. Current B fixture moved one chest out of stairs collision."
+    },
+    {
+      "path": "./harness-root-successor/server-preload.mjs",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/server-preload.mjs",
+      "bytes": 5441,
+      "sha256": "0c0b2d274b095a308328488a22b5bf1eb717d06d7694c5190d077eb537a384d5",
+      "label": "External QA helper after root fixes; not production game source. Current B fixture moved one chest out of stairs collision."
+    },
+    {
+      "path": "../../../../../../unavailable.html",
+      "source": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791789653175-C/atlas/soft-same-pose.json",
+      "bytes": 6604,
+      "sha256": "30a5bbac6f37132f36f57956b8d02dff26dc548f24c43baa1d847938632ce82a",
+      "label": "Actual live shader without map; production CSP texture blocked"
+    }
+  ]
+}

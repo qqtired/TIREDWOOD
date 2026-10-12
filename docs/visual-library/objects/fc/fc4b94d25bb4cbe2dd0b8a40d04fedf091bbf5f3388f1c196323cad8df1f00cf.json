@@ -1,0 +1,29 @@
+{
+  "tick": 172,
+  "hash": 3145132900,
+  "initialHash": 2659240277,
+  "room": {
+    "seed": 704314,
+    "tick": 172,
+    "stage": "breather",
+    "upto": 172,
+    "received": 3,
+    "coins": 43,
+    "over": false,
+    "paused": true
+  },
+  "mismatches": 0,
+  "bad": 0,
+  "result": {
+    "waves": 19,
+    "ms": 3000,
+    "kills": 5,
+    "level": 41,
+    "bosses": 1,
+    "killedBy": "",
+    "dmg": {
+      "q": 1336
+    },
+    "end": "running"
+  }
+}

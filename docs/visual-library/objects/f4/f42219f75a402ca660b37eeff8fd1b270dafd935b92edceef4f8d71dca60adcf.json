@@ -1,0 +1,9 @@
+{
+  "ok": true,
+  "renders": 192,
+  "artifact": "./revision-concepts-11-15.html",
+  "offlineBytes": 4451676,
+  "inlineAssets": 35,
+  "errors": [],
+  "verificationKind": "structural-only"
+}

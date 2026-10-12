@@ -1,0 +1,93 @@
+{
+  "method": "Existing CDP; actual file aliases; optional existing HTTP server; no new server started",
+  "results": [
+    {
+      "kind": "catalog-file-search",
+      "visible": 3,
+      "errors": []
+    },
+    {
+      "kind": "catalog-file-filter",
+      "visible": 11
+    },
+    {
+      "kind": "dev-only-labels",
+      "visible": 230
+    },
+    {
+      "kind": "document-file-alias",
+      "id": "7c52c5c11d040f",
+      "title": "Мастерская Фонарщика — эволюции на герое",
+      "path": "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evolutions-r8/index.html",
+      "scheme": "file",
+      "errors": [],
+      "canvases": 1,
+      "images": {
+        "total": 10,
+        "loaded": 9
+      },
+      "body": "Мастерская Фонарщика\n\nЭволюции на настоящем герое: сравни форму, крепление и атаку вблизи и с игровой камеры.\n\nСборка\n5 / 5\nНегасимый фонарь\nФонарь 7 + Фитиль 1"
+    },
+    {
+      "kind": "document-file-alias",
+      "id": "5c55281890738d",
+      "title": "TIREDWOOD — десять направлений HUD",
+      "path": "files/workspace/reports/tiredwood-hud-five-directions-2026-10-12/revision-concepts-11-15.html",
+      "scheme": "file",
+      "errors": [],
+      "canvases": 0,
+      "images": {
+        "total": 12,
+        "loaded": 12
+      },
+      "body": "Пятнадцать направлений HUD\n\n11–15: пять новых дизайнов с работающими особенностями. Предыдущие десять сохранены.\n\nTIREDWOOD · локальный прототип\nНовые идеи · 11"
+    },
+    {
+      "kind": "document-file-alias",
+      "id": "30c17774a8bf18",
+      "title": "Жители набережной",
+      "path": "files/workspace/concepts_blender/plaza3/npc/lineup.html",
+      "scheme": "file",
+      "errors": [],
+      "canvases": 0,
+      "images": {
+        "total": 17,
+        "loaded": 17
+      },
+      "body": "Жители набережной\n17 жителей у входов в режимы · концепты для Blender · plaza3/npc, 11.10.2026\nЖетоныч\nхозяин автоматов и аркады\nИГРОВОЙ КВАРТАЛ\nМаркёр Лёня\nбил"
+    },
+    {
+      "kind": "document-existing-http-alias",
+      "id": "7c52c5c11d040f",
+      "path": "files/workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/evolutions-r8/index.html",
+      "errors": [],
+      "canvases": 1,
+      "images": {
+        "total": 10,
+        "loaded": 9
+      }
+    },
+    {
+      "kind": "document-existing-http-alias",
+      "id": "5c55281890738d",
+      "path": "files/workspace/reports/tiredwood-hud-five-directions-2026-10-12/revision-concepts-11-15.html",
+      "errors": [],
+      "canvases": 0,
+      "images": {
+        "total": 12,
+        "loaded": 12
+      }
+    },
+    {
+      "kind": "document-existing-http-alias",
+      "id": "30c17774a8bf18",
+      "path": "files/workspace/concepts_blender/plaza3/npc/lineup.html",
+      "errors": [],
+      "canvases": 0,
+      "images": {
+        "total": 17,
+        "loaded": 17
+      }
+    }
+  ]
+}

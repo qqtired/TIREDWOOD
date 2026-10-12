@@ -1,0 +1,6522 @@
+{
+  "generatedAt": "2026-10-11T21:05:41.368Z",
+  "sourceRoot": "[LOCAL_PATH]",
+  "sourceHashes": {
+    "shared/fortwaves.ts": "68a8f70ccc306a42b11de4089bd1911c2752d9b3dabf2ddac767ea49af4a2fd6",
+    "shared/fortarsenal.ts": "a158417dfc447956db2a480a0da903f51a9af7f57048bb15a56d2eaadff01734",
+    "shared/fortkinds.ts": "3d956fcf5dc67785b3db7600064a161f5cf762bcdbc9023911680fe4ae31ad4a",
+    "shared/fort.ts": "fdb5bf61682df957e0c585f888caf6656bd17a720aff7d96d3504cf1aa453c95",
+    "server/fort/director.ts": "226c9f286a4c4af2b262839b831a841696806494bda4149d2f8a8efd71ddc303",
+    "server/fort/horde.ts": "8672d4c5dbb7c5710bb34175671c8b9bb27cd788bf514d3f7a45f5c668c25c4a",
+    "server/fort/game.ts": "fbd926ece8559308abdde5cb3e3f480d271e6de7b6049da90d786a0371bb3711",
+    "server/fort/arsenal.ts": "1ff8cfb14ef8f1744f09b55efef51665d403daa65ebf3ed9100bf02ed8ac09e4",
+    "tools/fort-balance/model.ts": "9ff05206e57cf7d22752013daf3b237a1e1ca28aa3e01685de9e2cfc646e17ed",
+    "tools/fort-balance/fort-director.ts": "1a48eda5c01b35c666cc93f5d9990617f1880ee208a9815b709a136a3a8e967d"
+  },
+  "method": {
+    "seedCount": 256,
+    "arithmeticModelSeed": 12345,
+    "scheduledIncludes": "Director armor-budget health of land + all crew + boss/kraken x1.3 assumption; hull not included unless intercepted.",
+    "interceptIncludes": "Same land + boat normal hull HP instead of full crew HP; assumes every boat killed before any unload.",
+    "exclusions": [
+      "Healing",
+      "Bubble/barrel/meteor friendly damage",
+      "Boss summons/regrowing tentacles",
+      "Geometric LOS and aim",
+      "Movement and reload transitions",
+      "Alive cap queue timing",
+      "Actual repairs and respawns",
+      "Per-person unequal gold",
+      "Live players and win rates"
+    ],
+    "notGameplayEvidence": true
+  },
+  "currentTeamFacts": [
+    {
+      "n": 1,
+      "teamCountMul": 1,
+      "teamHpMul": 1,
+      "teamPressure": 1.8,
+      "teamWaveHpFactor": 1.8,
+      "bossFactor": 1.8,
+      "bodyCap": 60,
+      "alivePerDefender": 60
+    },
+    {
+      "n": 2,
+      "teamCountMul": 1.898148148148148,
+      "teamHpMul": 1.08,
+      "teamPressure": 1.281,
+      "teamWaveHpFactor": 2.562,
+      "bossFactor": 2.562,
+      "bodyCap": 85,
+      "alivePerDefender": 30
+    },
+    {
+      "n": 4,
+      "teamCountMul": 3.467741935483871,
+      "teamHpMul": 1.24,
+      "teamPressure": 0.9744,
+      "teamWaveHpFactor": 3.8976,
+      "bossFactor": 3.8976,
+      "bodyCap": 135,
+      "alivePerDefender": 15
+    }
+  ],
+  "matrix": [
+    {
+      "n": 1,
+      "w": 1,
+      "releaseSeconds": 12,
+      "bodyCap": 60,
+      "liveCap": 60,
+      "teamPressure": 1.8,
+      "teamEarly": 1,
+      "dmgMul": 1,
+      "waveTokens": 6,
+      "sampleSeeds": 256,
+      "boss": -1,
+      "bossHp": 0,
+      "count": {
+        "min": 22,
+        "p10": 22,
+        "median": 22,
+        "p90": 22,
+        "max": 22
+      },
+      "landCount": {
+        "min": 22,
+        "p10": 22,
+        "median": 22,
+        "p90": 22,
+        "max": 22
+      },
+      "boats": {
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "cargoCount": {
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "hpScale": {
+        "min": 1.56,
+        "p10": 1.56,
+        "median": 1.56,
+        "p90": 1.56,
+        "max": 1.56
+      },
+      "walkerHp": {
+        "min": 93.74,
+        "p10": 93.74,
+        "median": 93.74,
+        "p90": 93.74,
+        "max": 93.74
+      },
+      "scheduled": {
+        "min": 2062.37,
+        "p10": 2062.37,
+        "median": 2062.37,
+        "p90": 2062.37,
+        "max": 2062.37
+      },
+      "intercept": {
+        "min": 2062.37,
+        "p10": 2062.37,
+        "median": 2062.37,
+        "p90": 2062.37,
+        "max": 2062.37
+      },
+      "saving": {
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "seaSaving": {
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "cargoShare": {
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "incomeClean": {
+        "min": 553,
+        "p10": 553,
+        "median": 553,
+        "p90": 553,
+        "max": 553
+      },
+      "incomeNotClean": {
+        "min": 465,
+        "p10": 465,
+        "median": 465,
+        "p90": 465,
+        "max": 465
+      },
+      "bubbleToWalkerRatio": {
+        "min": 0.93,
+        "p10": 0.93,
+        "median": 0.93,
+        "p90": 0.93,
+        "max": 0.93
+      }
+    },
+    {
+      "n": 1,
+      "w": 10,
+      "releaseSeconds": 17.4,
+      "bodyCap": 60,
+      "liveCap": 60,
+      "teamPressure": 1.8,
+      "teamEarly": 1,
+      "dmgMul": 1.225,
+      "waveTokens": 7,
+      "sampleSeeds": 256,
+      "boss": -1,
+      "bossHp": 0,
+      "count": {
+        "min": 42,
+        "p10": 50,
+        "median": 57,
+        "p90": 60,
+        "max": 60
+      },
+      "landCount": {
+        "min": 38,
+        "p10": 46,
+        "median": 53,
+        "p90": 56,
+        "max": 56
+      },
+      "boats": {
+        "min": 1,
+        "p10": 1,
+        "median": 1,
+        "p90": 1,
+        "max": 1
+      },
+      "cargoCount": {
+        "min": 4,
+        "p10": 4,
+        "median": 4,
+        "p90": 4,
+        "max": 4
+      },
+      "hpScale": {
+        "min": 5.93,
+        "p10": 6.12,
+        "median": 6.19,
+        "p90": 6.24,
+        "max": 6.24
+      },
+      "walkerHp": {
+        "min": 355.53,
+        "p10": 367.2,
+        "median": 371.46,
+        "p90": 374.36,
+        "max": 374.47
+      },
+      "scheduled": {
+        "min": 25402.8,
+        "p10": 25402.8,
+        "median": 25402.8,
+        "p90": 25402.8,
+        "max": 25402.8
+      },
+      "intercept": {
+        "min": 24261.88,
+        "p10": 25278.02,
+        "median": 25833.69,
+        "p90": 25838.76,
+        "max": 25839.69
+      },
+      "saving": {
+        "min": -0.02,
+        "p10": -0.02,
+        "median": -0.02,
+        "p90": 0,
+        "max": 0.04
+      },
+      "seaSaving": {
+        "min": -0.3,
+        "p10": -0.3,
+        "median": -0.3,
+        "p90": 0.06,
+        "max": 0.38
+      },
+      "cargoShare": {
+        "min": 0.05,
+        "p10": 0.06,
+        "median": 0.06,
+        "p90": 0.08,
+        "max": 0.12
+      },
+      "incomeClean": {
+        "min": 2169.5,
+        "p10": 2277.5,
+        "median": 2363.5,
+        "p90": 2411.5,
+        "max": 2457.5
+      },
+      "incomeNotClean": {
+        "min": 1855.83,
+        "p10": 1945.83,
+        "median": 2017.5,
+        "p90": 2057.5,
+        "max": 2095.83
+      },
+      "bubbleToWalkerRatio": {
+        "min": 0.88,
+        "p10": 0.88,
+        "median": 0.89,
+        "p90": 0.9,
+        "max": 0.93
+      }
+    },
+    {
+      "n": 1,
+      "w": 20,
+      "releaseSeconds": 23.4,
+      "bodyCap": 60,
+      "liveCap": 60,
+      "teamPressure": 1.8,
+      "teamEarly": 1,
+      "dmgMul": 1.475,
+      "waveTokens": 8,
+      "sampleSeeds": 256,
+      "boss": -1,
+      "bossHp": 0,
+      "count": {
+        "min": 14,
+        "p10": 23,
+        "median": 34,
+        "p90": 46,
+        "max": 60
+      },
+      "landCount": {
+        "min": 14,
+        "p10": 23,
+        "median": 34,
+        "p90": 46,
+        "max": 60
+      },
+      "boats": {
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "cargoCount": {
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "hpScale": {
+        "min": 11.35,
+        "p10": 11.57,
+        "median": 11.62,
+        "p90": 11.67,
+        "max": 11.69
+      },
+      "walkerHp": {
+        "min": 680.81,
+        "p10": 693.98,
+        "median": 696.92,
+        "p90": 699.93,
+        "max": 701.11
+      },
+      "scheduled": {
+        "min": 64930.79,
+        "p10": 64930.79,
+        "median": 64930.79,
+        "p90": 64930.79,
+        "max": 64930.79
+      },
+      "intercept": {
+        "min": 64930.79,
+        "p10": 64930.79,
+        "median": 64930.79,
+        "p90": 64930.79,
+        "max": 64930.79
+      },
+      "saving": {
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "seaSaving": {
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "cargoShare": {
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "incomeClean": {
+        "min": 2844,
+        "p10": 3298,
+        "median": 3586,
+        "p90": 3840,
+        "max": 4162
+      },
+      "incomeNotClean": {
+        "min": 2390,
+        "p10": 2768.33,
+        "median": 3008.33,
+        "p90": 3220,
+        "max": 3488.33
+      },
+      "bubbleToWalkerRatio": {
+        "min": 0.99,
+        "p10": 0.99,
+        "median": 0.99,
+        "p90": 1,
+        "max": 1.02
+      }
+    },
+    {
+      "n": 1,
+      "w": 40,
+      "releaseSeconds": 30,
+      "bodyCap": 60,
+      "liveCap": 60,
+      "teamPressure": 1.8,
+      "teamEarly": 1,
+      "dmgMul": 1.975,
+      "waveTokens": 10,
+      "sampleSeeds": 256,
+      "boss": -1,
+      "bossHp": 0,
+      "count": {
+        "min": 30,
+        "p10": 43,
+        "median": 54,
+        "p90": 60,
+        "max": 60
+      },
+      "landCount": {
+        "min": 12,
+        "p10": 25,
+        "median": 36,
+        "p90": 42,
+        "max": 42
+      },
+      "boats": {
+        "min": 3,
+        "p10": 3,
+        "median": 3,
+        "p90": 3,
+        "max": 3
+      },
+      "cargoCount": {
+        "min": 18,
+        "p10": 18,
+        "median": 18,
+        "p90": 18,
+        "max": 18
+      },
+      "hpScale": {
+        "min": 22.78,
+        "p10": 25.31,
+        "median": 25.63,
+        "p90": 25.71,
+        "max": 32.74
+      },
+      "walkerHp": {
+        "min": 1366.61,
+        "p10": 1518.34,
+        "median": 1537.96,
+        "p90": 1542.35,
+        "max": 1964.18
+      },
+      "scheduled": {
+        "min": 279672.29,
+        "p10": 279672.29,
+        "median": 279672.29,
+        "p90": 279672.29,
+        "max": 279672.29
+      },
+      "intercept": {
+        "min": 217309.39,
+        "p10": 233863.48,
+        "median": 244942.27,
+        "p90": 255838.46,
+        "max": 267625.96
+      },
+      "saving": {
+        "min": 0.04,
+        "p10": 0.08,
+        "median": 0.12,
+        "p90": 0.16,
+        "max": 0.22
+      },
+      "seaSaving": {
+        "min": 0.35,
+        "p10": 0.51,
+        "median": 0.6,
+        "p90": 0.66,
+        "max": 0.73
+      },
+      "cargoShare": {
+        "min": 0.12,
+        "p10": 0.17,
+        "median": 0.21,
+        "p90": 0.25,
+        "max": 0.31
+      },
+      "incomeClean": {
+        "min": 8683.5,
+        "p10": 9553.5,
+        "median": 10321.5,
+        "p90": 10933.5,
+        "max": 11897.5
+      },
+      "incomeNotClean": {
+        "min": 7494.17,
+        "p10": 8219.17,
+        "median": 8859.17,
+        "p90": 9369.17,
+        "max": 10172.5
+      },
+      "bubbleToWalkerRatio": {
+        "min": 1.12,
+        "p10": 1.43,
+        "median": 1.43,
+        "p90": 1.45,
+        "max": 1.61
+      }
+    },
+    {
+      "n": 1,
+      "w": 60,
+      "releaseSeconds": 30,
+      "bodyCap": 60,
+      "liveCap": 60,
+      "teamPressure": 1.8,
+      "teamEarly": 1,
+      "dmgMul": 2.475,
+      "waveTokens": 12,
+      "sampleSeeds": 256,
+      "boss": -1,
+      "bossHp": 0,
+      "count": {
+        "min": 24,
+        "p10": 37,
+        "median": 54,
+        "p90": 60,
+        "max": 60
+      },
+      "landCount": {
+        "min": 24,
+        "p10": 37,
+        "median": 54,
+        "p90": 60,
+        "max": 60
+      },
+      "boats": {
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "cargoCount": {
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "hpScale": {
+        "min": 44.01,
+        "p10": 48.07,
+        "median": 49.14,
+        "p90": 49.26,
+        "max": 67.05
+      },
+      "walkerHp": {
+        "min": 2640.8,
+        "p10": 2884.42,
+        "median": 2948.54,
+        "p90": 2955.43,
+        "max": 4022.95
+      },
+      "scheduled": {
+        "min": 679772.69,
+        "p10": 679772.69,
+        "median": 679772.69,
+        "p90": 679772.69,
+        "max": 679772.69
+      },
+      "intercept": {
+        "min": 679772.69,
+        "p10": 679772.69,
+        "median": 679772.69,
+        "p90": 679772.69,
+        "max": 679772.69
+      },
+      "saving": {
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "seaSaving": {
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "cargoShare": {
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "incomeClean": {
+        "min": 13014,
+        "p10": 15310,
+        "median": 16640,
+        "p90": 17734,
+        "max": 19636
+      },
+      "incomeNotClean": {
+        "min": 10898.33,
+        "p10": 12811.67,
+        "median": 13920,
+        "p90": 14831.67,
+        "max": 16416.67
+      },
+      "bubbleToWalkerRatio": {
+        "min": 1.09,
+        "p10": 1.48,
+        "median": 1.48,
+        "p90": 1.51,
+        "max": 1.65
+      }
+    },
+    {
+      "n": 1,
+      "w": 80,
+      "releaseSeconds": 30,
+      "bodyCap": 60,
+      "liveCap": 60,
+      "teamPressure": 1.8,
+      "teamEarly": 1,
+      "dmgMul": 2.975,
+      "waveTokens": 14,
+      "sampleSeeds": 256,
+      "boss": -1,
+      "bossHp": 0,
+      "count": {
+        "min": 31,
+        "p10": 45,
+        "median": 60,
+        "p90": 60,
+        "max": 60
+      },
+      "landCount": {
+        "min": 31,
+        "p10": 45,
+        "median": 60,
+        "p90": 60,
+        "max": 60
+      },
+      "boats": {
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "cargoCount": {
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "hpScale": {
+        "min": 78.59,
+        "p10": 85.01,
+        "median": 87.62,
+        "p90": 87.87,
+        "max": 145.83
+      },
+      "walkerHp": {
+        "min": 4715.17,
+        "p10": 5100.32,
+        "median": 5257.19,
+        "p90": 5272.24,
+        "max": 8749.54
+      },
+      "scheduled": {
+        "min": 1397620.85,
+        "p10": 1397620.85,
+        "median": 1397620.85,
+        "p90": 1397620.85,
+        "max": 1397620.85
+      },
+      "intercept": {
+        "min": 1397620.85,
+        "p10": 1397620.85,
+        "median": 1397620.85,
+        "p90": 1397620.85,
+        "max": 1397620.85
+      },
+      "saving": {
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "seaSaving": {
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "cargoShare": {
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "incomeClean": {
+        "min": 16110,
+        "p10": 22024,
+        "median": 23714,
+        "p90": 25314,
+        "max": 27692
+      },
+      "incomeNotClean": {
+        "min": 13495,
+        "p10": 18423.33,
+        "median": 19831.67,
+        "p90": 21165,
+        "max": 23146.67
+      },
+      "bubbleToWalkerRatio": {
+        "min": 0.89,
+        "p10": 1.48,
+        "median": 1.48,
+        "p90": 1.53,
+        "max": 1.65
+      }
+    },
+    {
+      "n": 1,
+      "w": 98,
+      "releaseSeconds": 30,
+      "bodyCap": 60,
+      "liveCap": 60,
+      "teamPressure": 1.8,
+      "teamEarly": 1,
+      "dmgMul": 3.425,
+      "waveTokens": 22,
+      "sampleSeeds": 256,
+      "boss": 12,
+      "bossHp": 688992.55,
+      "count": {
+        "min": 18,
+        "p10": 28,
+        "median": 44,
+        "p90": 58,
+        "max": 59
+      },
+      "landCount": {
+        "min": 18,
+        "p10": 28,
+        "median": 44,
+        "p90": 58,
+        "max": 59
+      },
+      "boats": {
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "cargoCount": {
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "hpScale": {
+        "min": 108.42,
+        "p10": 121.48,
+        "median": 121.8,
+        "p90": 122.08,
+        "max": 122.19
+      },
+      "walkerHp": {
+        "min": 6504.95,
+        "p10": 7288.72,
+        "median": 7307.91,
+        "p90": 7325.07,
+        "max": 7331.47
+      },
+      "scheduled": {
+        "min": 2199120.24,
+        "p10": 2199120.24,
+        "median": 2199120.24,
+        "p90": 2199120.24,
+        "max": 2199120.24
+      },
+      "intercept": {
+        "min": 2199120.24,
+        "p10": 2199120.24,
+        "median": 2199120.24,
+        "p90": 2199120.24,
+        "max": 2199120.24
+      },
+      "saving": {
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "seaSaving": {
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "cargoShare": {
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "incomeClean": {
+        "min": 21858,
+        "p10": 23648,
+        "median": 25084,
+        "p90": 26326,
+        "max": 28022
+      },
+      "incomeNotClean": {
+        "min": 18300,
+        "p10": 19791.67,
+        "median": 20988.33,
+        "p90": 22023.33,
+        "max": 23436.67
+      },
+      "bubbleToWalkerRatio": {
+        "min": 1.48,
+        "p10": 1.48,
+        "median": 1.48,
+        "p90": 1.48,
+        "max": 1.66
+      }
+    },
+    {
+      "n": 1,
+      "w": 100,
+      "releaseSeconds": 30,
+      "bodyCap": 60,
+      "liveCap": 60,
+      "teamPressure": 1.8,
+      "teamEarly": 1,
+      "dmgMul": 3.475,
+      "waveTokens": 39,
+      "sampleSeeds": 256,
+      "boss": 6,
+      "bossHp": 715135.15,
+      "count": {
+        "min": 30,
+        "p10": 40,
+        "median": 50,
+        "p90": 59,
+        "max": 59
+      },
+      "landCount": {
+        "min": 6,
+        "p10": 16,
+        "median": 26,
+        "p90": 35,
+        "max": 35
+      },
+      "boats": {
+        "min": 3,
+        "p10": 3,
+        "median": 3,
+        "p90": 3,
+        "max": 3
+      },
+      "cargoCount": {
+        "min": 24,
+        "p10": 24,
+        "median": 24,
+        "p90": 24,
+        "max": 24
+      },
+      "hpScale": {
+        "min": 116.76,
+        "p10": 126.02,
+        "median": 126.43,
+        "p90": 126.75,
+        "max": 158.86
+      },
+      "walkerHp": {
+        "min": 7005.61,
+        "p10": 7561.07,
+        "median": 7586.08,
+        "p90": 7605.3,
+        "max": 9531.43
+      },
+      "scheduled": {
+        "min": 3303052.71,
+        "p10": 3303052.71,
+        "median": 3303052.71,
+        "p90": 3303052.71,
+        "max": 3303052.71
+      },
+      "intercept": {
+        "min": 2825563.49,
+        "p10": 2961462.27,
+        "median": 3033898.26,
+        "p90": 3097743.15,
+        "max": 3210423.35
+      },
+      "saving": {
+        "min": 0.03,
+        "p10": 0.06,
+        "median": 0.08,
+        "p90": 0.1,
+        "max": 0.14
+      },
+      "seaSaving": {
+        "min": 0.45,
+        "p10": 0.64,
+        "median": 0.7,
+        "p90": 0.75,
+        "max": 0.81
+      },
+      "cargoShare": {
+        "min": 0.06,
+        "p10": 0.1,
+        "median": 0.12,
+        "p90": 0.14,
+        "max": 0.18
+      },
+      "incomeClean": {
+        "min": 38331.5,
+        "p10": 39571.5,
+        "median": 40809.5,
+        "p90": 41907.5,
+        "max": 43109.5
+      },
+      "incomeNotClean": {
+        "min": 32475.83,
+        "p10": 33509.17,
+        "median": 34540.83,
+        "p90": 35455.83,
+        "max": 36457.5
+      },
+      "bubbleToWalkerRatio": {
+        "min": 1.18,
+        "p10": 1.48,
+        "median": 1.48,
+        "p90": 1.49,
+        "max": 1.6
+      }
+    },
+    {
+      "n": 2,
+      "w": 1,
+      "releaseSeconds": 12,
+      "bodyCap": 85,
+      "liveCap": 60,
+      "teamPressure": 1.281,
+      "teamEarly": 1.12,
+      "dmgMul": 1,
+      "waveTokens": 6,
+      "sampleSeeds": 256,
+      "boss": -1,
+      "bossHp": 0,
+      "count": {
+        "min": 47,
+        "p10": 47,
+        "median": 47,
+        "p90": 47,
+        "max": 47
+      },
+      "landCount": {
+        "min": 47,
+        "p10": 47,
+        "median": 47,
+        "p90": 47,
+        "max": 47
+      },
+      "boats": {
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "cargoCount": {
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "hpScale": {
+        "min": 1.17,
+        "p10": 1.17,
+        "median": 1.17,
+        "p90": 1.17,
+        "max": 1.17
+      },
+      "walkerHp": {
+        "min": 69.95,
+        "p10": 69.95,
+        "median": 69.95,
+        "p90": 69.95,
+        "max": 69.95
+      },
+      "scheduled": {
+        "min": 3287.69,
+        "p10": 3287.69,
+        "median": 3287.69,
+        "p90": 3287.69,
+        "max": 3287.69
+      },
+      "intercept": {
+        "min": 3287.69,
+        "p10": 3287.69,
+        "median": 3287.69,
+        "p90": 3287.69,
+        "max": 3287.69
+      },
+      "saving": {
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "seaSaving": {
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "cargoShare": {
+        "min": 0,
+        "p10": 0,
+        "median": 0,
+        "p90": 0,
+        "max": 0
+      },
+      "incomeClean": {
+        "min": 589,
+        "p10": 589,
+        "median": 589,
+        "p90": 589,
+        "max": 589
+      },
+      "incomeNotClean": {
+        "min": 495,
+        "p10": 495,
+        "median": 495,
+        "p90": 495,
+        "max": 495
+      },
+      "bubbleToWalkerRatio": {
+        "min": 1.24,
+        "p10": 1.24,
+        "median": 1.24,
+        "p90": 1.24,
+        "max": 1.24
+      }
+    },
+    {
+      "n": 2,
+      "w": 10,
+      "releaseSeconds": 17.4,
+      "bodyCap": 85,
+      "liveCap": 60,
+      "teamPressure": 1.281,
+      "teamEarly": 1.08,
+      "dmgMul": 1.225,
+      "waveTokens": 7,
+      "sampleSeeds": 256,
+      "boss": -1,
+      "bossHp": 0,
+      "count": {
+        "min": 85,
+        "p10": 85,
+        "median": 85,
+        "p90": 85,
+        "max": 85
+      },
+      "landCount": {
+        "min": 81,
+        "p10": 81,
+        "median": 81,
+        "p90": 81,
+        "max": 81
+      },
+      "boats": {
+        "min": 1,
+        "p10": 1,
+        "median": 1,
+        "p90": 1,
+        "max": 1
+      },
+      "cargoCount": {
+        "min": 4,
+        "p10": 4,
+        "median": 4,
+        "p90": 4,
+        "max": 4
+      },
+      "hpScale": {
+        "min": 4.24,
+        "p10": 4.51,
+        "median": 4.64,
+        "p90": 4.66,
+        "max": 4.67
+      },
+      "walkerHp": {
+        "min": 254.44,
+        "p10": 270.47,
+        "median": 278.47,
+        "p90": 279.81,
+        "max": 279.93
+      },
+      "scheduled": {
+        "min": 39049.19,
+        "p10": 39049.19,
+        "median": 39049.19,
+        "p90": 39049.19,
+        "max": 39049.19
+      },
+      "intercept": {
+        "min": 38195.64,
+        "p10": 38956.08,
+        "median": 39371.27,
+        "p90": 39375.35,
+        "max": 39375.78
+      },
+      "saving": {
+        "min": -0.01,
+        "p10": -0.01,
+        "median": -0.01,
+        "p90": 0,
+        "max": 0.02
+      },
+      "seaSaving": {
+        "min": -0.3,
+        "p10": -0.3,
+        "median": -0.3,
+        "p90": 0.06,
+        "max": 0.38
+      },
+      "cargoShare": {
+        "min": 0.02,
+        "p10": 0.03,
+        "median": 0.03,
+        "p90": 0.04,
+        "max": 0.06
+      },
+      "incomeClean": {
+        "min": 2068.75,
+        "p10": 2089.75,
+        "median": 2108.75,
+        "p90": 2153.75,
+        "max": 2258.75
+      },
+      "incomeNotClean": {
+        "min": 1753.75,
+        "p10": 1771.25,
+        "median": 1787.08,
+        "p90": 1824.58,
+        "max": 1912.08
+      },
+      "bubbleToWalkerRatio": {
+        "min": 1.18,
+        "p10": 1.18,
+        "median": 1.18,
+        "p90": 1.22,
+        "max": 1.29
+      }
+    },
+    {
+      "n": 2,
+      "w": 20,
+      "releaseSeconds": 23.4,
+      "bodyCap": 85,
+      "liveCap": 60,
+      "teamPressure": 1.281,
+      "teamEarly": 1,
+      "dmgMul": 1.475,
+      "waveTokens": 8,
+      "sampleSeeds": 256,
+      "boss": -1,
+      "bossHp": 0,
+      "count": {
+        "min": 32,
+        "p10": 49,
+        "median": 63,
+        "p90": 80,
+        "max": 85
+      },
+      "landCount": {
+        "min": 24,
+        "p10": 41,
+        "median": 55,
+        "p90": 72,
+        "max": 77
+      },
+      "boats": {
+        "min": 2,
+        "p10": 2,
+        "median": 2,
+        "p90": 2,
+        "max": 2
+      },
+      "cargoCount": {
+        "min": 8,
+        "p10": 8,
+        "median": 8,
+        "p90": 8,
+        "max": 8
+      },
+      "hpScale": {
+        "min": 8.16,
+        "p10": 8.69,
+        "median": 8.71,
+        "p90": 8.73,
+        "max": 8.74
+      },
+      "walkerHp": {
+        "min": 489.4,
+        "p10": 521.34,
+        "median": 522.6,
+        "p90": 523.78,
+        "max": 524.22
+      },
+      "scheduled": {
+        "min": 92418.16,
+        "p10": 92418.16,
+        "median": 92418.16,
+        "p90": 92418.16,
+        "max": 92418.16
+      },
+      "intercept": {
+        "min": 86509.84,
+        "p10": 90505.67,
+        "median": 92069.23,
+        "p90": 92948.35,
+        "max": 93640.84
+      },
+      "saving": {
+        "min": -0.01,
+        "p10": -0.01,
+        "median": 0,
+        "p90": 0.02,
+        "max": 0.06
+      },
+      "seaSaving": {
+        "min": -0.3,
+        "p10": -0.12,
+        "median": 0.06,
+        "p90": 0.25,
+        "max": 0.53
+      },
+      "cargoShare": {
+        "min": 0.04,
+        "p10": 0.05,
+        "median": 0.06,
+        "p90": 0.08,
+        "max": 0.12
+      },
+      "incomeClean": {
+        "min": 3044.5,
+        "p10": 3301.5,
+        "median": 3529.5,
+        "p90": 3735.5,
+        "max": 3897.5
+      },
+      "incomeNotClean": {
+        "min": 2605.83,
+        "p10": 2820,
+        "median": 3010,
+        "p90": 3181.67,
+        "max": 3316.67
+      },
+      "bubbleToWalkerRatio": {
+        "min": 1.32,
+        "p10": 1.32,
+        "median": 1.32,
+        "p90": 1.33,
+        "max": 1.41
+      }
+    },
+    {
+      "n": 2,
+      "w": 40,
+      "releaseSeconds": 30,
+      "bodyCap": 85,
+      "liveCap": 60,
+      "teamPressure": 1.281,
+      "teamEarly": 1,
+      "dmgMul": 1.975,
+      "waveTokens": 10,
+      "sampleSeeds": 256,
+      "boss": -1,
+      "bossHp": 0,
+      "count": {
+        "min": 45,
+        "p10": 70,
+        "median": 85,
+        "p90": 85,
+        "max": 85
+      },
+      "landCount": {
+        "min": 27,
+        "p10": 52,
+        "median": 67,
+        "p90": 67,
+        "max": 67
+      },
+      "boats": {
+        "min": 3,
+        "p10": 3,
+        "median": 3,
+        "p90": 3,
+        "max": 3
+      },
+      "cargoCount": {
+        "min": 18,
+        "p10": 18,
+        "median": 18,
+        "p90": 18,
+        "max": 18
+      },
+      "hpScale": {
+        "min": 17.61,
+        "p10": 18.6,
+        "median": 19.21,
+        "p90": 20.1,
+        "max": 30.36
+      },
+      "walkerHp": {
+        "min": 1056.64,
+        "p10": 1116.09,
+        "median": 1152.82,
+        "p90": 1205.74,
+        "max": 1821.59
+      },
+      "scheduled": {
+        "min": 398066.9,
+        "p10": 398066.9,
+        "median": 398066.9,
+        "p90": 398066.9,
+        "max": 398066.9
+      },
+      "intercept": {
+        "min": 339776.09,
+        "p10": 363026.45,
+        "median": 371849.6,
+        "p90": 379777.23,
+        "max": 388928.74
+      },
+      "saving": {
+        "min": 0.02,
+        "p10": 0.05,
+        "median": 0.07,
+        "p90": 0.09,
+        "max": 0.15
+      },
+      "seaSaving": {
+        "min": 0.35,
+        "p10": 0.51,
+        "median": 0.6,
+        "p90": 0.66,
+        "max": 0.73
+      },
+      "cargoShare": {
+        "min": 0.07,
+        "p10": 0.09,
+        "median": 0.11,
+        "p90": 0.13,
+        "max": 0.22
+      },
+      "incomeClean": {
+        "min": 6571.75,
+        "p10": 8530.75,
+        "median": 9370.75,
+        "p90": 9963.75,
+        "max": 10579.75
+      },
+      "incomeNotClean": {
+        "min": 5623.75,
+        "p10": 7256.25,
+        "median": 7956.25,
+        "p90": 8450.42,
+        "max": 8963.75
+      },
+      "bubbleToWalkerRatio": {
+        "min": 1.21,
+        "p10": 1.82,
+        "median": 1.91,
+        "p90": 1.97,
+        "max": 2.08
+      }
+    },
+    {
+      "n": 2,
+      "w": 60,
+      "releaseSeconds": 30,
+      "bodyCap": 85,
+      "liveCap": 60,
+      "teamPressure": 1.281,
+      "teamEarly": 1,
+      "dmgMul": 2.475,
+      "waveTokens": 12,
+      "sampleSeeds": 256,
+      "boss": -1,
+      "bossHp": 0,
+      "count": {
+        "min": 72,
+        "p10": 85,
+        "median": 85,
+        "p90": 85,
+        "max": 85
+      },
+      "landCount": {
+        "min": 48,
+        "p10": 61,
+        "median": 61,
+        "p90": 61,
+        "max": 61
+      },
+      "boats": {
+        "min": 3,
+        "p10": 3,
+        "median": 3,
+        "p90": 3,
+        "max": 3
+      },
+      "cargoCount": {
+        "min": 24,
+        "p10": 24,
+        "median": 24,
+        "p90": 24,
+        "max": 24
+      },
+      "hpScale": {
+        "min": 34.43,
+        "p10": 36.14,
+        "median": 39.84,
+        "p90": 52.66,
+        "max": 64.67
+      },
+      "walkerHp": {
+        "min": 2065.72,
+        "p10": 2168.17,
+        "median": 2390.35,
+        "p90": 3159.47,
+        "max": 3880.34
+      },
+      "scheduled": {
+        "min": 967543.13,
+        "p10": 967543.13,
+        "median": 967543.13,
+        "p90": 967543.13,
+        "max": 967543.13
+      },
+      "intercept": {
+        "min": 788595.44,
+        "p10": 851166.28,
+        "median": 880983.05,
+        "p90": 905522.37,
+        "max": 922007.95
+      },
+      "saving": {
+        "min": 0.05,
+        "p10": 0.06,
+        "median": 0.09,
+        "p90": 0.12,
+        "max": 0.18
+      },
+      "seaSaving": {
+        "min": 0.53,
+        "p10": 0.63,
+        "median": 0.69,
+        "p90": 0.75,
+        "max": 0.79
+      },
+      "cargoShare": {
+        "min": 0.09,
+        "p10": 0.1,
+        "median": 0.13,
+        "p90": 0.16,
+        "max": 0.23
+      },
+      "incomeClean": {
+        "min": 9641.75,
+        "p10": 11427.75,
+        "median": 14140.75,
+        "p90": 16035.75,
+        "max": 17468.75
+      },
+      "incomeNotClean": {
+        "min": 8236.25,
+        "p10": 9724.58,
+        "median": 11985.42,
+        "p90": 13564.58,
+        "max": 14758.75
+      },
+      "bubbleToWalkerRatio": {
+        "min": 1.13,
+        "p10": 1.38,
+        "median": 1.82,
+        "p90": 2.01,
+        "max": 2.11
+      }
+    },
+    {
+      "n": 2,
+      "w": 80,
+      "releaseSeconds": 30,
+      "bodyCap": 85,
+      "liveCap": 60,
+      "teamPressure": 1.281,
+      "teamEarly": 1,
+      "dmgMul": 2.975,
+      "waveTokens": 14,
+      "sampleSeeds": 256,
+      "boss": -1,
+      "bossHp": 0,
+      "count": {
+        "min": 77,
+        "p10": 85,
+        "median": 85,
+        "p90": 85,
+        "max": 85
+      },
+      "landCount": {
+        "min": 53,
+        "p10": 61,
+        "median": 61,
+        "p90": 61,
+        "max": 61
+      },
+      "boats": {
+        "min": 3,
+        "p10": 3,
+        "median": 3,
+        "p90": 3,
+        "max": 3
+      },
+      "cargoCount": {
+        "min": 24,
+        "p10": 24,
+        "median": 24,
+        "p90": 24,
+        "max": 24
+      },
+      "hpScale": {
+        "min": 61.71,
+        "p10": 65.44,
+        "median": 81.86,
+        "p90": 106.04,
+        "max": 147.41
+      },
+      "walkerHp": {
+        "min": 3702.5,
+        "p10": 3926.53,
+        "median": 4911.57,
+        "p90": 6362.14,
+        "max": 8844.69
+      },
+      "scheduled": {
+        "min": 1989280.35,
+        "p10": 1989280.35,
+        "median": 1989280.35,
+        "p90": 1989280.35,
+        "max": 1989280.35
+      },
+      "intercept": {
+        "min": 1652317.42,
+        "p10": 1739351.35,
+        "median": 1812387.53,
+        "p90": 1863093.22,
+        "max": 1909312.78
+      },
+      "saving": {
+        "min": 0.04,
+        "p10": 0.06,
+        "median": 0.09,
+        "p90": 0.13,
+        "max": 0.17
+      },
+      "seaSaving": {
+        "min": 0.57,
+        "p10": 0.64,
+        "median": 0.7,
+        "p90": 0.76,
+        "max": 0.8
+      },
+      "cargoShare": {
+        "min": 0.07,
+        "p10": 0.1,
+        "median": 0.12,
+        "p90": 0.17,
+        "max": 0.22
+      },
+      "incomeClean": {
+        "min": 11095.75,
+        "p10": 14487.75,
+        "median": 17964.75,
+        "p90": 22591.75,
+        "max": 24640.75
+      },
+      "incomeNotClean": {
+        "min": 9502.08,
+        "p10": 12328.75,
+        "median": 15226.25,
+        "p90": 19082.08,
+        "max": 20789.58
+      },
+      "bubbleToWalkerRatio": {
+        "min": 0.88,
+        "p10": 1.22,
+        "median": 1.59,
+        "p90": 1.98,
+        "max": 2.1
+      }
+    },
+    {
+      "n": 2,
+      "w": 98,
+      "releaseSeconds": 30,
+      "bodyCap": 85,
+      "liveCap": 60,
+      "teamPressure": 1.281,
+      "teamEarly": 1,
+      "dmgMul": 3.425,
+      "waveTokens": 22,
+      "sampleSeeds": 256,
+      "boss": 12,
+      "bossHp": 980666.06,
+      "count": {
+        "min": 53,
+        "p10": 72,
+        "median": 84,
+        "p90": 84,
+        "max": 84
+      },
+      "landCount": {
+        "min": 29,
+        "p10": 48,
+        "median": 60,
+        "p90": 60,
+        "max": 60
+      },
+      "boats": {
+        "min": 3,
+        "p10": 3,
+        "median": 3,
+        "p90": 3,
+        "max": 3
+      },
+      "cargoCount": {
+        "min": 24,
+        "p10": 24,
+        "median": 24,
+        "p90": 24,
+        "max": 24
+      },
+      "hpScale": {
+        "min": 83.61,
+        "p10": 88.11,
+        "median": 91.25,
+        "p90": 98.03,
+        "max": 127.61
+      },
+      "walkerHp": {
+        "min": 5016.57,
+        "p10": 5286.36,
+        "median": 5474.92,
+        "p90": 5882.06,
+        "max": 7656.41
+      },
+      "scheduled": {
+        "min": 3130081.14,
+        "p10": 3130081.14,
+        "median": 3130081.14,
+        "p90": 3130081.14,
+        "max": 3130081.14
+      },
+      "intercept": {
+        "min": 2737673.43,
+        "p10": 2882670.35,
+        "median": 2933036.62,
+        "p90": 2978532.8,
+        "max": 3030729.52
+      },
+      "saving": {
+        "min": 0.03,
+        "p10": 0.05,
+        "median": 0.06,
+        "p90": 0.08,
+        "max": 0.13
+      },
+      "seaSaving": {
+        "min": 0.55,
+        "p10": 0.65,
+        "median": 0.7,
+        "p90": 0.75,
+        "max": 0.83
+      },
+      "cargoShare": {
+        "min": 0.06,
+        "p10": 0.07,
+        "median": 0.09,
+        "p90": 0.11,
+        "max": 0.15
+      },
+      "incomeClean": {
+        "min": 16785.25,
+        "p10": 19342.25,
+        "median": 20716.25,
+        "p90": 22255.25,
+        "max": 23565.25
+      },
+      "incomeNotClean": {
+        "min": 14292.08,
+        "p10": 16422.92,
+        "median": 17567.92,
+        "p90": 18850.42,
+        "max": 19942.08
+      },
+      "bubbleToWalkerRatio": {
+        "min": 1.41,
+        "p10": 1.84,
+        "median": 1.98,
+        "p90": 2.05,
+        "max": 2.16
+      }
+    },
+    {
+      "n": 2,
+      "w": 100,
+      "releaseSeconds": 30,
+      "bodyCap": 85,
+      "liveCap": 60,
+      "teamPressure": 1.281,
+      "teamEarly": 1,
+      "dmgMul": 3.475,
+      "waveTokens": 39,
+      "sampleSeeds": 256,
+      "boss": 6,
+      "bossHp": 1017875.7,
+      "count": {
+        "min": 51,
+        "p10": 64,
+        "median": 76,
+        "p90": 84,
+        "max": 84
+      },
+      "landCount": {
+        "min": 27,
+        "p10": 40,
+        "median": 52,
+        "p90": 60,
+        "max": 60
+      },
+      "boats": {
+        "min": 3,
+        "p10": 3,
+        "median": 3,
+        "p90": 3,
+        "max": 3
+      },
+      "cargoCount": {
+        "min": 24,
+        "p10": 24,
+        "median": 24,
+        "p90": 24,
+        "max": 24
+      },
+      "hpScale": {
+        "min": 85.91,
+        "p10": 93.61,
+        "median": 94.75,
+        "p90": 94.95,
+        "max": 145.03
+      },
+      "walkerHp": {
+        "min": 5154.44,
+        "p10": 5616.81,
+        "median": 5685.12,
+        "p90": 5697.02,
+        "max": 8701.92
+      },
+      "scheduled": {
+        "min": 4701345.02,
+        "p10": 4701345.02,
+        "median": 4701345.02,
+        "p90": 4701345.02,
+        "max": 4701345.02
+      },
+      "intercept": {
+        "min": 4342829.14,
+        "p10": 4445996.67,
+        "median": 4499358.33,
+        "p90": 4547974.69,
+        "max": 4631654.11
+      },
+      "saving": {
+        "min": 0.01,
+        "p10": 0.03,
+        "median": 0.04,
+        "p90": 0.05,
+        "max": 0.08
+      },
+      "seaSaving": {
+        "min": 0.45,
+        "p10": 0.64,
+        "median": 0.7,
+        "p90": 0.75,
+        "max": 0.81
+      },
+      "cargoShare": {
+        "min": 0.03,
+        "p10": 0.05,
+        "median": 0.06,
+        "p90": 0.07,
+        "max": 0.09
+      },
+      "incomeClean": {
+        "min": 23418.75,
+        "p10": 26438.75,
+        "median": 27406.75,
+        "p90": 28441.75,
+        "max": 29613.75
+      },
+      "incomeNotClean": {
+        "min": 19825.42,
+        "p10": 22342.08,
+        "median": 23148.75,
+        "p90": 24011.25,
+        "max": 24987.92
+      },
+      "bubbleToWalkerRatio": {
+        "min": 1.29,
+        "p10": 1.97,
+        "median": 1.98,
+        "p90": 2,
+        "max": 2.18
+      }
+    },
+    {
+      "n": 4,
+      "w": 1,
+      "releaseSeconds": 12,
+      "bodyCap": 135,
+      "liveCap": 60,
+      "teamPressure": 0.9744,
+      "teamEarly": 1.36,
+      "dmgMul": 1,
+      "waveTokens": 6,
+      "sampleSeeds": 256,
+      "boss": -1,
+      "bossHp": 0,
+      "count": {
+        "min": 104,
+        "p10": 104,
+        "median": 104,
+        "p90": 104,
+        "max": 104
+      },
+      "landCount": {
+        "min": 96,
+        "p10": 96,
+        "median": 96,
+        "p90": 96,
+        "max": 96
+      },
+      "boats": {
+        "min": 2,
+        "p10": 2,
+        "median": 2,
+        "p90": 2,
+        "max": 2
+      },
+      "cargoCount": {
+        "min": 8,
+        "p10": 8,
+        "median": 8,
+        "p90": 8,
+        "max": 8
+      },
+      "hpScale": {
+        "min": 0.98,
+        "p10": 0.98,
+        "median": 0.98,
+        "p90": 0.98,
+        "max": 0.98
+      },
+      "walkerHp": {
+        "min": 58.59,
+        "p10": 58.59,
+        "median": 58.59,
+        "p90": 58.59,
+        "max": 58.59
+      },
+      "scheduled": {
+        "min": 6073.37,
+        "p10": 6073.37,
+        "median": 6073.37,
+        "p90": 6073.37,
+        "max": 6073.37
+      },
+      "intercept": {
+        "min": 6210.07,
+        "p10": 6210.07,
+        "median": 6210.07,
+        "p90": 6210.07,
+        "max": 6210.07
+      },
+      "saving": {
+        "min": -0.02,
+        "p10": -0.02,
+        "median": -0.02,
+        "p90": -0.02,
+        "max": -0.02
+      },
+      "seaSaving": {
+        "min": -0.3,
+        "p10": -0.3,
+        "median": -0.3,
+        "p90": -0.3,
+        "max": -0.3
+      },
+      "cargoShare": {
+        "min": 0.07,
+        "p10": 0.07,
+        "median": 0.07,
+        "p90": 0.07,
+        "max": 0.07
+      },
+      "incomeClean": {
+        "min": 699,
+        "p10": 699,
+        "median": 699,
+        "p90": 699,
+        "max": 699
+      },
+      "incomeNotClean": {
+        "min": 599.17,
+        "p10": 599.17,
+        "median": 599.17,
+        "p90": 599.17,
+        "max": 599.17
+      },
+      "bubbleToWalkerRatio": {
+        "min": 1.48,
+        "p10": 1.48,
+        "median": 1.48,
+        "p90": 1.48,
+        "max": 1.48
+      }
+    },
+    {
+      "n": 4,
+      "w": 10,
+      "releaseSeconds": 17.4,
+      "bodyCap": 135,
+      "liveCap": 60,
+      "teamPressure": 0.9744,
+      "teamEarly": 1.24,
+      "dmgMul": 1.225,
+      "waveTokens": 7,
+      "sampleSeeds": 256,
+      "boss": -1,
+      "bossHp": 0,
+      "count": {
+        "min": 135,
+        "p10": 135,
+        "median": 135,
+        "p90": 135,
+        "max": 135
+      },
+      "landCount": {
+        "min": 127,
+        "p10": 127,
+        "median": 127,
+        "p90": 127,
+        "max": 127
+      },
+      "boats": {
+        "min": 2,
+        "p10": 2,
+        "median": 2,
+        "p90": 2,
+        "max": 2
+      },
+      "cargoCount": {
+        "min": 8,
+        "p10": 8,
+        "median": 8,
+        "p90": 8,
+        "max": 8
+      },
+      "hpScale": {
+        "min": 3.52,
+        "p10": 3.71,
+        "median": 3.98,
+        "p90": 4.58,
+        "max": 4.94
+      },
+      "walkerHp": {
+        "min": 211.11,
+        "p10": 222.6,
+        "median": 238.69,
+        "p90": 274.75,
+        "max": 296.12
+      },
+      "scheduled": {
+        "min": 68206.87,
+        "p10": 68206.87,
+        "median": 68206.87,
+        "p90": 68206.87,
+        "max": 68206.87
+      },
+      "intercept": {
+        "min": 67405.58,
+        "p10": 68087.5,
+        "median": 68458.34,
+        "p90": 68820.55,
+        "max": 68896.32
+      },
+      "saving": {
+        "min": -0.01,
+        "p10": -0.01,
+        "median": 0,
+        "p90": 0,
+        "max": 0.01
+      },
+      "seaSaving": {
+        "min": -0.3,
+        "p10": -0.3,
+        "median": -0.12,
+        "p90": 0.04,
+        "max": 0.25
+      },
+      "cargoShare": {
+        "min": 0.02,
+        "p10": 0.03,
+        "median": 0.03,
+        "p90": 0.04,
+        "max": 0.05
+      },
+      "incomeClean": {
+        "min": 1914.25,
+        "p10": 2018.25,
+        "median": 2275.25,
+        "p90": 2382.25,
+        "max": 2488.25
+      },
+      "incomeNotClean": {
+        "min": 1625,
+        "p10": 1711.67,
+        "median": 1925.83,
+        "p90": 2015,
+        "max": 2103.33
+      },
+      "bubbleToWalkerRatio": {
+        "min": 1.11,
+        "p10": 1.2,
+        "median": 1.38,
+        "p90": 1.47,
+        "max": 1.56
+      }
+    },
+    {
+      "n": 4,
+      "w": 20,
+      "releaseSeconds": 23.4,
+      "bodyCap": 135,
+      "liveCap": 60,
+      "teamPressure": 0.9744,
+      "teamEarly": 1,
+      "dmgMul": 1.475,
+      "waveTokens": 8,
+      "sampleSeeds": 256,
+      "boss": -1,
+      "bossHp": 0,
+      "count": {
+        "min": 63,
+        "p10": 85,
+        "median": 111,
+        "p90": 135,
+        "max": 135
+      },
+      "landCount": {
+        "min": 51,
+        "p10": 73,
+        "median": 99,
+        "p90": 123,
+        "max": 123
+      },
+      "boats": {
+        "min": 3,
+        "p10": 3,
+        "median": 3,
+        "p90": 3,
+        "max": 3
+      },
+      "cargoCount": {
+        "min": 12,
+        "p10": 12,
+        "median": 12,
+        "p90": 12,
+        "max": 12
+      },
+      "hpScale": {
+        "min": 6.94,
+        "p10": 7.24,
+        "median": 7.25,
+        "p90": 7.26,
+        "max": 7.27
+      },
+      "walkerHp": {
+        "min": 416.63,
+        "p10": 434.47,
+        "median": 435.13,
+        "p90": 435.76,
+        "max": 435.94
+      },
+      "scheduled": {
+        "min": 140596.81,
+        "p10": 140596.81,
+        "median": 140596.81,
+        "p90": 140596.81,
+        "max": 140596.81
+      },
+      "intercept": {
+        "min": 136246.76,
+        "p10": 138421.34,
+        "median": 139726.13,
+        "p90": 140923.44,
+        "max": 142055.02
+      },
+      "saving": {
+        "min": -0.01,
+        "p10": 0,
+        "median": 0.01,
+        "p90": 0.02,
+        "max": 0.03
+      },
+      "seaSaving": {
+        "min": -0.3,
+        "p10": -0.05,
+        "median": 0.12,
+        "p90": 0.25,
+        "max": 0.4
+      },
+      "cargoShare": {
+        "min": 0.03,
+        "p10": 0.04,
+        "median": 0.05,
+        "p90": 0.06,
+        "max": 0.08
+      },
+      "incomeClean": {
+        "min": 2790.38,
+        "p10": 2907.38,
+        "median": 3145.88,
+        "p90": 3316.38,
+        "max": 3485.38
+      },
+      "incomeNotClean": {
+        "min": 2381.88,
+        "p10": 2479.38,
+        "median": 2678.13,
+        "p90": 2820.21,
+        "max": 2961.04
+      },
+      "bubbleToWalkerRatio": {
+        "min": 1.59,
+        "p10": 1.59,
+        "median": 1.59,
+        "p90": 1.59,
+        "max": 1.66
+      }
+    },
+    {
+      "n": 4,
+      "w": 40,
+      "releaseSeconds": 30,
+      "bodyCap": 135,
+      "liveCap": 60,
+      "teamPressure": 0.9744,
+      "teamEarly": 1,
+      "dmgMul": 1.975,
+      "waveTokens": 10,
+      "sampleSeeds": 256,
+      "boss": -1,
+      "bossHp": 0,
+      "count": {
+        "min": 91,
+        "p10": 123,
+        "median": 135,
+        "p90": 135,
+        "max": 135
+      },
+      "landCount": {
+        "min": 67,
+        "p10": 99,
+        "median": 111,
+        "p90": 111,
+        "max": 111
+      },
+      "boats": {
+        "min": 4,
+        "p10": 4,
+        "median": 4,
+        "p90": 4,
+        "max": 4
+      },
+      "cargoCount": {
+        "min": 24,
+        "p10": 24,
+        "median": 24,
+        "p90": 24,
+        "max": 24
+      },
+      "hpScale": {
+        "min": 15.22,
+        "p10": 15.63,
+        "median": 16.01,
+        "p90": 17.13,
+        "max": 20.16
+      },
+      "walkerHp": {
+        "min": 913.22,
+        "p10": 937.88,
+        "median": 960.39,
+        "p90": 1028.07,
+        "max": 1209.87
+      },
+      "scheduled": {
+        "min": 605583.74,
+        "p10": 605583.74,
+        "median": 605583.74,
+        "p90": 605583.74,
+        "max": 605583.74
+      },
+      "intercept": {
+        "min": 552766.45,
+        "p10": 567128.99,
+        "median": 576679.08,
+        "p90": 585291.94,
+        "max": 594827.52
+      },
+      "saving": {
+        "min": 0.02,
+        "p10": 0.03,
+        "median": 0.05,
+        "p90": 0.06,
+        "max": 0.09
+      },
+      "seaSaving": {
+        "min": 0.35,
+        "p10": 0.51,
+        "median": 0.6,
+        "p90": 0.66,
+        "max": 0.73
+      },
+      "cargoShare": {
+        "min": 0.05,
+        "p10": 0.07,
+        "median": 0.08,
+        "p90": 0.1,
+        "max": 0.12
+      },
+      "incomeClean": {
+        "min": 7063.5,
+        "p10": 7562.5,
+        "median": 8325,
+        "p90": 8839.5,
+        "max": 9214.5
+      },
+      "incomeNotClean": {
+        "min": 5996.67,
+        "p10": 6412.5,
+        "median": 7047.92,
+        "p90": 7476.67,
+        "max": 7789.17
+      },
+      "bubbleToWalkerRatio": {
+        "min": 1.82,
+        "p10": 2.14,
+        "median": 2.29,
+        "p90": 2.34,
+        "max": 2.41
+      }
+    },
+    {
+      "n": 4,
+      "w": 60,
+      "releaseSeconds": 30,
+      "bodyCap": 135,
+      "liveCap": 60,
+      "teamPressure": 0.9744,
+      "teamEarly": 1,
+      "dmgMul": 2.475,
+      "waveTokens": 12,
+      "sampleSeeds": 256,
+      "boss": -1,
+      "bossHp": 0,
+      "count": {
+        "min": 123,
+        "p10": 135,
+        "median": 135,
+        "p90": 135,
+        "max": 135
+      },
+      "landCount": {
+        "min": 91,
+        "p10": 103,
+        "median": 103,
+        "p90": 103,
+        "max": 103
+      },
+      "boats": {
+        "min": 4,
+        "p10": 4,
+        "median": 4,
+        "p90": 4,
+        "max": 4
+      },
+      "cargoCount": {
+        "min": 32,
+        "p10": 32,
+        "median": 32,
+        "p90": 32,
+        "max": 32
+      },
+      "hpScale": {
+        "min": 29.48,
+        "p10": 30.43,
+        "median": 36.24,
+        "p90": 44.74,
+        "max": 58.98
+      },
+      "walkerHp": {
+        "min": 1768.73,
+        "p10": 1825.99,
+        "median": 2174.13,
+        "p90": 2684.24,
+        "max": 3538.77
+      },
+      "scheduled": {
+        "min": 1471934.46,
+        "p10": 1471934.46,
+        "median": 1471934.46,
+        "p90": 1471934.46,
+        "max": 1471934.46
+      },
+      "intercept": {
+        "min": 1302606.86,
+        "p10": 1335959.26,
+        "median": 1372873.5,
+        "p90": 1395772.19,
+        "max": 1413175.11
+      },
+      "saving": {
+        "min": 0.04,
+        "p10": 0.05,
+        "median": 0.07,
+        "p90": 0.09,
+        "max": 0.12
+      },
+      "seaSaving": {
+        "min": 0.58,
+        "p10": 0.64,
+        "median": 0.7,
+        "p90": 0.74,
+        "max": 0.8
+      },
+      "cargoShare": {
+        "min": 0.07,
+        "p10": 0.08,
+        "median": 0.1,
+        "p90": 0.13,
+        "max": 0.16
+      },
+      "incomeClean": {
+        "min": 8031,
+        "p10": 9993,
+        "median": 11889,
+        "p90": 14635.5,
+        "max": 15709.5
+      },
+      "incomeNotClean": {
+        "min": 6844.58,
+        "p10": 8479.58,
+        "median": 10059.58,
+        "p90": 12348.33,
+        "max": 13243.33
+      },
+      "bubbleToWalkerRatio": {
+        "min": 1.23,
+        "p10": 1.62,
+        "median": 2,
+        "p90": 2.39,
+        "max": 2.47
+      }
+    },
+    {
+      "n": 4,
+      "w": 80,
+      "releaseSeconds": 30,
+      "bodyCap": 135,
+      "liveCap": 60,
+      "teamPressure": 0.9744,
+      "teamEarly": 1,
+      "dmgMul": 2.975,
+      "waveTokens": 14,
+      "sampleSeeds": 256,
+      "boss": -1,
+      "bossHp": 0,
+      "count": {
+        "min": 127,
+        "p10": 135,
+        "median": 135,
+        "p90": 135,
+        "max": 135
+      },
+      "landCount": {
+        "min": 95,
+        "p10": 103,
+        "median": 103,
+        "p90": 103,
+        "max": 103
+      },
+      "boats": {
+        "min": 4,
+        "p10": 4,
+        "median": 4,
+        "p90": 4,
+        "max": 4
+      },
+      "cargoCount": {
+        "min": 32,
+        "p10": 32,
+        "median": 32,
+        "p90": 32,
+        "max": 32
+      },
+      "hpScale": {
+        "min": 53.55,
+        "p10": 55.6,
+        "median": 74.19,
+        "p90": 93.57,
+        "max": 135.97
+      },
+      "walkerHp": {
+        "min": 3213.1,
+        "p10": 3335.79,
+        "median": 4451.16,
+        "p90": 5614.05,
+        "max": 8158.35
+      },
+      "scheduled": {
+        "min": 3026315.02,
+        "p10": 3026315.02,
+        "median": 3026315.02,
+        "p90": 3026315.02,
+        "max": 3026315.02
+      },
+      "intercept": {
+        "min": 2598941.2,
+        "p10": 2739197.86,
+        "median": 2818235.26,
+        "p90": 2874626.07,
+        "max": 2912018.49
+      },
+      "saving": {
+        "min": 0.04,
+        "p10": 0.05,
+        "median": 0.07,
+        "p90": 0.09,
+        "max": 0.14
+      },
+      "seaSaving": {
+        "min": 0.58,
+        "p10": 0.65,
+        "median": 0.71,
+        "p90": 0.75,
+        "max": 0.78
+      },
+      "cargoShare": {
+        "min": 0.06,
+        "p10": 0.07,
+        "median": 0.1,
+        "p90": 0.13,
+        "max": 0.19
+      },
+      "incomeClean": {
+        "min": 9149,
+        "p10": 12362,
+        "median": 15182.5,
+        "p90": 19359.5,
+        "max": 21667
+      },
+      "incomeNotClean": {
+        "min": 7817.92,
+        "p10": 10495.42,
+        "median": 12845.83,
+        "p90": 16326.67,
+        "max": 18249.58
+      },
+      "bubbleToWalkerRatio": {
+        "min": 0.95,
+        "p10": 1.39,
+        "median": 1.75,
+        "p90": 2.33,
+        "max": 2.42
+      }
+    },
+    {
+      "n": 4,
+      "w": 98,
+      "releaseSeconds": 30,
+      "bodyCap": 135,
+      "liveCap": 60,
+      "teamPressure": 0.9744,
+      "teamEarly": 1,
+      "dmgMul": 3.425,
+      "waveTokens": 22,
+      "sampleSeeds": 256,
+      "boss": 12,
+      "bossHp": 1491898.52,
+      "count": {
+        "min": 88,
+        "p10": 121,
+        "median": 134,
+        "p90": 134,
+        "max": 134
+      },
+      "landCount": {
+        "min": 56,
+        "p10": 89,
+        "median": 102,
+        "p90": 102,
+        "max": 102
+      },
+      "boats": {
+        "min": 4,
+        "p10": 4,
+        "median": 4,
+        "p90": 4,
+        "max": 4
+      },
+      "cargoCount": {
+        "min": 32,
+        "p10": 32,
+        "median": 32,
+        "p90": 32,
+        "max": 32
+      },
+      "hpScale": {
+        "min": 72.51,
+        "p10": 74.6,
+        "median": 76.05,
+        "p90": 84.73,
+        "max": 102.09
+      },
+      "walkerHp": {
+        "min": 4350.76,
+        "p10": 4476.13,
+        "median": 4562.8,
+        "p90": 5083.91,
+        "max": 6125.25
+      },
+      "scheduled": {
+        "min": 4761828.35,
+        "p10": 4761828.35,
+        "median": 4761828.35,
+        "p90": 4761828.35,
+        "max": 4761828.35
+      },
+      "intercept": {
+        "min": 4387775.96,
+        "p10": 4485626.91,
+        "median": 4542046.47,
+        "p90": 4590325.81,
+        "max": 4628353.57
+      },
+      "saving": {
+        "min": 0.03,
+        "p10": 0.04,
+        "median": 0.05,
+        "p90": 0.06,
+        "max": 0.08
+      },
+      "seaSaving": {
+        "min": 0.6,
+        "p10": 0.65,
+        "median": 0.7,
+        "p90": 0.74,
+        "max": 0.8
+      },
+      "cargoShare": {
+        "min": 0.05,
+        "p10": 0.06,
+        "median": 0.07,
+        "p90": 0.08,
+        "max": 0.1
+      },
+      "incomeClean": {
+        "min": 13838,
+        "p10": 15723,
+        "median": 17417.5,
+        "p90": 18503,
+        "max": 19425.5
+      },
+      "incomeNotClean": {
+        "min": 11762.92,
+        "p10": 13333.75,
+        "median": 14745.83,
+        "p90": 15650.42,
+        "max": 16419.17
+      },
+      "bubbleToWalkerRatio": {
+        "min": 1.77,
+        "p10": 2.11,
+        "median": 2.37,
+        "p90": 2.42,
+        "max": 2.49
+      }
+    },
+    {
+      "n": 4,
+      "w": 100,
+      "releaseSeconds": 30,
+      "bodyCap": 135,
+      "liveCap": 60,
+      "teamPressure": 0.9744,
+      "teamEarly": 1,
+      "dmgMul": 3.475,
+      "waveTokens": 39,
+      "sampleSeeds": 256,
+      "boss": 6,
+      "bossHp": 1548505.98,
+      "count": {
+        "min": 76,
+        "p10": 106,
+        "median": 127,
+        "p90": 134,
+        "max": 134
+      },
+      "landCount": {
+        "min": 44,
+        "p10": 74,
+        "median": 95,
+        "p90": 102,
+        "max": 102
+      },
+      "boats": {
+        "min": 4,
+        "p10": 4,
+        "median": 4,
+        "p90": 4,
+        "max": 4
+      },
+      "cargoCount": {
+        "min": 32,
+        "p10": 32,
+        "median": 32,
+        "p90": 32,
+        "max": 32
+      },
+      "hpScale": {
+        "min": 74.49,
+        "p10": 78.2,
+        "median": 78.92,
+        "p90": 79.01,
+        "max": 98.47
+      },
+      "walkerHp": {
+        "min": 4469.68,
+        "p10": 4691.82,
+        "median": 4735.26,
+        "p90": 4740.71,
+        "max": 5908.4
+      },
+      "scheduled": {
+        "min": 7152210.13,
+        "p10": 7152210.13,
+        "median": 7152210.13,
+        "p90": 7152210.13,
+        "max": 7152210.13
+      },
+      "intercept": {
+        "min": 6805226.01,
+        "p10": 6872982.52,
+        "median": 6926657.64,
+        "p90": 6973205.22,
+        "max": 7054792.86
+      },
+      "saving": {
+        "min": 0.01,
+        "p10": 0.02,
+        "median": 0.03,
+        "p90": 0.04,
+        "max": 0.05
+      },
+      "seaSaving": {
+        "min": 0.52,
+        "p10": 0.65,
+        "median": 0.7,
+        "p90": 0.74,
+        "max": 0.79
+      },
+      "cargoShare": {
+        "min": 0.03,
+        "p10": 0.04,
+        "median": 0.04,
+        "p90": 0.05,
+        "max": 0.06
+      },
+      "incomeClean": {
+        "min": 17837.5,
+        "p10": 18985.5,
+        "median": 19961.5,
+        "p90": 20808,
+        "max": 21823.5
+      },
+      "incomeNotClean": {
+        "min": 15100,
+        "p10": 16056.67,
+        "median": 16870,
+        "p90": 17575.42,
+        "max": 18421.67
+      },
+      "bubbleToWalkerRatio": {
+        "min": 1.9,
+        "p10": 2.37,
+        "median": 2.37,
+        "p90": 2.39,
+        "max": 2.51
+      }
+    }
+  ],
+  "trajectories": [
+    {
+      "n": 1,
+      "skill": "newbie",
+      "firstArithmeticMarginBelow1": 1,
+      "rows": [
+        {
+          "w": 1,
+          "lv": [
+            1,
+            0,
+            0,
+            0,
+            0
+          ],
+          "gun": -1,
+          "slots": [
+            {
+              "type": -1,
+              "level": 0,
+              "share": 1
+            },
+            {
+              "type": -1,
+              "level": 0,
+              "share": 1
+            },
+            {
+              "type": -1,
+              "level": 0,
+              "share": 1
+            },
+            {
+              "type": -1,
+              "level": 0,
+              "share": 1
+            },
+            {
+              "type": -1,
+              "level": 0,
+              "share": 1
+            },
+            {
+              "type": -1,
+              "level": 0,
+              "share": 1
+            },
+            {
+              "type": -1,
+              "level": 0,
+              "share": 1
+            },
+            {
+              "type": -1,
+              "level": 0,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 54.43,
+            "towers": 0,
+            "grenades": 10.5,
+            "total": 64.93
+          },
+          "oldModelMargin": 0.945,
+          "oldModelIncome": 491.4,
+          "actualFormulaAverageIncome": 491.4,
+          "modelIncomeBoatGrowthOmission": 0,
+          "effectiveWorkSecondsScheduled": 31.76,
+          "effectiveWorkSecondsAllBoatsIntercepted": 31.76,
+          "cargoSaving": 0,
+          "goldAfterOldModelPurchases": 368.55
+        },
+        {
+          "w": 10,
+          "lv": [
+            3,
+            2,
+            3,
+            2,
+            2
+          ],
+          "gun": -1,
+          "slots": [
+            {
+              "type": 0,
+              "level": 2,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 2,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 1,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 1,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 1,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 1,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 1,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 1,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 126.25,
+            "towers": 530.84,
+            "grenades": 12.34,
+            "total": 669.44
+          },
+          "oldModelMargin": 0.968,
+          "oldModelIncome": 2064.4,
+          "actualFormulaAverageIncome": 2131.9,
+          "modelIncomeBoatGrowthOmission": 67.5,
+          "effectiveWorkSecondsScheduled": 37.95,
+          "effectiveWorkSecondsAllBoatsIntercepted": 37.9,
+          "cargoSaving": 30.96,
+          "goldAfterOldModelPurchases": 1639.4
+        },
+        {
+          "w": 20,
+          "lv": [
+            5,
+            4,
+            5,
+            4,
+            3
+          ],
+          "gun": 3,
+          "slots": [
+            {
+              "type": 0,
+              "level": 4,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 3,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 3,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 3,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 3,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 3,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 3,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 3,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 251.26,
+            "towers": 1039,
+            "grenades": 14.76,
+            "total": 1305.02
+          },
+          "oldModelMargin": 0.889,
+          "oldModelIncome": 2990.83,
+          "actualFormulaAverageIncome": 2990.83,
+          "modelIncomeBoatGrowthOmission": 0,
+          "effectiveWorkSecondsScheduled": 49.75,
+          "effectiveWorkSecondsAllBoatsIntercepted": 49.75,
+          "cargoSaving": 0,
+          "goldAfterOldModelPurchases": 2457.28
+        },
+        {
+          "w": 40,
+          "lv": [
+            8,
+            7,
+            6,
+            7,
+            3
+          ],
+          "gun": 3,
+          "slots": [
+            {
+              "type": 0,
+              "level": 7,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 7,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 6,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 6,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 6,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 6,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 6,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 6,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 676.87,
+            "towers": 3109.11,
+            "grenades": 21.5,
+            "total": 3807.48
+          },
+          "oldModelMargin": 0.715,
+          "oldModelIncome": 7900.97,
+          "actualFormulaAverageIncome": 8778.47,
+          "modelIncomeBoatGrowthOmission": 877.5,
+          "effectiveWorkSecondsScheduled": 73.45,
+          "effectiveWorkSecondsAllBoatsIntercepted": 60.2,
+          "cargoSaving": 50453.38,
+          "goldAfterOldModelPurchases": 9528.45
+        },
+        {
+          "w": 60,
+          "lv": [
+            10,
+            8,
+            6,
+            8,
+            3
+          ],
+          "gun": 3,
+          "slots": [
+            {
+              "type": 0,
+              "level": 9,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 9,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 9,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 8,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 8,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 8,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 8,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 8,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 1138.79,
+            "towers": 6525.23,
+            "grenades": 30.96,
+            "total": 7694.97
+          },
+          "oldModelMargin": 0.594,
+          "oldModelIncome": 15585.77,
+          "actualFormulaAverageIncome": 15585.77,
+          "modelIncomeBoatGrowthOmission": 0,
+          "effectiveWorkSecondsScheduled": 88.34,
+          "effectiveWorkSecondsAllBoatsIntercepted": 88.34,
+          "cargoSaving": 0,
+          "goldAfterOldModelPurchases": 22989.75
+        },
+        {
+          "w": 80,
+          "lv": [
+            11,
+            8,
+            6,
+            8,
+            3
+          ],
+          "gun": 3,
+          "slots": [
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 1366.55,
+            "towers": 10858.58,
+            "grenades": 37.15,
+            "total": 12262.27
+          },
+          "oldModelMargin": 0.461,
+          "oldModelIncome": 20266.73,
+          "actualFormulaAverageIncome": 20266.73,
+          "modelIncomeBoatGrowthOmission": 0,
+          "effectiveWorkSecondsScheduled": 113.98,
+          "effectiveWorkSecondsAllBoatsIntercepted": 113.98,
+          "cargoSaving": 0,
+          "goldAfterOldModelPurchases": 37679.63
+        },
+        {
+          "w": 98,
+          "lv": [
+            15,
+            8,
+            6,
+            8,
+            3
+          ],
+          "gun": 3,
+          "slots": [
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 2833.67,
+            "towers": 15636.35,
+            "grenades": 77.04,
+            "total": 18547.05
+          },
+          "oldModelMargin": 0.443,
+          "oldModelIncome": 23413.07,
+          "actualFormulaAverageIncome": 23413.07,
+          "modelIncomeBoatGrowthOmission": 0,
+          "effectiveWorkSecondsScheduled": 118.57,
+          "effectiveWorkSecondsAllBoatsIntercepted": 118.57,
+          "cargoSaving": 0,
+          "goldAfterOldModelPurchases": 90315.43
+        },
+        {
+          "w": 100,
+          "lv": [
+            15,
+            8,
+            6,
+            8,
+            3
+          ],
+          "gun": 3,
+          "slots": [
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 2833.67,
+            "towers": 15636.35,
+            "grenades": 77.04,
+            "total": 18547.05
+          },
+          "oldModelMargin": 0.295,
+          "oldModelIncome": 34001.37,
+          "actualFormulaAverageIncome": 36221.8,
+          "modelIncomeBoatGrowthOmission": 2227.5,
+          "effectiveWorkSecondsScheduled": 178.09,
+          "effectiveWorkSecondsAllBoatsIntercepted": 164.97,
+          "cargoSaving": 243260.54,
+          "goldAfterOldModelPurchases": 137649.15
+        }
+      ]
+    },
+    {
+      "n": 1,
+      "skill": "experienced",
+      "firstArithmeticMarginBelow1": 41,
+      "rows": [
+        {
+          "w": 1,
+          "lv": [
+            1,
+            0,
+            0,
+            0,
+            0
+          ],
+          "gun": -1,
+          "slots": [
+            {
+              "type": -1,
+              "level": 0,
+              "share": 1
+            },
+            {
+              "type": -1,
+              "level": 0,
+              "share": 1
+            },
+            {
+              "type": -1,
+              "level": 0,
+              "share": 1
+            },
+            {
+              "type": -1,
+              "level": 0,
+              "share": 1
+            },
+            {
+              "type": -1,
+              "level": 0,
+              "share": 1
+            },
+            {
+              "type": -1,
+              "level": 0,
+              "share": 1
+            },
+            {
+              "type": -1,
+              "level": 0,
+              "share": 1
+            },
+            {
+              "type": -1,
+              "level": 0,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 90.64,
+            "towers": 0,
+            "grenades": 15.75,
+            "total": 106.39
+          },
+          "oldModelMargin": 1.548,
+          "oldModelIncome": 517.8,
+          "actualFormulaAverageIncome": 517.8,
+          "modelIncomeBoatGrowthOmission": 0,
+          "effectiveWorkSecondsScheduled": 19.38,
+          "effectiveWorkSecondsAllBoatsIntercepted": 19.38,
+          "cargoSaving": 0,
+          "goldAfterOldModelPurchases": 440.13
+        },
+        {
+          "w": 10,
+          "lv": [
+            5,
+            4,
+            3,
+            2,
+            0
+          ],
+          "gun": -1,
+          "slots": [
+            {
+              "type": 0,
+              "level": 1,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 1,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 1,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 1,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 1,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 1,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 1,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 1,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 377.57,
+            "towers": 592.57,
+            "grenades": 26.66,
+            "total": 996.8
+          },
+          "oldModelMargin": 1.442,
+          "oldModelIncome": 2168.8,
+          "actualFormulaAverageIncome": 2236.3,
+          "modelIncomeBoatGrowthOmission": 67.5,
+          "effectiveWorkSecondsScheduled": 25.48,
+          "effectiveWorkSecondsAllBoatsIntercepted": 25.45,
+          "cargoSaving": 30.96,
+          "goldAfterOldModelPurchases": 1920.56
+        },
+        {
+          "w": 20,
+          "lv": [
+            7,
+            5,
+            4,
+            4,
+            0
+          ],
+          "gun": 1,
+          "slots": [
+            {
+              "type": 0,
+              "level": 4,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 4,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 3,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 3,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 3,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 3,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 3,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 3,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 707.12,
+            "towers": 1291.86,
+            "grenades": 31.88,
+            "total": 2030.87
+          },
+          "oldModelMargin": 1.384,
+          "oldModelIncome": 3153.33,
+          "actualFormulaAverageIncome": 3153.33,
+          "modelIncomeBoatGrowthOmission": 0,
+          "effectiveWorkSecondsScheduled": 31.97,
+          "effectiveWorkSecondsAllBoatsIntercepted": 31.97,
+          "cargoSaving": 0,
+          "goldAfterOldModelPurchases": 3642.41
+        },
+        {
+          "w": 40,
+          "lv": [
+            9,
+            8,
+            6,
+            7,
+            0
+          ],
+          "gun": 1,
+          "slots": [
+            {
+              "type": 0,
+              "level": 7,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 7,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 7,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 7,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 7,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 6,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 6,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 6,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 1659.37,
+            "towers": 3762.29,
+            "grenades": 38.7,
+            "total": 5460.36
+          },
+          "oldModelMargin": 1.025,
+          "oldModelIncome": 8310.27,
+          "actualFormulaAverageIncome": 9187.77,
+          "modelIncomeBoatGrowthOmission": 877.5,
+          "effectiveWorkSecondsScheduled": 51.22,
+          "effectiveWorkSecondsAllBoatsIntercepted": 41.98,
+          "cargoSaving": 50453.38,
+          "goldAfterOldModelPurchases": 7185.99
+        },
+        {
+          "w": 60,
+          "lv": [
+            11,
+            8,
+            6,
+            8,
+            0
+          ],
+          "gun": 1,
+          "slots": [
+            {
+              "type": 0,
+              "level": 9,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 9,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 9,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 9,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 9,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 9,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 8,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 8,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 2507.01,
+            "towers": 7870.86,
+            "grenades": 55.73,
+            "total": 10433.6
+          },
+          "oldModelMargin": 0.806,
+          "oldModelIncome": 16449.87,
+          "actualFormulaAverageIncome": 16449.87,
+          "modelIncomeBoatGrowthOmission": 0,
+          "effectiveWorkSecondsScheduled": 65.15,
+          "effectiveWorkSecondsAllBoatsIntercepted": 65.15,
+          "cargoSaving": 0,
+          "goldAfterOldModelPurchases": 26472.6
+        },
+        {
+          "w": 80,
+          "lv": [
+            13,
+            8,
+            6,
+            8,
+            0
+          ],
+          "gun": 1,
+          "slots": [
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 3610.1,
+            "towers": 13030.29,
+            "grenades": 80.24,
+            "total": 16720.63
+          },
+          "oldModelMargin": 0.628,
+          "oldModelIncome": 21390.13,
+          "actualFormulaAverageIncome": 21390.13,
+          "modelIncomeBoatGrowthOmission": 0,
+          "effectiveWorkSecondsScheduled": 83.59,
+          "effectiveWorkSecondsAllBoatsIntercepted": 83.59,
+          "cargoSaving": 0,
+          "goldAfterOldModelPurchases": 79014.23
+        },
+        {
+          "w": 98,
+          "lv": [
+            16,
+            8,
+            6,
+            8,
+            0
+          ],
+          "gun": 1,
+          "slots": [
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 6238.24,
+            "towers": 17128.76,
+            "grenades": 138.66,
+            "total": 23505.67
+          },
+          "oldModelMargin": 0.561,
+          "oldModelIncome": 24709.47,
+          "actualFormulaAverageIncome": 24709.47,
+          "modelIncomeBoatGrowthOmission": 0,
+          "effectiveWorkSecondsScheduled": 93.56,
+          "effectiveWorkSecondsAllBoatsIntercepted": 93.56,
+          "cargoSaving": 0,
+          "goldAfterOldModelPurchases": 83591.13
+        },
+        {
+          "w": 100,
+          "lv": [
+            16,
+            8,
+            6,
+            8,
+            0
+          ],
+          "gun": 1,
+          "slots": [
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 6238.24,
+            "towers": 17128.76,
+            "grenades": 138.66,
+            "total": 23505.67
+          },
+          "oldModelMargin": 0.374,
+          "oldModelIncome": 35871.07,
+          "actualFormulaAverageIncome": 38091.1,
+          "modelIncomeBoatGrowthOmission": 2227.5,
+          "effectiveWorkSecondsScheduled": 140.52,
+          "effectiveWorkSecondsAllBoatsIntercepted": 130.17,
+          "cargoSaving": 243260.54,
+          "goldAfterOldModelPurchases": 140201.07
+        }
+      ]
+    },
+    {
+      "n": 1,
+      "skill": "master",
+      "firstArithmeticMarginBelow1": 77,
+      "rows": [
+        {
+          "w": 1,
+          "lv": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "gun": -1,
+          "slots": [
+            {
+              "type": -1,
+              "level": 0,
+              "share": 1
+            },
+            {
+              "type": -1,
+              "level": 0,
+              "share": 1
+            },
+            {
+              "type": -1,
+              "level": 0,
+              "share": 1
+            },
+            {
+              "type": -1,
+              "level": 0,
+              "share": 1
+            },
+            {
+              "type": -1,
+              "level": 0,
+              "share": 1
+            },
+            {
+              "type": -1,
+              "level": 0,
+              "share": 1
+            },
+            {
+              "type": -1,
+              "level": 0,
+              "share": 1
+            },
+            {
+              "type": -1,
+              "level": 0,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 110.59,
+            "towers": 0,
+            "grenades": 52.5,
+            "total": 163.09
+          },
+          "oldModelMargin": 2.372,
+          "oldModelIncome": 539.8,
+          "actualFormulaAverageIncome": 539.8,
+          "modelIncomeBoatGrowthOmission": 0,
+          "effectiveWorkSecondsScheduled": 12.65,
+          "effectiveWorkSecondsAllBoatsIntercepted": 12.65,
+          "cargoSaving": 0,
+          "goldAfterOldModelPurchases": 572.82
+        },
+        {
+          "w": 10,
+          "lv": [
+            5,
+            3,
+            2,
+            2,
+            0
+          ],
+          "gun": 2,
+          "slots": [
+            {
+              "type": 0,
+              "level": 1,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 1,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 1,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 1,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 1,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 1,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 1,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 1,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 655.21,
+            "towers": 919.08,
+            "grenades": 106.64,
+            "total": 1680.93
+          },
+          "oldModelMargin": 2.432,
+          "oldModelIncome": 2255.8,
+          "actualFormulaAverageIncome": 2323.3,
+          "modelIncomeBoatGrowthOmission": 67.5,
+          "effectiveWorkSecondsScheduled": 15.11,
+          "effectiveWorkSecondsAllBoatsIntercepted": 15.09,
+          "cargoSaving": 30.96,
+          "goldAfterOldModelPurchases": 2120.21
+        },
+        {
+          "w": 20,
+          "lv": [
+            7,
+            6,
+            3,
+            4,
+            0
+          ],
+          "gun": 2,
+          "slots": [
+            {
+              "type": 0,
+              "level": 3,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 3,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 3,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 3,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 3,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 3,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 3,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 3,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 1464.85,
+            "towers": 1863.9,
+            "grenades": 127.54,
+            "total": 3456.28
+          },
+          "oldModelMargin": 2.355,
+          "oldModelIncome": 3288.75,
+          "actualFormulaAverageIncome": 3288.75,
+          "modelIncomeBoatGrowthOmission": 0,
+          "effectiveWorkSecondsScheduled": 18.79,
+          "effectiveWorkSecondsAllBoatsIntercepted": 18.79,
+          "cargoSaving": 0,
+          "goldAfterOldModelPurchases": 3057.99
+        },
+        {
+          "w": 40,
+          "lv": [
+            10,
+            8,
+            6,
+            7,
+            0
+          ],
+          "gun": 2,
+          "slots": [
+            {
+              "type": 0,
+              "level": 6,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 7,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 6,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 6,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 6,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 6,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 6,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 6,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 3846.69,
+            "towers": 5608.76,
+            "grenades": 185.75,
+            "total": 9641.19
+          },
+          "oldModelMargin": 1.81,
+          "oldModelIncome": 8651.35,
+          "actualFormulaAverageIncome": 9528.85,
+          "modelIncomeBoatGrowthOmission": 877.5,
+          "effectiveWorkSecondsScheduled": 29.01,
+          "effectiveWorkSecondsAllBoatsIntercepted": 23.77,
+          "cargoSaving": 50453.38,
+          "goldAfterOldModelPurchases": 9380.23
+        },
+        {
+          "w": 60,
+          "lv": [
+            11,
+            8,
+            6,
+            8,
+            0
+          ],
+          "gun": 2,
+          "slots": [
+            {
+              "type": 0,
+              "level": 9,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 9,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 9,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 8,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 8,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 8,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 8,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 9,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 4843.04,
+            "towers": 11283.35,
+            "grenades": 222.9,
+            "total": 16349.3
+          },
+          "oldModelMargin": 1.263,
+          "oldModelIncome": 17169.95,
+          "actualFormulaAverageIncome": 17169.95,
+          "modelIncomeBoatGrowthOmission": 0,
+          "effectiveWorkSecondsScheduled": 41.58,
+          "effectiveWorkSecondsAllBoatsIntercepted": 41.58,
+          "cargoSaving": 0,
+          "goldAfterOldModelPurchases": 31777.65
+        },
+        {
+          "w": 80,
+          "lv": [
+            13,
+            8,
+            6,
+            8,
+            0
+          ],
+          "gun": 2,
+          "slots": [
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 6973.98,
+            "towers": 20210.12,
+            "grenades": 320.98,
+            "total": 27505.07
+          },
+          "oldModelMargin": 1.033,
+          "oldModelIncome": 22326.3,
+          "actualFormulaAverageIncome": 22326.3,
+          "modelIncomeBoatGrowthOmission": 0,
+          "effectiveWorkSecondsScheduled": 50.81,
+          "effectiveWorkSecondsAllBoatsIntercepted": 50.81,
+          "cargoSaving": 0,
+          "goldAfterOldModelPurchases": 27444.47
+        },
+        {
+          "w": 98,
+          "lv": [
+            16,
+            8,
+            6,
+            8,
+            0
+          ],
+          "gun": 2,
+          "slots": [
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 12051.03,
+            "towers": 26566.89,
+            "grenades": 554.65,
+            "total": 39172.57
+          },
+          "oldModelMargin": 0.935,
+          "oldModelIncome": 25789.8,
+          "actualFormulaAverageIncome": 25789.8,
+          "modelIncomeBoatGrowthOmission": 0,
+          "effectiveWorkSecondsScheduled": 56.14,
+          "effectiveWorkSecondsAllBoatsIntercepted": 56.14,
+          "cargoSaving": 0,
+          "goldAfterOldModelPurchases": 63544.94
+        },
+        {
+          "w": 100,
+          "lv": [
+            16,
+            8,
+            6,
+            8,
+            0
+          ],
+          "gun": 2,
+          "slots": [
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 12051.03,
+            "towers": 26566.89,
+            "grenades": 554.65,
+            "total": 39172.57
+          },
+          "oldModelMargin": 0.623,
+          "oldModelIncome": 37429.15,
+          "actualFormulaAverageIncome": 39648.85,
+          "modelIncomeBoatGrowthOmission": 2227.5,
+          "effectiveWorkSecondsScheduled": 84.32,
+          "effectiveWorkSecondsAllBoatsIntercepted": 78.11,
+          "cargoSaving": 243260.54,
+          "goldAfterOldModelPurchases": 125384.11
+        }
+      ]
+    },
+    {
+      "n": 2,
+      "skill": "newbie",
+      "firstArithmeticMarginBelow1": 3,
+      "rows": [
+        {
+          "w": 1,
+          "lv": [
+            1,
+            0,
+            0,
+            0,
+            0
+          ],
+          "gun": -1,
+          "slots": [
+            {
+              "type": -1,
+              "level": 0,
+              "share": 1
+            },
+            {
+              "type": -1,
+              "level": 0,
+              "share": 1
+            },
+            {
+              "type": -1,
+              "level": 0,
+              "share": 1
+            },
+            {
+              "type": -1,
+              "level": 0,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 54.43,
+            "towers": 0,
+            "grenades": 10.5,
+            "total": 64.93
+          },
+          "oldModelMargin": 1.185,
+          "oldModelIncome": 523.2,
+          "actualFormulaAverageIncome": 523.2,
+          "modelIncomeBoatGrowthOmission": 0,
+          "effectiveWorkSecondsScheduled": 25.32,
+          "effectiveWorkSecondsAllBoatsIntercepted": 25.32,
+          "cargoSaving": 0,
+          "goldAfterOldModelPurchases": 392.4
+        },
+        {
+          "w": 10,
+          "lv": [
+            3,
+            2,
+            3,
+            2,
+            2
+          ],
+          "gun": -1,
+          "slots": [
+            {
+              "type": 0,
+              "level": 2,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 2,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 2,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 2,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 126.25,
+            "towers": 320.97,
+            "grenades": 12.34,
+            "total": 459.57
+          },
+          "oldModelMargin": 0.865,
+          "oldModelIncome": 1848.95,
+          "actualFormulaAverageIncome": 1882.7,
+          "modelIncomeBoatGrowthOmission": 33.75,
+          "effectiveWorkSecondsScheduled": 42.48,
+          "effectiveWorkSecondsAllBoatsIntercepted": 42.46,
+          "cargoSaving": 22.98,
+          "goldAfterOldModelPurchases": 1509.66
+        },
+        {
+          "w": 20,
+          "lv": [
+            5,
+            4,
+            5,
+            4,
+            3
+          ],
+          "gun": 3,
+          "slots": [
+            {
+              "type": 0,
+              "level": 4,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 4,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 4,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 4,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 251.26,
+            "towers": 650.94,
+            "grenades": 14.76,
+            "total": 916.96
+          },
+          "oldModelMargin": 0.878,
+          "oldModelIncome": 3126.7,
+          "actualFormulaAverageIncome": 3269.2,
+          "modelIncomeBoatGrowthOmission": 142.5,
+          "effectiveWorkSecondsScheduled": 50.39,
+          "effectiveWorkSecondsAllBoatsIntercepted": 49.85,
+          "cargoSaving": 1000.41,
+          "goldAfterOldModelPurchases": 3447.6
+        },
+        {
+          "w": 40,
+          "lv": [
+            9,
+            8,
+            6,
+            7,
+            3
+          ],
+          "gun": 3,
+          "slots": [
+            {
+              "type": 0,
+              "level": 7,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 7,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 7,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 7,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 904.51,
+            "towers": 2059.36,
+            "grenades": 25.8,
+            "total": 2989.66
+          },
+          "oldModelMargin": 0.789,
+          "oldModelIncome": 7726.32,
+          "actualFormulaAverageIncome": 8165.07,
+          "modelIncomeBoatGrowthOmission": 438.75,
+          "effectiveWorkSecondsScheduled": 66.57,
+          "effectiveWorkSecondsAllBoatsIntercepted": 60.25,
+          "cargoSaving": 37821.8,
+          "goldAfterOldModelPurchases": 8079.18
+        },
+        {
+          "w": 60,
+          "lv": [
+            11,
+            8,
+            6,
+            8,
+            3
+          ],
+          "gun": 3,
+          "slots": [
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 9,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 9,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 9,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 1366.55,
+            "towers": 4489.6,
+            "grenades": 37.15,
+            "total": 5893.3
+          },
+          "oldModelMargin": 0.64,
+          "oldModelIncome": 12530.07,
+          "actualFormulaAverageIncome": 13193.82,
+          "modelIncomeBoatGrowthOmission": 663.75,
+          "effectiveWorkSecondsScheduled": 82.09,
+          "effectiveWorkSecondsAllBoatsIntercepted": 74.39,
+          "cargoSaving": 90743.3,
+          "goldAfterOldModelPurchases": 21613.7
+        },
+        {
+          "w": 80,
+          "lv": [
+            14,
+            8,
+            6,
+            8,
+            3
+          ],
+          "gun": 3,
+          "slots": [
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 2361.39,
+            "towers": 7136.99,
+            "grenades": 64.2,
+            "total": 9562.57
+          },
+          "oldModelMargin": 0.505,
+          "oldModelIncome": 16825.02,
+          "actualFormulaAverageIncome": 17713.77,
+          "modelIncomeBoatGrowthOmission": 888.75,
+          "effectiveWorkSecondsScheduled": 104.01,
+          "effectiveWorkSecondsAllBoatsIntercepted": 94.78,
+          "cargoSaving": 176633.11,
+          "goldAfterOldModelPurchases": 31599.9
+        },
+        {
+          "w": 98,
+          "lv": [
+            15,
+            8,
+            6,
+            8,
+            3
+          ],
+          "gun": 3,
+          "slots": [
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 2833.67,
+            "towers": 7818.18,
+            "grenades": 77.04,
+            "total": 10728.88
+          },
+          "oldModelMargin": 0.36,
+          "oldModelIncome": 15750.78,
+          "actualFormulaAverageIncome": 16842.03,
+          "modelIncomeBoatGrowthOmission": 1091.25,
+          "effectiveWorkSecondsScheduled": 145.87,
+          "effectiveWorkSecondsAllBoatsIntercepted": 135.18,
+          "cargoSaving": 229489.83,
+          "goldAfterOldModelPurchases": 172731.8
+        },
+        {
+          "w": 100,
+          "lv": [
+            16,
+            8,
+            6,
+            8,
+            3
+          ],
+          "gun": 3,
+          "slots": [
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 3400.4,
+            "towers": 8564.38,
+            "grenades": 92.44,
+            "total": 12057.23
+          },
+          "oldModelMargin": 0.269,
+          "oldModelIncome": 24057.05,
+          "actualFormulaAverageIncome": 25167.27,
+          "modelIncomeBoatGrowthOmission": 1113.75,
+          "effectiveWorkSecondsScheduled": 194.96,
+          "effectiveWorkSecondsAllBoatsIntercepted": 187.38,
+          "cargoSaving": 182711.62,
+          "goldAfterOldModelPurchases": 31716.34
+        }
+      ]
+    },
+    {
+      "n": 2,
+      "skill": "experienced",
+      "firstArithmeticMarginBelow1": 50,
+      "rows": [
+        {
+          "w": 1,
+          "lv": [
+            1,
+            0,
+            0,
+            0,
+            0
+          ],
+          "gun": -1,
+          "slots": [
+            {
+              "type": -1,
+              "level": 0,
+              "share": 1
+            },
+            {
+              "type": -1,
+              "level": 0,
+              "share": 1
+            },
+            {
+              "type": -1,
+              "level": 0,
+              "share": 1
+            },
+            {
+              "type": -1,
+              "level": 0,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 90.64,
+            "towers": 0,
+            "grenades": 15.75,
+            "total": 106.39
+          },
+          "oldModelMargin": 1.942,
+          "oldModelIncome": 551.4,
+          "actualFormulaAverageIncome": 551.4,
+          "modelIncomeBoatGrowthOmission": 0,
+          "effectiveWorkSecondsScheduled": 15.45,
+          "effectiveWorkSecondsAllBoatsIntercepted": 15.45,
+          "cargoSaving": 0,
+          "goldAfterOldModelPurchases": 468.69
+        },
+        {
+          "w": 10,
+          "lv": [
+            5,
+            4,
+            3,
+            2,
+            0
+          ],
+          "gun": -1,
+          "slots": [
+            {
+              "type": 0,
+              "level": 2,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 2,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 1,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 1,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 377.57,
+            "towers": 340.73,
+            "grenades": 26.66,
+            "total": 744.96
+          },
+          "oldModelMargin": 1.402,
+          "oldModelIncome": 1945.4,
+          "actualFormulaAverageIncome": 1979.15,
+          "modelIncomeBoatGrowthOmission": 33.75,
+          "effectiveWorkSecondsScheduled": 26.21,
+          "effectiveWorkSecondsAllBoatsIntercepted": 26.19,
+          "cargoSaving": 22.98,
+          "goldAfterOldModelPurchases": 1714.19
+        },
+        {
+          "w": 20,
+          "lv": [
+            7,
+            5,
+            5,
+            5,
+            0
+          ],
+          "gun": 1,
+          "slots": [
+            {
+              "type": 0,
+              "level": 4,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 4,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 4,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 4,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 761.43,
+            "towers": 781.12,
+            "grenades": 31.88,
+            "total": 1574.44
+          },
+          "oldModelMargin": 1.508,
+          "oldModelIncome": 3288.4,
+          "actualFormulaAverageIncome": 3430.9,
+          "modelIncomeBoatGrowthOmission": 142.5,
+          "effectiveWorkSecondsScheduled": 29.35,
+          "effectiveWorkSecondsAllBoatsIntercepted": 29.03,
+          "cargoSaving": 1000.41,
+          "goldAfterOldModelPurchases": 2953.64
+        },
+        {
+          "w": 40,
+          "lv": [
+            9,
+            8,
+            6,
+            8,
+            0
+          ],
+          "gun": 1,
+          "slots": [
+            {
+              "type": 0,
+              "level": 8,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 8,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 7,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 7,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 1740.98,
+            "towers": 2368.26,
+            "grenades": 38.7,
+            "total": 4147.94
+          },
+          "oldModelMargin": 1.094,
+          "oldModelIncome": 8138.47,
+          "actualFormulaAverageIncome": 8577.22,
+          "modelIncomeBoatGrowthOmission": 438.75,
+          "effectiveWorkSecondsScheduled": 47.98,
+          "effectiveWorkSecondsAllBoatsIntercepted": 43.42,
+          "cargoSaving": 37821.8,
+          "goldAfterOldModelPurchases": 7681.3
+        },
+        {
+          "w": 60,
+          "lv": [
+            12,
+            8,
+            6,
+            8,
+            0
+          ],
+          "gun": 1,
+          "slots": [
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 9,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 9,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 3008.41,
+            "towers": 5261.24,
+            "grenades": 66.87,
+            "total": 8336.52
+          },
+          "oldModelMargin": 0.905,
+          "oldModelIncome": 13208.47,
+          "actualFormulaAverageIncome": 13872.22,
+          "modelIncomeBoatGrowthOmission": 663.75,
+          "effectiveWorkSecondsScheduled": 58.03,
+          "effectiveWorkSecondsAllBoatsIntercepted": 52.59,
+          "cargoSaving": 90743.3,
+          "goldAfterOldModelPurchases": 26617.55
+        },
+        {
+          "w": 80,
+          "lv": [
+            14,
+            8,
+            6,
+            8,
+            0
+          ],
+          "gun": 1,
+          "slots": [
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 4332.11,
+            "towers": 7136.99,
+            "grenades": 96.29,
+            "total": 11565.39
+          },
+          "oldModelMargin": 0.61,
+          "oldModelIncome": 17740.87,
+          "actualFormulaAverageIncome": 18629.62,
+          "modelIncomeBoatGrowthOmission": 888.75,
+          "effectiveWorkSecondsScheduled": 86,
+          "effectiveWorkSecondsAllBoatsIntercepted": 78.37,
+          "cargoSaving": 176633.11,
+          "goldAfterOldModelPurchases": 124058.19
+        },
+        {
+          "w": 98,
+          "lv": [
+            16,
+            8,
+            6,
+            8,
+            0
+          ],
+          "gun": 1,
+          "slots": [
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 6238.24,
+            "towers": 8564.38,
+            "grenades": 138.66,
+            "total": 14941.29
+          },
+          "oldModelMargin": 0.501,
+          "oldModelIncome": 16600.73,
+          "actualFormulaAverageIncome": 17691.98,
+          "modelIncomeBoatGrowthOmission": 1091.25,
+          "effectiveWorkSecondsScheduled": 104.75,
+          "effectiveWorkSecondsAllBoatsIntercepted": 97.07,
+          "cargoSaving": 229489.83,
+          "goldAfterOldModelPurchases": 139249.91
+        },
+        {
+          "w": 100,
+          "lv": [
+            16,
+            8,
+            6,
+            8,
+            0
+          ],
+          "gun": 1,
+          "slots": [
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 6238.24,
+            "towers": 8564.38,
+            "grenades": 138.66,
+            "total": 14941.29
+          },
+          "oldModelMargin": 0.334,
+          "oldModelIncome": 25376.6,
+          "actualFormulaAverageIncome": 26486.62,
+          "modelIncomeBoatGrowthOmission": 1113.75,
+          "effectiveWorkSecondsScheduled": 157.33,
+          "effectiveWorkSecondsAllBoatsIntercepted": 151.21,
+          "cargoSaving": 182711.62,
+          "goldAfterOldModelPurchases": 179885.24
+        }
+      ]
+    },
+    {
+      "n": 2,
+      "skill": "master",
+      "firstArithmeticMarginBelow1": 85,
+      "rows": [
+        {
+          "w": 1,
+          "lv": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "gun": -1,
+          "slots": [
+            {
+              "type": -1,
+              "level": 0,
+              "share": 1
+            },
+            {
+              "type": -1,
+              "level": 0,
+              "share": 1
+            },
+            {
+              "type": -1,
+              "level": 0,
+              "share": 1
+            },
+            {
+              "type": -1,
+              "level": 0,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 110.59,
+            "towers": 0,
+            "grenades": 52.5,
+            "total": 163.09
+          },
+          "oldModelMargin": 2.976,
+          "oldModelIncome": 574.9,
+          "actualFormulaAverageIncome": 574.9,
+          "modelIncomeBoatGrowthOmission": 0,
+          "effectiveWorkSecondsScheduled": 10.08,
+          "effectiveWorkSecondsAllBoatsIntercepted": 10.08,
+          "cargoSaving": 0,
+          "goldAfterOldModelPurchases": 604.41
+        },
+        {
+          "w": 10,
+          "lv": [
+            5,
+            4,
+            3,
+            2,
+            0
+          ],
+          "gun": 2,
+          "slots": [
+            {
+              "type": 0,
+              "level": 1,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 1,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 1,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 1,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 750.45,
+            "towers": 405.12,
+            "grenades": 106.64,
+            "total": 1262.22
+          },
+          "oldModelMargin": 2.376,
+          "oldModelIncome": 2025.78,
+          "actualFormulaAverageIncome": 2059.52,
+          "modelIncomeBoatGrowthOmission": 33.75,
+          "effectiveWorkSecondsScheduled": 15.47,
+          "effectiveWorkSecondsAllBoatsIntercepted": 15.46,
+          "cargoSaving": 22.98,
+          "goldAfterOldModelPurchases": 2023.48
+        },
+        {
+          "w": 20,
+          "lv": [
+            7,
+            6,
+            4,
+            5,
+            0
+          ],
+          "gun": 2,
+          "slots": [
+            {
+              "type": 0,
+              "level": 3,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 4,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 3,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 4,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 1575.64,
+            "towers": 977.93,
+            "grenades": 127.54,
+            "total": 2681.11
+          },
+          "oldModelMargin": 2.567,
+          "oldModelIncome": 3423.15,
+          "actualFormulaAverageIncome": 3565.65,
+          "modelIncomeBoatGrowthOmission": 142.5,
+          "effectiveWorkSecondsScheduled": 17.24,
+          "effectiveWorkSecondsAllBoatsIntercepted": 17.05,
+          "cargoSaving": 1000.41,
+          "goldAfterOldModelPurchases": 3703.59
+        },
+        {
+          "w": 40,
+          "lv": [
+            10,
+            8,
+            6,
+            8,
+            0
+          ],
+          "gun": 2,
+          "slots": [
+            {
+              "type": 0,
+              "level": 7,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 7,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 7,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 7,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 4035.87,
+            "towers": 3084.6,
+            "grenades": 185.75,
+            "total": 7306.22
+          },
+          "oldModelMargin": 1.927,
+          "oldModelIncome": 8481.93,
+          "actualFormulaAverageIncome": 8920.67,
+          "modelIncomeBoatGrowthOmission": 438.75,
+          "effectiveWorkSecondsScheduled": 27.24,
+          "effectiveWorkSecondsAllBoatsIntercepted": 24.65,
+          "cargoSaving": 37821.8,
+          "goldAfterOldModelPurchases": 13065.69
+        },
+        {
+          "w": 60,
+          "lv": [
+            12,
+            8,
+            6,
+            8,
+            0
+          ],
+          "gun": 2,
+          "slots": [
+            {
+              "type": 0,
+              "level": 9,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 9,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 10,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 5811.65,
+            "towers": 7445.99,
+            "grenades": 267.48,
+            "total": 13525.12
+          },
+          "oldModelMargin": 1.468,
+          "oldModelIncome": 13773.8,
+          "actualFormulaAverageIncome": 14437.55,
+          "modelIncomeBoatGrowthOmission": 663.75,
+          "effectiveWorkSecondsScheduled": 35.77,
+          "effectiveWorkSecondsAllBoatsIntercepted": 32.41,
+          "cargoSaving": 90743.3,
+          "goldAfterOldModelPurchases": 14195.08
+        },
+        {
+          "w": 80,
+          "lv": [
+            15,
+            8,
+            6,
+            8,
+            0
+          ],
+          "gun": 2,
+          "slots": [
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 10,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 10042.53,
+            "towers": 10690.1,
+            "grenades": 462.21,
+            "total": 21194.84
+          },
+          "oldModelMargin": 1.119,
+          "oldModelIncome": 18504.07,
+          "actualFormulaAverageIncome": 19392.83,
+          "modelIncomeBoatGrowthOmission": 888.75,
+          "effectiveWorkSecondsScheduled": 46.93,
+          "effectiveWorkSecondsAllBoatsIntercepted": 42.76,
+          "cargoSaving": 176633.11,
+          "goldAfterOldModelPurchases": 22075.41
+        },
+        {
+          "w": 98,
+          "lv": [
+            16,
+            8,
+            6,
+            8,
+            0
+          ],
+          "gun": 2,
+          "slots": [
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 10,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 12051.03,
+            "towers": 11710.42,
+            "grenades": 554.65,
+            "total": 24316.11
+          },
+          "oldModelMargin": 0.816,
+          "oldModelIncome": 17309.03,
+          "actualFormulaAverageIncome": 18400.28,
+          "modelIncomeBoatGrowthOmission": 1091.25,
+          "effectiveWorkSecondsScheduled": 64.36,
+          "effectiveWorkSecondsAllBoatsIntercepted": 59.64,
+          "cargoSaving": 229489.83,
+          "goldAfterOldModelPurchases": 172755.62
+        },
+        {
+          "w": 100,
+          "lv": [
+            16,
+            8,
+            6,
+            8,
+            0
+          ],
+          "gun": 2,
+          "slots": [
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 10,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 12051.03,
+            "towers": 11710.42,
+            "grenades": 554.65,
+            "total": 24316.11
+          },
+          "oldModelMargin": 0.543,
+          "oldModelIncome": 26476.23,
+          "actualFormulaAverageIncome": 27586.08,
+          "modelIncomeBoatGrowthOmission": 1113.75,
+          "effectiveWorkSecondsScheduled": 96.67,
+          "effectiveWorkSecondsAllBoatsIntercepted": 92.91,
+          "cargoSaving": 182711.62,
+          "goldAfterOldModelPurchases": 216934.42
+        }
+      ]
+    },
+    {
+      "n": 4,
+      "skill": "newbie",
+      "firstArithmeticMarginBelow1": 4,
+      "rows": [
+        {
+          "w": 1,
+          "lv": [
+            1,
+            0,
+            0,
+            0,
+            0
+          ],
+          "gun": -1,
+          "slots": [
+            {
+              "type": -1,
+              "level": 0,
+              "share": 1
+            },
+            {
+              "type": -1,
+              "level": 0,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 54.43,
+            "towers": 0,
+            "grenades": 10.5,
+            "total": 64.93
+          },
+          "oldModelMargin": 1.283,
+          "oldModelIncome": 629.12,
+          "actualFormulaAverageIncome": 629.12,
+          "modelIncomeBoatGrowthOmission": 0,
+          "effectiveWorkSecondsScheduled": 23.38,
+          "effectiveWorkSecondsAllBoatsIntercepted": 23.91,
+          "cargoSaving": -136.7,
+          "goldAfterOldModelPurchases": 471.84
+        },
+        {
+          "w": 10,
+          "lv": [
+            4,
+            3,
+            4,
+            2,
+            2
+          ],
+          "gun": -1,
+          "slots": [
+            {
+              "type": 0,
+              "level": 2,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 2,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 172.54,
+            "towers": 175.81,
+            "grenades": 14.81,
+            "total": 363.16
+          },
+          "oldModelMargin": 0.783,
+          "oldModelIncome": 1947.44,
+          "actualFormulaAverageIncome": 1981.19,
+          "modelIncomeBoatGrowthOmission": 33.75,
+          "effectiveWorkSecondsScheduled": 46.95,
+          "effectiveWorkSecondsAllBoatsIntercepted": 47.14,
+          "cargoSaving": -267.64,
+          "goldAfterOldModelPurchases": 1688.03
+        },
+        {
+          "w": 20,
+          "lv": [
+            6,
+            5,
+            6,
+            5,
+            3
+          ],
+          "gun": 3,
+          "slots": [
+            {
+              "type": 0,
+              "level": 4,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 4,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 353.71,
+            "towers": 356.53,
+            "grenades": 17.71,
+            "total": 727.96
+          },
+          "oldModelMargin": 0.916,
+          "oldModelIncome": 2799.91,
+          "actualFormulaAverageIncome": 2906.78,
+          "modelIncomeBoatGrowthOmission": 106.88,
+          "effectiveWorkSecondsScheduled": 48.28,
+          "effectiveWorkSecondsAllBoatsIntercepted": 48.36,
+          "cargoSaving": -217.79,
+          "goldAfterOldModelPurchases": 2208.96
+        },
+        {
+          "w": 40,
+          "lv": [
+            9,
+            8,
+            6,
+            8,
+            3
+          ],
+          "gun": 3,
+          "slots": [
+            {
+              "type": 0,
+              "level": 8,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 7,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 948.99,
+            "towers": 1184.13,
+            "grenades": 25.8,
+            "total": 2158.92
+          },
+          "oldModelMargin": 0.749,
+          "oldModelIncome": 7066.11,
+          "actualFormulaAverageIncome": 7358.61,
+          "modelIncomeBoatGrowthOmission": 292.5,
+          "effectiveWorkSecondsScheduled": 70.13,
+          "effectiveWorkSecondsAllBoatsIntercepted": 65.72,
+          "cargoSaving": 38047.9,
+          "goldAfterOldModelPurchases": 6919.14
+        },
+        {
+          "w": 60,
+          "lv": [
+            12,
+            8,
+            6,
+            8,
+            3
+          ],
+          "gun": 3,
+          "slots": [
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 1639.85,
+            "towers": 2973.74,
+            "grenades": 44.58,
+            "total": 4658.18
+          },
+          "oldModelMargin": 0.665,
+          "oldModelIncome": 8257.03,
+          "actualFormulaAverageIncome": 8699.53,
+          "modelIncomeBoatGrowthOmission": 442.5,
+          "effectiveWorkSecondsScheduled": 79,
+          "effectiveWorkSecondsAllBoatsIntercepted": 70.49,
+          "cargoSaving": 158548.24,
+          "goldAfterOldModelPurchases": 10353.74
+        },
+        {
+          "w": 80,
+          "lv": [
+            14,
+            8,
+            6,
+            8,
+            3
+          ],
+          "gun": 3,
+          "slots": [
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 2361.39,
+            "towers": 3568.49,
+            "grenades": 64.2,
+            "total": 5994.08
+          },
+          "oldModelMargin": 0.416,
+          "oldModelIncome": 18814.37,
+          "actualFormulaAverageIncome": 19406.87,
+          "modelIncomeBoatGrowthOmission": 592.5,
+          "effectiveWorkSecondsScheduled": 126.22,
+          "effectiveWorkSecondsAllBoatsIntercepted": 118.36,
+          "cargoSaving": 188368.4,
+          "goldAfterOldModelPurchases": 79791.14
+        },
+        {
+          "w": 98,
+          "lv": [
+            15,
+            8,
+            6,
+            8,
+            3
+          ],
+          "gun": 3,
+          "slots": [
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 2833.67,
+            "towers": 3909.09,
+            "grenades": 77.04,
+            "total": 6819.79
+          },
+          "oldModelMargin": 0.301,
+          "oldModelIncome": 15019.91,
+          "actualFormulaAverageIncome": 15747.41,
+          "modelIncomeBoatGrowthOmission": 727.5,
+          "effectiveWorkSecondsScheduled": 174.56,
+          "effectiveWorkSecondsAllBoatsIntercepted": 166.19,
+          "cargoSaving": 228173.96,
+          "goldAfterOldModelPurchases": 158059.08
+        },
+        {
+          "w": 100,
+          "lv": [
+            15,
+            8,
+            6,
+            8,
+            3
+          ],
+          "gun": 3,
+          "slots": [
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 2833.67,
+            "towers": 3909.09,
+            "grenades": 77.04,
+            "total": 6819.79
+          },
+          "oldModelMargin": 0.2,
+          "oldModelIncome": 15678.72,
+          "actualFormulaAverageIncome": 16419.45,
+          "modelIncomeBoatGrowthOmission": 742.5,
+          "effectiveWorkSecondsScheduled": 262.19,
+          "effectiveWorkSecondsAllBoatsIntercepted": 252.32,
+          "cargoSaving": 269173.66,
+          "goldAfterOldModelPurchases": 179259.96
+        }
+      ]
+    },
+    {
+      "n": 4,
+      "skill": "experienced",
+      "firstArithmeticMarginBelow1": 50,
+      "rows": [
+        {
+          "w": 1,
+          "lv": [
+            1,
+            0,
+            0,
+            0,
+            0
+          ],
+          "gun": -1,
+          "slots": [
+            {
+              "type": -1,
+              "level": 0,
+              "share": 1
+            },
+            {
+              "type": -1,
+              "level": 0,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 90.64,
+            "towers": 0,
+            "grenades": 15.75,
+            "total": 106.39
+          },
+          "oldModelMargin": 2.102,
+          "oldModelIncome": 659.07,
+          "actualFormulaAverageIncome": 659.07,
+          "modelIncomeBoatGrowthOmission": 0,
+          "effectiveWorkSecondsScheduled": 14.27,
+          "effectiveWorkSecondsAllBoatsIntercepted": 14.59,
+          "cargoSaving": -136.7,
+          "goldAfterOldModelPurchases": 560.21
+        },
+        {
+          "w": 10,
+          "lv": [
+            5,
+            4,
+            3,
+            2,
+            0
+          ],
+          "gun": -1,
+          "slots": [
+            {
+              "type": 0,
+              "level": 3,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 2,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 377.57,
+            "towers": 221.47,
+            "grenades": 26.66,
+            "total": 625.7
+          },
+          "oldModelMargin": 1.349,
+          "oldModelIncome": 2049.47,
+          "actualFormulaAverageIncome": 2083.22,
+          "modelIncomeBoatGrowthOmission": 33.75,
+          "effectiveWorkSecondsScheduled": 27.25,
+          "effectiveWorkSecondsAllBoatsIntercepted": 27.36,
+          "cargoSaving": -267.64,
+          "goldAfterOldModelPurchases": 1936.1
+        },
+        {
+          "w": 20,
+          "lv": [
+            7,
+            6,
+            4,
+            5,
+            0
+          ],
+          "gun": 1,
+          "slots": [
+            {
+              "type": 0,
+              "level": 5,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 5,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 814.89,
+            "towers": 507.73,
+            "grenades": 31.88,
+            "total": 1354.5
+          },
+          "oldModelMargin": 1.705,
+          "oldModelIncome": 2945.23,
+          "actualFormulaAverageIncome": 3052.11,
+          "modelIncomeBoatGrowthOmission": 106.88,
+          "effectiveWorkSecondsScheduled": 25.95,
+          "effectiveWorkSecondsAllBoatsIntercepted": 25.99,
+          "cargoSaving": -217.79,
+          "goldAfterOldModelPurchases": 2554.98
+        },
+        {
+          "w": 40,
+          "lv": [
+            10,
+            8,
+            6,
+            8,
+            0
+          ],
+          "gun": 1,
+          "slots": [
+            {
+              "type": 0,
+              "level": 8,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 8,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 2089.18,
+            "towers": 1466.34,
+            "grenades": 46.44,
+            "total": 3601.96
+          },
+          "oldModelMargin": 1.249,
+          "oldModelIncome": 7445.13,
+          "actualFormulaAverageIncome": 7737.63,
+          "modelIncomeBoatGrowthOmission": 292.5,
+          "effectiveWorkSecondsScheduled": 42.03,
+          "effectiveWorkSecondsAllBoatsIntercepted": 39.39,
+          "cargoSaving": 38047.9,
+          "goldAfterOldModelPurchases": 8295.12
+        },
+        {
+          "w": 60,
+          "lv": [
+            13,
+            8,
+            6,
+            8,
+            0
+          ],
+          "gun": 1,
+          "slots": [
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 3610.1,
+            "towers": 3257.57,
+            "grenades": 80.24,
+            "total": 6947.91
+          },
+          "oldModelMargin": 0.991,
+          "oldModelIncome": 8697.8,
+          "actualFormulaAverageIncome": 9140.3,
+          "modelIncomeBoatGrowthOmission": 442.5,
+          "effectiveWorkSecondsScheduled": 52.96,
+          "effectiveWorkSecondsAllBoatsIntercepted": 47.26,
+          "cargoSaving": 158548.24,
+          "goldAfterOldModelPurchases": 13938.05
+        },
+        {
+          "w": 80,
+          "lv": [
+            15,
+            8,
+            6,
+            8,
+            0
+          ],
+          "gun": 1,
+          "slots": [
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 5198.54,
+            "towers": 3909.09,
+            "grenades": 115.55,
+            "total": 9223.18
+          },
+          "oldModelMargin": 0.64,
+          "oldModelIncome": 19847.07,
+          "actualFormulaAverageIncome": 20439.57,
+          "modelIncomeBoatGrowthOmission": 592.5,
+          "effectiveWorkSecondsScheduled": 82.03,
+          "effectiveWorkSecondsAllBoatsIntercepted": 76.92,
+          "cargoSaving": 188368.4,
+          "goldAfterOldModelPurchases": 50209.99
+        },
+        {
+          "w": 98,
+          "lv": [
+            16,
+            8,
+            6,
+            8,
+            0
+          ],
+          "gun": 1,
+          "slots": [
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 6238.24,
+            "towers": 4282.19,
+            "grenades": 138.66,
+            "total": 10659.1
+          },
+          "oldModelMargin": 0.47,
+          "oldModelIncome": 15832.73,
+          "actualFormulaAverageIncome": 16560.23,
+          "modelIncomeBoatGrowthOmission": 727.5,
+          "effectiveWorkSecondsScheduled": 111.68,
+          "effectiveWorkSecondsAllBoatsIntercepted": 106.33,
+          "cargoSaving": 228173.96,
+          "goldAfterOldModelPurchases": 100123.1
+        },
+        {
+          "w": 100,
+          "lv": [
+            16,
+            8,
+            6,
+            8,
+            0
+          ],
+          "gun": 1,
+          "slots": [
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 0,
+              "level": 10,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 6238.24,
+            "towers": 4282.19,
+            "grenades": 138.66,
+            "total": 10659.1
+          },
+          "oldModelMargin": 0.313,
+          "oldModelIncome": 16528.27,
+          "actualFormulaAverageIncome": 17268.9,
+          "modelIncomeBoatGrowthOmission": 742.5,
+          "effectiveWorkSecondsScheduled": 167.75,
+          "effectiveWorkSecondsAllBoatsIntercepted": 161.44,
+          "cargoSaving": 269173.66,
+          "goldAfterOldModelPurchases": 125446.59
+        }
+      ]
+    },
+    {
+      "n": 4,
+      "skill": "master",
+      "firstArithmeticMarginBelow1": 88,
+      "rows": [
+        {
+          "w": 1,
+          "lv": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "gun": -1,
+          "slots": [
+            {
+              "type": -1,
+              "level": 0,
+              "share": 1
+            },
+            {
+              "type": -1,
+              "level": 0,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 110.59,
+            "towers": 0,
+            "grenades": 52.5,
+            "total": 163.09
+          },
+          "oldModelMargin": 3.222,
+          "oldModelIncome": 684.03,
+          "actualFormulaAverageIncome": 684.03,
+          "modelIncomeBoatGrowthOmission": 0,
+          "effectiveWorkSecondsScheduled": 9.31,
+          "effectiveWorkSecondsAllBoatsIntercepted": 9.52,
+          "cargoSaving": -136.7,
+          "goldAfterOldModelPurchases": 702.62
+        },
+        {
+          "w": 10,
+          "lv": [
+            5,
+            4,
+            3,
+            3,
+            0
+          ],
+          "gun": 2,
+          "slots": [
+            {
+              "type": 1,
+              "level": 1,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 1,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 799.4,
+            "towers": 256.98,
+            "grenades": 106.64,
+            "total": 1163.02
+          },
+          "oldModelMargin": 2.507,
+          "oldModelIncome": 2134.49,
+          "actualFormulaAverageIncome": 2168.24,
+          "modelIncomeBoatGrowthOmission": 33.75,
+          "effectiveWorkSecondsScheduled": 14.66,
+          "effectiveWorkSecondsAllBoatsIntercepted": 14.72,
+          "cargoSaving": -267.64,
+          "goldAfterOldModelPurchases": 2395.87
+        },
+        {
+          "w": 20,
+          "lv": [
+            7,
+            7,
+            5,
+            5,
+            0
+          ],
+          "gun": 2,
+          "slots": [
+            {
+              "type": 1,
+              "level": 4,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 3,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 1800.7,
+            "towers": 599.33,
+            "grenades": 127.54,
+            "total": 2527.57
+          },
+          "oldModelMargin": 3.182,
+          "oldModelIncome": 3066.34,
+          "actualFormulaAverageIncome": 3173.21,
+          "modelIncomeBoatGrowthOmission": 106.88,
+          "effectiveWorkSecondsScheduled": 13.91,
+          "effectiveWorkSecondsAllBoatsIntercepted": 13.93,
+          "cargoSaving": -217.79,
+          "goldAfterOldModelPurchases": 3012.47
+        },
+        {
+          "w": 40,
+          "lv": [
+            10,
+            8,
+            6,
+            8,
+            0
+          ],
+          "gun": 2,
+          "slots": [
+            {
+              "type": 1,
+              "level": 8,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 7,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 4035.87,
+            "towers": 2250.14,
+            "grenades": 185.75,
+            "total": 6471.76
+          },
+          "oldModelMargin": 2.244,
+          "oldModelIncome": 7760.99,
+          "actualFormulaAverageIncome": 8053.49,
+          "modelIncomeBoatGrowthOmission": 292.5,
+          "effectiveWorkSecondsScheduled": 23.39,
+          "effectiveWorkSecondsAllBoatsIntercepted": 21.92,
+          "cargoSaving": 38047.9,
+          "goldAfterOldModelPurchases": 12073.15
+        },
+        {
+          "w": 60,
+          "lv": [
+            12,
+            8,
+            6,
+            8,
+            0
+          ],
+          "gun": 2,
+          "slots": [
+            {
+              "type": 1,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 10,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 5811.65,
+            "towers": 5158.49,
+            "grenades": 267.48,
+            "total": 11237.63
+          },
+          "oldModelMargin": 1.603,
+          "oldModelIncome": 9065.11,
+          "actualFormulaAverageIncome": 9507.61,
+          "modelIncomeBoatGrowthOmission": 442.5,
+          "effectiveWorkSecondsScheduled": 32.75,
+          "effectiveWorkSecondsAllBoatsIntercepted": 29.22,
+          "cargoSaving": 158548.24,
+          "goldAfterOldModelPurchases": 39371.29
+        },
+        {
+          "w": 80,
+          "lv": [
+            15,
+            8,
+            6,
+            8,
+            0
+          ],
+          "gun": 2,
+          "slots": [
+            {
+              "type": 1,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 10,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 10042.53,
+            "towers": 6781.02,
+            "grenades": 462.21,
+            "total": 17285.76
+          },
+          "oldModelMargin": 1.199,
+          "oldModelIncome": 20707.65,
+          "actualFormulaAverageIncome": 21300.15,
+          "modelIncomeBoatGrowthOmission": 592.5,
+          "effectiveWorkSecondsScheduled": 43.77,
+          "effectiveWorkSecondsAllBoatsIntercepted": 41.04,
+          "cargoSaving": 188368.4,
+          "goldAfterOldModelPurchases": 50472.95
+        },
+        {
+          "w": 98,
+          "lv": [
+            16,
+            8,
+            6,
+            8,
+            0
+          ],
+          "gun": 2,
+          "slots": [
+            {
+              "type": 1,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 10,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 12051.03,
+            "towers": 7428.23,
+            "grenades": 554.65,
+            "total": 20033.92
+          },
+          "oldModelMargin": 0.884,
+          "oldModelIncome": 16510.09,
+          "actualFormulaAverageIncome": 17237.59,
+          "modelIncomeBoatGrowthOmission": 727.5,
+          "effectiveWorkSecondsScheduled": 59.42,
+          "effectiveWorkSecondsAllBoatsIntercepted": 56.57,
+          "cargoSaving": 228173.96,
+          "goldAfterOldModelPurchases": 117888.06
+        },
+        {
+          "w": 100,
+          "lv": [
+            16,
+            8,
+            6,
+            8,
+            0
+          ],
+          "gun": 2,
+          "slots": [
+            {
+              "type": 1,
+              "level": 10,
+              "share": 1
+            },
+            {
+              "type": 1,
+              "level": 10,
+              "share": 1
+            }
+          ],
+          "power": {
+            "player": 12051.03,
+            "towers": 7428.23,
+            "grenades": 554.65,
+            "total": 20033.92
+          },
+          "oldModelMargin": 0.588,
+          "oldModelIncome": 17236.23,
+          "actualFormulaAverageIncome": 17976.77,
+          "modelIncomeBoatGrowthOmission": 742.5,
+          "effectiveWorkSecondsScheduled": 89.25,
+          "effectiveWorkSecondsAllBoatsIntercepted": 85.89,
+          "cargoSaving": 269173.66,
+          "goldAfterOldModelPurchases": 145127.54
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "novice",
+      "label": "Старт: куплен урон I, маркер, без башен",
+      "lv": [
+        1,
+        0,
+        0,
+        0,
+        0
+      ],
+      "gun": 0,
+      "damageMultiplier": 1.2,
+      "sustainedBodyDps": 163.64,
+      "sustainedBodyDpsMG": 177.78,
+      "upgradeCost": 150
+    },
+    {
+      "name": "mid",
+      "label": "Средний комплект: урон VIII, темп IV, магазин III, крит III, арбалет",
+      "lv": [
+        8,
+        4,
+        3,
+        3,
+        1
+      ],
+      "gun": 2,
+      "damageMultiplier": 4.3,
+      "sustainedBodyDps": 915.34,
+      "sustainedBodyDpsMG": 1374.07,
+      "upgradeCost": 15270
+    },
+    {
+      "name": "advanced",
+      "label": "Поздний комплект для стенда: урон XVII, темп VIII, магазин VI, крит VIII, арбалет",
+      "lv": [
+        17,
+        8,
+        6,
+        8,
+        3
+      ],
+      "gun": 2,
+      "damageMultiplier": 22.186,
+      "sustainedBodyDps": 9566.46,
+      "sustainedBodyDpsMG": 14321.87,
+      "upgradeCost": 777150
+    },
+    {
+      "name": "legal_max",
+      "label": "Математический максимум, НЕ достижимая экипировка обычного забега",
+      "lv": [
+        60,
+        8,
+        6,
+        8,
+        3
+      ],
+      "gun": 2,
+      "damageMultiplier": 56347.514,
+      "sustainedBodyDps": 24296570.13,
+      "sustainedBodyDpsMG": 36374187.94,
+      "upgradeCost": 441711766247150
+    }
+  ],
+  "economy": {
+    "baseTokensAll100": 1260,
+    "normalBreakSeconds99": 1625,
+    "earliestReadyBreakSeconds": 297,
+    "maxGateHp": 4800,
+    "maxCrystalHp": 5000,
+    "wave100GateRepairPrice": 440,
+    "wave100GateRepairHp": 1200,
+    "wave100CrystalRepairPrice": 660,
+    "wave100CrystalRepairHp": 500
+  }
+}

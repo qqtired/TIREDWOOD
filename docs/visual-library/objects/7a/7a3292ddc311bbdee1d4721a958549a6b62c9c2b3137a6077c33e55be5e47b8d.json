@@ -1,0 +1,2279 @@
+{
+ "about": "Павильоны и малые сооружения порта и пляжа (pb_*): треугольники и отрисовки по узлам, предметы-инстансы, пустышки и коллайдеры в мировых координатах (x — восток, z — юг). Скрипты — source/pb_*.py, снимки three.js — renders/pb_*.png, описание — README-pb.md.",
+ "units": "m",
+ "axes": "GLB: +Y вверх, лицо павильона −Z; мир игры: x — восток, z — юг; yaw как у игрока (0 — на −Z/север)",
+ "pavilions": {
+  "semyon": {
+   "name": "Лавка деда Семёна",
+   "file": "./pav_semyon.glb",
+   "bytes": 480120,
+   "world_origin": [
+    -13.0,
+    0,
+    13.1
+   ],
+   "facing": "W",
+   "yaw": 1.5708,
+   "placement": "node.position = (x, 0, z) из world_origin; node.rotation.y = yaw",
+   "tris_static": 7328,
+   "draws_static": 3,
+   "tris_live": 0,
+   "draws_live": 0,
+   "nodes": {
+    "static_semyon": {
+     "tris": 7328,
+     "draws": 3,
+     "by_material": {
+      "p3_matte": 5304,
+      "p3_gloss": 2012,
+      "p3_glow": 12
+     }
+    }
+   },
+   "props": {
+    "bench": 1,
+    "flowerbox_1m": 2,
+    "pb_barrel": 2,
+    "pb_crate": 1,
+    "pb_crate_fish": 1,
+    "pb_lifebuoy": 1,
+    "pb_net_pile": 1,
+    "pb_oars": 1,
+    "pb_rope_coil": 1,
+    "pot": 2
+   },
+   "props_files": {
+    "pb_crate_fish": "./pb_props.glb",
+    "pb_rope_coil": "./pb_props.glb",
+    "pb_lifebuoy": "./pb_props.glb",
+    "pb_oars": "./pb_props.glb",
+    "flowerbox_1m": "kit/glb/kit_green.glb",
+    "bench": "kit/glb/kit_street.glb",
+    "pb_barrel": "./pb_props.glb",
+    "pb_crate": "./pb_props.glb",
+    "pb_net_pile": "./pb_props.glb",
+    "pot": "kit/glb/kit_green.glb"
+   },
+   "props_tris_total": 4714,
+   "bulbs": 7,
+   "textures": 0,
+   "extensions": [
+    "KHR_materials_emissive_strength"
+   ],
+   "anchors_world": {
+    "anchor_board_season": [
+     -13.09,
+     4.72,
+     13.1,
+     1.5708
+    ],
+    "anchor_entry": [
+     -17.4,
+     0.0,
+     13.1,
+     -1.5708
+    ],
+    "anchor_resident": [
+     -15.8,
+     0.0,
+     13.1,
+     1.5708
+    ],
+    "anchor_sign_semyon": [
+     -16.695,
+     3.0,
+     13.1,
+     1.5708
+    ]
+   },
+   "colliders_world": {
+    "col_barrels_sw": [
+     -17.05,
+     14.95,
+     -15.3,
+     15.85,
+     0.0,
+     0.85
+    ],
+    "col_bench_s": [
+     -15.0,
+     15.8,
+     -13.0,
+     16.25,
+     0.0,
+     0.95
+    ],
+    "col_house": [
+     -15.2,
+     10.4,
+     -10.8,
+     15.8,
+     0.0,
+     4.325
+    ],
+    "col_porch_post_n": [
+     -16.33,
+     11.42,
+     -16.17,
+     11.58,
+     0.0,
+     2.5
+    ],
+    "col_porch_post_s": [
+     -16.33,
+     14.62,
+     -16.17,
+     14.78,
+     0.0,
+     2.5
+    ],
+    "col_porch_rail_n": [
+     -16.25,
+     11.38,
+     -15.2,
+     11.5,
+     0.0,
+     1.0
+    ],
+    "col_porch_table": [
+     -16.2,
+     11.65,
+     -15.5,
+     12.35,
+     0.0,
+     1.05
+    ],
+    "col_woodpile_e": [
+     -10.8,
+     10.6,
+     -10.35,
+     12.6,
+     0.0,
+     1.1
+    ]
+   },
+   "notes": [
+    "Стены 2,42 (свес), конёк ~4,3, доска сезона на коньке до 5,2 — как в layout (h 2,6 / 5,2; конёк 4,25).",
+    "Вывеска «ЛАВКА СЕМЁНА» — доска на козырьке крыльца, центр (−16,47; 13,1) y 3,0, поле 2,3 × 0,6.",
+    "Коллайдеры — houseBoxes из layout.json + перила, столик на крыльце, бочки у юго-западного угла."
+   ]
+  },
+  "lighthouse_arch": {
+   "name": "Арка «Маяк · Рыбалка»",
+   "file": "./pav_lighthouse_arch.glb",
+   "bytes": 196052,
+   "world_origin": [
+    -19.0,
+    0,
+    21.3
+   ],
+   "facing": "N",
+   "yaw": 0.0,
+   "placement": "node.position = (x, 0, z) из world_origin; node.rotation.y = yaw",
+   "tris_static": 3020,
+   "draws_static": 2,
+   "tris_live": 0,
+   "draws_live": 0,
+   "nodes": {
+    "static_lighthouse_arch": {
+     "tris": 3020,
+     "draws": 2,
+     "by_material": {
+      "p3_matte": 2230,
+      "p3_gloss": 790
+     }
+    }
+   },
+   "props": {
+    "lantern_wall": 2,
+    "pb_bollard": 2,
+    "pb_rope_coil": 1
+   },
+   "props_files": {
+    "lantern_wall": "kit/glb/kit_lights.glb",
+    "pb_rope_coil": "./pb_props.glb",
+    "pb_bollard": "./pb_props.glb"
+   },
+   "props_tris_total": 1524,
+   "bulbs": 0,
+   "textures": 0,
+   "extensions": [],
+   "anchors_world": {
+    "anchor_sign_lighthouse": [
+     -19.0,
+     4.0,
+     21.215,
+     0.0
+    ],
+    "anchor_sign_lighthouse_back": [
+     -19.0,
+     4.0,
+     21.385,
+     3.1416
+    ],
+    "anchor_walk": [
+     -19.0,
+     0.0,
+     21.3,
+     3.1416
+    ]
+   },
+   "colliders_world": {
+    "col_post_e": [
+     -17.0,
+     21.0,
+     -16.4,
+     21.6,
+     0.0,
+     5.1
+    ],
+    "col_post_w": [
+     -21.6,
+     21.0,
+     -21.0,
+     21.6,
+     0.0,
+     5.1
+    ]
+   },
+   "notes": [
+    "Арка: брёвна по осям x −21,3 / −16,7 (просвет 4,1 м над мостками x −21…−17), перекладина 4,42–4,76, вывеска — центр y 4,0 (поле 2,8 × 0,52, с двух сторон), рыба на гребне до ~5,7 м.",
+    "С 11.10 только арка: пьедестал с трофеем, рама доски рекордов (и anchor_records_roof) и задник табло пьедестала убраны — их смысл перенесён в «Рыбную витрину» (./pav_fishshowcase.glb)."
+   ]
+  },
+  "sunset": {
+   "name": "Угол «Закат»: дуга, балюстрада, бельведер",
+   "file": "./pav_sunset.glb",
+   "bytes": 101636,
+   "world_origin": [
+    -23.0,
+    0,
+    15.0
+   ],
+   "facing": "W",
+   "yaw": 1.5708,
+   "placement": "node.position = (x, 0, z) из world_origin; node.rotation.y = yaw",
+   "tris_static": 1642,
+   "draws_static": 3,
+   "tris_live": 0,
+   "draws_live": 0,
+   "nodes": {
+    "static_sunset": {
+     "tris": 1642,
+     "draws": 3,
+     "by_material": {
+      "p3_matte": 732,
+      "p3_gloss": 898,
+      "p3_glow": 12
+     }
+    }
+   },
+   "props": {
+    "balustrade_1m": 1,
+    "balustrade_2m": 7,
+    "balustrade_post": 5,
+    "balustrade_post_plain": 4,
+    "bench": 2,
+    "column_tuscan_3m": 6,
+    "lamp_post": 2,
+    "pb_binocular": 1,
+    "planter_oleander": 2,
+    "quay_wall_1m": 11
+   },
+   "props_files": {
+    "quay_wall_1m": "kit/glb/kit_embankment.glb",
+    "balustrade_post": "kit/glb/kit_embankment.glb",
+    "balustrade_post_plain": "kit/glb/kit_embankment.glb",
+    "balustrade_2m": "kit/glb/kit_embankment.glb",
+    "balustrade_1m": "kit/glb/kit_embankment.glb",
+    "column_tuscan_3m": "kit/glb/kit_arcade.glb",
+    "bench": "kit/glb/kit_street.glb",
+    "lamp_post": "kit/glb/kit_lights.glb",
+    "pb_binocular": "./pb_props.glb",
+    "planter_oleander": "kit/glb/kit_green.glb"
+   },
+   "props_tris_total": 15898,
+   "bulbs": 16,
+   "textures": 0,
+   "extensions": [
+    "KHR_materials_emissive_strength"
+   ],
+   "anchors_world": {
+    "anchor_belvedere": [
+     -25.76,
+     0.09,
+     17.76,
+     -1.5708
+    ],
+    "anchor_sign_sunset": [
+     -23.403,
+     3.23,
+     17.128,
+     -1.309
+    ]
+   },
+   "colliders_world": {
+    "col_bench_105": [
+     -26.974,
+     18.429,
+     -25.177,
+     19.448,
+     0.0,
+     0.5
+    ],
+    "col_bench_165": [
+     -27.448,
+     17.177,
+     -26.429,
+     18.974,
+     0.0,
+     0.5
+    ],
+    "col_binocular": [
+     -29.25,
+     15.9,
+     -28.85,
+     16.3,
+     0.0,
+     1.3
+    ],
+    "col_column_0": [
+     -23.978,
+     18.128,
+     -23.678,
+     18.428,
+     0.0,
+     3.1
+    ],
+    "col_column_1": [
+     -25.392,
+     19.542,
+     -25.092,
+     19.842,
+     0.0,
+     3.1
+    ],
+    "col_column_2": [
+     -27.324,
+     19.024,
+     -27.024,
+     19.324,
+     0.0,
+     3.1
+    ],
+    "col_column_3": [
+     -27.842,
+     17.092,
+     -27.542,
+     17.392,
+     0.0,
+     3.1
+    ],
+    "col_column_4": [
+     -26.428,
+     15.678,
+     -26.128,
+     15.978,
+     0.0,
+     3.1
+    ],
+    "col_column_5": [
+     -24.496,
+     16.196,
+     -24.196,
+     16.496,
+     0.0,
+     3.1
+    ],
+    "col_lamp_-25": [
+     -24.92,
+     20.73,
+     -24.48,
+     21.17,
+     0.0,
+     3.6
+    ],
+    "col_lamp_-29": [
+     -29.52,
+     11.38,
+     -29.08,
+     11.82,
+     0.0,
+     3.6
+    ],
+    "col_rail_arc_0": [
+     -29.9,
+     14.85,
+     -29.5,
+     16.32,
+     0.0,
+     0.95
+    ],
+    "col_rail_arc_1": [
+     -29.8,
+     16.02,
+     -29.19,
+     17.46,
+     0.0,
+     0.95
+    ],
+    "col_rail_arc_2": [
+     -29.49,
+     17.16,
+     -28.7,
+     18.53,
+     0.0,
+     0.95
+    ],
+    "col_rail_arc_3": [
+     -29.0,
+     18.23,
+     -28.02,
+     19.49,
+     0.0,
+     0.95
+    ],
+    "col_rail_arc_4": [
+     -28.32,
+     19.19,
+     -27.19,
+     20.32,
+     0.0,
+     0.95
+    ],
+    "col_rail_arc_5": [
+     -27.49,
+     20.02,
+     -26.22,
+     21.0,
+     0.0,
+     0.95
+    ],
+    "col_rail_arc_6": [
+     -26.52,
+     20.7,
+     -25.16,
+     21.49,
+     0.0,
+     0.95
+    ],
+    "col_rail_arc_7": [
+     -25.46,
+     21.19,
+     -24.02,
+     21.8,
+     0.0,
+     0.95
+    ],
+    "col_rail_arc_8": [
+     -24.32,
+     21.5,
+     -22.85,
+     21.9,
+     0.0,
+     0.95
+    ],
+    "col_rail_s": [
+     -23.0,
+     21.55,
+     -21.7,
+     22.0,
+     0.0,
+     0.95
+    ],
+    "col_rail_w": [
+     -29.95,
+     10.55,
+     -29.6,
+     14.9,
+     0.0,
+     0.95
+    ]
+   },
+   "notes": [
+    "Корень GLB — центр дуги (−23; 15), лицо на запад (yaw π/2). Облицовка кромки — 11 × quay_wall_1m по дуге R 7 (угол 180°…90°).",
+    "Балюстрада — пустышки набора: тумбы на (−29,8; 10,8), (−29,78; 12,9), дуга R 6,75 через 18°, (−21,95; 21,79); пролёты balustrade_2m/1m, растянутые по X между осями тумб (scale.x = длина / 2 или / 1).",
+    "Конец у мостков — x −21,95, а не −21,6 (layout): иначе тумба наезжает на каменную подушку бревна арки (x −21,72…−20,88).",
+    "Бельведер (−25,76; 17,76): колонны column_tuscan_3m на R 2 под углами 15° + 60°·k (как belvedereColumns), пол +0,09, антаблемент 3,09–3,44, купол до ~4,8 (h 4,6 по layout + шпиль).",
+    "Ступеней к воде нет: дуга занята бельведером (до кромки 0,9 м), балюстрада сплошная по layout."
+   ]
+  },
+  "fishyard": {
+   "name": "«Рыбный двор» — вход в прятки",
+   "file": "./pav_fishyard.glb",
+   "bytes": 265900,
+   "world_origin": [
+    -4.0,
+    0,
+    13.4
+   ],
+   "facing": "N",
+   "yaw": 0.0,
+   "placement": "node.position = (x, 0, z) из world_origin; node.rotation.y = yaw",
+   "tris_static": 3652,
+   "draws_static": 3,
+   "tris_live": 4,
+   "draws_live": 2,
+   "nodes": {
+    "live_fishyard_pennant_e": {
+     "tris": 2,
+     "draws": 1,
+     "by_material": {
+      "p3_gloss": 2
+     }
+    },
+    "live_fishyard_pennant_w": {
+     "tris": 2,
+     "draws": 1,
+     "by_material": {
+      "p3_gloss": 2
+     }
+    },
+    "static_fishyard": {
+     "tris": 3652,
+     "draws": 3,
+     "by_material": {
+      "p3_matte": 1422,
+      "p3_gloss": 2196,
+      "p3_glow": 34
+     }
+    }
+   },
+   "props": {
+    "pb_barrel": 3,
+    "pb_buoy": 1,
+    "pb_crate": 4,
+    "pb_crate_fish": 2,
+    "pb_fish_rack": 2,
+    "pb_net_pile": 1,
+    "pb_rope_coil": 1
+   },
+   "props_files": {
+    "pb_fish_rack": "./pb_props.glb",
+    "pb_rope_coil": "./pb_props.glb",
+    "pb_crate": "./pb_props.glb",
+    "pb_crate_fish": "./pb_props.glb",
+    "pb_net_pile": "./pb_props.glb",
+    "pb_barrel": "./pb_props.glb",
+    "pb_buoy": "./pb_props.glb"
+   },
+   "props_tris_total": 5784,
+   "bulbs": 11,
+   "textures": 0,
+   "extensions": [
+    "KHR_materials_emissive_strength"
+   ],
+   "anchors_world": {
+    "anchor_circle": [
+     -4.0,
+     0.0,
+     12.5,
+     0.0
+    ],
+    "anchor_resident": [
+     -4.0,
+     0.6,
+     16.7,
+     0.0
+    ],
+    "anchor_sign_fishyard": [
+     -4.0,
+     2.95,
+     9.515,
+     0.0
+    ],
+    "anchor_sign_fishyard_back": [
+     -4.0,
+     2.95,
+     9.685,
+     3.1416
+    ],
+    "anchor_spawn_back": [
+     -4.0,
+     0.0,
+     9.4,
+     0.0
+    ]
+   },
+   "colliders_world": {
+    "col_barrel": [
+     -4.62,
+     16.08,
+     -3.38,
+     17.32,
+     0.0,
+     1.0
+    ],
+    "col_boat": [
+     -8.7,
+     11.25,
+     -7.5,
+     13.95,
+     0.0,
+     0.6
+    ],
+    "col_crate_a": [
+     -1.0,
+     11.85,
+     -0.1,
+     12.75,
+     0.0,
+     0.9
+    ],
+    "col_crate_b": [
+     -0.05,
+     11.85,
+     0.85,
+     12.75,
+     0.0,
+     0.9
+    ],
+    "col_crate_top": [
+     -0.5,
+     11.9,
+     0.3,
+     12.7,
+     0.9,
+     1.7
+    ],
+    "col_gate_leaf_e": [
+     -1.23,
+     9.3,
+     1.15,
+     9.68,
+     0.0,
+     2.3
+    ],
+    "col_gate_leaf_w": [
+     -9.15,
+     9.3,
+     -6.77,
+     9.68,
+     0.0,
+     2.3
+    ],
+    "col_gate_post_e": [
+     -1.57,
+     9.43,
+     -1.23,
+     9.77,
+     0.0,
+     3.4
+    ],
+    "col_gate_post_w": [
+     -6.77,
+     9.43,
+     -6.43,
+     9.77,
+     0.0,
+     3.4
+    ],
+    "col_net_pile": [
+     -0.35,
+     11.13,
+     0.65,
+     11.77,
+     0.0,
+     0.4
+    ],
+    "col_rack_leg_-0.85": [
+     -0.92,
+     14.68,
+     -0.78,
+     14.82,
+     0.0,
+     1.7
+    ],
+    "col_rack_leg_-2.75": [
+     -2.82,
+     14.68,
+     -2.68,
+     14.82,
+     0.0,
+     1.7
+    ],
+    "col_rack_leg_-5.25": [
+     -5.32,
+     14.68,
+     -5.18,
+     14.82,
+     0.0,
+     1.7
+    ],
+    "col_rack_leg_-7.15": [
+     -7.22,
+     14.68,
+     -7.08,
+     14.82,
+     0.0,
+     1.7
+    ],
+    "col_smokehouse": [
+     -8.65,
+     9.8,
+     -7.15,
+     10.95,
+     0.0,
+     2.3
+    ],
+    "col_table": [
+     -0.75,
+     9.95,
+     0.6,
+     11.0,
+     0.0,
+     0.95
+    ],
+    "col_west_barrels": [
+     -8.75,
+     14.1,
+     -7.3,
+     16.35,
+     0.0,
+     1.0
+    ],
+    "col_woodpile": [
+     -8.7,
+     10.9,
+     -7.85,
+     11.25,
+     0.0,
+     0.55
+    ]
+   },
+   "notes": [
+    "Твёрдое игры (YARD_SOLIDS, YARD_CRATES в shared/plaza2.ts) перерисовано на тех же местах: col_gate_post_*, col_rack_leg_*, col_barrel, col_boat, col_crate_*.",
+    "Новые укрытия — вне пиратской полосы PIRATE_ZONE (x −7…27, z 12,5…22): коптильня, стол под навесом, бочки у западной кромки, створки ворот.",
+    "Вывеска — доска 3,36 × 0,74 под балкой ворот (центр y 2,95), поле 3,1 × 0,6 с обеих сторон; резная рыба над балкой до ~4,9 м.",
+    "Вымпелы на шестах — live_fishyard_pennant_* (корень в точке крепления к шесту)."
+   ]
+  },
+  "rats": {
+   "name": "Крысиные бега: понтон, трибуна, тумба букмекера",
+   "file": "./pav_rats.glb",
+   "bytes": 263080,
+   "world_origin": [
+    -7.4,
+    0,
+    24.4
+   ],
+   "facing": "N",
+   "yaw": 0.0,
+   "placement": "node.position = (x, 0, z) из world_origin; node.rotation.y = yaw",
+   "tris_static": 3776,
+   "draws_static": 2,
+   "tris_live": 4,
+   "draws_live": 2,
+   "nodes": {
+    "live_rats_pennant_e": {
+     "tris": 2,
+     "draws": 1,
+     "by_material": {
+      "p3_gloss": 2
+     }
+    },
+    "live_rats_pennant_w": {
+     "tris": 2,
+     "draws": 1,
+     "by_material": {
+      "p3_gloss": 2
+     }
+    },
+    "static_rats": {
+     "tris": 3776,
+     "draws": 2,
+     "by_material": {
+      "p3_matte": 1308,
+      "p3_gloss": 2468
+     }
+    }
+   },
+   "props": {
+    "pb_bollard": 2,
+    "pb_lifebuoy": 2,
+    "pb_stool": 1
+   },
+   "props_files": {
+    "pb_bollard": "./pb_props.glb",
+    "pb_lifebuoy": "./pb_props.glb",
+    "pb_stool": "./pb_props.glb"
+   },
+   "props_tris_total": 1388,
+   "bulbs": 0,
+   "textures": 0,
+   "extensions": [],
+   "anchors_world": {
+    "anchor_board_odds": [
+     -12.45,
+     0.935,
+     19.87,
+     0.0
+    ],
+    "anchor_board_rats": [
+     -7.4,
+     4.05,
+     26.53,
+     0.0
+    ],
+    "anchor_cat_seat": [
+     -4.56,
+     0.69,
+     23.16,
+     0.0
+    ],
+    "anchor_resident": [
+     -11.6,
+     0.0,
+     20.6,
+     0.0
+    ],
+    "anchor_sign_bookmaker": [
+     -11.6,
+     0.66,
+     19.76,
+     0.0
+    ],
+    "anchor_sign_finish": [
+     -7.4,
+     0.84,
+     23.16,
+     0.0
+    ],
+    "anchor_use": [
+     -7.4,
+     0.0,
+     22.5,
+     3.1416
+    ]
+   },
+   "colliders_world": {
+    "col_board_post_e": [
+     -10.67,
+     26.49,
+     -10.47,
+     26.69,
+     0.0,
+     6.3
+    ],
+    "col_board_post_w": [
+     -4.33,
+     26.49,
+     -4.13,
+     26.69,
+     0.0,
+     6.3
+    ],
+    "col_counter": [
+     -12.1,
+     19.75,
+     -11.1,
+     20.35,
+     0.0,
+     1.05
+    ],
+    "col_easel": [
+     -12.8,
+     19.7,
+     -12.1,
+     20.25,
+     0.0,
+     1.4
+    ],
+    "col_pen_e": [
+     -4.6,
+     23.2,
+     -4.52,
+     26.2,
+     0.0,
+     0.6
+    ],
+    "col_pen_n": [
+     -10.28,
+     23.12,
+     -4.52,
+     23.2,
+     0.0,
+     0.6
+    ],
+    "col_pen_s": [
+     -10.28,
+     26.2,
+     -4.52,
+     26.28,
+     0.0,
+     0.6
+    ],
+    "col_pen_w": [
+     -10.28,
+     23.2,
+     -10.2,
+     26.2,
+     0.0,
+     0.6
+    ],
+    "col_stand_1": [
+     -10.97,
+     21.35,
+     -8.63,
+     21.85,
+     0.0,
+     0.32
+    ],
+    "col_stand_2": [
+     -10.97,
+     20.85,
+     -8.63,
+     21.35,
+     0.0,
+     0.64
+    ],
+    "col_stand_3": [
+     -10.97,
+     20.25,
+     -8.63,
+     20.85,
+     0.0,
+     0.96
+    ],
+    "col_stand_post_e": [
+     -8.8,
+     21.9,
+     -8.7,
+     22.0,
+     0.0,
+     2.5
+    ],
+    "col_stand_post_w": [
+     -10.9,
+     21.9,
+     -10.8,
+     22.0,
+     0.0,
+     2.5
+    ],
+    "col_umbrella_pole": [
+     -12.0,
+     20.75,
+     -11.9,
+     20.85,
+     0.0,
+     2.3
+    ]
+   },
+   "notes": [
+    "Понтон, бортик, дорожка, табло — по числам shared/ratrace.ts (RAT_DECK, RAT_PEN, RAT_TRACK, RAT_BOARD); живые части игры (крысы, шлагбаум старта, холст табло) не входят.",
+    "Табло: поле anchor_board_rats 6,2 × 3,3, низ 2,4 (центр y 4,05), лицом на север; столбы x −10,67 / −4,13.",
+    "Трибуна и тумба букмекера — на суше вне пиратской полосы (x < −7); навес трибуны — полосы терракота/крем.",
+    "Дорожка: шесть полос по 0,15 м (терракота/крем) поверх песчаного пола арены; верх полос y 0,035."
+   ]
+  },
+  "swallow_gate": {
+   "name": "Морские ворота «Ласточка» и старт регаты",
+   "file": "./pav_swallow_gate.glb",
+   "bytes": 295356,
+   "world_origin": [
+    7.9,
+    0,
+    21.3
+   ],
+   "facing": "N",
+   "yaw": 0.0,
+   "placement": "node.position = (x, 0, z) из world_origin; node.rotation.y = yaw",
+   "tris_static": 4538,
+   "draws_static": 2,
+   "tris_live": 66,
+   "draws_live": 5,
+   "nodes": {
+    "live_swallow_gate_pennant_49": {
+     "tris": 2,
+     "draws": 1,
+     "by_material": {
+      "p3_gloss": 2
+     }
+    },
+    "live_swallow_gate_pennant_109": {
+     "tris": 2,
+     "draws": 1,
+     "by_material": {
+      "p3_gloss": 2
+     }
+    },
+    "live_swallow_gate_pennant_top": {
+     "tris": 2,
+     "draws": 1,
+     "by_material": {
+      "p3_matte": 2
+     }
+    },
+    "live_swallow_gate_signal_flags": {
+     "tris": 60,
+     "draws": 2,
+     "by_material": {
+      "p3_matte": 32,
+      "p3_gloss": 28
+     }
+    },
+    "static_swallow_gate": {
+     "tris": 4538,
+     "draws": 2,
+     "by_material": {
+      "p3_matte": 2248,
+      "p3_gloss": 2290
+     }
+    }
+   },
+   "props": {
+    "pb_bollard": 3,
+    "pb_buoy": 1,
+    "pb_lifebuoy": 3,
+    "pb_rope_coil": 2
+   },
+   "props_files": {
+    "pb_lifebuoy": "./pb_props.glb",
+    "pb_bollard": "./pb_props.glb",
+    "pb_rope_coil": "./pb_props.glb",
+    "pb_buoy": "./pb_props.glb"
+   },
+   "props_tris_total": 3064,
+   "bulbs": 0,
+   "textures": 0,
+   "extensions": [],
+   "anchors_world": {
+    "anchor_board_status": [
+     7.9,
+     3.3,
+     21.235,
+     0.0
+    ],
+    "anchor_boat_use": [
+     8.0,
+     0.0,
+     23.02,
+     3.1416
+    ],
+    "anchor_judge": [
+     19.4,
+     3.0,
+     21.3,
+     0.0
+    ],
+    "anchor_regatta_circle": [
+     16.0,
+     0.0,
+     18.0,
+     3.1416
+    ],
+    "anchor_sign_lastochka": [
+     7.9,
+     4.3,
+     21.215,
+     0.0
+    ],
+    "anchor_sign_lastochka_back": [
+     7.9,
+     4.3,
+     21.385,
+     3.1416
+    ],
+    "anchor_sign_regatta": [
+     16.15,
+     3.0,
+     21.215,
+     0.0
+    ],
+    "anchor_sign_regatta_back": [
+     16.15,
+     3.0,
+     21.385,
+     3.1416
+    ]
+   },
+   "colliders_world": {
+    "col_bollard_11.5": [
+     11.3,
+     21.53,
+     11.7,
+     21.93,
+     0.0,
+     0.45
+    ],
+    "col_bollard_13.5": [
+     13.32,
+     21.53,
+     13.72,
+     21.93,
+     0.0,
+     0.45
+    ],
+    "col_bollard_4.3": [
+     4.1,
+     21.53,
+     4.5,
+     21.93,
+     0.0,
+     0.45
+    ],
+    "col_gate_post_10.9": [
+     10.77,
+     21.17,
+     11.03,
+     21.43,
+     0.0,
+     5.2
+    ],
+    "col_gate_post_4.9": [
+     4.77,
+     21.17,
+     5.03,
+     21.43,
+     0.0,
+     5.2
+    ],
+    "col_mast_12.9": [
+     12.73,
+     21.13,
+     13.07,
+     21.47,
+     0.0,
+     6.0
+    ],
+    "col_mast_19.4": [
+     19.23,
+     21.13,
+     19.57,
+     21.47,
+     0.0,
+     10.0
+    ]
+   },
+   "notes": [
+    "Стойки «Ласточки» и мачты регаты — на местах твёрдых стоек игры (BOAT_GATE, REGATTA_MASTS); коллайдеры — по всей высоте мачт.",
+    "Вывеска «Ласточки» — центр y 4,3 (поле 4,3 × 0,7, с двух сторон); строка статуса катера — anchor_board_status 3,4 × 0,3, y 3,3.",
+    "Вывеска регаты — центр y 3,0 (поле 4,5 × 0,8, с двух сторон), висит на гике между мачтами на 4,55.",
+    "Судейская будка — площадка на сигнальной мачте (настил y 3,0): на полосе пиратов новые опоры на земле нельзя.",
+    "Живые: вымпелы на топах (live_swallow_gate_pennant_*), столбик сигнальных флагов с нока реи (live_swallow_gate_signal_flags)."
+   ]
+  },
+  "lifeguard": {
+   "name": "Аквапарк «Волна»: вышка спасателя и надувная арка",
+   "file": "./pav_lifeguard.glb",
+   "bytes": 241652,
+   "world_origin": [
+    -27.0,
+    0,
+    4.25
+   ],
+   "facing": "E",
+   "yaw": -1.5708,
+   "placement": "node.position = (x, 0, z) из world_origin; node.rotation.y = yaw",
+   "tris_static": 3640,
+   "draws_static": 2,
+   "tris_live": 16,
+   "draws_live": 1,
+   "nodes": {
+    "live_lifeguard_flag": {
+     "tris": 16,
+     "draws": 1,
+     "by_material": {
+      "p3_gloss": 16
+     }
+    },
+    "static_lifeguard": {
+     "tris": 3640,
+     "draws": 2,
+     "by_material": {
+      "p3_matte": 412,
+      "p3_gloss": 3228
+     }
+    }
+   },
+   "props": {
+    "lantern_wall": 1,
+    "pb_lifebuoy": 3
+   },
+   "props_files": {
+    "pb_lifebuoy": "./pb_props.glb",
+    "lantern_wall": "kit/glb/kit_lights.glb"
+   },
+   "props_tris_total": 1686,
+   "bulbs": 0,
+   "textures": 0,
+   "extensions": [],
+   "anchors_world": {
+    "anchor_aqua_step": [
+     -30.2,
+     0.0,
+     9.0,
+     1.5708
+    ],
+    "anchor_lookout": [
+     -27.0,
+     3.2,
+     4.6,
+     -1.5708
+    ],
+    "anchor_resident": [
+     -27.2,
+     0.0,
+     11.6,
+     -1.5708
+    ],
+    "anchor_sign_aqua": [
+     -30.365,
+     3.6,
+     9.0,
+     -1.5708
+    ],
+    "anchor_sign_aqua_back": [
+     -30.535,
+     3.6,
+     9.0,
+     1.5708
+    ]
+   },
+   "colliders_world": {
+    "col_brace_n": [
+     -28.4,
+     2.62,
+     -25.6,
+     2.75,
+     0.35,
+     3.2
+    ],
+    "col_brace_s": [
+     -28.4,
+     5.75,
+     -25.6,
+     5.88,
+     0.35,
+     3.2
+    ],
+    "col_brace_w": [
+     -28.42,
+     2.62,
+     -28.28,
+     5.88,
+     0.35,
+     3.2
+    ],
+    "col_deck": [
+     -28.3,
+     2.75,
+     -25.7,
+     5.75,
+     3.04,
+     6.4
+    ],
+    "col_ladder": [
+     -25.78,
+     2.95,
+     -24.75,
+     3.6,
+     0.0,
+     4.2
+    ],
+    "col_leg_-25.6_2.6": [
+     -25.85,
+     2.45,
+     -25.45,
+     2.85,
+     0.0,
+     3.2
+    ],
+    "col_leg_-25.6_5.8": [
+     -25.85,
+     5.65,
+     -25.45,
+     6.05,
+     0.0,
+     3.2
+    ],
+    "col_leg_-28.4_2.6": [
+     -28.55,
+     2.45,
+     -28.15,
+     2.85,
+     0.0,
+     3.2
+    ],
+    "col_leg_-28.4_5.8": [
+     -28.55,
+     5.65,
+     -28.15,
+     6.05,
+     0.0,
+     3.2
+    ]
+   },
+   "notes": [
+    "Вышка 3,2 × 2,7 по ногам (x −28,35…−25,65, z 2,65…5,85), настил 3,2, будка до 5,3, крыша до 6,4, флагшток 8,0; лестница спереди выходит на 0,9 м за x −25,5 (до x −24,8).",
+    "Надувная арка: плоскость x −30,45, ноги на плавучих основаниях z 6,6 / 11,4 (вне мостика z 7,5…10,5), верх ~5,6 с гребнем; вывеска — поле 2,9 × 0,66 на y 3,6, с двух сторон (лицом на восток и на запад). Коллайдеров у арки нет (на воде, как у игры).",
+    "Флаг вышки — live_lifeguard_flag (корень у флагштока)."
+   ]
+  },
+  "cabins": {
+   "name": "Примерочная: пляжные кабинки и зеркало",
+   "file": "./pav_cabins.glb",
+   "bytes": 233956,
+   "world_origin": [
+    -27.5,
+    0,
+    -3.0
+   ],
+   "facing": "E",
+   "yaw": -1.5708,
+   "placement": "node.position = (x, 0, z) из world_origin; node.rotation.y = yaw",
+   "tris_static": 3344,
+   "draws_static": 2,
+   "tris_live": 0,
+   "draws_live": 0,
+   "nodes": {
+    "static_cabins": {
+     "tris": 3344,
+     "draws": 2,
+     "by_material": {
+      "p3_matte": 1257,
+      "p3_gloss": 2087
+     }
+    }
+   },
+   "props": {
+    "lantern_wall": 3,
+    "pb_lifebuoy": 1
+   },
+   "props_files": {
+    "lantern_wall": "kit/glb/kit_lights.glb",
+    "pb_lifebuoy": "./pb_props.glb"
+   },
+   "props_tris_total": 1458,
+   "bulbs": 0,
+   "textures": 0,
+   "extensions": [],
+   "anchors_world": {
+    "anchor_mirror_main": [
+     -25.41,
+     1.12,
+     -1.4,
+     -1.5708
+    ],
+    "anchor_place_0": [
+     -23.4,
+     0.0,
+     -1.4,
+     1.5708
+    ],
+    "anchor_place_1": [
+     -23.4,
+     0.0,
+     -3.4,
+     1.5708
+    ],
+    "anchor_place_2": [
+     -23.4,
+     0.0,
+     -5.4,
+     1.5708
+    ],
+    "anchor_resident": [
+     -24.4,
+     0.0,
+     1.8,
+     -1.5708
+    ],
+    "anchor_sign_wardrobe": [
+     -25.425,
+     3.6,
+     -3.0,
+     -1.5708
+    ]
+   },
+   "colliders_world": {
+    "col_building": [
+     -29.5,
+     -6.0,
+     -25.5,
+     0.0,
+     0.0,
+     3.3
+    ],
+    "col_coat_stand": [
+     -25.3,
+     -0.75,
+     -24.7,
+     -0.15,
+     0.0,
+     1.85
+    ],
+    "col_mirror": [
+     -25.5,
+     -2.05,
+     -25.38,
+     -0.75,
+     0.0,
+     2.4
+    ]
+   },
+   "notes": [
+    "Кабинки 4 × 0,96 м (z −6…−2,16), глубина 2,6 (x −25,5…−28,1), стены 2,4, коньки 3,2; гардеробная z −2,16…0, h 2,75 + гребень-раковина до ~3,5; пристройка к воде x −28,1…−29,5, h 2,1–2,5.",
+    "Зеркало: поле anchor_mirror_main 0,88 × 1,9, центр (−25,41; 1,12; −1,4), лицом на восток (как у игры: стекло x −25,415); под ним запасное «стекло» glass_sky.",
+    "Вывеска «ПРИМЕРОЧНАЯ» — поле 2,95 × 0,46, центр (−25,43; 3,6; −3,0), на железных стойках над кабинками."
+   ]
+  },
+  "aeroclub": {
+   "name": "Гидроплан «Стриж»: будка аэроклуба",
+   "file": "./pav_aeroclub.glb",
+   "bytes": 312092,
+   "world_origin": [
+    -28.1,
+    0,
+    -18.75
+   ],
+   "facing": "E",
+   "yaw": -1.5708,
+   "placement": "node.position = (x, 0, z) из world_origin; node.rotation.y = yaw",
+   "tris_static": 4334,
+   "draws_static": 2,
+   "tris_live": 436,
+   "draws_live": 4,
+   "nodes": {
+    "live_aeroclub_propeller": {
+     "tris": 196,
+     "draws": 2,
+     "by_material": {
+      "p3_matte": 86,
+      "p3_gloss": 110
+     }
+    },
+    "live_aeroclub_windsock": {
+     "tris": 240,
+     "draws": 2,
+     "by_material": {
+      "p3_matte": 96,
+      "p3_gloss": 144
+     }
+    },
+    "static_aeroclub": {
+     "tris": 4334,
+     "draws": 2,
+     "by_material": {
+      "p3_matte": 2246,
+      "p3_gloss": 2088
+     }
+    }
+   },
+   "props": {
+    "bench": 1,
+    "lantern_wall": 2,
+    "pb_barrel": 2,
+    "pb_bollard": 1,
+    "pb_crate": 1,
+    "pb_lifebuoy": 1,
+    "pb_rope_coil": 1
+   },
+   "props_files": {
+    "lantern_wall": "kit/glb/kit_lights.glb",
+    "bench": "kit/glb/kit_street.glb",
+    "pb_barrel": "./pb_props.glb",
+    "pb_crate": "./pb_props.glb",
+    "pb_bollard": "./pb_props.glb",
+    "pb_rope_coil": "./pb_props.glb",
+    "pb_lifebuoy": "./pb_props.glb"
+   },
+   "props_tris_total": 3376,
+   "bulbs": 0,
+   "textures": 0,
+   "extensions": [],
+   "anchors_world": {
+    "anchor_board_plane_status": [
+     -28.365,
+     1.587,
+     -14.7,
+     -1.5708
+    ],
+    "anchor_resident": [
+     -26.4,
+     0.0,
+     -12.4,
+     -1.5708
+    ],
+    "anchor_rope_bollard": [
+     -32.55,
+     0.42,
+     -11.5,
+     -1.5708
+    ],
+    "anchor_sign_aeroclub": [
+     -28.32,
+     2.4,
+     -14.7,
+     -1.5708
+    ],
+    "anchor_sign_aeroclub_back": [
+     -28.48,
+     2.4,
+     -14.7,
+     1.5708
+    ],
+    "anchor_use": [
+     -29.2,
+     0.0,
+     -10.9,
+     1.5708
+    ]
+   },
+   "colliders_world": {
+    "col_barrels": [
+     -29.17,
+     -21.21,
+     -27.15,
+     -20.55,
+     0.0,
+     0.85
+    ],
+    "col_bench": [
+     -28.9,
+     -16.92,
+     -27.15,
+     -16.35,
+     0.0,
+     0.9
+    ],
+    "col_bollard": [
+     -32.75,
+     -11.7,
+     -32.35,
+     -11.3,
+     0.0,
+     0.5
+    ],
+    "col_booth": [
+     -29.5,
+     -20.55,
+     -26.55,
+     -16.95,
+     0.0,
+     3.506
+    ],
+    "col_mooring_posts": [
+     -33.27,
+     -11.82,
+     -32.99,
+     -9.98,
+     -1.9,
+     0.95
+    ],
+    "col_sign_board": [
+     -28.45,
+     -15.23,
+     -28.35,
+     -14.17,
+     1.25,
+     2.03
+    ],
+    "col_sign_post_n": [
+     -28.5,
+     -16.05,
+     -28.3,
+     -15.85,
+     0.0,
+     3.2
+    ],
+    "col_sign_post_s": [
+     -28.5,
+     -13.55,
+     -28.3,
+     -13.35,
+     0.0,
+     3.2
+    ]
+   },
+   "notes": [
+    "Будка x −29,45…−26,6, z −20,5…−17 (3,5 × 2,85), стены 2,45, конёк ~3,49; мачта ветроуказателя на коньке (x −28,95; z −18,75) до 8,0.",
+    "Живые: live_aeroclub_propeller — пропеллер над дверью, корень в ступице (−26,1; 2,76; −18,75), крутить вокруг оси узла, которая смотрит на восток (−Z GLB); live_aeroclub_windsock — ветроуказатель, корень на оси мачты (y 7,55), крутить вокруг вертикали (в покое смотрит на север).",
+    "Табличка: рама на двух столбах по z −15,95 / −13,45 вокруг PLANE_SIGN (−28,4; −14,7); anchor_sign_aeroclub 1,5 × 0,4, центр y 2,4 (и _back на запад); anchor_board_plane_status — поле доски состояния 0,98 × 0,574 с центром y 1,587, лицом на восток (почти там же, где игра рисует её сейчас: x −28,365 вместо −28,344).",
+    "Мостки x −33…−29,95, z −11,8…−10, верх 0,03 (на 3 см выше площади, без ступени). Верёвка самолёта в игре идёт от кнехта (−29,2; 0,42; −12) и проходит сквозь настил около x −31,7 — предлагается перевести её на anchor_rope_bollard (−32,55; 0,42; −11,5)."
+   ]
+  },
+  "mole": {
+   "name": "Маячный мол: мол, голова с красным огнём, сходни",
+   "file": "./pav_mole.glb",
+   "bytes": 266024,
+   "world_origin": [
+    -43.0,
+    0,
+    45.0
+   ],
+   "facing": "N",
+   "yaw": 0.0,
+   "placement": "node.position = (x, 0, z) из world_origin; node.rotation.y = yaw",
+   "tris_static": 3864,
+   "draws_static": 2,
+   "tris_live": 60,
+   "draws_live": 1,
+   "nodes": {
+    "live_mole_red_light": {
+     "tris": 60,
+     "draws": 1,
+     "by_material": {
+      "p3_glow": 60
+     }
+    },
+    "static_mole": {
+     "tris": 3864,
+     "draws": 2,
+     "by_material": {
+      "p3_matte": 3342,
+      "p3_gloss": 522
+     }
+    }
+   },
+   "props": {
+    "pb_bollard": 13,
+    "pb_lifebuoy": 1
+   },
+   "props_files": {
+    "pb_bollard": "./pb_props.glb",
+    "pb_lifebuoy": "./pb_props.glb"
+   },
+   "props_tris_total": 2920,
+   "bulbs": 0,
+   "textures": 0,
+   "extensions": [
+    "KHR_materials_emissive_strength"
+   ],
+   "anchors_world": {
+    "anchor_sign_udalaya": [
+     -65.114,
+     1.9,
+     46.25,
+     -1.5708
+    ],
+    "anchor_spot_head_0": [
+     -65.5,
+     -0.5,
+     48.45,
+     3.1416
+    ],
+    "anchor_spot_head_1": [
+     -63.0,
+     -0.5,
+     48.45,
+     3.1416
+    ],
+    "anchor_spot_mole_2": [
+     -31.0,
+     -0.5,
+     46.45,
+     3.1416
+    ],
+    "anchor_spot_mole_3": [
+     -34.0,
+     -0.5,
+     46.45,
+     3.1416
+    ],
+    "anchor_spot_mole_4": [
+     -37.0,
+     -0.5,
+     46.45,
+     3.1416
+    ],
+    "anchor_spot_mole_5": [
+     -40.0,
+     -0.5,
+     46.45,
+     3.1416
+    ],
+    "anchor_spot_mole_6": [
+     -43.0,
+     -0.5,
+     46.45,
+     3.1416
+    ],
+    "anchor_spot_mole_7": [
+     -46.0,
+     -0.5,
+     46.45,
+     3.1416
+    ]
+   },
+   "colliders_world": {
+    "col_bollard_270_436": [
+     -27.2,
+     43.44,
+     -26.8,
+     43.84,
+     -0.5,
+     -0.04
+    ],
+    "col_bollard_315_436": [
+     -31.7,
+     43.44,
+     -31.3,
+     43.84,
+     -0.5,
+     -0.04
+    ],
+    "col_bollard_360_436": [
+     -36.2,
+     43.44,
+     -35.8,
+     43.84,
+     -0.5,
+     -0.04
+    ],
+    "col_bollard_405_436": [
+     -40.7,
+     43.44,
+     -40.3,
+     43.84,
+     -0.5,
+     -0.04
+    ],
+    "col_bollard_450_436": [
+     -45.2,
+     43.44,
+     -44.8,
+     43.84,
+     -0.5,
+     -0.04
+    ],
+    "col_bollard_495_436": [
+     -49.7,
+     43.44,
+     -49.3,
+     43.84,
+     -0.5,
+     -0.04
+    ],
+    "col_bollard_520_463": [
+     -52.2,
+     46.16,
+     -51.8,
+     46.56,
+     -0.5,
+     -0.04
+    ],
+    "col_bollard_540_436": [
+     -54.2,
+     43.44,
+     -53.8,
+     43.84,
+     -0.5,
+     -0.04
+    ],
+    "col_bollard_560_463": [
+     -56.2,
+     46.16,
+     -55.8,
+     46.56,
+     -0.5,
+     -0.04
+    ],
+    "col_bollard_585_436": [
+     -58.7,
+     43.44,
+     -58.3,
+     43.84,
+     -0.5,
+     -0.04
+    ],
+    "col_bollard_636_426": [
+     -63.8,
+     42.46,
+     -63.4,
+     42.86,
+     -0.5,
+     -0.04
+    ],
+    "col_bollard_678_442": [
+     -68.0,
+     44.0,
+     -67.6,
+     44.4,
+     -0.5,
+     -0.04
+    ],
+    "col_bollard_678_479": [
+     -68.0,
+     47.7,
+     -67.6,
+     48.1,
+     -0.5,
+     -0.04
+    ],
+    "col_gangway": [
+     -55.2,
+     46.5,
+     -52.8,
+     58.5,
+     -2.0,
+     -0.5
+    ],
+    "col_head": [
+     -68.0,
+     42.5,
+     -62.0,
+     48.5,
+     -2.0,
+     -0.5
+    ],
+    "col_mole": [
+     -62.0,
+     43.5,
+     -24.0,
+     46.5,
+     -2.0,
+     -0.5
+    ],
+    "col_red_light": [
+     -67.68,
+     42.82,
+     -67.12,
+     43.38,
+     -0.5,
+     2.8
+    ],
+    "col_sign_udalaya": [
+     -65.32,
+     45.68,
+     -65.12,
+     46.82,
+     -0.5,
+     2.3
+    ],
+    "col_step": [
+     -24.6,
+     43.5,
+     -24.0,
+     46.0,
+     -0.5,
+     -0.25
+    ]
+   },
+   "notes": [
+    "Корень GLB — мир (−43; 45), yaw 0: локальные x/z GLB = мировые x + 43 / z − 45; верх настила y −0,5 (в мировых y, без сдвига).",
+    "Мол x −62…−24, z 43,5…46,5; голова x −68…−62, z 42,5…48,5; сходни x −55,2…−52,8, z 46,5…58,5 (доски с z 46,62 — за свесом покрывного камня); ступень x −24,6…−24,02, верх −0,25 (вторую ступень 0 → −0,25 даёт край площадки маяка).",
+    "Покрывной камень — свес 12 см на север/юг/восток; на западной грани головы свеса нет (борт «Удалой» в 15 см), там брусья-отбойники 12 см и резиновый привальный брус.",
+    "Красный огонь: тумба + столб до 2,16, фонарь 2,15…2,77 (верх 3,27 над настилом); стекло — live_mole_red_light (p3_glow, корень в центре фонаря (−67,4; 2,4; 43,1)).",
+    "Табличка «Удалая» на столбике (−65,25; 46,25): поле anchor_sign_udalaya 1,0 × 0,36, центр y 1,9, лицом на восток (к идущим по молу); под ней латунный колокол."
+   ]
+  },
+  "lighthouse": {
+   "name": "Токаревский маяк («Токаревская кошка»)",
+   "file": "./pav_lighthouse.glb",
+   "bytes": 449584,
+   "world_origin": [
+    -19.0,
+    0,
+    43.0
+   ],
+   "facing": "N",
+   "yaw": 0.0,
+   "placement": "node.position = (x, 0, z) из world_origin; node.rotation.y = yaw",
+   "tris_static": 7780,
+   "draws_static": 2,
+   "tris_live": 544,
+   "draws_live": 1,
+   "nodes": {
+    "live_lamp": {
+     "tris": 544,
+     "draws": 1,
+     "by_material": {
+      "p3_glow": 544
+     }
+    },
+    "static_lighthouse": {
+     "tris": 7780,
+     "draws": 2,
+     "by_material": {
+      "p3_matte": 5376,
+      "p3_gloss": 2404
+     }
+    }
+   },
+   "props": {
+    "pb_bollard": 1
+   },
+   "props_files": {
+    "pb_bollard": "./pb_props.glb"
+   },
+   "props_tris_total": 190,
+   "bulbs": 0,
+   "textures": 0,
+   "extensions": [
+    "KHR_materials_emissive_strength"
+   ],
+   "anchors_world": {
+    "anchor_lamp": [
+     -19.0,
+     9.8,
+     43.0,
+     0.0
+    ]
+   },
+   "colliders_world": {
+    "col_bollard": [
+     -17.35,
+     41.1,
+     -16.95,
+     41.5,
+     0.0,
+     0.46
+    ],
+    "col_step": [
+     -19.6,
+     40.97,
+     -18.4,
+     41.6,
+     0.0,
+     0.18
+    ],
+    "col_tower": [
+     -20.6,
+     41.4,
+     -17.4,
+     44.6,
+     0.0,
+     12.0
+    ]
+   },
+   "notes": [
+    "Корень GLB — центр башни (−19; 43) на y 0 (верх площадки), yaw 0: дверь на север (−Z), к мосткам. Размеры — по client/lobby/tokarev-lighthouse.ts.",
+    "Цоколь 0…0,36 (восьмигранник R 1,62), белый восьмигранник R 1,46 до 4,41, карниз до 4,73; круглый ярус R 1,22 → 1,17 (4,74…8,3); карниз на 12 кронштейнах, пол галереи 9,02; перила до 9,93; фонарь 9,42…10,27, колпак до 11,1, шар 11,3, шпиль до 11,96.",
+    "live_lamp — линза Френеля (p3_glow), корень и anchor_lamp — центр линзы (0; 9,8; 0) локально (у кода lampAnchor 9,73). Стёкол в фонаре нет — линза видна сквозь переплёт.",
+    "col_tower — прежняя коллизия башни игры [−20,6…−17,4] × [41,4…44,6] h 12; ступень у двери и старая чугунная тумба — свои коллайдеры."
+   ]
+  },
+  "fishshowcase": {
+   "name": "Рыбная витрина «Крупнейшие рыбы сегодня»",
+   "file": "./pav_fishshowcase.glb",
+   "bytes": 563064,
+   "world_origin": [
+    -12.6,
+    0,
+    20.4
+   ],
+   "facing": "N",
+   "yaw": 0.0,
+   "placement": "node.position = (x, 0, z) из world_origin; node.rotation.y = yaw",
+   "tris_static": 7354,
+   "draws_static": 2,
+   "tris_live": 2,
+   "draws_live": 1,
+   "nodes": {
+    "live_board_records": {
+     "tris": 2,
+     "draws": 1,
+     "by_material": {
+      "p3_glow": 2
+     }
+    },
+    "static_fishshowcase": {
+     "tris": 7354,
+     "draws": 2,
+     "by_material": {
+      "p3_matte": 894,
+      "p3_gloss": 6460
+     }
+    }
+   },
+   "props": {
+    "pb_barrel": 1,
+    "pb_crate": 3,
+    "pb_crate_fish": 3
+   },
+   "props_files": {
+    "pb_barrel": "./pb_props.glb",
+    "pb_crate_fish": "./pb_props.glb",
+    "pb_crate": "./pb_props.glb"
+   },
+   "props_tris_total": 2292,
+   "bulbs": 50,
+   "textures": 0,
+   "extensions": [
+    "KHR_materials_emissive_strength"
+   ],
+   "anchors_world": {
+    "anchor_board_records": [
+     -12.6,
+     3.315,
+     21.595,
+     0.0
+    ],
+    "anchor_fish_1": [
+     -12.6,
+     1.42,
+     19.7,
+     0.0
+    ],
+    "anchor_fish_2": [
+     -10.725,
+     1.019,
+     19.72,
+     0.0
+    ],
+    "anchor_fish_3": [
+     -14.475,
+     1.019,
+     19.72,
+     0.0
+    ],
+    "anchor_look": [
+     -12.6,
+     0.0,
+     17.4,
+     3.1416
+    ],
+    "anchor_records_roof": [
+     -12.6,
+     5.04,
+     21.685,
+     0.0
+    ],
+    "anchor_sign_biggest": [
+     -12.6,
+     4.65,
+     21.594,
+     0.0
+    ],
+    "anchor_tag_1": [
+     -12.6,
+     0.7,
+     18.835,
+     0.0
+    ],
+    "anchor_tag_2": [
+     -10.725,
+     0.7,
+     18.835,
+     0.0
+    ],
+    "anchor_tag_3": [
+     -14.475,
+     0.7,
+     18.835,
+     0.0
+    ]
+   },
+   "colliders_world": {
+    "col_counter": [
+     -15.4,
+     18.87,
+     -9.8,
+     20.6,
+     0.0,
+     1.45
+    ],
+    "col_post_l": [
+     -9.57,
+     18.73,
+     -9.35,
+     18.95,
+     0.0,
+     2.035
+    ],
+    "col_post_r": [
+     -15.85,
+     18.73,
+     -15.63,
+     18.95,
+     0.0,
+     2.035
+    ],
+    "col_side_l": [
+     -9.8,
+     19.2,
+     -9.16,
+     21.6,
+     0.0,
+     1.0
+    ],
+    "col_side_r": [
+     -16.04,
+     19.2,
+     -15.4,
+     21.6,
+     0.0,
+     1.3
+    ],
+    "col_wall": [
+     -15.96,
+     21.6,
+     -9.24,
+     21.85,
+     0.0,
+     5.04
+    ]
+   },
+   "notes": [
+    "Место временное: корень (−12,6; 20,4), лицо на север (к площади); точное место и поворот — в раскладке v5. Свои оси: лицо −Z GLB, корень — середина следа на земле.",
+    "След ~6,9 × 3,3 м (прилавок 5,5 × 1,6, стенка 6,6 × 0,15), высота 5,04 (верх вывески на гребне).",
+    "Места рыб: anchor_fish_1 — пьедестал по центру, верх льда 1,42, длина места 2,0; anchor_fish_2 (слева от зрителя) и anchor_fish_3 (справа) — на ложе льда, наклон ложа 11° уже в повороте пустышки, длина 1,3. Голова: userData.head в осях пустышки (+X — влево от зрителя); рыбы игры (makeFish3D) ставятся в кадр пустышки как есть: длина вдоль X, спина +Y — стоят на брюхе боком к зрителю. В GLB рыб нет.",
+    "Таблички: anchor_tag_1 (0,8 × 0,3) и anchor_tag_2/3 (0,56 × 0,26) — эмалевые ценники на крючках по кромке прилавка под своими местами; игра пишет имя рыбака и вес.",
+    "Доска «Рекорды рыбаков»: поле 3,6 × 1,65 (как FISH_BOARD), низ 2,49, live_board_records — плоскость с UV 0..1 (p3_glow-заглушка, игра кладёт холст FishBoard3D 1024×469 в map), anchor_board_records — то же поле.",
+    "Вывеска «Крупнейшие рыбы сегодня» — anchor_sign_biggest, поле 5,2 × 0,42 на гребне (центр y 4,65), в кайме 34 лампочки; anchor_records_roof — верх гребня (место резной акулы игры).",
+    "Гирлянда: 16 лампочек на четырёх провисах перед фестонами маркизы (только свечение — anchor_bulbs).",
+    "Пьедестал FISH_PODIUM игры (5 мест) этой моделью заменяется на 3 места; 4-е и 5-е — только строками на доске/в табличках, если нужно."
+   ]
+  }
+ },
+ "props": {
+  "file": "./pb_props.glb",
+  "textures": 0,
+  "note": "узел на предмет, лицо −Z, опора на земле (настенные — точка крепления на стене)",
+  "pieces": {
+   "pb_barrel": {
+    "tris": 324,
+    "draws": 2,
+    "materials": [
+     "p3_matte",
+     "p3_gloss"
+    ],
+    "size_m": [
+     0.62,
+     0.8,
+     0.62
+    ]
+   },
+   "pb_crate": {
+    "tris": 194,
+    "draws": 1,
+    "materials": [
+     "p3_matte"
+    ],
+    "size_m": [
+     0.67,
+     0.5,
+     0.67
+    ]
+   },
+   "pb_crate_fish": {
+    "tris": 462,
+    "draws": 2,
+    "materials": [
+     "p3_matte",
+     "p3_gloss"
+    ],
+    "size_m": [
+     0.72,
+     0.38,
+     0.45
+    ]
+   },
+   "pb_lifebuoy": {
+    "tris": 450,
+    "draws": 2,
+    "materials": [
+     "p3_matte",
+     "p3_gloss"
+    ],
+    "size_m": [
+     0.72,
+     0.72,
+     0.16
+    ]
+   },
+   "pb_bollard": {
+    "tris": 190,
+    "draws": 2,
+    "materials": [
+     "p3_matte",
+     "p3_gloss"
+    ],
+    "size_m": [
+     0.4,
+     0.46,
+     0.38
+    ]
+   },
+   "pb_rope_coil": {
+    "tris": 472,
+    "draws": 1,
+    "materials": [
+     "p3_matte"
+    ],
+    "size_m": [
+     0.82,
+     0.13,
+     0.58
+    ]
+   },
+   "pb_oars": {
+    "tris": 154,
+    "draws": 2,
+    "materials": [
+     "p3_matte",
+     "p3_gloss"
+    ],
+    "size_m": [
+     1.83,
+     2.54,
+     0.17
+    ]
+   },
+   "pb_net_pile": {
+    "tris": 448,
+    "draws": 2,
+    "materials": [
+     "p3_matte",
+     "p3_gloss"
+    ],
+    "size_m": [
+     1.24,
+     0.5,
+     0.79
+    ]
+   },
+   "pb_buoy": {
+    "tris": 200,
+    "draws": 1,
+    "materials": [
+     "p3_gloss"
+    ],
+    "size_m": [
+     0.52,
+     0.92,
+     0.49
+    ]
+   },
+   "pb_fish_rack": {
+    "tris": 996,
+    "draws": 2,
+    "materials": [
+     "p3_matte",
+     "p3_gloss"
+    ],
+    "size_m": [
+     2.1,
+     1.73,
+     0.57
+    ]
+   },
+   "pb_binocular": {
+    "tris": 380,
+    "draws": 1,
+    "materials": [
+     "p3_gloss"
+    ],
+    "size_m": [
+     0.4,
+     1.39,
+     0.55
+    ]
+   },
+   "pb_stool": {
+    "tris": 108,
+    "draws": 1,
+    "materials": [
+     "p3_matte"
+    ],
+    "size_m": [
+     0.36,
+     0.46,
+     0.34
+    ]
+   }
+  }
+ }
+}

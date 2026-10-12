@@ -1,0 +1,763 @@
+{
+  "schema": "tiredwood-benchmark-method-review/1",
+  "reviewedAt": "2026-10-07",
+  "language": "ru",
+  "repository": "[LOCAL_PATH]",
+  "scope": "Независимое чтение кода стенда, тестов, установленных Three r186 internals и артефактов 6 октября. Код не менялся; сервер, браузер и тесты не запускались.",
+  "verdict": "Существующий стенд пригоден для исследования упрощённой процедурной сцены. В проверенной timing-логике новых материальных блокеров не найдено. Его FPS/CPU/GPU и Spector не доказывают производительность полной TIREDWOOD или целесообразность миграции на WebGPU.",
+  "currentBenchFingerprint": "5ebd7ecfa5779447de632d487c2fe5d2a5500a096adc38aaad539705cba0840d",
+  "currentTimingMatchesArchivedSourceV2": true,
+  "findings": [
+    {
+      "id": "BENCH-M1",
+      "priority": "P1 interpretation",
+      "title": "Результаты процедурной сцены нельзя переносить на полный кадр игры",
+      "observation": "В стенде пять meshes на персонажа, нет одежды, текстур, надписей, отражений/преломлений, postprocessing, автоматического LOD, gameplay и сети. Тени солнца статические; персонажи используют плоские прозрачные blobs.",
+      "impact": "Не измеряются реальные дорогие материалы, shadow refresh, UI, создание полного мира, network decode/interpolation. 640 персонажей не означают 640 сетевых игроков или проверенную вместимость сервера.",
+      "recommendation": "Для полного game review использовать боевую локальную сборку с флагами сайта, временным DATA_DIR, реальные направления камеры/режимы/переходы/события; измерять полный frame CPU/GPU, render passes, p95/p99 и long tasks отдельно.",
+      "sources": [
+        {
+          "path": "../../game-opus/tools/render-bench/scene.ts",
+          "lines": [
+            94,
+            114
+          ]
+        },
+        {
+          "path": "../../game-opus/tools/render-bench/scene.ts",
+          "lines": [
+            145,
+            155
+          ]
+        },
+        {
+          "path": "../../game-opus/tools/render-bench/README.md",
+          "lines": [
+            3,
+            3
+          ]
+        }
+      ]
+    },
+    {
+      "id": "BENCH-M2",
+      "priority": "P1 interpretation",
+      "title": "C быстрее B не означает C быстрее текущего A",
+      "observation": "A использует classic WebGLRenderer + GLSL/onBeforeCompile; B/C — новый WebGPURenderer и node/TSL materials. A→C одновременно меняет renderer архитектуру, материал и backend. B/C используют одну material factory и лучше изолируют backend. Архив 10×: 640 rain A/B/C ≈132.7/43.5/54.0 FPS; CPU median ≈7.0/19.3/18.0 ms.",
+      "impact": "Заявление об ускорении WebGPU по C/B без A вводит в заблуждение. В сохранённом тяжёлом сценарии A заметно быстрее C. Это ограничено данной сценой и машиной, а не универсальная оценка APIs.",
+      "recommendation": "Сравнивать итоговый оптимизированный A и C на эквивалентном production workload и визуале; разбирать B/C как backend experiment. Сначала batching/instancing/материалы/профиль полной игры. Миграцию предлагать только после подтверждённого user-visible выигрыша и учета rewrite всех custom shader paths.",
+      "sources": [
+        {
+          "path": "../../game-opus/tools/render-bench/renderer.ts",
+          "lines": [
+            53,
+            63
+          ]
+        },
+        {
+          "path": "../../game-opus/tools/render-bench/runtime.ts",
+          "lines": [
+            74,
+            82
+          ]
+        },
+        {
+          "path": "../../game-opus/tools/render-bench/materials.ts",
+          "lines": [
+            21,
+            35
+          ]
+        },
+        {
+          "path": "../../../../unavailable.html",
+          "lines": [
+            402,
+            430
+          ]
+        },
+        {
+          "path": "../../../../unavailable.html",
+          "lines": [
+            535,
+            563
+          ]
+        },
+        {
+          "path": "../../../../unavailable.html",
+          "lines": [
+            668,
+            696
+          ]
+        }
+      ],
+      "primaryDoc": "../../../../vendor/207633f213f2d1b2.js"
+    },
+    {
+      "id": "BENCH-M3",
+      "priority": "P2 interpretation",
+      "title": "rAF FPS в baseline почти полностью ограничен частотой обновления",
+      "observation": "Baseline clean проходы почти все ≈165 FPS, интервалы ≈6.06 ms; CPU submission различается. Реализация определяет FPS как 1000/mean(rAF intervals), что корректно, но не измеряет максимальную пропускную способность GPU.",
+      "impact": "Одинаковые FPS не доказывают равную стоимость рендеринга или одинаковый запас; проценты FPS на потолке нельзя использовать как performance ranking. В 10× пример A160≈165 и C160≈164.5 также почти capped.",
+      "recommendation": "При одинаковых actual buffer/DPR/AA/quality сравнивать CPU submission и отдельные GPU timestamps, показывать cap. Для границы стабильных 60/120 FPS использовать повышенное разрешение и реальный heavy кадр; GPU не заменять вычислением 1000/FPS-CPU.",
+      "sources": [
+        {
+          "path": "../../game-opus/tools/render-bench/runtime.ts",
+          "lines": [
+            164,
+            186
+          ]
+        },
+        {
+          "path": "../../game-opus/tools/render-bench/metrics.ts",
+          "lines": [
+            21,
+            32
+          ]
+        },
+        {
+          "path": "../../../../unavailable.html",
+          "lines": [
+            12,
+            25
+          ]
+        },
+        {
+          "path": "../../game-opus/tools/render-bench/README.md",
+          "lines": [
+            29,
+            31
+          ]
+        }
+      ]
+    },
+    {
+      "id": "BENCH-M4",
+      "priority": "P2 coverage",
+      "title": "Две сцены и 10× не разделяют причины затрат и не соответствуют бюджету всей площади",
+      "observation": "Presets одновременно меняют 16→64 персонажа и rain false→true. 10× одновременно меняет здания/деревья/персонажей/rain/water segmentation; новые объекты компактнее и внутри прежнего footprint. Статическая shadow map рисуется только на подготовке. Стенд не сохраняет число shader programs, число textures/geometries или gameplay/full startup long tasks.",
+      "impact": "Нельзя из этих двух точек отдельно вывести цену дождя, игрока, тени, lights, pixels и максимального онлайна. Перечисленные draw counts steady frames не проверяют бюджет 300 с тенями в любой точке; 10× не значит десятикратная fragment/CPU/VRAM стоимость.",
+      "recommendation": "Для диагностики нужны пары dry/rain при одном player count, несколько фиксированных player counts без weather изменений, 720p/1080p/4K, статические и refresh-shadow frames. Бюджеты проекта проверять именно в игре; существующий stress test оставить stress test.",
+      "sources": [
+        {
+          "path": "../../game-opus/tools/render-bench/main.ts",
+          "lines": [
+            13,
+            29
+          ]
+        },
+        {
+          "path": "../../game-opus/tools/render-bench/scene-data.ts",
+          "lines": [
+            52,
+            64
+          ]
+        },
+        {
+          "path": "../../game-opus/tools/render-bench/scene.ts",
+          "lines": [
+            29,
+            34
+          ]
+        },
+        {
+          "path": "../../game-opus/tools/render-bench/scene.ts",
+          "lines": [
+            151,
+            155
+          ]
+        },
+        {
+          "path": "../../game-opus/tools/render-bench/types.ts",
+          "lines": [
+            41,
+            47
+          ]
+        },
+        {
+          "path": "../../game-opus/docs/optimization.md",
+          "lines": [
+            92,
+            97
+          ]
+        }
+      ]
+    },
+    {
+      "id": "BENCH-M5",
+      "priority": "P2 coverage",
+      "title": "GPU profiles имеют один повтор и мало samples в самом тяжёлом режиме",
+      "observation": "Clean suite вращает A/B/C для 3 повторов, но GPU jobs всегда лишь по одному проходу A/B/C после всех clean runs. В архиве 640 rain B GPU count=43, C=54. GPU p99 при таком объёме близок к максимуму; питание baseline не записано, одна машина и браузер.",
+      "impact": "Это полезная диагностика, но недостаточная основа для точного процентного выигрыша GPU или переносимости результата на слабые компьютеры/телефоны. Поздние профили могут отражать иное thermal/cache состояние. Причина не доказана.",
+      "recommendation": "Если нужен именно backend выбор, повторять и вращать GPU profiles отдельно, сообщать counts и ranges всех повторов, питание/браузер/GPU/config. CPU×4 использовать как отдельный sensitivity test, а не как точную имитацию другого GPU или телефона.",
+      "sources": [
+        {
+          "path": "../../game-opus/tools/render-bench/main.ts",
+          "lines": [
+            89,
+            108
+          ]
+        },
+        {
+          "path": "../../game-opus/tools/render-bench/renderer.ts",
+          "lines": [
+            114,
+            119
+          ]
+        },
+        {
+          "path": "../../game-opus/tools/render-bench/renderer.ts",
+          "lines": [
+            199,
+            213
+          ]
+        },
+        {
+          "path": "../../../../unavailable.html",
+          "lines": [
+            62,
+            66
+          ]
+        }
+      ],
+      "primaryDoc": "https://developer.chrome.com/docs/devtools/performance/reference"
+    },
+    {
+      "id": "BENCH-M6",
+      "priority": "P2 interpretation",
+      "title": "Spector B захват включает дополнительную тень и не равен steady benchmark кадру",
+      "observation": "Raw A/B captures самостоятельно распарсены: A 1558 commands/360 draws; B 1875 commands/383 draws. Архивный pass summary B=360 main+22 shadow+1 output, хотя steady измерения B=361 draws. Причина refresh в прежнем исследовании не прослежена.",
+      "impact": "+23 draws или общий command count нельзя выдавать за steady overhead B; Spector capture не является чистым GPU/CPU timing. Цифры захвата полезны для классификации команд и проходов, но не для количественной атрибуции миллисекунд.",
+      "recommendation": "В новом Spector анализе сопоставлять одинаковый t/camera/weather/quality и lifecycle; warm normal capture отдельно от shadow refresh. Группировать draws по framebuffer/pass/program/material, переключения program/VAO/UBO и uniform/uploads. Использовать Chrome CPU stacks и timestamps, чтобы проверить, действительно ли эти вызовы составляют bottleneck.",
+      "sources": [
+        {
+          "path": "../../game-opus/tools/render-bench/main.ts",
+          "lines": [
+            126,
+            140
+          ]
+        },
+        {
+          "path": "../../game-opus/tools/render-bench/main.ts",
+          "lines": [
+            85,
+            88
+          ]
+        },
+        {
+          "path": "../../../../unavailable.html",
+          "lines": [
+            8,
+            15
+          ]
+        },
+        {
+          "path": "../../../../unavailable.html",
+          "lines": [
+            28,
+            72
+          ]
+        }
+      ],
+      "primaryDoc": "https://github.com/BabylonJS/Spector.js/blob/v0.9.33/documentation/apis.md"
+    }
+  ],
+  "validConclusions": [
+    "Backend validation явно отклоняет silent WebGPU→WebGL fallback. Shader compile errors A/B инвалидируются общим hook; modern device/errors тоже учитываются.",
+    "Одна seeded scene factory и shared B/C TSL graph; unit tests закрепляют descriptors/geometry/instance matrices/camera/motion, а не GPU outputs.",
+    "Чистые, GPU и Spector проходы разделены. Null GPU не становится 0; readback не await внутри submission. rAF samples закрываются следующим callback, включая терминальную паузу.",
+    "CPU означает только scene.tick+renderer.render JS участок. FPS означает rAF delivery. GPU означает elapsed query A или sum последнего render frame passes B/C. Эти величины нельзя складывать или вычитать для получения полной задержки отображения.",
+    "Настройки 1280×720/DPR1/ACES/sRGB/4 samples записаны; A samples считываются из GL, B/C отмечены как configured internal MSAA, а не аппаратно проверенное совпадение всех pipeline операций.",
+    "Старые измерения не дают обоснования автоматической миграции на WebGPU. Сравнение C>B сохраняет смысл только в пределах этой node procedural сцены и указанной среды."
+  ],
+  "timingImplementationEvidence": [
+    {
+      "path": "../../game-opus/tools/render-bench/renderer.ts",
+      "lines": [
+        64,
+        104
+      ]
+    },
+    {
+      "path": "../../game-opus/tools/render-bench/renderer.ts",
+      "lines": [
+        170,
+        219
+      ]
+    },
+    {
+      "path": "../../game-opus/tools/render-bench/runtime.ts",
+      "lines": [
+        149,
+        206
+      ]
+    },
+    {
+      "path": "../../game-opus/node_modules/three/src/renderers/webgl-fallback/utils/WebGLTimestampQueryPool.js",
+      "lines": [
+        230,
+        256
+      ]
+    },
+    {
+      "path": "../../game-opus/node_modules/three/src/renderers/webgpu/utils/WebGPUTimestampQueryPool.js",
+      "lines": [
+        207,
+        237
+      ]
+    }
+  ],
+  "spector": {
+    "supportedScope": "A/B WebGL only; official captureCanvas(canvas) API; inspectorLoaded blocks subsequent measured runs until reload.",
+    "implementationValidForCapture": true,
+    "doesNotProfileWebGPU": true,
+    "artifactsDated": "2026-10-06",
+    "captures": [
+      {
+        "mode": "A",
+        "path": "[LOCAL_PATH]",
+        "rawCaptureParsed": true,
+        "totalCommands": 1558,
+        "commandDistribution": {
+          "bindBuffer": 1,
+          "bufferSubData": 1,
+          "clear": 1,
+          "useProgram": 11,
+          "frontFace": 6,
+          "disable": 2,
+          "depthMask": 4,
+          "bindVertexArray": 13,
+          "drawElements": 354,
+          "uniformMatrix4fv": 785,
+          "uniform3f": 80,
+          "uniformMatrix3fv": 224,
+          "uniform1f": 68,
+          "drawElementsInstanced": 6,
+          "enable": 2
+        },
+        "draws": 360
+      },
+      {
+        "mode": "B",
+        "path": "[LOCAL_PATH]",
+        "rawCaptureParsed": true,
+        "totalCommands": 1875,
+        "commandDistribution": {
+          "bindFramebuffer": 5,
+          "clearBufferfv": 2,
+          "clearBufferfi": 2,
+          "bindBufferBase": 602,
+          "frontFace": 8,
+          "depthMask": 4,
+          "useProgram": 217,
+          "bindVertexArray": 232,
+          "bindBuffer": 235,
+          "drawElements": 374,
+          "bindTexture": 2,
+          "disable": 88,
+          "enable": 88,
+          "viewport": 2,
+          "bufferData": 4,
+          "drawElementsInstanced": 8,
+          "blitFramebuffer": 1,
+          "drawArrays": 1
+        },
+        "draws": 383
+      }
+    ],
+    "distributionInterpretation": "A useProgram=11 / B=217; VAO binds13/232; B UBO bindBufferBase602, A uniformMatrix4fv785 + uniformMatrix3fv224. Это разные пути доставки состояния плюс B shadow refresh; команда ≠ одинаковая стоимость. Переключения дают гипотезу к проверке CPU profiler, не причину уже установленную."
+  },
+  "budgets": {
+    "source": {
+      "path": "../../game-opus/docs/optimization.md",
+      "lines": [
+        92,
+        97
+      ]
+    },
+    "targets": {
+      "allPassDrawCallsMax": 300,
+      "shaderProgramsMax": 80,
+      "trianglesMax": 1000000,
+      "cpuFrameM1ProMaxMs": 3,
+      "cpuThrottled4xMinFps": 40,
+      "startupMaxFreezeMs": 1500
+    },
+    "appliesTo": "Площадь в любой точке/направлении; это целевые бюджеты документа, не текущие замеры игры.",
+    "benchCoverage": "Только simplified steady draws/triangles/submission; shader budgets/startup freeze/full frame/network не покрыты."
+  },
+  "coverage": {
+    "read": [
+      "AGENTS.md целиком",
+      "docs/product.md целиком",
+      "docs/optimization.md целиком",
+      "README.md состояния/стек/графика",
+      "docs/STATUS.md начало",
+      "docs/README.md релевантная карта",
+      "docs/design.md debug/architecture участки",
+      "tools/render-bench/*.ts и README",
+      "test/render-bench*.test.ts",
+      "архивные raw JSON parsed, review/verification/parity/spector summaries и raw Spector gzip"
+    ],
+    "freshValidation": "Static source and artifact parsing only; no new execution of benchmark/test/build/browser.",
+    "unitTestsCover": [
+      "nearest-rank p95/p99/null/invalid timings",
+      "rotated order/fallback rejection",
+      "rAF endpoints/abort/visibility using fake session",
+      "determinism/geometry/instancing/transforms/disposal"
+    ],
+    "unitTestsDoNotCover": [
+      "actual backend/shader execution",
+      "WebGL context/device loss in real browser",
+      "GPU readback/frame association under real hardware failures",
+      "pixel parity",
+      "production scene/multiplayer/phone/cold cache"
+    ]
+  },
+  "archivedObservations": [
+    {
+      "path": "../../../../unavailable.html",
+      "build": {
+        "commit": "8146e57c1992d549d3a20b51195069b5c7b29573",
+        "fingerprint": "0e7769553e182a49e7b1cba84e8a9c81d48e12997958d8c06f4ec916f9a71ab1",
+        "builtAt": "2026-10-05T23:24:59.134Z"
+      },
+      "totalEntries": 26,
+      "invalidEntries": [
+        {
+          "id": "2026-10-05T23:26:39.514Z/14",
+          "reasons": [
+            "Размер окна изменился во время сессии."
+          ]
+        }
+      ],
+      "scope": "Наблюдения 6 октября 2026 МСК; заново браузер не запускался. Числа пересчитаны сейчас из сохранённых raw result summaries; это не текущий FPS игры.",
+      "cleanGroups": [
+        {
+          "players": 16,
+          "rain": false,
+          "variant": "legacy",
+          "validRuns": 3,
+          "cpuMedianOfRunMediansMs": 0.6999999992549419,
+          "fpsMedianOfRuns": 164.99770142511647,
+          "fpsRange": [
+            164.99605248693294,
+            165.02408891909758
+          ],
+          "submittedDraws": 118,
+          "submittedTriangles": 54808
+        },
+        {
+          "players": 16,
+          "rain": false,
+          "variant": "modern-webgl",
+          "validRuns": 3,
+          "cpuMedianOfRunMediansMs": 1.099999999627471,
+          "fpsMedianOfRuns": 164.99835001649996,
+          "fpsRange": [
+            164.99835001649976,
+            165
+          ],
+          "submittedDraws": 119,
+          "submittedTriangles": 54809
+        },
+        {
+          "players": 16,
+          "rain": false,
+          "variant": "webgpu",
+          "validRuns": 3,
+          "cpuMedianOfRunMediansMs": 1,
+          "fpsMedianOfRuns": 165,
+          "fpsRange": [
+            164.9802023757152,
+            165
+          ],
+          "submittedDraws": 119,
+          "submittedTriangles": 54809
+        },
+        {
+          "players": 64,
+          "rain": true,
+          "variant": "legacy",
+          "validRuns": 3,
+          "cpuMedianOfRunMediansMs": 0.9000000022351742,
+          "fpsMedianOfRuns": 165,
+          "fpsRange": [
+            164.99835001649927,
+            165.002648437422
+          ],
+          "submittedDraws": 360,
+          "submittedTriangles": 174904
+        },
+        {
+          "players": 64,
+          "rain": true,
+          "variant": "modern-webgl",
+          "validRuns": 3,
+          "cpuMedianOfRunMediansMs": 2,
+          "fpsMedianOfRuns": 164.7983520164802,
+          "fpsRange": [
+            111.79999999999998,
+            165.00099940035977
+          ],
+          "submittedDraws": 361,
+          "submittedTriangles": 174905
+        },
+        {
+          "players": 64,
+          "rain": true,
+          "variant": "webgpu",
+          "validRuns": 3,
+          "cpuMedianOfRunMediansMs": 1.799999998882413,
+          "fpsMedianOfRuns": 164.99835001649976,
+          "fpsRange": [
+            163.7967240655185,
+            165
+          ],
+          "submittedDraws": 361,
+          "submittedTriangles": 174905
+        }
+      ],
+      "gpuProfiles": [
+        {
+          "id": "2026-10-05T23:26:39.514Z/18",
+          "players": 16,
+          "variant": "legacy",
+          "gpuSamples": 165,
+          "gpuMedianMs": 1.019125,
+          "gpuP95Ms": 1.342874
+        },
+        {
+          "id": "2026-10-05T23:26:39.514Z/19",
+          "players": 16,
+          "variant": "modern-webgl",
+          "gpuSamples": 165,
+          "gpuMedianMs": 2.3106660000000003,
+          "gpuP95Ms": 3.010541
+        },
+        {
+          "id": "2026-10-05T23:26:39.514Z/20",
+          "players": 16,
+          "variant": "webgpu",
+          "gpuSamples": 165,
+          "gpuMedianMs": 1.048576,
+          "gpuP95Ms": 1.7039360000000001
+        },
+        {
+          "id": "2026-10-05T23:26:39.514Z/21",
+          "players": 64,
+          "variant": "legacy",
+          "gpuSamples": 165,
+          "gpuMedianMs": 0.949416,
+          "gpuP95Ms": 1.413374
+        },
+        {
+          "id": "2026-10-05T23:26:39.514Z/22",
+          "players": 64,
+          "variant": "modern-webgl",
+          "gpuSamples": 165,
+          "gpuMedianMs": 2.826915,
+          "gpuP95Ms": 6.934666
+        },
+        {
+          "id": "2026-10-05T23:26:39.514Z/23",
+          "players": 64,
+          "variant": "webgpu",
+          "gpuSamples": 165,
+          "gpuMedianMs": 1.507328,
+          "gpuP95Ms": 1.6383999999999999
+        },
+        {
+          "id": "2026-10-05T23:38:49.063Z/1",
+          "players": 64,
+          "variant": "legacy",
+          "gpuSamples": 165,
+          "gpuMedianMs": 0.908708,
+          "gpuP95Ms": 1.044749
+        }
+      ]
+    },
+    {
+      "path": "../../../../unavailable.html",
+      "build": {
+        "commit": "8146e57c1992d549d3a20b51195069b5c7b29573",
+        "fingerprint": "5ebd7ecfa5779447de632d487c2fe5d2a5500a096adc38aaad539705cba0840d",
+        "builtAt": "2026-10-06T08:31:10.293Z"
+      },
+      "totalEntries": 24,
+      "invalidEntries": [],
+      "scope": "Наблюдения 6 октября 2026 МСК; заново браузер не запускался. Числа пересчитаны сейчас из сохранённых raw result summaries; это не текущий FPS игры.",
+      "cleanGroups": [
+        {
+          "players": 160,
+          "rain": false,
+          "variant": "legacy",
+          "validRuns": 3,
+          "cpuMedianOfRunMediansMs": 2.399999998509884,
+          "fpsMedianOfRuns": 164.99835001649927,
+          "fpsRange": [
+            164.99835001649927,
+            164.99835001649976
+          ],
+          "submittedDraws": 1108,
+          "submittedTriangles": 545848
+        },
+        {
+          "players": 160,
+          "rain": false,
+          "variant": "modern-webgl",
+          "validRuns": 3,
+          "cpuMedianOfRunMediansMs": 5.299999997019768,
+          "fpsMedianOfRuns": 118.09763804723892,
+          "fpsRange": [
+            117.69882301176982,
+            119.89999999999999
+          ],
+          "submittedDraws": 1109,
+          "submittedTriangles": 545849
+        },
+        {
+          "players": 160,
+          "rain": false,
+          "variant": "webgpu",
+          "validRuns": 3,
+          "cpuMedianOfRunMediansMs": 5.200000002980232,
+          "fpsMedianOfRuns": 164.50294326347463,
+          "fpsRange": [
+            164.09835901640974,
+            164.9
+          ],
+          "submittedDraws": 1109,
+          "submittedTriangles": 545849
+        },
+        {
+          "players": 640,
+          "rain": true,
+          "variant": "legacy",
+          "validRuns": 3,
+          "cpuMedianOfRunMediansMs": 7,
+          "fpsMedianOfRuns": 132.69867301327017,
+          "fpsRange": [
+            126.9,
+            134.5973080538388
+          ],
+          "submittedDraws": 3510,
+          "submittedTriangles": 1746808
+        },
+        {
+          "players": 640,
+          "rain": true,
+          "variant": "modern-webgl",
+          "validRuns": 3,
+          "cpuMedianOfRunMediansMs": 19.30000000447035,
+          "fpsMedianOfRuns": 43.520792158271895,
+          "fpsRange": [
+            43.37310867262293,
+            45.17741129435283
+          ],
+          "submittedDraws": 3511,
+          "submittedTriangles": 1746809
+        },
+        {
+          "players": 640,
+          "rain": true,
+          "variant": "webgpu",
+          "validRuns": 3,
+          "cpuMedianOfRunMediansMs": 18,
+          "fpsMedianOfRuns": 54.00171687528692,
+          "fpsRange": [
+            52.9,
+            54.699453005469756
+          ],
+          "submittedDraws": 3511,
+          "submittedTriangles": 1746809
+        }
+      ],
+      "gpuProfiles": [
+        {
+          "id": "2026-10-06T08:35:40.192Z/18",
+          "players": 160,
+          "variant": "legacy",
+          "gpuSamples": 165,
+          "gpuMedianMs": 1.402875,
+          "gpuP95Ms": 1.594249
+        },
+        {
+          "id": "2026-10-06T08:35:40.192Z/19",
+          "players": 160,
+          "variant": "modern-webgl",
+          "gpuSamples": 119,
+          "gpuMedianMs": 2.9523729999999997,
+          "gpuP95Ms": 5.275748999999999
+        },
+        {
+          "id": "2026-10-06T08:35:40.192Z/20",
+          "players": 160,
+          "variant": "webgpu",
+          "gpuSamples": 165,
+          "gpuMedianMs": 2.6214399999999998,
+          "gpuP95Ms": 3.997696
+        },
+        {
+          "id": "2026-10-06T08:35:40.192Z/21",
+          "players": 640,
+          "variant": "legacy",
+          "gpuSamples": 132,
+          "gpuMedianMs": 3.1802289999999998,
+          "gpuP95Ms": 4.5375
+        },
+        {
+          "id": "2026-10-06T08:35:40.192Z/22",
+          "players": 640,
+          "variant": "modern-webgl",
+          "gpuSamples": 43,
+          "gpuMedianMs": 9.604624000000001,
+          "gpuP95Ms": 10.322332
+        },
+        {
+          "id": "2026-10-06T08:35:40.192Z/23",
+          "players": 640,
+          "variant": "webgpu",
+          "gpuSamples": 54,
+          "gpuMedianMs": 6.71744,
+          "gpuP95Ms": 6.88128
+        }
+      ]
+    }
+  ],
+  "parityLimit": {
+    "source": {
+      "path": "../../../../unavailable.html",
+      "lines": [
+        33,
+        54
+      ]
+    },
+    "observation": "640 rain A/C full-frame diff: MAE≈2.585/255, pixels max channel error>24≈6.29%; B/C≈2.41%. Это один fixed t=2 image, без семантической pass threshold. Низкая средняя ошибка по всему кадру не гарантирует отсутствие важных локальных различий материалов.",
+    "requires": "Посмотреть crop дождя/силуэтов/теней/цвета, несколько секунд, а для миграции — production shaders."
+  },
+  "recommendedNextSteps": [
+    "Профилировать настоящую локальную game production build: по 4 направлениям площади, 1080p/4K/CPU×4 и стабильные фиксированные settings; отдельно cold startup/first event/material compilation.",
+    "Spector — после clean measurements, один warmed frame и отдельно shadow refresh; таблица commands по pass/program/material и Chrome CPU flame stacks + timestamps.",
+    "Если подтверждается CPU submission bottleneck — batching/instancing/shared materials и приоритетные зоны; если GPU bottleneck — shadows/lights/pixels/transparent fill по данным.",
+    "Сетевой review отдельно на реальных локальных клиентах: bytes/messages, ping/jitter, interpolation age/corrections, modes/tick frequency. Стенд таких данных не даёт.",
+    "WebGPU proof of concept возможен как следующий ограниченный эксперимент только после production profile и паритетного TSL переноса реальных shader paths; решение по FPS+p95+startup+compatibility+visual acceptance."
+  ],
+  "primarySources": [
+    {
+      "url": "../../../../vendor/207633f213f2d1b2.js",
+      "verified": "2026-10-07",
+      "supports": "forceWebGL/new renderer fallback, GLSL ShaderMaterial/onBeforeCompile migration to nodes required"
+    },
+    {
+      "url": "https://github.com/BabylonJS/Spector.js",
+      "verified": "2026-10-07",
+      "supports": "captureCanvas and onCapture JSON API; WebGL inspector scope"
+    },
+    {
+      "url": "https://developer.chrome.com/docs/devtools/performance/reference",
+      "verified": "2026-10-07",
+      "supports": "CPU throttling relative to host; architecture simulation limitations"
+    }
+  ],
+  "git": "Dirty worktree inspected; no project edits or Git writes. Only this requested JSON outside repo was written."
+}

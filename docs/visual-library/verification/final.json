@@ -1,0 +1,83 @@
+{
+  "frozen": true,
+  "htmlOrigins": 525,
+  "uniqueHtml": 131,
+  "uniqueObjects": 3124,
+  "uniqueBytes": 1047930902,
+  "actualMissingHistorical": 168,
+  "incompletePrimaryGroups": 15,
+  "central": [
+    {
+      "originSuffix": "tiredwood-hud-five-directions-2026-10-12/index.html",
+      "missing": 0
+    },
+    {
+      "originSuffix": "tiredwood-water-study-2026-10-12/v3/index.html",
+      "missing": 0
+    },
+    {
+      "originSuffix": "evolutions-r8/index.html",
+      "missing": 0
+    },
+    {
+      "originSuffix": "tiredwood-fortress-expansion-2026-10-11/v3/index.html",
+      "missing": 0
+    },
+    {
+      "originSuffix": "tiredwood-product-lab-v2-2026-10-12/index.html",
+      "missing": 0
+    },
+    {
+      "originSuffix": "tiredwood-test-center-2026-10-12/review3/index.html",
+      "missing": 0
+    }
+  ],
+  "privacyReadback": {
+    "textObjects": 2025,
+    "findings": [],
+    "valuesPrinted": false,
+    "serverAddressFindings": [],
+    "restoredVendorChecked": true
+  },
+  "excludedQaFiles": 83,
+  "staging": [
+    {
+      "id": "tiredwood-visual-library-staging-2026-10-12T20-34-57-303Z",
+      "manifest": "${TMPDIR}/tiredwood-visual-library-staging-2026-10-12T20-34-57-303Z/staging-manifest.json",
+      "files": 5274
+    },
+    {
+      "id": "tiredwood-visual-library-staging-2026-10-12T20-44-14-512Z",
+      "manifest": "${TMPDIR}/tiredwood-visual-library-staging-2026-10-12T20-44-14-512Z/staging-manifest.json",
+      "files": 379
+    }
+  ],
+  "initialInventory": {
+    "html": 536,
+    "extraIndependentBuiltPages": 16,
+    "excludedHtml": 27,
+    "includedHtml": 525
+  },
+  "releaseBundleExcludesLibrary": "deploy.sh packages package.json, package-lock.json, server, shared, dist and deploy only",
+  "vendorRecovery": {
+    "dependency": "vendor/6c053dd0c89e621e.js",
+    "revision": "147",
+    "bytes": 607784,
+    "sha256": "f34446bf875b5fb0dcd93819ffe1d9e182d46634ee855f5d904c6c4ac7cdbc95",
+    "httpStatus": 200
+  },
+  "copiedLinkCheck": {
+    "missing": 0,
+    "outside": 0,
+    "over95MiB": 0
+  },
+  "browserAfterFinish": {
+    "searchVisible": 3,
+    "filterVisible": 11,
+    "allVisible": 131,
+    "errors": 0,
+    "threeRevision": "147"
+  },
+  "snapshotLineEndings": "Preserved by docs/visual-library/.gitattributes: * -text",
+  "copiedFiles": 19118
+}

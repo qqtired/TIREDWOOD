@@ -1,0 +1,17 @@
+import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import vm from 'node:vm';import {SCENARIOS} from './scenarios.mjs';
+test('all eight choices update the actual calculation panel, including availability, gold, preparation and future stock',()=>{
+ const tactics=JSON.parse(fs.readFileSync(new URL('../data/tactics-v2.json',import.meta.url))),coverage=JSON.parse(fs.readFileSync(new URL('../data/coverage-v2.json',import.meta.url))),roster=JSON.parse(fs.readFileSync(new URL('../data/roster-v2.json',import.meta.url))),nodes=new Map(),handlers={};
+ const get=id=>{if(!nodes.has(id))nodes.set(id,{value:'',textContent:'',innerHTML:'',checked:false,addEventListener(){},querySelectorAll(){return[];}});return nodes.get(id);};
+ get('event-humans').value='4';get('calc-wave').value='98';get('calc-skill').value='master';get('calc-structures').value='max';get('v2-data').textContent=JSON.stringify({tactics,coverage,roster,events:SCENARIOS});
+ const context={document:{getElementById:get},window:{addEventListener:(type,cb)=>handlers[type]=cb}};vm.createContext(context);vm.runInContext(fs.readFileSync(new URL('./report.js',import.meta.url),'utf8'),context);
+ assert(get('roster-cards').innerHTML.includes('Краб-Кран'));assert(get('team-roster-policy').innerHTML.includes('135'));assert(get('boss-health-rows').innerHTML.includes('98'));
+ for(const def of SCENARIOS)for(const action of [null,...def.actions]){
+  handlers['fortress-choice']({detail:{id:def.id,choice:action?.id??null}});assert(get('selected-tactic').textContent.includes(def.name));assert(get('tactics-rows').innerHTML.includes('is-highlight'));assert(!get('selected-tactic').textContent.includes('undefined'));assert(get('selected-tactic').textContent.includes('человеко-сек'));assert(get('selected-tactic').textContent.includes('золота'));for(const id of ['selected-tactic','tactics-rows','repair-money','repair-time','repair-pressure'])assert(!/repair|\/person|gate −|\+\d+R\//.test(get(id).textContent+get(id).innerHTML));
+ }
+ handlers['fortress-choice']({detail:{id:'forge',choice:'kit'}});assert(get('selected-tactic').textContent.includes('432 золота'));assert(get('repair-money').textContent.includes('после заказа'));
+ handlers['fortress-choice']({detail:{id:'stores',choice:'salvage_grenades'}});assert(get('selected-tactic').textContent.includes('+1 гранат'));
+ handlers['fortress-choice']({detail:{id:'battery',choice:'ballista'}});assert(get('selected-tactic').textContent.includes('нет баллисты'));
+ // UI packaging branch only; these are explicit test fixtures, not model proof.
+ const nativeModels={ready:true,models:[{id:'foreman',name:'Старшина',version:'r2-test',triangles:12,materials:5,height:1.5,clips:['foreman_idle'],blend:'fixture.blend',mcpReceipt:'fixture.json',rigType:'fixture',clipTimings:[],ports:{},contactChecks:{checks:{floor:true}},asset:{render:'data:image/png;base64,fixture',glb:'data:model/gltf-binary;base64,fixture'}}],textureAB:{parityProof:{status:'PASS'},asset:{render:'data:image/png;base64,fixture'}}};
+ get('v2-data').textContent=JSON.stringify({tactics,coverage,events:SCENARIOS,nativeModels});vm.runInContext(fs.readFileSync(new URL('./report.js',import.meta.url),'utf8'),vm.createContext({document:context.document,window:context.window}));assert(get('native-model-cards').innerHTML.includes('data-native-model="foreman"'));assert(get('native-model-proof').innerHTML.includes('floor'));assert(get('native-model-proof').innerHTML.includes('A/B'));
+});

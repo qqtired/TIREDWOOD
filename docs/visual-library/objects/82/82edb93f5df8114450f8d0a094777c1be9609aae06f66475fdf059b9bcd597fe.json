@@ -1,0 +1,185 @@
+{
+  "generatedAt": "2026-10-12T11:06:54.951Z",
+  "files": [
+    {
+      "path": "evidence/dungeon-4d-final-build.log",
+      "bytes": 64738,
+      "sha256": "f463122cb1500f0f7330b26ce2d3e97c67314d5f027e448316fd6b776900a21d"
+    },
+    {
+      "path": "evidence/dungeon-4d-final-check.log",
+      "bytes": 46,
+      "sha256": "f853a6a0cc82020063ad07caf3ff2d4bb74cac7cf21a899165813cc77a48876b"
+    },
+    {
+      "path": "evidence/dungeon-4d-final-test.log",
+      "bytes": 304733,
+      "sha256": "753b817b1fb93c2dcb1fce5ebb8c2da6a4a58a291ac2f97f2dde34760cd6ead2"
+    },
+    {
+      "path": "./evidence/dungeon-html/cauldron-phase3.png",
+      "bytes": 499210,
+      "sha256": "5ea97d20b046aca26088e8d49d2ad0e40858866315894be36ca7c028260cf609"
+    },
+    {
+      "path": "./evidence/dungeon-html/cauldron-side.png",
+      "bytes": 489283,
+      "sha256": "085a2c5ea1956ee9143f11d65d5914a04e64f2b691da02eb0179f9da4d585d58"
+    },
+    {
+      "path": "./evidence/dungeon-html/cauldronmaster-actual.png",
+      "bytes": 500268,
+      "sha256": "63f6104f9bb5ea0fc358e7e544ba65a8334b9bb828fb877c9ffbbd5d3acf2449"
+    },
+    {
+      "path": "./evidence/dungeon-html/chainwarden-actual.png",
+      "bytes": 483211,
+      "sha256": "bae2f910c37cf3374fc1dbf5f35ec9ec78abf929bf3db1abe2f9f540ef110a32"
+    },
+    {
+      "path": "./evidence/dungeon-html/hookclaw-actual.png",
+      "bytes": 461277,
+      "sha256": "a87c89c5290f3e14093592d4b094ef7ccc0de24be5f37c07b07e2f81ac35bbd9"
+    },
+    {
+      "path": "./evidence/dungeon-html/railhopper-actual.png",
+      "bytes": 430196,
+      "sha256": "70bd6f86f0c55666a13e5470be1bc656e3b549897a36194b92c3fce6680347d5"
+    },
+    {
+      "path": "./evidence/dungeon-html/result.json",
+      "bytes": 2606,
+      "sha256": "c1948c219a2d1c6f16253683d0c96cd3ef5b849fc128fa8dbe62554871153a74"
+    },
+    {
+      "path": "./evidence/dungeon-html/wickmole-actual.png",
+      "bytes": 469524,
+      "sha256": "f0188423cc370b0b52371aff6f7105f776785b8aea64e46287ea01da57630f8a"
+    },
+    {
+      "path": "./evidence/farm-independent-review.md",
+      "bytes": 10333,
+      "sha256": "894c91c4da20d9c87bed0a580709c3b6d54265be862b622787c17bae53d4935f"
+    },
+    {
+      "path": "./evidence/farm-second-review.md",
+      "bytes": 35088,
+      "sha256": "40fc4f03724a88e5b044b6bf231dd2e6148a3092d944621b46ac92cf7fa9f9b5"
+    },
+    {
+      "path": "./evidence/final-local-state.json",
+      "bytes": 319,
+      "sha256": "ae6fc87711c123aba0aef778d11a207b7033e01264858ad34cecf676ed45672d"
+    },
+    {
+      "path": "./evidence/final-report-pages.json",
+      "bytes": 3262,
+      "sha256": "5299b5d8a77f7ecd189fd1075cabc39aeef008e1f41cf4a1bd092704d82982bc"
+    },
+    {
+      "path": "./evidence/fortress-independent-review.md",
+      "bytes": 24809,
+      "sha256": "b1311c859939d642927e640233439873be9ad2dc82033994b0a7de797c1ca180"
+    },
+    {
+      "path": "./evidence/hud-final-result.json",
+      "bytes": 16709,
+      "sha256": "d2e79acbd5e4746f32da9e4e8c6562e94895c606fd000f3c6a277af301896d66"
+    },
+    {
+      "path": "../../../../unavailable.html",
+      "bytes": 98880,
+      "sha256": "c56debed7d7dc59d979d70d12476447b90ae769b3f17a8440cb0baa2767cbbd3"
+    },
+    {
+      "path": "./evidence/optimization-final-handoff.md",
+      "bytes": 6044,
+      "sha256": "bbf2396d5e5c63a548d51919a62568212826d9878f32d60822ec576ebdf843f0"
+    },
+    {
+      "path": "./evidence/product-lab-independent-review-initial.md",
+      "bytes": 17569,
+      "sha256": "0296273d9637bc7901f82ba1c82b2c1e346060d41c57e8ba490bc93c0b4f42a0"
+    },
+    {
+      "path": "./evidence/product-lab-independent-review.md",
+      "bytes": 11356,
+      "sha256": "d06400129850f1abd44730a0872b2ca4124c1e23971c86fead4b32ee563c9605"
+    },
+    {
+      "path": "./evidence/quality-review-board.md",
+      "bytes": 31485,
+      "sha256": "7c8a5ee4fbaf5c43ff97d72ddf042c46553ae4775f5903bce8e093356cbffe43"
+    },
+    {
+      "path": "./evidence/regatta-concept-audit.md",
+      "bytes": 30845,
+      "sha256": "02365351234d40eb9aaa91fb59d997a66b78d0b5e96d156efc3abef72f0b9559"
+    },
+    {
+      "path": "./evidence/report-desktop.png",
+      "bytes": 156093,
+      "sha256": "eab81c7a14aa9cea7ebbbfee58cc9a74dac440aa3a5d0824b639a34fa91e1200"
+    },
+    {
+      "path": "./evidence/roof-shark-final-bounds.json",
+      "bytes": 384,
+      "sha256": "747d88587d64856cf74b55d6ee4cae918b30b9d9352a5293df7ce4cb41d8acdf"
+    },
+    {
+      "path": "./evidence/roof-shark-final-view.json",
+      "bytes": 322,
+      "sha256": "8d1d15f349a040052cc2996313e6bfb900eee5f4e9f24763e53e9fd798bcd47b"
+    },
+    {
+      "path": "./evidence/water-root-review.json",
+      "bytes": 1610,
+      "sha256": "b90f6aa6b4a1d5fa6cda2cb3fae3ae35b645a5dbb4664f5c79279380924ec33c"
+    },
+    {
+      "path": "./evidence/waterfront-final-coverage-closed.json",
+      "bytes": 34459,
+      "sha256": "d3d06a95562e004ead75c04f176148876e295499576d77b6f20c8387bb289c24"
+    },
+    {
+      "path": "./evidence/waterfront-final-coverage.json",
+      "bytes": 33315,
+      "sha256": "ddba2f8a5b4d98d74bb0af36642815d2e801d60f73fc01c167b093a4e8776592"
+    },
+    {
+      "path": "evidence/waterfront-opt-final-gate.log",
+      "bytes": 366364,
+      "sha256": "41ac51116083b4b988ad587330c37f9702e3c2a3a30275acc6c648bd3d2a3c28"
+    },
+    {
+      "path": "./images/dungeon.png",
+      "bytes": 499210,
+      "sha256": "5ea97d20b046aca26088e8d49d2ad0e40858866315894be36ca7c028260cf609"
+    },
+    {
+      "path": "./images/fish-roof.png",
+      "bytes": 580117,
+      "sha256": "8277082e5d3408f619b4220ee78d3862884ec2924456d7f11473c71897637f82"
+    },
+    {
+      "path": "./images/fortress.png",
+      "bytes": 197627,
+      "sha256": "153e5703d51bf4c8e43adcb8faa7604d3815ce993f3f9123f6b8e63805119dcf"
+    },
+    {
+      "path": "./images/hud.png",
+      "bytes": 1416262,
+      "sha256": "244e2338112ce6c76ca617fc356d685002783ba7644f789feca59592dbc84991"
+    },
+    {
+      "path": "./images/island.png",
+      "bytes": 1244571,
+      "sha256": "1fb4a5eb3de89ec18203fe704582a7dc1f9d426b9b77233ba8389f2711ef7f8d"
+    },
+    {
+      "path": "./images/social.png",
+      "bytes": 537635,
+      "sha256": "43e16fceb8c3f839b58a07793f839dec6d3a6770652e26e9b86213db01f5a0e1"
+    }
+  ]
+}

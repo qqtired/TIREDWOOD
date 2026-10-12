@@ -1,0 +1,301 @@
+{
+  "id": "jampump",
+  "file": "../glb/jampump-r2-06.glb",
+  "sha256": "819c21d515fc4be2d4a94c613ab6de30a7822da29493a6cf9484aaf923e29791",
+  "binSHA256": "d4b1a5ee6f3bcab522c51e99550a53bd9be370b01f6f07770cc1eaf6105714cb",
+  "triangles": 3950,
+  "materials": 5,
+  "textures": 0,
+  "images": 0,
+  "primitives": 43,
+  "bytes": 1174396,
+  "clips": [
+    {
+      "name": "jampump_idle",
+      "seconds": 2,
+      "runtimeDuration": 2.041667,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 2.0416667461395264,
+      "frames": 49,
+      "channels": 108,
+      "variedChannels": 35,
+      "minimumFloorY": 0.004,
+      "worstFloorPart": {
+        "part": "footL",
+        "seconds": 0,
+        "value": 0.0040000006556510925
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": null,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "footL": 0,
+        "footR": 0
+      }
+    },
+    {
+      "name": "jampump_walk",
+      "seconds": 1,
+      "runtimeDuration": 1.041667,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 1.0416666269302368,
+      "frames": 25,
+      "channels": 108,
+      "variedChannels": 36,
+      "minimumFloorY": 0.004,
+      "worstFloorPart": {
+        "part": "footL",
+        "seconds": 0,
+        "value": 0.0040000006556510925
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": null,
+      "walkStanceDriftM": 0,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "footL": 0,
+        "footR": 0
+      }
+    },
+    {
+      "name": "jampump_windup",
+      "seconds": 1.833333,
+      "runtimeDuration": 1.875,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 1.875,
+      "frames": 45,
+      "channels": 108,
+      "variedChannels": 65,
+      "minimumFloorY": 0.004,
+      "worstFloorPart": {
+        "part": "footL",
+        "seconds": 0,
+        "value": 0.0040000006556510925
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": 0,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": 0,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "footL": 0,
+        "footR": 0
+      }
+    },
+    {
+      "name": "jampump_attack",
+      "seconds": 0.833333,
+      "runtimeDuration": 0.875,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 0.875,
+      "frames": 21,
+      "channels": 108,
+      "variedChannels": 65,
+      "minimumFloorY": 0.004,
+      "worstFloorPart": {
+        "part": "footL",
+        "seconds": 0,
+        "value": 0.0040000006556510925
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": 0,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": 0,
+      "weaponGeometryMaxRadiusM": 0.9549,
+      "firstFloorContactS": {
+        "footL": 0,
+        "footR": 0
+      }
+    },
+    {
+      "name": "jampump_recover",
+      "seconds": 1.833333,
+      "runtimeDuration": 1.875,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 1.875,
+      "frames": 45,
+      "channels": 108,
+      "variedChannels": 45,
+      "minimumFloorY": 0.004,
+      "worstFloorPart": {
+        "part": "footL",
+        "seconds": 0,
+        "value": 0.0040000006556510925
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": null,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "footL": 0,
+        "footR": 0
+      }
+    },
+    {
+      "name": "jampump_hit",
+      "seconds": 0.583333,
+      "runtimeDuration": 0.625,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 0.625,
+      "frames": 15,
+      "channels": 108,
+      "variedChannels": 70,
+      "minimumFloorY": 0.004,
+      "worstFloorPart": {
+        "part": "footL",
+        "seconds": 0,
+        "value": 0.0040000006556510925
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": null,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "footL": 0,
+        "footR": 0
+      }
+    },
+    {
+      "name": "jampump_death",
+      "seconds": 2.208333,
+      "runtimeDuration": 2.25,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 2.25,
+      "frames": 54,
+      "channels": 108,
+      "variedChannels": 77,
+      "minimumFloorY": 0.004,
+      "worstFloorPart": {
+        "part": "footL",
+        "seconds": 0,
+        "value": 0.0040000006556510925
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": null,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "footL": 0,
+        "footR": 0,
+        "valve": 0.1667,
+        "body": 1.5833,
+        "nozzle": 1.8333
+      }
+    },
+    {
+      "name": "jampump_open",
+      "seconds": 2,
+      "runtimeDuration": 2.041667,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 2.0416667461395264,
+      "frames": 49,
+      "channels": 108,
+      "variedChannels": 0,
+      "minimumFloorY": 0.004,
+      "worstFloorPart": {
+        "part": "footL",
+        "seconds": 0,
+        "value": 0.0040000006556510925
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": null,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": null,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "footL": 0,
+        "footR": 0
+      }
+    },
+    {
+      "name": "jampump_pump",
+      "seconds": 1.833333,
+      "runtimeDuration": 1.875,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 1.875,
+      "frames": 45,
+      "channels": 108,
+      "variedChannels": 32,
+      "minimumFloorY": 0.004,
+      "worstFloorPart": {
+        "part": "footL",
+        "seconds": 0,
+        "value": 0.0040000006556510925
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": 0,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": 0,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "footL": 0,
+        "footR": 0
+      }
+    },
+    {
+      "name": "jampump_redirect_windup",
+      "seconds": 3,
+      "runtimeDuration": 3.041667,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 3.0416667461395264,
+      "frames": 73,
+      "channels": 108,
+      "variedChannels": 62,
+      "minimumFloorY": 0.004,
+      "worstFloorPart": {
+        "part": "footL",
+        "seconds": 0,
+        "value": 0.0040000006556510925
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": 0,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": 0,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "footL": 0,
+        "footR": 0
+      }
+    },
+    {
+      "name": "jampump_redirect_attack",
+      "seconds": 6,
+      "runtimeDuration": 6.041667,
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 6.041666507720947,
+      "frames": 145,
+      "channels": 108,
+      "variedChannels": 61,
+      "minimumFloorY": 0.004,
+      "worstFloorPart": {
+        "part": "footL",
+        "seconds": 0,
+        "value": 0.0040000006556510925
+      },
+      "rootTiltRadians": 0,
+      "plantedFootDriftM": 0,
+      "walkStanceDriftM": null,
+      "workingGripErrorM": 0,
+      "weaponGeometryMaxRadiusM": null,
+      "firstFloorContactS": {
+        "footL": 0,
+        "footR": 0
+      }
+    }
+  ],
+  "checks": {
+    "rootUpright": true,
+    "bracedFeet": true,
+    "walkStance": true,
+    "workingGrips": true,
+    "floor": true,
+    "sixRequired": true,
+    "allRequiredHaveMotion": true
+  }
+}

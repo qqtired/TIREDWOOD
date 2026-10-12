@@ -1,0 +1,3312 @@
+{
+  "at": "2026-10-12T00:24:33.857Z",
+  "source": "62f814f",
+  "method": "Actual source TOWER_SPOTS/pick distances, minRange and CollisionWorld raycast to one walker centre; tar/brazier use their own true eligibility rules. Not a wave simulation.",
+  "points": [
+    {
+      "id": "north_far",
+      "name": "Дальний северный подход",
+      "x": 0,
+      "y": 0,
+      "z": -42
+    },
+    {
+      "id": "north_choke",
+      "name": "Группа перед горлом",
+      "x": 0,
+      "y": 0,
+      "z": -23
+    },
+    {
+      "id": "grate_cell",
+      "name": "Клетка перед решёткой",
+      "x": 0,
+      "y": 0,
+      "z": -18.1
+    },
+    {
+      "id": "gate",
+      "name": "Вплотную у створок",
+      "x": 0,
+      "y": 0,
+      "z": -16.9
+    },
+    {
+      "id": "west_wall",
+      "name": "Боковая стена / осадная башня",
+      "x": -18.6,
+      "y": 0,
+      "z": -7
+    },
+    {
+      "id": "courtyard",
+      "name": "Уже во дворе",
+      "x": 0,
+      "y": 0,
+      "z": -5
+    },
+    {
+      "id": "shore",
+      "name": "Южная высадка",
+      "x": -12.5,
+      "y": 0,
+      "z": 22.4
+    }
+  ],
+  "rows": [
+    {
+      "gateUp": true,
+      "point": "north_far",
+      "name": "Дальний северный подход",
+      "xyz": [
+        0,
+        0,
+        -42
+      ],
+      "types": [
+        {
+          "type": 0,
+          "name": "Баллиста",
+          "active": 4,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": false,
+              "reason": "дальше дальности"
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "Пушка",
+          "active": 4,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": false,
+              "reason": "дальше дальности"
+            }
+          ]
+        },
+        {
+          "type": 2,
+          "name": "Смоляной котёл",
+          "active": 0,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            }
+          ]
+        },
+        {
+          "type": 3,
+          "name": "Жаровня",
+          "active": 0,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": false,
+              "reason": "дальше8м"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "gateUp": true,
+      "point": "north_choke",
+      "name": "Группа перед горлом",
+      "xyz": [
+        0,
+        0,
+        -23
+      ],
+      "types": [
+        {
+          "type": 0,
+          "name": "Баллиста",
+          "active": 4,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": false,
+              "reason": "дальше дальности"
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "Пушка",
+          "active": 2,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": false,
+              "reason": "ближе минимальной дальности"
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": false,
+              "reason": "ближе минимальной дальности"
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": false,
+              "reason": "дальше дальности"
+            }
+          ]
+        },
+        {
+          "type": 2,
+          "name": "Смоляной котёл",
+          "active": 2,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            }
+          ]
+        },
+        {
+          "type": 3,
+          "name": "Жаровня",
+          "active": 0,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": false,
+              "reason": "дальше8м"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "gateUp": true,
+      "point": "grate_cell",
+      "name": "Клетка перед решёткой",
+      "xyz": [
+        0,
+        0,
+        -18.1
+      ],
+      "types": [
+        {
+          "type": 0,
+          "name": "Баллиста",
+          "active": 0,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": false,
+              "reason": "дальше дальности"
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "Пушка",
+          "active": 0,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": false,
+              "reason": "ближе минимальной дальности"
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": false,
+              "reason": "ближе минимальной дальности"
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": false,
+              "reason": "дальше дальности"
+            }
+          ]
+        },
+        {
+          "type": 2,
+          "name": "Смоляной котёл",
+          "active": 2,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            }
+          ]
+        },
+        {
+          "type": 3,
+          "name": "Жаровня",
+          "active": 2,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": false,
+              "reason": "дальше8м"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "gateUp": true,
+      "point": "gate",
+      "name": "Вплотную у створок",
+      "xyz": [
+        0,
+        0,
+        -16.9
+      ],
+      "types": [
+        {
+          "type": 0,
+          "name": "Баллиста",
+          "active": 0,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": false,
+              "reason": "дальше дальности"
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "Пушка",
+          "active": 0,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": false,
+              "reason": "ближе минимальной дальности"
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": false,
+              "reason": "ближе минимальной дальности"
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": false,
+              "reason": "дальше дальности"
+            }
+          ]
+        },
+        {
+          "type": 2,
+          "name": "Смоляной котёл",
+          "active": 2,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            }
+          ]
+        },
+        {
+          "type": 3,
+          "name": "Жаровня",
+          "active": 2,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": false,
+              "reason": "дальше8м"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "gateUp": true,
+      "point": "west_wall",
+      "name": "Боковая стена / осадная башня",
+      "xyz": [
+        -18.6,
+        0,
+        -7
+      ],
+      "types": [
+        {
+          "type": 0,
+          "name": "Баллиста",
+          "active": 2,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": false,
+              "reason": "дальше дальности"
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "Пушка",
+          "active": 1,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": false,
+              "reason": "ближе минимальной дальности"
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": false,
+              "reason": "дальше дальности"
+            }
+          ]
+        },
+        {
+          "type": 2,
+          "name": "Смоляной котёл",
+          "active": 1,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            }
+          ]
+        },
+        {
+          "type": 3,
+          "name": "Жаровня",
+          "active": 1,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": false,
+              "reason": "дальше8м"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "gateUp": true,
+      "point": "courtyard",
+      "name": "Уже во дворе",
+      "xyz": [
+        0,
+        0,
+        -5
+      ],
+      "types": [
+        {
+          "type": 0,
+          "name": "Баллиста",
+          "active": 4,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": true,
+              "reason": ""
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "Пушка",
+          "active": 4,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": true,
+              "reason": ""
+            }
+          ]
+        },
+        {
+          "type": 2,
+          "name": "Смоляной котёл",
+          "active": 0,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            }
+          ]
+        },
+        {
+          "type": 3,
+          "name": "Жаровня",
+          "active": 0,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": false,
+              "reason": "дальше8м"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "gateUp": true,
+      "point": "shore",
+      "name": "Южная высадка",
+      "xyz": [
+        -12.5,
+        0,
+        22.4
+      ],
+      "types": [
+        {
+          "type": 0,
+          "name": "Баллиста",
+          "active": 2,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": true,
+              "reason": ""
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "Пушка",
+          "active": 2,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": true,
+              "reason": ""
+            }
+          ]
+        },
+        {
+          "type": 2,
+          "name": "Смоляной котёл",
+          "active": 0,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            }
+          ]
+        },
+        {
+          "type": 3,
+          "name": "Жаровня",
+          "active": 0,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": false,
+              "reason": "дальше8м"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "gateUp": false,
+      "point": "north_far",
+      "name": "Дальний северный подход",
+      "xyz": [
+        0,
+        0,
+        -42
+      ],
+      "types": [
+        {
+          "type": 0,
+          "name": "Баллиста",
+          "active": 4,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": false,
+              "reason": "дальше дальности"
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "Пушка",
+          "active": 4,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": false,
+              "reason": "дальше дальности"
+            }
+          ]
+        },
+        {
+          "type": 2,
+          "name": "Смоляной котёл",
+          "active": 0,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            }
+          ]
+        },
+        {
+          "type": 3,
+          "name": "Жаровня",
+          "active": 0,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": false,
+              "reason": "дальше8м"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "gateUp": false,
+      "point": "north_choke",
+      "name": "Группа перед горлом",
+      "xyz": [
+        0,
+        0,
+        -23
+      ],
+      "types": [
+        {
+          "type": 0,
+          "name": "Баллиста",
+          "active": 4,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": false,
+              "reason": "дальше дальности"
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "Пушка",
+          "active": 2,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": false,
+              "reason": "ближе минимальной дальности"
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": false,
+              "reason": "ближе минимальной дальности"
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": false,
+              "reason": "дальше дальности"
+            }
+          ]
+        },
+        {
+          "type": 2,
+          "name": "Смоляной котёл",
+          "active": 2,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            }
+          ]
+        },
+        {
+          "type": 3,
+          "name": "Жаровня",
+          "active": 0,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": false,
+              "reason": "дальше8м"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "gateUp": false,
+      "point": "grate_cell",
+      "name": "Клетка перед решёткой",
+      "xyz": [
+        0,
+        0,
+        -18.1
+      ],
+      "types": [
+        {
+          "type": 0,
+          "name": "Баллиста",
+          "active": 0,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": false,
+              "reason": "дальше дальности"
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "Пушка",
+          "active": 0,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": false,
+              "reason": "ближе минимальной дальности"
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": false,
+              "reason": "ближе минимальной дальности"
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": false,
+              "reason": "дальше дальности"
+            }
+          ]
+        },
+        {
+          "type": 2,
+          "name": "Смоляной котёл",
+          "active": 2,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            }
+          ]
+        },
+        {
+          "type": 3,
+          "name": "Жаровня",
+          "active": 2,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": false,
+              "reason": "дальше8м"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "gateUp": false,
+      "point": "gate",
+      "name": "Вплотную у створок",
+      "xyz": [
+        0,
+        0,
+        -16.9
+      ],
+      "types": [
+        {
+          "type": 0,
+          "name": "Баллиста",
+          "active": 0,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": false,
+              "reason": "дальше дальности"
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "Пушка",
+          "active": 0,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": false,
+              "reason": "ближе минимальной дальности"
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": false,
+              "reason": "ближе минимальной дальности"
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": false,
+              "reason": "дальше дальности"
+            }
+          ]
+        },
+        {
+          "type": 2,
+          "name": "Смоляной котёл",
+          "active": 2,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            }
+          ]
+        },
+        {
+          "type": 3,
+          "name": "Жаровня",
+          "active": 2,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": false,
+              "reason": "дальше8м"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "gateUp": false,
+      "point": "west_wall",
+      "name": "Боковая стена / осадная башня",
+      "xyz": [
+        -18.6,
+        0,
+        -7
+      ],
+      "types": [
+        {
+          "type": 0,
+          "name": "Баллиста",
+          "active": 2,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": false,
+              "reason": "дальше дальности"
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "Пушка",
+          "active": 1,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": false,
+              "reason": "ближе минимальной дальности"
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": false,
+              "reason": "дальше дальности"
+            }
+          ]
+        },
+        {
+          "type": 2,
+          "name": "Смоляной котёл",
+          "active": 1,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            }
+          ]
+        },
+        {
+          "type": 3,
+          "name": "Жаровня",
+          "active": 1,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": false,
+              "reason": "дальше8м"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "gateUp": false,
+      "point": "courtyard",
+      "name": "Уже во дворе",
+      "xyz": [
+        0,
+        0,
+        -5
+      ],
+      "types": [
+        {
+          "type": 0,
+          "name": "Баллиста",
+          "active": 4,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": true,
+              "reason": ""
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "Пушка",
+          "active": 4,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": true,
+              "reason": ""
+            }
+          ]
+        },
+        {
+          "type": 2,
+          "name": "Смоляной котёл",
+          "active": 0,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            }
+          ]
+        },
+        {
+          "type": 3,
+          "name": "Жаровня",
+          "active": 0,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": false,
+              "reason": "дальше8м"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "gateUp": false,
+      "point": "shore",
+      "name": "Южная высадка",
+      "xyz": [
+        -12.5,
+        0,
+        22.4
+      ],
+      "types": [
+        {
+          "type": 0,
+          "name": "Баллиста",
+          "active": 2,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": true,
+              "reason": ""
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "Пушка",
+          "active": 2,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": false,
+              "reason": "закрыта геометрией карты"
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "дальше дальности"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": true,
+              "reason": ""
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": true,
+              "reason": ""
+            }
+          ]
+        },
+        {
+          "type": 2,
+          "name": "Смоляной котёл",
+          "active": 0,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": false,
+              "reason": "вне поиска котла / внутри"
+            }
+          ]
+        },
+        {
+          "type": 3,
+          "name": "Жаровня",
+          "active": 0,
+          "eligible": [
+            {
+              "spot": 0,
+              "name": "Ворота, запад",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 1,
+              "name": "Ворота, восток",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 2,
+              "name": "Северо-западный бастион",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 3,
+              "name": "Северо-восточный бастион",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 4,
+              "name": "Западная стена",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 5,
+              "name": "Восточная стена",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 6,
+              "name": "Юго-западный угол",
+              "canFire": false,
+              "reason": "дальше8м"
+            },
+            {
+              "spot": 7,
+              "name": "Юго-восточный угол",
+              "canFire": false,
+              "reason": "дальше8м"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "assumptions": [
+    "One stationary walker at each point, no headshot movement",
+    "All8slots hypothetically filled with the compared type; not a free paid build",
+    "Does not model cooldown, projectile miss, crowded per-target rays or dynamic canopy/rope",
+    "Brazier/cauldron eligibility has no line-of-sight because current source does not raycast those types"
+  ]
+}

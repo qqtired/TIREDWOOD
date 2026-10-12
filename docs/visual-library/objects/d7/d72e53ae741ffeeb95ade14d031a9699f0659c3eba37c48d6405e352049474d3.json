@@ -1,0 +1,58 @@
+{
+  "scope": "actual stepRgBoat on a deliberately wide empty course; no browser, multiplayer, packet or subjective feel measurement",
+  "node": "v24.15.0",
+  "actualCourse": {
+    "id": "harbor-v1",
+    "lengthM": 460.5387107219827,
+    "samples": 551,
+    "gates": 6,
+    "flagPairs": 5,
+    "obstacles": 8,
+    "halfWidthRangeM": [
+      6,
+      8
+    ]
+  },
+  "accelerationThresholdSeconds": {
+    "7": 0.5833333333333334,
+    "8": 0.6666666666666666,
+    "11.9": 1,
+    "15.3": 1.45,
+    "16.15": 1.75,
+    "16.83": 2.4166666666666665
+  },
+  "turnNormal": {
+    "finalSpeed": 15.612510668776356,
+    "radiusM": 12.009908418533103,
+    "headingToVelocityDeg": 9.012242581381107
+  },
+  "turnDrift": {
+    "finalSpeed": 12.486318675924649,
+    "radiusM": 6.624451777775863,
+    "headingToVelocityDeg": 26.028019436714516
+  },
+  "turnBoost": {
+    "finalSpeed": 25.307392217896787,
+    "radiusM": 19.34100321087176,
+    "headingToVelocityDeg": 8.725441077382635
+  },
+  "braking": {
+    "seconds": 0.9666666666666667,
+    "distance": 7.816333654921402
+  },
+  "counterSteerHeldDrift": {
+    "afterCounterSteerOneSecond": {
+      "headingDeltaDeg": 51.580525506652386,
+      "driftDir": 1,
+      "steer": -1,
+      "speed": 15.203732170091028
+    }
+  },
+  "formulaOnly": {
+    "steer0ToFullSeconds": 0.16666666666666666,
+    "steerLeftToRightSeconds": 0.3333333333333333,
+    "cameraNormal95percentSeconds": 0.665718283011998,
+    "cameraDrift95percentSeconds": 1.1522047205976889,
+    "predictionCorrection95percentSeconds": 0.24964435612949923
+  }
+}

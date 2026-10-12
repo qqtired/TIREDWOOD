@@ -1,0 +1,47 @@
+{
+  "status": "PASS",
+  "proofs": [
+    {
+      "id": "ropecrab",
+      "before": "r2-05",
+      "after": "r2-06",
+      "geometryUVExact": true,
+      "hash": "40f669264087e68dc6ec78b4d7611b633c4c5013dc9fe6df153638eaa56483af"
+    },
+    {
+      "id": "jampump",
+      "before": "r2-05",
+      "after": "r2-06",
+      "geometryUVExact": true,
+      "hash": "cbe64ce36ca43cf370c459f39ab54b9ce69907e8a1acf9deafc58aee1a463c7d"
+    },
+    {
+      "id": "foreman",
+      "before": "r2-03",
+      "after": "r2-06",
+      "geometryUVExact": true,
+      "hash": "3b49b982d8488807ff52f935328c1870b8aff7071aa4eb4a90e225a29e76036a"
+    },
+    {
+      "id": "canopy",
+      "before": "r2-03",
+      "after": "r2-06",
+      "geometryUVExact": true,
+      "hash": "21fb3fc7ea8a3f3b07b6a661753c796564a421af2361944f9b9449b2b2afb59c"
+    },
+    {
+      "id": "crabcrane",
+      "before": "r2-03",
+      "after": "r2-06",
+      "geometryUVExact": true,
+      "hash": "d13fac05160a18b476e2d6a2511dd7bdf88280fb05570fc26db3abe63d9e1b02"
+    },
+    {
+      "id": "miller",
+      "before": "r2-02",
+      "after": "r2-06",
+      "geometryUVExact": true,
+      "hash": "622a42c97301213f74058292d043cb5a69bcc5cb229616a4731299c1cbd28bcc"
+    }
+  ]
+}

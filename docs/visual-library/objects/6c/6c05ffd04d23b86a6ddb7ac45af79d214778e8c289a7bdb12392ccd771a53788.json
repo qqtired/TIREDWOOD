@@ -1,0 +1,1491 @@
+{
+  "version": 2,
+  "artifact": "Подземелье: второй ярус",
+  "dated": "2026-10-12",
+  "assembledAt": "2026-10-12T02:45:44.235Z",
+  "sourceCommit": "41b91a8 + uncommitted mode/dungeon-expansion-v2",
+  "status": "Gameplay accepted locally by root on exact tested R6; local doc-only successor4d354e3, not main/push/deployed/phone verified",
+  "preserved": [
+    "Старый Повидл на 10-й",
+    "Все прежние враги",
+    "Восемь прежних оружий; прежние четыре эволюции + четыре новые",
+    "Карта-тор240м, прежние постройки",
+    "Пять оружий и пять пассивок",
+    "Хвосты/ярость/HP-долг",
+    "Бесконечность и босс каждые10волн",
+    "XP и серверные жетоны"
+  ],
+  "enemies": [
+    {
+      "id": "hookclaw",
+      "name": "Крюколап",
+      "role": "Фланкер",
+      "tier": "mob",
+      "firstWave": 16,
+      "hp": 52,
+      "speed": 3.6,
+      "dmg": 9,
+      "xp": 3,
+      "radius": 0.5,
+      "size": [
+        2.086,
+        2.394,
+        1.111
+      ],
+      "cue": "Низкий широкий карапакс и один огромный кованый крюк",
+      "attack": "Крюк бьёт своей реальной ударной частью: кругR0.65 м, local right0.13684 /forward1.22417, impact0.833 с, полный цикл2.233 с. Метка следует телу при отбросе, направление зафиксировано.",
+      "counter": "Уйти за спину или наружу. Полный Q срывает замах; Кирка и Светляки защищают фланг.",
+      "animation": "idle, walk, windup, full attack, recover, hit, distinct death",
+      "read": "Малый круг у кончика крюка, без невидимого широкого сектора. Отойти с точки удара; Q срывает подготовку.",
+      "limit": 18,
+      "color": "#b8893a",
+      "death": "Крюк цепляется за пол; тело оседает на одну сторону и поджимает лапы —1.792 с."
+    },
+    {
+      "id": "wickmole",
+      "name": "Фитильщик",
+      "role": "Сапёр",
+      "tier": "mob",
+      "firstWave": 17,
+      "hp": 66,
+      "speed": 2.5,
+      "dmg": 8,
+      "xp": 4,
+      "radius": 0.45,
+      "size": [
+        1.107,
+        1.126,
+        1.768
+      ],
+      "cue": "Большой терракотовый сосуд и защищённый ладонью фитиль",
+      "attack": "В5–9 м снимает и ставит сосуд через1 с. Заряд чуть перед лапами: fuse1.8 с, R2.3 м, базовый урон20; полный цикл2.5 с. Каждое оружие и Q могут погасить реальный заряд. До impact метка и точка передачи следуют текущей руке даже после Q/отброса; поставленный заряд остаётся в мире.",
+      "counter": "Убить до постановки, попасть оружием в заряд или обезвредить его полным Q. Отойти в заранее видимый проход.",
+      "animation": "idle, walk, windup, full attack, recover, hit, distinct death",
+      "read": "Горит только фитиль; полоса круга на земле растёт до хлопка. Заряд не самонаводится и не исчезает молча.",
+      "limit": 6,
+      "color": "#c58655",
+      "death": "Гасит фитиль, сосуд откатывается отдельно, мех и фартук оседают —2.208 с."
+    },
+    {
+      "id": "railhopper",
+      "name": "Рельсовый щелкун",
+      "role": "Линейный стрелок",
+      "tier": "mob",
+      "firstWave": 18,
+      "hp": 44,
+      "speed": 2.8,
+      "dmg": 7,
+      "xp": 3,
+      "radius": 0.45,
+      "size": [
+        1.306,
+        1.959,
+        1.25
+      ],
+      "cue": "Вытянутое тело, задние бедра и железная спинная направляющая",
+      "attack": "Держит9–13 м, фиксирует линию0.8×15 м на1 с. Один сгусток11 м/с, базовый урон16; стены его останавливают. Полный цикл2.6 с, новый через4.8 с. Направление зафиксировано, origin метки и нового выстрела следует телу при отбросе.",
+      "counter": "Боковой шаг, скала, рывок по безопасной стороне. Угольки и Луч достают издалека.",
+      "animation": "idle, walk, windup, full attack, recover, hit, distinct death",
+      "read": "Узкая прямая линия отличается от круга Плевуна. Линия не доворачивает после фиксации.",
+      "limit": 8,
+      "color": "#91a0a5",
+      "death": "Схлопывает направляющую, задние лапы теряют пружину, брюшко скручивается —1.917 с."
+    },
+    {
+      "id": "chainwarden",
+      "name": "Цепной пристав",
+      "role": "Элита: передний и задний груз",
+      "tier": "elite",
+      "firstWave": 18,
+      "hp": 720,
+      "speed": 2.15,
+      "dmg": 18,
+      "xp": 40,
+      "radius": 0.72,
+      "size": [
+        1.862,
+        2.36,
+        2.336
+      ],
+      "cue": "Высокий барсук, вертикальный барабан и крупная цепь с грузом",
+      "attack": "Два удара настоящим грузом цепи: перед телом в1.267 с и позади в2.767 с. КругиR0.216 м у measured centers right−0.02663/forward3.06 и right0.02661/forward−3.06368; по22базовогоурона. Цикл5 с, период7 с.",
+      "counter": "Уходить вбок от линии груза и следить за вторым ударом позади. Q/Шашки или12%HP за подготовку срывают удар; после второго окно×1.25.",
+      "animation": "idle, walk, windup, full attack, recover, hit, distinct death",
+      "read": "Груз следует двум рукам, второй удар включает настоящий разворот корпуса. Метка показывает фактический груз, без невидимого140° сектора.",
+      "limit": 1,
+      "color": "#b79568",
+      "death": "Груз тянет руку, проседает колено, цепь высыпается, барабан кренится —2.792 с."
+    }
+  ],
+  "boss": {
+    "id": "cauldronmaster",
+    "name": "Казанщик Бурдюк",
+    "firstWave": 20,
+    "hp": 64000,
+    "radius": 1.8,
+    "size": [
+      3.795,
+      3.892,
+      4.572
+    ],
+    "speed": 2.3,
+    "contactBase": 24,
+    "xp": 300,
+    "timer": 120,
+    "enrageAt": 180,
+    "animation": "idle/walk/windup/attack/pour/boil/recover/hit/death + те же варианты _p2/_p3 + phase_p2/phase_p3",
+    "cue": "Широкий земноводный котельщик, медный чан и огромный ковш. Лицо выступает под ободом, видно сверху.",
+    "counter": "Двигаться за ковш, выбирать просвет между струями и пользоваться открытым чаном. Все оружия могут наносить урон, обязательной эволюции нет.",
+    "phases": [
+      {
+        "n": 1,
+        "name": "Ковш",
+        "hp": "100–66%",
+        "tone": "Учит одной стороне",
+        "telegraph": "Круг реальной чаши ковшаR0.54 м перед телом, impact1.333 с. Выплеск: три отдельных кругаR1.8 м, warn1.233 с.",
+        "attack": "Ковш24, выплеск18 базовогоурона; лужи4 с замедляют40%, постоянного урона нет. На расстоянии внеphysicalreach выбирает выплеск.",
+        "window": "После ковша окно2 с:×1.3. Подход1.6 с, ковшfull3.5 с; реальная анимация не ускоряется.",
+        "counter": "Выйти с малого круга чаши; под Q можно сорвать кипение позже. Выплеск фиксирует позицию при старте.",
+        "geometry": "contact"
+      },
+      {
+        "n": 2,
+        "name": "Кипение",
+        "hp": "66–33%",
+        "tone": "Проверяет смену стороны",
+        "telegraph": "Переход1.5 с. Круги двух разных чаш: impact1.333 и2.833 с, R0.54/0.541 м. Две полосы1.2×14 м с углами±0.75rad и warn1.233 с.",
+        "attack": "Ковши 24, полосы 22 базового урона. Не накладывать две подготовки на одну позицию героя.",
+        "window": "После пары окно2.5 с:×1.3. Полный цикл5.3 с; свита по4 Крюколапа раз в20 с, максимум12 за весь бой.",
+        "counter": "Менять сторону между ковшами; выйти в широкий просвет полос. Свита не блокирует каждый выход.",
+        "geometry": "lanes"
+      },
+      {
+        "n": 3,
+        "name": "Открытый чан",
+        "hp": "33–0%",
+        "tone": "Даёт риск и награду",
+        "telegraph": "Крышка сорвана. Кольцо4–8 м за1.5 с с безопасным центром; затем три разнесённые полосы за1.233 с. С учётом тела1.8 и радиуса героя0.45 безопасная полоса у чана1.30 м.",
+        "attack": "Кольцо26, полосы22 базовогоурона. Полный Q отменяет кольцо в последние0.6 с подготовки при расстоянии≤3.3 м от центра тела.",
+        "window": "После серии 3 с открытое ядро: ×1.4. Без спама личинок, без новых фитилей поверх кольца.",
+        "counter": "Остаться в безопасном центре или заранее выйти за 8 м. Защитный круг полезен в центре; дальняя сборка — снаружи.",
+        "geometry": "ring"
+      }
+    ],
+    "death": "Оседает на колени, проливает чан, ковш падает отдельно; жидкость и пузыри гаснут последними. Полный клип4 с.",
+    "liquid": {
+      "phase1": "#6B2A8C",
+      "phase2": "#AA3F70",
+      "phase3": "#E77E3E",
+      "motion": "wave_x/wave_y/surge morphs, bubbles on bones",
+      "contract": "phase-specific clips preserve lid/body/liquid after idle/hit/death"
+    }
+  },
+  "waves": [
+    {
+      "n": 16,
+      "name": "Крюки погреба",
+      "targetHp": 94910,
+      "oldShare": 0.85,
+      "shares": {
+        "rat": 0.3825,
+        "slime": 0.085,
+        "shroom": 0.1275,
+        "beetle": 0.1275,
+        "spitter": 0.085,
+        "bat": 0.0425,
+        "hookclaw": 0.15
+      },
+      "elites": {
+        "barrel": 1,
+        "shaman": 1
+      },
+      "events": [
+        {
+          "at": 4,
+          "type": "pack",
+          "mob": "hookclaw",
+          "n": 3,
+          "done": 0
+        },
+        {
+          "at": 10.5,
+          "type": "elite",
+          "mob": "barrel",
+          "n": 1,
+          "done": 0
+        },
+        {
+          "at": 24.5,
+          "type": "swarm",
+          "mob": "bat",
+          "n": 36,
+          "done": 0
+        },
+        {
+          "at": 31.5,
+          "type": "elite",
+          "mob": "shaman",
+          "n": 1,
+          "done": 0
+        },
+        {
+          "at": 55,
+          "type": "horde",
+          "mob": "",
+          "n": 0,
+          "done": 0
+        }
+      ],
+      "duration": 70,
+      "dmgMul": 1.9,
+      "hpMul": 7.923856257762723,
+      "minAlive": 94,
+      "counts": {
+        "rat": 425,
+        "bat": 59,
+        "slime": 16,
+        "shroom": 16,
+        "beetle": 23,
+        "spitter": 27,
+        "hookclaw": 31,
+        "barrel": 1,
+        "shaman": 1
+      },
+      "regularCounts": {
+        "rat": 425,
+        "bat": 23,
+        "slime": 16,
+        "shroom": 16,
+        "beetle": 23,
+        "spitter": 27,
+        "hookclaw": 28
+      },
+      "bodies": 599,
+      "hp": 94849,
+      "xp": 935,
+      "oldBodyShare": 0.9482470784641068,
+      "needDps": 1594.1,
+      "current": {
+        "n": 16,
+        "duration": 70,
+        "hpMul": 8.49613476526781,
+        "dmgMul": 1.9,
+        "minAlive": 94,
+        "regular": {
+          "rat": 448,
+          "bat": 62,
+          "slime": 17,
+          "shroom": 17,
+          "beetle": 24,
+          "spitter": 29
+        },
+        "events": [
+          {
+            "at": 10.5,
+            "type": "elite",
+            "mob": "barrel",
+            "n": 1,
+            "done": 0
+          },
+          {
+            "at": 24.5,
+            "type": "swarm",
+            "mob": "bat",
+            "n": 36,
+            "done": 0
+          },
+          {
+            "at": 31.5,
+            "type": "elite",
+            "mob": "shaman",
+            "n": 1,
+            "done": 0
+          },
+          {
+            "at": 55,
+            "type": "horde",
+            "mob": "",
+            "n": 0,
+            "done": 0
+          }
+        ],
+        "totals": {
+          "rat": 448,
+          "bat": 98,
+          "slime": 17,
+          "shroom": 17,
+          "beetle": 24,
+          "spitter": 29,
+          "barrel": 1,
+          "shaman": 1
+        },
+        "bodies": 635,
+        "hp": 94910,
+        "xp": 921,
+        "mix": "all",
+        "boss": null
+      },
+      "regular": {
+        "rat": 425,
+        "bat": 23,
+        "slime": 16,
+        "shroom": 16,
+        "beetle": 23,
+        "spitter": 27,
+        "hookclaw": 28
+      }
+    },
+    {
+      "n": 17,
+      "name": "Короткие фитили",
+      "targetHp": 100436,
+      "oldShare": 0.75,
+      "shares": {
+        "rat": 0.525,
+        "slime": 0.075,
+        "spitter": 0.075,
+        "beetle": 0.075,
+        "hookclaw": 0.1,
+        "wickmole": 0.15
+      },
+      "elites": {
+        "barrel": 1,
+        "shaman": 1
+      },
+      "events": [
+        {
+          "at": 5,
+          "type": "pack",
+          "mob": "wickmole",
+          "n": 2,
+          "done": 0
+        },
+        {
+          "at": 10.5,
+          "type": "elite",
+          "mob": "shaman",
+          "n": 1,
+          "done": 0
+        },
+        {
+          "at": 31.5,
+          "type": "elite",
+          "mob": "barrel",
+          "n": 1,
+          "done": 0
+        },
+        {
+          "at": 45,
+          "type": "pack",
+          "mob": "hookclaw",
+          "n": 4,
+          "done": 0
+        }
+      ],
+      "duration": 70,
+      "dmgMul": 1.96,
+      "hpMul": 9.514790508626861,
+      "minAlive": 98,
+      "counts": {
+        "rat": 513,
+        "slime": 12,
+        "beetle": 11,
+        "spitter": 21,
+        "hookclaw": 18,
+        "wickmole": 22,
+        "shaman": 1,
+        "barrel": 1
+      },
+      "regularCounts": {
+        "rat": 513,
+        "slime": 12,
+        "beetle": 11,
+        "spitter": 21,
+        "hookclaw": 14,
+        "wickmole": 20
+      },
+      "bodies": 599,
+      "hp": 101218,
+      "xp": 879,
+      "oldBodyShare": 0.9332220367278798,
+      "needDps": 1701.1,
+      "current": {
+        "n": 17,
+        "duration": 70,
+        "hpMul": 11.328253056063168,
+        "dmgMul": 1.96,
+        "minAlive": 98,
+        "regular": {
+          "rat": 550,
+          "slime": 13,
+          "beetle": 13,
+          "spitter": 23
+        },
+        "events": [
+          {
+            "at": 10.5,
+            "type": "elite",
+            "mob": "shaman",
+            "n": 1,
+            "done": 0
+          },
+          {
+            "at": 31.5,
+            "type": "elite",
+            "mob": "barrel",
+            "n": 1,
+            "done": 0
+          }
+        ],
+        "totals": {
+          "rat": 550,
+          "slime": 13,
+          "beetle": 13,
+          "spitter": 23,
+          "shaman": 1,
+          "barrel": 1
+        },
+        "bodies": 601,
+        "hp": 100436,
+        "xp": 790,
+        "mix": "rats",
+        "boss": null
+      },
+      "regular": {
+        "rat": 513,
+        "slime": 12,
+        "beetle": 11,
+        "spitter": 21,
+        "hookclaw": 14,
+        "wickmole": 20
+      }
+    },
+    {
+      "n": 18,
+      "name": "Направляющие шахты",
+      "targetHp": 122000,
+      "oldShare": 0.7,
+      "shares": {
+        "rat": 0.3,
+        "shroom": 0.25,
+        "spitter": 0.1,
+        "bat": 0.05,
+        "hookclaw": 0.1,
+        "wickmole": 0.1,
+        "railhopper": 0.1
+      },
+      "elites": {
+        "barrel": 1,
+        "shaman": 1,
+        "chainwarden": 1
+      },
+      "events": [
+        {
+          "at": 4,
+          "type": "pack",
+          "mob": "railhopper",
+          "n": 2,
+          "done": 0
+        },
+        {
+          "at": 10.5,
+          "type": "elite",
+          "mob": "barrel",
+          "n": 1,
+          "done": 0
+        },
+        {
+          "at": 24.5,
+          "type": "swarm",
+          "mob": "bat",
+          "n": 40,
+          "done": 0
+        },
+        {
+          "at": 31,
+          "type": "elite",
+          "mob": "shaman",
+          "n": 1,
+          "done": 0
+        },
+        {
+          "at": 38.5,
+          "type": "ring",
+          "mob": "shroom",
+          "n": 20,
+          "done": 0
+        },
+        {
+          "at": 47,
+          "type": "elite",
+          "mob": "chainwarden",
+          "n": 1,
+          "done": 0
+        }
+      ],
+      "duration": 70,
+      "dmgMul": 2.02,
+      "hpMul": 8.668822005978653,
+      "minAlive": 102,
+      "counts": {
+        "rat": 375,
+        "bat": 78,
+        "shroom": 36,
+        "spitter": 36,
+        "hookclaw": 24,
+        "wickmole": 19,
+        "railhopper": 28,
+        "barrel": 1,
+        "shaman": 1,
+        "chainwarden": 1
+      },
+      "regularCounts": {
+        "rat": 375,
+        "bat": 38,
+        "shroom": 16,
+        "spitter": 36,
+        "hookclaw": 24,
+        "wickmole": 19,
+        "railhopper": 26
+      },
+      "bodies": 599,
+      "hp": 122768,
+      "xp": 1057,
+      "oldBodyShare": 0.8797996661101837,
+      "needDps": 2063.3,
+      "current": {
+        "n": 18,
+        "duration": 70,
+        "hpMul": 7.875019990896305,
+        "dmgMul": 2.02,
+        "minAlive": 102,
+        "regular": {
+          "rat": 474,
+          "shroom": 55,
+          "spitter": 70
+        },
+        "events": [
+          {
+            "at": 10.5,
+            "type": "elite",
+            "mob": "barrel",
+            "n": 1,
+            "done": 0
+          },
+          {
+            "at": 24.5,
+            "type": "swarm",
+            "mob": "bat",
+            "n": 40,
+            "done": 0
+          },
+          {
+            "at": 24.5,
+            "type": "elite",
+            "mob": "shaman",
+            "n": 1,
+            "done": 0
+          },
+          {
+            "at": 38.5,
+            "type": "ring",
+            "mob": "shroom",
+            "n": 40,
+            "done": 0
+          },
+          {
+            "at": 38.5,
+            "type": "elite",
+            "mob": "barrel",
+            "n": 1,
+            "done": 0
+          }
+        ],
+        "totals": {
+          "rat": 474,
+          "shroom": 95,
+          "spitter": 70,
+          "barrel": 2,
+          "bat": 40,
+          "shaman": 1
+        },
+        "bodies": 682,
+        "hp": 135175,
+        "xp": 1224,
+        "mix": "grove",
+        "boss": null
+      },
+      "regular": {
+        "rat": 375,
+        "bat": 38,
+        "shroom": 16,
+        "spitter": 36,
+        "hookclaw": 24,
+        "wickmole": 19,
+        "railhopper": 26
+      }
+    },
+    {
+      "n": 19,
+      "name": "Смена караула",
+      "targetHp": 129000,
+      "oldShare": 0.65,
+      "shares": {
+        "rat": 0.26,
+        "beetle": 0.2925,
+        "spitter": 0.0975,
+        "hookclaw": 0.12,
+        "wickmole": 0.1,
+        "railhopper": 0.13
+      },
+      "elites": {
+        "barrel": 1,
+        "shaman": 1,
+        "chainwarden": 1
+      },
+      "events": [
+        {
+          "at": 10.5,
+          "type": "elite",
+          "mob": "shaman",
+          "n": 1,
+          "done": 0
+        },
+        {
+          "at": 27,
+          "type": "elite",
+          "mob": "barrel",
+          "n": 1,
+          "done": 0
+        },
+        {
+          "at": 44,
+          "type": "elite",
+          "mob": "chainwarden",
+          "n": 1,
+          "done": 0
+        },
+        {
+          "at": 55,
+          "type": "pressure",
+          "mob": "",
+          "n": 0,
+          "done": 0
+        }
+      ],
+      "duration": 70,
+      "dmgMul": 2.08,
+      "hpMul": 8.089220534648685,
+      "minAlive": 106,
+      "counts": {
+        "rat": 369,
+        "beetle": 69,
+        "spitter": 41,
+        "hookclaw": 33,
+        "wickmole": 21,
+        "railhopper": 42,
+        "shaman": 1,
+        "barrel": 1,
+        "chainwarden": 1
+      },
+      "regularCounts": {
+        "rat": 369,
+        "beetle": 69,
+        "spitter": 41,
+        "hookclaw": 33,
+        "wickmole": 21,
+        "railhopper": 42
+      },
+      "bodies": 578,
+      "hp": 128975,
+      "xp": 1128,
+      "oldBodyShare": 0.8321799307958477,
+      "needDps": 2167.6,
+      "current": {
+        "n": 19,
+        "duration": 70,
+        "hpMul": 8.49368156138112,
+        "dmgMul": 2.08,
+        "minAlive": 106,
+        "regular": {
+          "rat": 461,
+          "beetle": 86,
+          "spitter": 51
+        },
+        "events": [
+          {
+            "at": 10.5,
+            "type": "elite",
+            "mob": "shaman",
+            "n": 1,
+            "done": 0
+          },
+          {
+            "at": 24.5,
+            "type": "elite",
+            "mob": "barrel",
+            "n": 1,
+            "done": 0
+          },
+          {
+            "at": 38.5,
+            "type": "elite",
+            "mob": "shaman",
+            "n": 1,
+            "done": 0
+          }
+        ],
+        "totals": {
+          "rat": 461,
+          "beetle": 86,
+          "spitter": 51,
+          "shaman": 2,
+          "barrel": 1
+        },
+        "bodies": 601,
+        "hp": 110452,
+        "xp": 992,
+        "mix": "wall",
+        "boss": null
+      },
+      "regular": {
+        "rat": 369,
+        "beetle": 69,
+        "spitter": 41,
+        "hookclaw": 33,
+        "wickmole": 21,
+        "railhopper": 42
+      }
+    }
+  ],
+  "limits": {
+    "liveBodies": 300,
+    "regularAndEventBodiesPerWave": 600,
+    "after20Bodies": 700,
+    "hookclawLive": 18,
+    "wickmoleLive": 6,
+    "railhopperLive": 8,
+    "chainwardenLive": 1,
+    "newTelegraphsAtOnce": 2,
+    "enemyChargesOnMap": 6
+  },
+  "after20": {
+    "duration": 75,
+    "oldShareMin": 0.6,
+    "newShareMax": 0.4,
+    "hpGrowth": 1.07,
+    "budgetGrowth": 1.05,
+    "rule": "После20: две новые рядовые роли по20% HP и60% прежней смеси; Пристав заменяет одну старую элиту каждую третью волну. Полный состав stream+events не выше700 тел, лишний HP распределяется по оставшимся. 30 Близнецы,40 ПовидлIII,50 Повидл,60 Бурдюк; финала нет.",
+    "bossGrowth": "64000 × 1.07^(w−20) × (1+0.25×cycleOf(w)) для20/60/100…; приёмка дальнейнихволн отдельно"
+  },
+  "rewards": {
+    "newMobsXp": "Крюколап3, Фитильщик4, Щелкун3, Пристав40. Реализованные базовые XP до бонусов.",
+    "boss20Xp": 300,
+    "boss20Coins": 30,
+    "wave16to20CoinsEach": 18,
+    "runCap": 600,
+    "record": 15,
+    "change": "Сохраняем фактическую формулу жетонов. Новая элита даёт один сундук вместо заменённой старой; новая отдельная валюта и дополнительный сундук за каждого рядового не нужны."
+  },
+  "acceptance": [
+    "Референс и реальная GLB подписаны раздельно, все клипы видны",
+    "Старые враги и хвосты остаются после16–20",
+    "На20 новыйбосс;21начинается, финаланет",
+    "Не более300 живых длявсехпутей рождения, очередьиHPдолг сохраняют бюджет",
+    "Путь отхода есть укаждойновойатаки, нетнеобходимости конкретнойэволюции",
+    "Водные/вареньевые замедления не складываются, времятелеграфа учитывает slow",
+    "Триразные5+5сборки доходятдо20 в ручнойприёмке с разнымиtradeoffs",
+    "Сотни мобов инстансами/запечёнными частями;FPS/GPU/CPUнепроверены"
+  ],
+  "source": {
+    "shared/dungeon/data.ts": "2c4dd3483a1cdde6b723e52d7b654793818df4a8f585b4798ce3f32f1ef1121b",
+    "shared/dungeon/weapons.ts": "6a7a5bf12bfd51fbdf0493660f5310a307f013e3b2f851cf381a3843b3b09b40",
+    "shared/dungeon/director.ts": "ffa09a8e4295edcb8a6a0c63df2ac0d018b49c3a31caea21e75da6935eeb62ae",
+    "shared/dungeon/boss.ts": "fd9fd375458225256816fd34ea575d05e53dea348bc70e40a2bec9502b941734",
+    "shared/dungeon/cauldron.ts": "186ee5b9921c7a9142f07733f2b3bd043ff4fd7168288426bda7433a485e87c5",
+    "shared/dungeon/expansion.ts": "df6e201796818accfdab08fb3a9d60c9582f484dbf1f3fe1925b950a8341ca78",
+    "shared/dungeon/enemycharges.ts": "ce0e6df23c1ba86acb42d4a3cdbc7ea0f44c8b096a08aecf0aab42cd1180cac1",
+    "shared/dungeon/mobs.ts": "da51aea88bb3ef3bfaf008b3a41c27811ad715bef2165050f0a9f1f763926299",
+    "shared/dungeon/props.ts": "163ee32657b4410eb52a13d0dc8aed0705798e1ca5bd017c38b96f0e7da2806b",
+    "shared/dungeon/pickups.ts": "90508eac73a77fa121ffe86c1a1b3d2d24662569c5cde2864ec2ae44537af382",
+    "shared/dungeon/progress.ts": "b4721b606669d70d824126526605aafd06e898cfd92bcfab851178ed52cdee80",
+    "shared/dungeon/core.ts": "af9099a0b414de38be0b4a8fec5cb8721d1a403b1a2037d809d84be92acdb6b2",
+    "shared/dungeon/sim.ts": "9e285f3b383603a4c2abc498988f622006c4e5aa3b6d8b6f7b5e1f53c1e7a163",
+    "shared/dungeon/api.ts": "0f61ef35fd3a982ead4c38a711d8b548389d0f71546e81ac9f66f78530f16b08",
+    "client/dungeon/simview.ts": "b496b80edde01aa72e9188c4512c78a027621de8ce1ad1f62d876b09fa98e7fc",
+    "client/dungeon/mobs.ts": "10b4c2b92682699d037a796a9e7823fdcac6436cbf6663f11a97f71aed65263b",
+    "client/dungeon/boss.ts": "69767abe83eb4da5cc8dc4025649bd96260ea4ec939c8240aa7c8a251b62e41e",
+    "client/dungeon/weaponvisuals.ts": "05938d3968e52edbf34f2109377c86d978de476e88804967099882db23c0645d",
+    "client/dungeon/zones.ts": "83dc291dd57e0a160bed63017ee512c38470cfcaef67d09e3b044f8f5eb73d27",
+    "docs/survivors/design-data.json": "932a6775825747f3126c596dea0143cf5b34b1b040e87c3e05e45a20f5965849",
+    "docs/survivors/level-data.json": "a9a47bd09a0453581d9bbbca7f86492dc8899b423dab4965e995ee4a8489c506",
+    "tools/survivors/balance.mjs": "bdd518a78fd9168d7f148184e584211f62b5b8102abe26a0a3f6e29180b400ec",
+    "client/dungeon/game.ts": "160deee9061343a1722a736691f1026f0684d06db3999e7eab3cc0ff3cbf8142"
+  },
+  "evolutions": [
+    {
+      "id": "lantern_evo",
+      "from": "lantern",
+      "with": "might",
+      "name": "Негасимый фонарь",
+      "icon": "🏮",
+      "desc": "Вспышки вперёд и назад, 130°, 8 м, поджигают: ещё +25 % урона за 2 с",
+      "stats": {
+        "dmg": 40,
+        "cd": 0.9,
+        "angle": 130,
+        "range": 8,
+        "cones": 2,
+        "burn": 0.25
+      },
+      "model": {
+        "t": 6.5,
+        "dmg": 50,
+        "cd": 0.9,
+        "boss": 1,
+        "note": "dmg 50 = 40 × 1,25 с поджогом; t — обе вспышки (4 + 2,5)"
+      }
+    },
+    {
+      "id": "stalactites_evo",
+      "from": "stalactites",
+      "with": "armor",
+      "name": "Обвал",
+      "icon": "🪨",
+      "desc": "Сталактиты сыплются чаще, а раз в 8 с рушится глыба на самую густую толпу: круг 4,5 м, оглушение 1 с. Каска — чтобы самому не досталось",
+      "stats": {
+        "dmg": 38,
+        "cd": 1.3,
+        "n": 4,
+        "radius": 2.2,
+        "boulder": {
+          "every": 8,
+          "dmg": 120,
+          "radius": 4.5,
+          "warn": 0.8,
+          "stun": 1
+        }
+      },
+      "model": {
+        "t": 2.2,
+        "dmg": 38,
+        "cd": 1.3,
+        "n": 4,
+        "extraDps": 120,
+        "boss": 0.8,
+        "note": "extraDps — глыба: 120 урона × 8 целей раз в 8 с"
+      }
+    },
+    {
+      "id": "beam_evo",
+      "from": "beam",
+      "with": "area",
+      "name": "Маяк",
+      "icon": "🗼",
+      "desc": "Два луча крутятся вокруг героя, как фонарь маяка: оборот за 2,4 с, 16 м",
+      "stats": {
+        "dmg": 32,
+        "beams": 2,
+        "period": 2.4,
+        "length": 16,
+        "width": 1.6
+      },
+      "model": {
+        "dmg": 32,
+        "cd": 2.4,
+        "t": 28,
+        "boss": 0.8
+      }
+    },
+    {
+      "id": "fireflies_evo",
+      "from": "fireflies",
+      "with": "maxhp",
+      "name": "Рой светляков",
+      "icon": "✨",
+      "desc": "7 светляков в два встречных кольца (2,6 и 4,2 м); каждые 20 попаданий — +1 HP",
+      "stats": {
+        "dmg": 18,
+        "n": 7,
+        "rings": [
+          2.6,
+          4.2
+        ],
+        "healEveryHits": 20
+      },
+      "model": {
+        "dmg": 18,
+        "n": 7,
+        "hps": 2.4,
+        "boss": 0.5,
+        "orbit": true
+      }
+    },
+    {
+      "id": "embers_evo",
+      "from": "embers",
+      "with": "cooldown",
+      "name": "Жаровой залп",
+      "icon": "",
+      "desc": "Крупные угольки: первое попадание каждого даёт малый взрыв",
+      "stats": {
+        "dmg": 22,
+        "n": 5,
+        "cd": 0.8,
+        "pierce": 2,
+        "speed": 14,
+        "splash": {
+          "dmg": 8,
+          "radius": 1.4
+        }
+      }
+    },
+    {
+      "id": "pickaxe_evo",
+      "from": "pickaxe",
+      "with": "speed",
+      "name": "Рудничный маховик",
+      "icon": "",
+      "desc": "Четыре трёхлопастных маховика режут линию туда и обратно, возврат сильнее отталкивает",
+      "stats": {
+        "dmg": 48,
+        "n": 4,
+        "cd": 1.7,
+        "range": 10,
+        "size": 1.6,
+        "returnKnockback": 1
+      }
+    },
+    {
+      "id": "spark_evo",
+      "from": "spark",
+      "with": "magnet",
+      "name": "Грозовая друза",
+      "icon": "",
+      "desc": "Две длинные цепи; на последней цели каждой через миг срабатывает кристальный импульс",
+      "stats": {
+        "dmg": 34,
+        "chains": 2,
+        "jumps": 7,
+        "cd": 1.1,
+        "jumpRange": 7,
+        "firstRange": 11,
+        "falloff": 0.08,
+        "pulse": {
+          "dmg": 12,
+          "radius": 1.5,
+          "warn": 0.35
+        }
+      }
+    },
+    {
+      "id": "charges_evo",
+      "from": "charges",
+      "with": "amount",
+      "name": "Пороховая связка",
+      "icon": "",
+      "desc": "Три связки пороха; взрыв зажигает взведённые соседние связки через 0.18 с",
+      "stats": {
+        "dmg": 86,
+        "n": 3,
+        "cd": 2,
+        "maxOnFloor": 8,
+        "radius": 3.2,
+        "arm": 0.5,
+        "fuse": 8,
+        "stun": 1,
+        "chainRadius": 4,
+        "chainDelay": 0.18
+      }
+    }
+  ],
+  "runtime": {
+    "liveCaps": {
+      "hookclaw": 18,
+      "wickmole": 6,
+      "railhopper": 8,
+      "chainwarden": 1
+    },
+    "newTelegraphs": 2,
+    "enemyCharges": 6,
+    "firstWave": 16
+  },
+  "verification": {
+    "focusedTests": 57,
+    "log": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-source-r3-focused.log",
+    "nativeTraceCount": 16,
+    "nativeEncounterPolicies": 12,
+    "playtest": true,
+    "independent": {
+      "sourceFreeze": "R3",
+      "sourceHashes": 40,
+      "focused": 43,
+      "scratchScenarios": 4,
+      "replayTicksPerBuild": 5000,
+      "builds": 2,
+      "scope": "source/contracts only"
+    },
+    "lastFocusedRevision": "R3",
+    "fullGate": {
+      "owner": "root",
+      "revision": "R6",
+      "status": "PASS root-reported; logs independently inspected",
+      "check": true,
+      "test": {
+        "total": 1962,
+        "passed": 1961,
+        "failed": 0,
+        "skipped": 1
+      },
+      "build": true,
+      "evidence": [
+        {
+          "path": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-r6-check.log",
+          "sha256": "f853a6a0cc82020063ad07caf3ff2d4bb74cac7cf21a899165813cc77a48876b"
+        },
+        {
+          "path": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-r6-test.log",
+          "sha256": "b6836761b41d4260af80b7162785a0949124a39b33184643a1ba1659e01f88ba"
+        },
+        {
+          "path": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-r6-build.log",
+          "sha256": "abe5a3bf7cc1efc2e30e6e28a0d5c273bd2cce8e07cf4f26dd7beb1bfb7c3562"
+        }
+      ],
+      "ranByThisAgent": false
+    },
+    "earlierRuntimeAttempts": [
+      {
+        "id": "rawChromeWrongDocumentError",
+        "status": "FAILED_NOT_PASS",
+        "reason": "Wrong-document raw Chrome attempt; not valid game evidence",
+        "evidence": [
+          "runtime-harness/browser-observer-raw-launch.json",
+          "runtime-harness/browser-observer.json"
+        ],
+        "shaderFailureClaim": false
+      },
+      {
+        "id": "normal-v3-actualIntroEnterChat",
+        "status": "FAILED_NOT_PASS",
+        "reason": "Actual intro HUD prompts Enter; game did not consume it, common chat opened and blocked input. Root identified one-line fix.",
+        "evidence": [
+          "dungeon-r5-normal-v3.log",
+          "runtime-harness/captures-normal-v3"
+        ],
+        "shaderFailureClaim": false
+      },
+      {
+        "id": "r6-hook-loading-cover-and-dead-hero",
+        "status": "FAIL_CAPTURE",
+        "reason": "enter returned during loading cover; hero died before later generic hp<100 capture. Zero hash mismatches did not make the image valid.",
+        "evidence": [
+          "dungeon-runtime-r6/captures-late/hook-contact-entry.png",
+          "dungeon-runtime-r6/captures-late/hook-impact.png"
+        ],
+        "shaderFailureClaim": false
+      },
+      {
+        "id": "r6-hook-overlapping-room-transition",
+        "status": "FAIL_CAPTURE",
+        "reason": "Repeated /go before lobby.hasSelf and transition idle caused fresh run null; timeout was not game acceptance.",
+        "evidence": [
+          "dungeon-r6-hook-atomic.log",
+          "dungeon-r6-hook-enter.log"
+        ],
+        "shaderFailureClaim": false
+      }
+    ],
+    "normalRuntime": {
+      "owner": "root",
+      "status": "Actual no-hook first run and restart/exit journal result parity captured; visual acceptance belongs to root",
+      "introEnter": "root observed consumed Enter with chat closed after R6 one-line fix",
+      "death": {
+        "passed": true,
+        "kills": 85,
+        "level": 2,
+        "clientServerEqual": true
+      },
+      "exit": {
+        "passed": true,
+        "scope": "normal no-hook run result after actual exit"
+      },
+      "evidence": [
+        "captures-normal/normal-death-parity.json",
+        "captures-normal/normal-result-parity.json"
+      ],
+      "visualAcceptedByThisAgent": false
+    },
+    "lateRuntime": {
+      "status": "Actual A/B/C accepted locally by root after PNG review; atlas NOT_ACCEPTED under production CSP",
+      "evidence": "./evidence/runtime-r6-root/summary.json",
+      "rootReported": true,
+      "sourceOnlyPreparationByThisAgent": true,
+      "actualRuntimeOwner": "root"
+    },
+    "playtestScope": "Actual client/server game, normal no-hook entry and accelerated initial fixtures using real native input; not continuous first15 waves or mass balance playtest",
+    "rootRuntimeAccepted": true,
+    "progressionContext": {
+      "status": "POWERED_UPPER_FIXTURE_NOT_TYPICAL_PROGRESSION",
+      "receipt": "./source/progression-arithmetic.json",
+      "review": "./source/progression-context.md",
+      "totalUpgradeChoices": [
+        61,
+        64,
+        64
+      ],
+      "xpOnlyRequired": [
+        19520,
+        21440,
+        21440
+      ],
+      "evoChestsEach": 5,
+      "plannedXpThrough15": 8430,
+      "maxSweepThrough15": 600,
+      "plannedXpThrough19": 12429,
+      "maxSweepThrough19": 950,
+      "neededChestUpgradesBefore16": [
+        16,
+        23,
+        19
+      ],
+      "neededChestUpgradesBefore20": [
+        6,
+        14,
+        9
+      ],
+      "minimumRecipeReady": {
+        "upgradeChoices": 39,
+        "xpOnly": 8190,
+        "evoChests": 5
+      },
+      "conclusion": "Full fixture builds are a powered upper comparison requiring active chest collection/favorable choices, not typical or guaranteed at16/20. XP alone is insufficient. Arithmetic does not show impossibility with active chest route; three wins validate full-build functions/tactics, not progression or statistical balance."
+    }
+  },
+  "sourceFreeze": {
+    "revision": "R6",
+    "sha256": "79c7aa9061682aefdbf130d1fcc03e5689c7ecfd3dde341bcc65a9eac089b332",
+    "base": "41b91a8",
+    "files": 40,
+    "previousRevision": "R5",
+    "previousSHA": "b12d6ba10abf8af04a6689463ec7e7f3fe35f017b47c6ef230315026b605f4bf",
+    "changedPaths": [
+      "client/dungeon/game.ts"
+    ],
+    "runtimeChange": true,
+    "testedIdentityPreserved": true,
+    "docOnlySuccessor": {
+      "revision": "R6 doc-only successor",
+      "commit": "4d354e33310ba3bd20272b27a90de552ccfa2732",
+      "testedSourceSHA": "79c7aa9061682aefdbf130d1fcc03e5689c7ecfd3dde341bcc65a9eac089b332",
+      "testedBase": "41b91a8",
+      "testedFiles": 40,
+      "currentExactTestedFiles": 39,
+      "changedAfterGameplay": [
+        {
+          "path": "docs/survivors/expansion-v2.md",
+          "testedSHA": "26312b3265d657e785ecc53f7807744e51264ef3c91387a7be88cff59ceb64ab",
+          "currentSHA": "be1e3533c9102a86b67ee024cae80ec847cb8196f0ee6f9934b12b03de360dc1",
+          "reason": "Root report/handoff doc only after actual acceptance"
+        }
+      ],
+      "gameCodeAndGLBUntouched": true,
+      "mainMerged": false,
+      "pushed": false,
+      "deployed": false,
+      "phoneVerified": false,
+      "htmlBrowserSmoke": "pending root after Product Lab window"
+    }
+  },
+  "modelReview": {
+    "status": "Plain GLB principal attack/phase/death cycles accepted locally in actual game by root; optional texture atlas not accepted",
+    "pending": [
+      "optional atlas production CSP embedded-image load and actual live texture/VAT/performance",
+      "clean performance benchmark and real phone verification",
+      "offline HTML browser smoke by root",
+      "main integration/push/deployment not performed"
+    ],
+    "atlas": "Plain default. Native structure/brightness/exact motion passed; live actual VAT shader/texture under production CSP remains blocked and NOT ACCEPTED (embedded blob fetch, map=null).",
+    "softReceipt": {
+      "nativeMCP": true,
+      "background": true,
+      "sessionPid": 87358,
+      "exportOptimizeAnimationKeepAnimObject": true,
+      "plainDefaultUnchanged": true,
+      "variant": "models/chainwarden-atlas-soft.glb",
+      "plain": "./models/chainwarden.glb",
+      "sha256": "2636c003be7aba00de57dd7a6dd1e3be4db8495e3d436ee991019aa4ba69a00f",
+      "plainSha256": "129a73308dd0afcb3ec0c315dfde44af66b0edf5f783098a7152f1de5b5f5653",
+      "bytes": 1493264,
+      "textureSha256": "ecc80789e882bad7b7ad77e70ec0c6fa24bb40c424df695f21e590c9bf9ee566",
+      "scriptSha256": "fa2e44392fca6cc6b9dfb53fd8e595b90858b90df5640cd9284579eadc29f9ed",
+      "clips": 7,
+      "channelsPerClip": 108,
+      "geometryPositionAndNormalsMaxDelta": 0,
+      "restTransformMaxDelta": 0,
+      "actualPoseMaxDelta": 0,
+      "images": 1,
+      "textures": 1,
+      "texCoord": 0,
+      "unchangedNormalizationBIN": true,
+      "previewsRetained": true,
+      "reason": "UV/map/color/light unchanged; only constant animation channel retention flag corrected",
+      "pending": [
+        "production CSP embedded image decode compatibility not implemented",
+        "live actual VAT shader/texture not confirmed under production CSP",
+        "runtime texture A/B/performance acceptance"
+      ]
+    },
+    "atlasCSP": {
+      "recordedAt": "2026-10-12T07:34:34.551Z",
+      "status": "BLOCKED_NOT_ACCEPTED",
+      "default": "plain",
+      "plainDefaultChanged": false,
+      "rootObserved": {
+        "policy": "production CSP connect-src self wss://game.tired.solutions; blob fetch rejected",
+        "loaderError": "GLTFLoader could not load embedded texture and returned map=null"
+      },
+      "sourceVerified": {
+        "threeVersion": "0.186.1",
+        "dungeonLoader": "client/dungeon/assets.ts:61 ordinary GLTFLoader",
+        "chromeBitmapSelection": "node_modules/three/examples/jsm/loaders/GLTFLoader.js:2653-2661",
+        "embeddedBlobURL": "node_modules/three/examples/jsm/loaders/GLTFLoader.js:3359-3369",
+        "bitmapFetch": "node_modules/three/src/loaders/ImageBitmapLoader.js:173",
+        "nullTextureFallback": "node_modules/three/examples/jsm/loaders/GLTFLoader.js:3331",
+        "CSP": "tools/release/csp-proxy.mjs:8",
+        "embeddedPNGBytes": 919127,
+        "pngSize": [
+          1024,
+          1024
+        ],
+        "images": 1,
+        "textures": 1,
+        "texCoord": 0
+      },
+      "actualEvidence": {
+        "result": "./evidence/runtime-r6-root/failures/run-1791789653175-C/atlas/result.json",
+        "resultSHA256": "8089b86fa832d2abc7f446f72ccbddfa59accf20643391e93603c66dfb28cc4b",
+        "snapshot": "./evidence/runtime-r6-root/failures/run-1791789653175-C/atlas/soft-same-pose.json",
+        "snapshotSHA256": "30a5bbac6f37132f36f57956b8d02dff26dc548f24c43baa1d847938632ce82a",
+        "automated": "FAIL",
+        "visual": "NOT_ACCEPTED",
+        "serverParity": true,
+        "sameActualRendererPose": true,
+        "softShaderLinked": true,
+        "softMapBound": false,
+        "defaultRestored": true,
+        "failedPrograms": [],
+        "liveMaterialsWithMap": 0,
+        "originalResult": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791789653175-C/atlas/result.json",
+        "originalSnapshot": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791789653175-C/atlas/soft-same-pose.json"
+      },
+      "interpretation": "Shader link success here is an untextured shader; live atlas/VAT texture acceptance under production CSP is not established. Native structure/brightness/exact-motion proofs remain valid.",
+      "necessity": "No loader/CSP change needed for current plain-default delivery; optional atlas remains a separate unaccepted experiment.",
+      "futureMinimalProposal": {
+        "preferred": "Scoped GLTFLoader plugin decodes already loaded embedded PNG/JPEG bufferView with createImageBitmap(new Blob(bytes)) directly, avoiding fetch(blob). Preserve standard GLTF sampler/flipY/colorSpace and existing UV/map factor path.",
+        "alternative": "Scoped TextureLoader with data URI made from embedded bytes; current img-src data: permits that image path. TextureLoader alone with the existing blob URL is not claimed compatible without a CSP test.",
+        "notApplied": true,
+        "CSPRelaxation": false,
+        "acceptance": "Same production CSP, no texture load/CSP violations, actual merged live material map and UV0 bound with positive image dimensions, shader link, same-pose A/B and performance before accepting."
+      },
+      "runtimeHelpersOwnedByRoot": true,
+      "runtimeHelpersEditedByThisAgent": false,
+      "gameSourceEdited": false,
+      "ranChrome": false,
+      "ranServer": false,
+      "ranBuild": false,
+      "rebundled": false,
+      "sourceFreeze": "79c7aa9061682aefdbf130d1fcc03e5689c7ecfd3dde341bcc65a9eac089b332",
+      "durableEvidence": true
+    }
+  },
+  "runtimeFixes": [
+    {
+      "revision": "R6",
+      "path": "client/dungeon/game.ts",
+      "rootObserved": true,
+      "issue": "Intro HUD Enter opened common chat and blocked input",
+      "fix": "Enter/NumpadEnter consumed in intro or breather; existing go event handler",
+      "runtimeRetest": "Actual no-hook input/death/restart/pause/resume/exit accepted locally by root; Enter consumes intro input and common chat stays closed.",
+      "pointerContract": "DungeonScene.wantsPointer=false; locked pointer is not required"
+    }
+  ],
+  "runtimeAcceptance": {
+    "status": "ACCEPTED_LOCALLY_BY_ROOT",
+    "scope": "Actual client/server game, normal no-hook entry and accelerated initial fixtures using real native input; not continuous first15 waves or mass balance playtest; full ready-build victories prove functions/tactics, not natural progression or typical inventory",
+    "reviewer": "root",
+    "rootReviewedPNGs": true,
+    "evidence": "./evidence/runtime-r6-root/summary.json",
+    "manifest": "./evidence/runtime-r6-root/manifest.json",
+    "testedSourceSHA": "79c7aa9061682aefdbf130d1fcc03e5689c7ecfd3dde341bcc65a9eac089b332",
+    "testedFiles": 40,
+    "docOnlySuccessor": {
+      "revision": "R6 doc-only successor",
+      "commit": "4d354e33310ba3bd20272b27a90de552ccfa2732",
+      "testedSourceSHA": "79c7aa9061682aefdbf130d1fcc03e5689c7ecfd3dde341bcc65a9eac089b332",
+      "testedBase": "41b91a8",
+      "testedFiles": 40,
+      "currentExactTestedFiles": 39,
+      "changedAfterGameplay": [
+        {
+          "path": "docs/survivors/expansion-v2.md",
+          "testedSHA": "26312b3265d657e785ecc53f7807744e51264ef3c91387a7be88cff59ceb64ab",
+          "currentSHA": "be1e3533c9102a86b67ee024cae80ec847cb8196f0ee6f9934b12b03de360dc1",
+          "reason": "Root report/handoff doc only after actual acceptance"
+        }
+      ],
+      "gameCodeAndGLBUntouched": true,
+      "mainMerged": false,
+      "pushed": false,
+      "deployed": false,
+      "phoneVerified": false,
+      "htmlBrowserSmoke": "pending root after Product Lab window"
+    },
+    "normal": {
+      "withoutHooks": true,
+      "naturalDeathKills": 85,
+      "level": 2,
+      "clientServerResultParity": true,
+      "restartPauseResumeExit": "PASS root observed"
+    },
+    "bosses": [
+      {
+        "id": "boss20-kite",
+        "eventTick": 1465,
+        "seconds": 48.833333333333336,
+        "postVictoryHp": 74,
+        "hpMax": 100,
+        "policy": "actual movement/dash/Q/mouse cards",
+        "timeBasis": "die FX evaluated on event tick; shared step increments t at end",
+        "hpBasis": "Final result after normal level-up heal, not immediate pre-heal death frame"
+      },
+      {
+        "id": "boss20-range",
+        "eventTick": 1555,
+        "seconds": 51.833333333333336,
+        "postVictoryHp": 46,
+        "hpMax": 100,
+        "policy": "actual movement/dash/Q/mouse cards",
+        "timeBasis": "die FX evaluated on event tick; shared step increments t at end",
+        "hpBasis": "Final result after normal level-up heal, not immediate pre-heal death frame"
+      },
+      {
+        "id": "boss20-guard",
+        "eventTick": 1698,
+        "seconds": 56.6,
+        "postVictoryHp": 89,
+        "hpMax": 200,
+        "policy": "outer-ring-no-charge",
+        "timeBasis": "die FX evaluated on event tick; shared step increments t at end",
+        "hpBasis": "Final result after normal level-up heal, not immediate pre-heal death frame"
+      }
+    ],
+    "recipes": {
+      "legalFivePlusFive": true,
+      "uniqueEvos": 8,
+      "ids": [
+        "lantern",
+        "embers",
+        "pickaxe",
+        "charges",
+        "spark",
+        "fireflies",
+        "stalactites",
+        "beam"
+      ],
+      "realXpCardAndFiveChestPickupsPerBuild": true,
+      "catalystsRetained": true,
+      "serverHashesMatch": true,
+      "fixtureCorrection": "One initial chest moved out of actual stairs collision before run; identical setup on client/server; no game change"
+    },
+    "registration": {
+      "cases": [
+        "hook-contact",
+        "mole-Q",
+        "rail-KB",
+        "chain-twohits",
+        "crowd-mixed",
+        "crowd-beetles",
+        "distinct-deaths",
+        "boss-phases",
+        "timer20-to21"
+      ],
+      "families": [
+        "ladle",
+        "ladle2",
+        "pour",
+        "boil"
+      ],
+      "morphMotion": true,
+      "phaseBoneClip": true,
+      "lidWorldLocked": true,
+      "fullDeaths": true,
+      "bossDeathSec": 4,
+      "crowd300MissingVisibleLives": 0,
+      "timer21Carryover": true,
+      "scope": "10000HP/invulnerability/enemyHP50 fixtures prove registration, not normal balance"
+    },
+    "atlas": {
+      "status": "NOT_ACCEPTED",
+      "reason": "Production CSP blocks embedded blob fetch; actual map=null",
+      "plainDefault": true
+    },
+    "fullGate": {
+      "check": true,
+      "tests": 1962,
+      "passed": 1961,
+      "failed": 0,
+      "skipped": 1,
+      "build": true
+    },
+    "failuresPreserved": 13,
+    "boundaries": [
+      "Accelerated starting setups, not continuous first15 waves",
+      "Three single-seed normalHP boss battles, not mass balance playtest",
+      "Clean performance benchmark and real phone not claimed",
+      "Atlas under production CSP NOT ACCEPTED; plain remains default",
+      "Offline HTML browser smoke pending root",
+      "Local commit only; not main/push/deploy"
+    ],
+    "htmlBrowserSmoke": "PENDING_ROOT",
+    "phoneVerified": false,
+    "cleanPerformanceBenchmark": false,
+    "deployed": false,
+    "progressionContext": {
+      "status": "POWERED_UPPER_FIXTURE_NOT_TYPICAL_PROGRESSION",
+      "receipt": "./source/progression-arithmetic.json",
+      "review": "./source/progression-context.md",
+      "totalUpgradeChoices": [
+        61,
+        64,
+        64
+      ],
+      "xpOnlyRequired": [
+        19520,
+        21440,
+        21440
+      ],
+      "evoChestsEach": 5,
+      "plannedXpThrough15": 8430,
+      "maxSweepThrough15": 600,
+      "plannedXpThrough19": 12429,
+      "maxSweepThrough19": 950,
+      "neededChestUpgradesBefore16": [
+        16,
+        23,
+        19
+      ],
+      "neededChestUpgradesBefore20": [
+        6,
+        14,
+        9
+      ],
+      "minimumRecipeReady": {
+        "upgradeChoices": 39,
+        "xpOnly": 8190,
+        "evoChests": 5
+      },
+      "conclusion": "Full fixture builds are a powered upper comparison requiring active chest collection/favorable choices, not typical or guaranteed at16/20. XP alone is insufficient. Arithmetic does not show impossibility with active chest route; three wins validate full-build functions/tactics, not progression or statistical balance."
+    }
+  }
+}

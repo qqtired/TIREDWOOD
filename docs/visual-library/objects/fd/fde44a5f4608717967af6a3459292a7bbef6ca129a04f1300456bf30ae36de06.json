@@ -1,0 +1,1587 @@
+{
+  "conceptOnly": true,
+  "models": [
+    {
+      "id": "jampump",
+      "name": "Смоливщик",
+      "version": "r2-06",
+      "glb": "models/glb/jampump-r2-06.glb",
+      "blend": "models/blend/jampump-r2-06.blend",
+      "render": "models/previews/jampump-r2-06-3q.png",
+      "sourceSnapshot": "models/snapshots/jampump-r2-06.py",
+      "sourceSHA256": "3030e61f64ab2a9e4d768a5ee544a3e5d6ea0251133781451db195b9bd250008",
+      "height": 1.7496,
+      "width": 1.6462,
+      "triangles": 3950,
+      "materials": 5,
+      "clips": [
+        "jampump_idle",
+        "jampump_walk",
+        "jampump_windup",
+        "jampump_attack",
+        "jampump_recover",
+        "jampump_hit",
+        "jampump_death",
+        "jampump_open",
+        "jampump_pump",
+        "jampump_redirect_windup",
+        "jampump_redirect_attack"
+      ],
+      "clipTimings": [
+        {
+          "name": "jampump_idle",
+          "seconds": 2,
+          "runtimeDuration": 2.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 2.041667,
+          "channels": 108
+        },
+        {
+          "name": "jampump_walk",
+          "seconds": 1,
+          "runtimeDuration": 1.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 1.041667,
+          "channels": 108
+        },
+        {
+          "name": "jampump_windup",
+          "seconds": 1.833333,
+          "runtimeDuration": 1.875,
+          "inputStart": 0.041667,
+          "inputEnd": 1.875,
+          "channels": 108
+        },
+        {
+          "name": "jampump_attack",
+          "seconds": 0.833333,
+          "runtimeDuration": 0.875,
+          "inputStart": 0.041667,
+          "inputEnd": 0.875,
+          "channels": 108
+        },
+        {
+          "name": "jampump_recover",
+          "seconds": 1.833333,
+          "runtimeDuration": 1.875,
+          "inputStart": 0.041667,
+          "inputEnd": 1.875,
+          "channels": 108
+        },
+        {
+          "name": "jampump_hit",
+          "seconds": 0.583333,
+          "runtimeDuration": 0.625,
+          "inputStart": 0.041667,
+          "inputEnd": 0.625,
+          "channels": 108
+        },
+        {
+          "name": "jampump_death",
+          "seconds": 2.208333,
+          "runtimeDuration": 2.25,
+          "inputStart": 0.041667,
+          "inputEnd": 2.25,
+          "channels": 108
+        },
+        {
+          "name": "jampump_open",
+          "seconds": 2,
+          "runtimeDuration": 2.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 2.041667,
+          "channels": 108
+        },
+        {
+          "name": "jampump_pump",
+          "seconds": 1.833333,
+          "runtimeDuration": 1.875,
+          "inputStart": 0.041667,
+          "inputEnd": 1.875,
+          "channels": 108
+        },
+        {
+          "name": "jampump_redirect_windup",
+          "seconds": 3,
+          "runtimeDuration": 3.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 3.041667,
+          "channels": 108
+        },
+        {
+          "name": "jampump_redirect_attack",
+          "seconds": 6,
+          "runtimeDuration": 6.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 6.041667,
+          "channels": 108
+        }
+      ],
+      "meshPrimitives": 43,
+      "glbSHA256": "819c21d515fc4be2d4a94c613ab6de30a7822da29493a6cf9484aaf923e29791",
+      "rigType": "rigid part hierarchy with per-frame anchored support and working-grip solves",
+      "mcpEvidence": "models/evidence/jampump-r2-06-native.json",
+      "mcpReceipt": "models/evidence/jampump-r2-06-transport.json",
+      "deathStoryboard": [
+        [
+          0,
+          0.3,
+          "Valve ejects with body still supported"
+        ],
+        [
+          0.3,
+          1.1,
+          "Two short hose loops and a harmless upward residue splash"
+        ],
+        [
+          1.1,
+          2.2,
+          "Tank deflates; badger sits then rests on its side; nozzle settles last"
+        ]
+      ],
+      "textureVariant": "A",
+      "acceptance": "Root reviewed exact native form, attack and complete distinct death in actual browser model viewer; concept asset only.",
+      "reference": "../v1/art/originals/01-mobs.png",
+      "ports": {
+        "nozzlePort": {
+          "node": "jampump_nozzlePort",
+          "parent": "jampump_nozzle",
+          "restBlenderZup": [
+            0.45,
+            -1.065,
+            0.88
+          ]
+        },
+        "weaknessPort": {
+          "node": "jampump_weaknessPort",
+          "parent": "jampump_valve",
+          "restBlenderZup": [
+            -0.7,
+            0.2,
+            1.21
+          ]
+        }
+      },
+      "aimContract": {
+        "scope": "Fortress concept film fixture, not general game aiming",
+        "modelRootWorld": [
+          -5,
+          0,
+          -22
+        ],
+        "modelRootRotationY": 0,
+        "modelRootScale": 1,
+        "targetWorld": [
+          -4.9,
+          4.95,
+          -18.8
+        ],
+        "controlNode": "jampump_nozzle",
+        "muzzleNode": "jampump_nozzlePort",
+        "forwardGLB": [
+          0,
+          0,
+          1
+        ],
+        "windupRaiseSeconds": [
+          0.25,
+          1.35
+        ],
+        "sourceStatus": "Native actual GLB ray/contact PASS; rendered animation review pending",
+        "rearTargetWorld": [
+          -4.55,
+          0.05,
+          -25.1
+        ]
+      },
+      "sceneClips": {
+        "prepare": "jampump_windup",
+        "contact": "jampump_attack",
+        "firingLoop": "jampump_pump",
+        "recover": "jampump_recover",
+        "redirectPrepare": "jampump_redirect_windup",
+        "redirectContact": "jampump_redirect_attack"
+      },
+      "emission": {
+        "node": "jampump_spray",
+        "attackAuthoredKeyWindow": [
+          0.3,
+          0.55
+        ],
+        "pump": "continuous while firingLoop plays",
+        "redirect_attack": "continuous six-second reverse burst",
+        "otherClips": "off",
+        "quantizedInputWindow": "verify real exported scale keys after native bake; no inferred runtime pass",
+        "inputWindow": [
+          0.375,
+          0.625
+        ],
+        "fullSampleWindow": [
+          0.375,
+          0.583333334
+        ],
+        "inputStart": 0.041666668,
+        "redirectKeySpan": 6,
+        "reverseNode": "jampump_spray"
+      },
+      "acceptedByRoot": true,
+      "formAcceptedByRoot": true,
+      "formReview": {
+        "status": "Accepted form preserved; final animation review pending",
+        "proof": "models/evidence/r2-06-form-parity.json"
+      },
+      "rootMotionNode": "jampump",
+      "exportedChecks": "models/evidence/jampump-r2-06-exported-checks.json",
+      "contactChecks": "models/evidence/jampump-r2-06-exported-checks.json",
+      "terminalChecks": "models/evidence/r2-06-terminal-aim-contract.json",
+      "attackSheet": "models/previews/jampump-r2-06-review1-attack-sheet.png",
+      "deathSheet": "models/previews/jampump-r2-06-review1-death-sheet.png",
+      "storyboard": "models/scripts/storyboards.json",
+      "views": {
+        "game": "models/previews/jampump-r2-05-review1-game.png",
+        "top": "models/previews/jampump-r2-05-review1-top.png",
+        "profile": "models/previews/jampump-r2-05-review1-profile.png",
+        "back": "models/previews/jampump-r2-05-review1-back.png"
+      },
+      "oldNew": "models/previews/jampump-r2-05-review1-r1-r2.png",
+      "sceneAim": {
+        "scope": "Fortress concept film fixture, not general game aiming",
+        "modelRootWorld": [
+          -5,
+          0,
+          -22
+        ],
+        "modelRootRotationY": 0,
+        "modelRootScale": 1,
+        "targetWorld": [
+          -4.9,
+          4.95,
+          -18.8
+        ],
+        "controlNode": "jampump_nozzle",
+        "muzzleNode": "jampump_nozzlePort",
+        "forwardGLB": [
+          0,
+          0,
+          1
+        ],
+        "windupRaiseSeconds": [
+          0.25,
+          1.35
+        ],
+        "sourceStatus": "Native actual GLB ray/contact PASS; rendered animation review pending",
+        "rearTargetWorld": [
+          -4.55,
+          0.05,
+          -25.1
+        ]
+      },
+      "redirectViews": {
+        "turn": "models/previews/jampump-r2-06-review1-redirect_windup-top.png",
+        "contact": "models/previews/jampump-r2-06-review1-redirect_attack-game.png"
+      },
+      "sequenceReview": {
+        "acceptedByRoot": true,
+        "status": "Root accepted distinct readable sequence content; timing/contact in viewer pending"
+      },
+      "rootReview": {
+        "at": "2026-10-12T07:44:28.050Z",
+        "scope": "concept model form and animation",
+        "attack": "evidence/root-browser-models/jampump-attack.png",
+        "death": "evidence/root-browser-models/jampump-death.png",
+        "checks": "evidence/root-browser-models/actual-runtime.json",
+        "gameIntegration": false,
+        "gamePerformance": false
+      }
+    },
+    {
+      "id": "foreman",
+      "name": "Старшина осады",
+      "version": "r2-06",
+      "glb": "models/glb/foreman-r2-06.glb",
+      "blend": "models/blend/foreman-r2-06.blend",
+      "render": "models/previews/foreman-r2-06-3q.png",
+      "sourceSnapshot": "models/snapshots/foreman-r2-06.py",
+      "sourceSHA256": "3030e61f64ab2a9e4d768a5ee544a3e5d6ea0251133781451db195b9bd250008",
+      "height": 1.9647,
+      "width": 1.7418,
+      "triangles": 3970,
+      "materials": 5,
+      "clips": [
+        "foreman_idle",
+        "foreman_walk",
+        "foreman_windup",
+        "foreman_attack",
+        "foreman_recover",
+        "foreman_hit",
+        "foreman_death",
+        "foreman_open",
+        "foreman_device_set"
+      ],
+      "clipTimings": [
+        {
+          "name": "foreman_idle",
+          "seconds": 2,
+          "runtimeDuration": 2.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 2.041667,
+          "channels": 81
+        },
+        {
+          "name": "foreman_walk",
+          "seconds": 1,
+          "runtimeDuration": 1.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 1.041667,
+          "channels": 81
+        },
+        {
+          "name": "foreman_windup",
+          "seconds": 4,
+          "runtimeDuration": 4.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 4.041667,
+          "channels": 81
+        },
+        {
+          "name": "foreman_attack",
+          "seconds": 0.833333,
+          "runtimeDuration": 0.875,
+          "inputStart": 0.041667,
+          "inputEnd": 0.875,
+          "channels": 81
+        },
+        {
+          "name": "foreman_recover",
+          "seconds": 1.833333,
+          "runtimeDuration": 1.875,
+          "inputStart": 0.041667,
+          "inputEnd": 1.875,
+          "channels": 81
+        },
+        {
+          "name": "foreman_hit",
+          "seconds": 0.583333,
+          "runtimeDuration": 0.625,
+          "inputStart": 0.041667,
+          "inputEnd": 0.625,
+          "channels": 81
+        },
+        {
+          "name": "foreman_death",
+          "seconds": 3,
+          "runtimeDuration": 3.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 3.041667,
+          "channels": 81
+        },
+        {
+          "name": "foreman_open",
+          "seconds": 2,
+          "runtimeDuration": 2.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 2.041667,
+          "channels": 81
+        },
+        {
+          "name": "foreman_device_set",
+          "seconds": 4,
+          "runtimeDuration": 4.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 4.041667,
+          "channels": 81
+        }
+      ],
+      "meshPrimitives": 35,
+      "glbSHA256": "7fdd7c654e15e7f55056e0e7c00d77191c11f812e9dfaeed9d5545b74660bc92",
+      "rigType": "rigid part hierarchy with per-frame anchored support and working-grip solves",
+      "mcpEvidence": "models/evidence/foreman-r2-06-native.json",
+      "mcpReceipt": "models/evidence/foreman-r2-06-transport.json",
+      "deathStoryboard": [
+        [
+          0,
+          0.5,
+          "Ratchet strips separately from body"
+        ],
+        [
+          0.5,
+          1.4,
+          "A-frame supports fold inward; shield falls face first"
+        ],
+        [
+          1.4,
+          3,
+          "Beaver recoils, tail brakes its slide, sits and drops hammer; mechanism rattles later"
+        ]
+      ],
+      "textureVariant": "A",
+      "acceptance": "Root reviewed exact native form, attack and complete distinct death in actual browser model viewer; concept asset only.",
+      "reference": "../v1/art/originals/02-elite.png",
+      "ports": {
+        "weaknessPort": {
+          "node": "foreman_weaknessPort",
+          "parent": "foreman_pin",
+          "restBlenderZup": [
+            0.08,
+            -0.54,
+            0.97
+          ]
+        },
+        "actuatorPort": {
+          "node": "foreman_actuatorPort",
+          "parent": "foreman_lever",
+          "restBlenderZup": [
+            0.55,
+            -0.4,
+            1.38
+          ]
+        }
+      },
+      "acceptedByRoot": true,
+      "formAcceptedByRoot": true,
+      "formReview": {
+        "status": "Accepted form preserved; final animation review pending",
+        "proof": "models/evidence/r2-06-form-parity.json"
+      },
+      "rootMotionNode": "foreman",
+      "exportedChecks": "models/evidence/foreman-r2-06-exported-checks.json",
+      "contactChecks": "models/evidence/foreman-r2-06-exported-checks.json",
+      "terminalChecks": "models/evidence/r2-06-terminal-aim-contract.json",
+      "attackSheet": "models/previews/foreman-r2-06-review1-attack-sheet.png",
+      "deathSheet": "models/previews/foreman-r2-06-review1-death-sheet.png",
+      "storyboard": "models/scripts/storyboards.json",
+      "views": {
+        "game": "models/previews/foreman-r2-03-review1-game.png",
+        "top": "models/previews/foreman-r2-03-review1-top.png",
+        "profile": "models/previews/foreman-r2-03-review1-profile.png",
+        "back": "models/previews/foreman-r2-03-review1-back.png"
+      },
+      "oldNew": "models/previews/foreman-r2-03-review1-r1-r2.png",
+      "sequenceReview": {
+        "acceptedByRoot": true,
+        "status": "Root accepted distinct readable sequence content; timing/contact in viewer pending"
+      },
+      "rootReview": {
+        "at": "2026-10-12T07:44:28.052Z",
+        "scope": "concept model form and animation",
+        "attack": "evidence/root-browser-models/foreman-attack.png",
+        "death": "evidence/root-browser-models/foreman-death.png",
+        "checks": "evidence/root-browser-models/actual-runtime.json",
+        "gameIntegration": false,
+        "gamePerformance": false
+      }
+    },
+    {
+      "id": "crabcrane",
+      "name": "Краб-Кран",
+      "version": "r2-06",
+      "glb": "models/glb/crabcrane-r2-06.glb",
+      "blend": "models/blend/crabcrane-r2-06.blend",
+      "render": "models/previews/crabcrane-r2-03-3q-framed.png",
+      "sourceSnapshot": "models/snapshots/crabcrane-r2-06.py",
+      "sourceSHA256": "3030e61f64ab2a9e4d768a5ee544a3e5d6ea0251133781451db195b9bd250008",
+      "height": 3.4774,
+      "width": 6.3883,
+      "triangles": 6552,
+      "materials": 5,
+      "clips": [
+        "crabcrane_idle",
+        "crabcrane_walk",
+        "crabcrane_windup",
+        "crabcrane_attack",
+        "crabcrane_recover",
+        "crabcrane_hit",
+        "crabcrane_death",
+        "crabcrane_open",
+        "crabcrane_spawn",
+        "crabcrane_anchor_set",
+        "crabcrane_hook_windup",
+        "crabcrane_hook_swing",
+        "crabcrane_rage"
+      ],
+      "clipTimings": [
+        {
+          "name": "crabcrane_idle",
+          "seconds": 2,
+          "runtimeDuration": 2.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 2.041667,
+          "channels": 132
+        },
+        {
+          "name": "crabcrane_walk",
+          "seconds": 1,
+          "runtimeDuration": 1.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 1.041667,
+          "channels": 132
+        },
+        {
+          "name": "crabcrane_windup",
+          "seconds": 2.416667,
+          "runtimeDuration": 2.458333,
+          "inputStart": 0.041667,
+          "inputEnd": 2.458333,
+          "channels": 132
+        },
+        {
+          "name": "crabcrane_attack",
+          "seconds": 1,
+          "runtimeDuration": 1.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 1.041667,
+          "channels": 132
+        },
+        {
+          "name": "crabcrane_recover",
+          "seconds": 1.833333,
+          "runtimeDuration": 1.875,
+          "inputStart": 0.041667,
+          "inputEnd": 1.875,
+          "channels": 132
+        },
+        {
+          "name": "crabcrane_hit",
+          "seconds": 0.583333,
+          "runtimeDuration": 0.625,
+          "inputStart": 0.041667,
+          "inputEnd": 0.625,
+          "channels": 132
+        },
+        {
+          "name": "crabcrane_death",
+          "seconds": 4.5,
+          "runtimeDuration": 4.541667,
+          "inputStart": 0.041667,
+          "inputEnd": 4.541667,
+          "channels": 132
+        },
+        {
+          "name": "crabcrane_open",
+          "seconds": 3,
+          "runtimeDuration": 3.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 3.041667,
+          "channels": 132
+        },
+        {
+          "name": "crabcrane_spawn",
+          "seconds": 1.833333,
+          "runtimeDuration": 1.875,
+          "inputStart": 0.041667,
+          "inputEnd": 1.875,
+          "channels": 132
+        },
+        {
+          "name": "crabcrane_anchor_set",
+          "seconds": 2.416667,
+          "runtimeDuration": 2.458333,
+          "inputStart": 0.041667,
+          "inputEnd": 2.458333,
+          "channels": 132
+        },
+        {
+          "name": "crabcrane_hook_windup",
+          "seconds": 1.833333,
+          "runtimeDuration": 1.875,
+          "inputStart": 0.041667,
+          "inputEnd": 1.875,
+          "channels": 132
+        },
+        {
+          "name": "crabcrane_hook_swing",
+          "seconds": 1,
+          "runtimeDuration": 1.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 1.041667,
+          "channels": 132
+        },
+        {
+          "name": "crabcrane_rage",
+          "seconds": 2,
+          "runtimeDuration": 2.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 2.041667,
+          "channels": 132
+        }
+      ],
+      "meshPrimitives": 58,
+      "glbSHA256": "553d4ad2279a93faf7650b034cb484953717e856655819217c26ae1844acdf94",
+      "rigType": "rigid part hierarchy with per-frame anchored support and working-grip solves",
+      "mcpEvidence": "models/evidence/crabcrane-r2-06-native.json",
+      "mcpReceipt": "models/evidence/crabcrane-r2-06-transport.json",
+      "deathStoryboard": [
+        [
+          0,
+          0.8,
+          "Winch brake fails; three supports sag in different phases"
+        ],
+        [
+          0.8,
+          2,
+          "Articulated boom places the load onto safe ground"
+        ],
+        [
+          2,
+          3.5,
+          "Heavy shell rests on its side; legs open and lose tension"
+        ],
+        [
+          3.5,
+          4.5,
+          "Free pulley sways after the shell stops; rope and eyes lose activity"
+        ]
+      ],
+      "textureVariant": "A",
+      "acceptance": "Root reviewed exact native form, attack and complete distinct death in actual browser model viewer; concept asset only.",
+      "reference": "../v1/art/originals/03-crab-boss.png",
+      "ports": {
+        "loadPort": {
+          "node": "crabcrane_loadPort",
+          "parent": "crabcrane_load",
+          "restBlenderZup": [
+            2.48,
+            -2.05,
+            2.25
+          ]
+        },
+        "weaknessPort": {
+          "node": "crabcrane_weaknessPort",
+          "parent": "crabcrane_stopper",
+          "restBlenderZup": [
+            0.92,
+            1.38,
+            2.024
+          ]
+        }
+      },
+      "acceptedByRoot": true,
+      "formAcceptedByRoot": true,
+      "formReview": {
+        "status": "Accepted form preserved; final animation review pending",
+        "proof": "models/evidence/r2-06-form-parity.json"
+      },
+      "rootMotionNode": "crabcrane",
+      "exportedChecks": "models/evidence/crabcrane-r2-06-exported-checks.json",
+      "contactChecks": "models/evidence/crabcrane-r2-06-exported-checks.json",
+      "terminalChecks": "models/evidence/r2-06-terminal-aim-contract.json",
+      "attackSheet": "models/previews/crabcrane-r2-06-review1-attack-sheet.png",
+      "deathSheet": "models/previews/crabcrane-r2-06-review1-death-sheet.png",
+      "storyboard": "models/scripts/storyboards.json",
+      "views": {
+        "game": "models/previews/crabcrane-r2-03-review1-game.png",
+        "top": "models/previews/crabcrane-r2-03-review1-top.png",
+        "profile": "models/previews/crabcrane-r2-03-review1-profile.png",
+        "back": "models/previews/crabcrane-r2-03-review1-back.png"
+      },
+      "oldNew": "models/previews/crabcrane-r2-03-review1-r1-r2.png",
+      "rootReview": {
+        "at": "2026-10-12T07:44:28.053Z",
+        "scope": "concept model form and animation",
+        "attack": "evidence/root-browser-models/crabcrane-attack.png",
+        "death": "evidence/root-browser-models/crabcrane-death.png",
+        "checks": "evidence/root-browser-models/actual-runtime.json",
+        "gameIntegration": false,
+        "gamePerformance": false
+      }
+    },
+    {
+      "id": "miller",
+      "name": "Мельничиха",
+      "version": "r2-06",
+      "glb": "models/glb/miller-r2-06.glb",
+      "blend": "models/blend/miller-r2-06.blend",
+      "render": "models/previews/miller-r2-06-3q.png",
+      "sourceSnapshot": "models/snapshots/miller-r2-06.py",
+      "sourceSHA256": "3030e61f64ab2a9e4d768a5ee544a3e5d6ea0251133781451db195b9bd250008",
+      "height": 4.2017,
+      "width": 2.9712,
+      "triangles": 5286,
+      "materials": 5,
+      "clips": [
+        "miller_idle",
+        "miller_walk",
+        "miller_windup",
+        "miller_attack",
+        "miller_recover",
+        "miller_hit",
+        "miller_death",
+        "miller_open",
+        "miller_spawn",
+        "miller_crank",
+        "miller_gust",
+        "miller_jammed",
+        "miller_rage"
+      ],
+      "clipTimings": [
+        {
+          "name": "miller_idle",
+          "seconds": 2,
+          "runtimeDuration": 2.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 2.041667,
+          "channels": 93
+        },
+        {
+          "name": "miller_walk",
+          "seconds": 1,
+          "runtimeDuration": 1.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 1.041667,
+          "channels": 93
+        },
+        {
+          "name": "miller_windup",
+          "seconds": 2.416667,
+          "runtimeDuration": 2.458333,
+          "inputStart": 0.041667,
+          "inputEnd": 2.458333,
+          "channels": 93
+        },
+        {
+          "name": "miller_attack",
+          "seconds": 3,
+          "runtimeDuration": 3.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 3.041667,
+          "channels": 93
+        },
+        {
+          "name": "miller_recover",
+          "seconds": 1.833333,
+          "runtimeDuration": 1.875,
+          "inputStart": 0.041667,
+          "inputEnd": 1.875,
+          "channels": 93
+        },
+        {
+          "name": "miller_hit",
+          "seconds": 0.583333,
+          "runtimeDuration": 0.625,
+          "inputStart": 0.041667,
+          "inputEnd": 0.625,
+          "channels": 93
+        },
+        {
+          "name": "miller_death",
+          "seconds": 4,
+          "runtimeDuration": 4.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 4.041667,
+          "channels": 93
+        },
+        {
+          "name": "miller_open",
+          "seconds": 3,
+          "runtimeDuration": 3.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 3.041667,
+          "channels": 93
+        },
+        {
+          "name": "miller_spawn",
+          "seconds": 1.833333,
+          "runtimeDuration": 1.875,
+          "inputStart": 0.041667,
+          "inputEnd": 1.875,
+          "channels": 93
+        },
+        {
+          "name": "miller_crank",
+          "seconds": 2.416667,
+          "runtimeDuration": 2.458333,
+          "inputStart": 0.041667,
+          "inputEnd": 2.458333,
+          "channels": 93
+        },
+        {
+          "name": "miller_gust",
+          "seconds": 3,
+          "runtimeDuration": 3.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 3.041667,
+          "channels": 93
+        },
+        {
+          "name": "miller_jammed",
+          "seconds": 3,
+          "runtimeDuration": 3.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 3.041667,
+          "channels": 93
+        },
+        {
+          "name": "miller_rage",
+          "seconds": 2,
+          "runtimeDuration": 2.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 2.041667,
+          "channels": 93
+        }
+      ],
+      "meshPrimitives": 40,
+      "glbSHA256": "572bd02f66b44077150f9150880f9c34b03a16efc227cfe470f03357537ceeb3",
+      "rigType": "rigid part hierarchy with per-frame anchored support and working-grip solves",
+      "mcpEvidence": "models/evidence/miller-r2-06-native.json",
+      "mcpReceipt": "models/evidence/miller-r2-06-transport.json",
+      "deathStoryboard": [
+        [
+          0,
+          0.6,
+          "Coupling strips and wheel decelerates in pulses"
+        ],
+        [
+          0.6,
+          1.8,
+          "One blade breaks; harmless flour puff; supporting frame detaches"
+        ],
+        [
+          1.8,
+          3,
+          "Boar leans on wheel, sits on sack, wheel rolls half a turn sideways"
+        ],
+        [
+          3,
+          4,
+          "Scarf falls over face; sack deflates; crank makes its final independent turn"
+        ]
+      ],
+      "textureVariant": "A",
+      "acceptance": "Root reviewed exact native form, attack and complete distinct death in actual browser model viewer; concept asset only.",
+      "reference": "../v1/art/originals/04-miller-boss.png",
+      "ports": {
+        "gustPort": {
+          "node": "miller_gustPort",
+          "parent": "miller_wheel",
+          "restBlenderZup": [
+            0,
+            -1.42,
+            2.13
+          ]
+        },
+        "weaknessPort": {
+          "node": "miller_weaknessPort",
+          "parent": "miller_coupling",
+          "restBlenderZup": [
+            0,
+            -1.4,
+            2.13
+          ]
+        }
+      },
+      "acceptedByRoot": true,
+      "formAcceptedByRoot": true,
+      "formReview": {
+        "status": "Accepted form preserved; final animation review pending",
+        "proof": "models/evidence/r2-06-form-parity.json"
+      },
+      "rootMotionNode": "miller",
+      "exportedChecks": "models/evidence/miller-r2-06-exported-checks.json",
+      "contactChecks": "models/evidence/miller-r2-06-exported-checks.json",
+      "terminalChecks": "models/evidence/r2-06-terminal-aim-contract.json",
+      "attackSheet": "models/previews/miller-r2-06-review1-attack-sheet.png",
+      "deathSheet": "models/previews/miller-r2-06-review1-death-sheet.png",
+      "storyboard": "models/scripts/storyboards.json",
+      "views": {
+        "game": "models/previews/miller-r2-02-review1-game.png",
+        "top": "models/previews/miller-r2-02-review1-top.png",
+        "profile": "models/previews/miller-r2-02-review1-profile.png",
+        "back": "models/previews/miller-r2-02-review1-back.png"
+      },
+      "oldNew": "models/previews/miller-r2-02-review1-r1-r2.png",
+      "sequenceReview": {
+        "acceptedByRoot": true,
+        "status": "Root accepted distinct readable sequence content; timing/contact in viewer pending"
+      },
+      "rootReview": {
+        "at": "2026-10-12T07:44:28.054Z",
+        "scope": "concept model form and animation",
+        "attack": "evidence/root-browser-models/miller-attack.png",
+        "death": "evidence/root-browser-models/miller-death.png",
+        "checks": "evidence/root-browser-models/actual-runtime.json",
+        "gameIntegration": false,
+        "gamePerformance": false
+      }
+    },
+    {
+      "id": "ropecrab",
+      "name": "Канатник",
+      "version": "r2-07",
+      "glb": "models/glb/ropecrab-r2-07.glb",
+      "blend": "models/blend/ropecrab-r2-07.blend",
+      "render": "models/previews/ropecrab-r2-07-3q.png",
+      "sourceSnapshot": "models/snapshots/ropecrab-r2-07.py",
+      "sourceSHA256": "0aa37fc043055f0279150135e573b9e68f78fd283aadd4064f16ab2842c0d6df",
+      "height": 1.2327,
+      "width": 2.5667,
+      "triangles": 3922,
+      "materials": 5,
+      "clips": [
+        "ropecrab_idle",
+        "ropecrab_walk",
+        "ropecrab_windup",
+        "ropecrab_attack",
+        "ropecrab_recover",
+        "ropecrab_hit",
+        "ropecrab_death",
+        "ropecrab_open",
+        "ropecrab_route_attach"
+      ],
+      "clipTimings": [
+        {
+          "name": "ropecrab_idle",
+          "seconds": 2,
+          "runtimeDuration": 2.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 2.041667,
+          "channels": 132
+        },
+        {
+          "name": "ropecrab_walk",
+          "seconds": 1,
+          "runtimeDuration": 1.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 1.041667,
+          "channels": 132
+        },
+        {
+          "name": "ropecrab_windup",
+          "seconds": 4,
+          "runtimeDuration": 4.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 4.041667,
+          "channels": 132
+        },
+        {
+          "name": "ropecrab_attack",
+          "seconds": 0.833333,
+          "runtimeDuration": 0.875,
+          "inputStart": 0.041667,
+          "inputEnd": 0.875,
+          "channels": 132
+        },
+        {
+          "name": "ropecrab_recover",
+          "seconds": 1.833333,
+          "runtimeDuration": 1.875,
+          "inputStart": 0.041667,
+          "inputEnd": 1.875,
+          "channels": 132
+        },
+        {
+          "name": "ropecrab_hit",
+          "seconds": 0.583333,
+          "runtimeDuration": 0.625,
+          "inputStart": 0.041667,
+          "inputEnd": 0.625,
+          "channels": 132
+        },
+        {
+          "name": "ropecrab_death",
+          "seconds": 2.416667,
+          "runtimeDuration": 2.458333,
+          "inputStart": 0.041667,
+          "inputEnd": 2.458333,
+          "channels": 132
+        },
+        {
+          "name": "ropecrab_open",
+          "seconds": 2,
+          "runtimeDuration": 2.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 2.041667,
+          "channels": 132
+        },
+        {
+          "name": "ropecrab_route_attach",
+          "seconds": 4,
+          "runtimeDuration": 4.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 4.041667,
+          "channels": 132
+        }
+      ],
+      "meshPrimitives": 51,
+      "glbSHA256": "8cad56396653cfa2b49aa9885cc6d42949a782be2927e0cd61ded48b36c712c0",
+      "rigType": "rigid part hierarchy with per-frame anchored support and working-grip solves",
+      "mcpEvidence": "models/evidence/ropecrab-r2-07-native.json",
+      "mcpReceipt": "models/evidence/ropecrab-r2-07-transport.json",
+      "deathStoryboard": [
+        [
+          0,
+          0.35,
+          "Ratchet leaves its bracket; spool accelerates independently"
+        ],
+        [
+          0.35,
+          1.2,
+          "Rope extends across ground; six legs buckle with staggered phases"
+        ],
+        [
+          1.2,
+          2.4,
+          "Shell settles upright; hook drops; spool coasts to a separate stop"
+        ]
+      ],
+      "textureVariant": "A",
+      "acceptance": "Root reviewed exact native form, attack and complete distinct death in actual browser model viewer; concept asset only.",
+      "reference": "../v1/art/originals/01-mobs.png",
+      "ports": {
+        "tetherPort": {
+          "node": "ropecrab_tetherPort",
+          "parent": "ropecrab_hook",
+          "restBlenderZup": [
+            -0.88,
+            -0.96,
+            0.65
+          ]
+        },
+        "weaknessPort": {
+          "node": "ropecrab_weaknessPort",
+          "parent": "ropecrab_stopper",
+          "restBlenderZup": [
+            0.4,
+            0.38,
+            0.95
+          ]
+        },
+        "pinchPort": {
+          "node": "ropecrab_pinchPort",
+          "parent": "ropecrab_clawL",
+          "restBlenderZup": [
+            -0.88,
+            -0.95,
+            0.495
+          ]
+        },
+        "hookGripPort": {
+          "node": "ropecrab_hookGripPort",
+          "parent": "ropecrab_hook",
+          "restBlenderZup": [
+            -0.88,
+            -0.96,
+            0.495
+          ]
+        }
+      },
+      "acceptedByRoot": true,
+      "formAcceptedByRoot": true,
+      "formReview": {
+        "status": "Accepted form preserved; held grip/release corrected; runtime review pending",
+        "proof": "models/evidence/ropecrab-r2-07-form-terminal-parity.json"
+      },
+      "sequenceReview": {
+        "acceptedByRoot": true,
+        "status": "Distinct death sequence content accepted; timing/contact pending viewer"
+      },
+      "rootMotionNode": "ropecrab",
+      "exportedChecks": "models/evidence/ropecrab-r2-07-exported-checks.json",
+      "contactChecks": "models/evidence/ropecrab-r2-07-exported-checks.json",
+      "terminalChecks": "models/evidence/ropecrab-r2-07-form-terminal-parity.json",
+      "pinchChecks": "models/evidence/ropecrab-r2-07-pinch-check.json",
+      "contactReview": {
+        "status": "Хват, раскрытие клешни и полный цикл проверены в нативном экспорте и 3D-стенде",
+        "proof": "models/evidence/ropecrab-r2-07-pinch-check.json"
+      },
+      "attackSheet": "models/previews/ropecrab-r2-07-review1-attack-sheet.png",
+      "deathSheet": "models/previews/ropecrab-r2-07-review1-death-sheet.png",
+      "releaseFrame": "models/previews/ropecrab-r2-07-review1-attack-game.png",
+      "storyboard": "models/scripts/storyboards.json",
+      "views": {
+        "game": "models/previews/ropecrab-r2-05-review1-game.png",
+        "top": "models/previews/ropecrab-r2-05-review1-top.png",
+        "profile": "models/previews/ropecrab-r2-05-review1-profile.png",
+        "back": "models/previews/ropecrab-r2-05-review1-back.png"
+      },
+      "oldNew": "models/previews/ropecrab-r2-05-review1-r1-r2.png",
+      "hookRelease": {
+        "keySeconds": 0.58,
+        "inputSeconds": 0.621666668,
+        "firstChangedKeyInput": 0.625,
+        "fullyOpenKeyInput": 0.875
+      },
+      "rootReview": {
+        "at": "2026-10-12T07:44:28.056Z",
+        "scope": "concept model form and animation",
+        "attack": "evidence/root-browser-models/ropecrab-attack.png",
+        "death": "evidence/root-browser-models/ropecrab-death.png",
+        "checks": "evidence/root-browser-models/actual-runtime.json",
+        "gameIntegration": false,
+        "gamePerformance": false
+      }
+    },
+    {
+      "id": "canopy",
+      "name": "Зонтиковик",
+      "version": "r2-07",
+      "glb": "models/glb/canopy-r2-07.glb",
+      "blend": "models/blend/canopy-r2-07.blend",
+      "render": "models/previews/canopy-r2-03-3q.png",
+      "sourceSnapshot": "models/snapshots/canopy-r2-07.py",
+      "sourceSHA256": "59f2055740ec875aa6e7cf1f6cd30fb16e0d35619b4076408e786bd6f4832add",
+      "height": 1.84,
+      "width": 2.224,
+      "triangles": 2860,
+      "materials": 5,
+      "clips": [
+        "canopy_idle",
+        "canopy_walk",
+        "canopy_windup",
+        "canopy_attack",
+        "canopy_recover",
+        "canopy_hit",
+        "canopy_death",
+        "canopy_open",
+        "canopy_canopy_break",
+        "canopy_cover_disabled"
+      ],
+      "clipTimings": [
+        {
+          "name": "canopy_idle",
+          "seconds": 2,
+          "runtimeDuration": 2.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 2.041667,
+          "channels": 57
+        },
+        {
+          "name": "canopy_walk",
+          "seconds": 1,
+          "runtimeDuration": 1.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 1.041667,
+          "channels": 57
+        },
+        {
+          "name": "canopy_windup",
+          "seconds": 1.833333,
+          "runtimeDuration": 1.875,
+          "inputStart": 0.041667,
+          "inputEnd": 1.875,
+          "channels": 57
+        },
+        {
+          "name": "canopy_attack",
+          "seconds": 0.833333,
+          "runtimeDuration": 0.875,
+          "inputStart": 0.041667,
+          "inputEnd": 0.875,
+          "channels": 57
+        },
+        {
+          "name": "canopy_recover",
+          "seconds": 1.833333,
+          "runtimeDuration": 1.875,
+          "inputStart": 0.041667,
+          "inputEnd": 1.875,
+          "channels": 57
+        },
+        {
+          "name": "canopy_hit",
+          "seconds": 0.583333,
+          "runtimeDuration": 0.625,
+          "inputStart": 0.041667,
+          "inputEnd": 0.625,
+          "channels": 57
+        },
+        {
+          "name": "canopy_death",
+          "seconds": 2.833333,
+          "runtimeDuration": 2.875,
+          "inputStart": 0.041667,
+          "inputEnd": 2.875,
+          "channels": 57
+        },
+        {
+          "name": "canopy_open",
+          "seconds": 2,
+          "runtimeDuration": 2.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 2.041667,
+          "channels": 57
+        },
+        {
+          "name": "canopy_canopy_break",
+          "seconds": 2.833333,
+          "runtimeDuration": 2.875,
+          "inputStart": 0.041667,
+          "inputEnd": 2.875,
+          "channels": 57
+        },
+        {
+          "name": "canopy_cover_disabled",
+          "seconds": 2,
+          "runtimeDuration": 2.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 2.041667,
+          "channels": 57
+        }
+      ],
+      "meshPrimitives": 34,
+      "glbSHA256": "da211a74ffa180edc8ce5f532dd595015776ff8373456d7fa9bf1f2d522b986a",
+      "rigType": "rigid part hierarchy with per-frame anchored support and working-grip solves",
+      "mcpEvidence": "models/evidence/canopy-r2-07-native.json",
+      "mcpReceipt": "models/evidence/canopy-r2-07-transport.json",
+      "deathStoryboard": [
+        [
+          0,
+          0.4,
+          "Hinged underside lock snaps free"
+        ],
+        [
+          0.4,
+          1.4,
+          "Ribs fold sequentially; heavy cap lowers as an umbrella"
+        ],
+        [
+          1.4,
+          2.8,
+          "Stem compresses and retreats below cap; root boots and settling drops remain"
+        ]
+      ],
+      "textureVariant": "A",
+      "acceptance": "Root reviewed exact native form, attack and complete distinct death in actual browser model viewer; concept asset only.",
+      "reference": "../v1/art/originals/01-mobs.png",
+      "ports": {
+        "weaknessPort": {
+          "node": "canopy_weaknessPort",
+          "parent": "canopy_lock",
+          "restBlenderZup": [
+            0.02,
+            -0.41,
+            1.12
+          ]
+        },
+        "coverHingePort": {
+          "node": "canopy_coverHingePort",
+          "parent": "canopy_capHub",
+          "restBlenderZup": [
+            0.02,
+            0.025,
+            1.735
+          ]
+        }
+      },
+      "sceneClips": {
+        "coverBreak": "canopy_canopy_break",
+        "coverDisabled": "canopy_cover_disabled"
+      },
+      "sceneEvents": {
+        "coverageLost": "start of coverBreak",
+        "coverageLostKeySeconds": 0,
+        "coverageLostInputSeconds": 0.041667,
+        "carrierAlive": true,
+        "disabledLoopRequestedSeconds": 2,
+        "scope": "Selected left carrier only; right actor retains idle cover"
+      },
+      "coverHinges": {
+        "canopy_cap0": [
+          0.12000000476837158,
+          0.02500000037252903,
+          1.7350000143051147
+        ],
+        "canopy_cap1": [
+          0.09071068465709686,
+          0.09571067988872528,
+          1.7350000143051147
+        ],
+        "canopy_cap2": [
+          0.019999999552965164,
+          0.125,
+          1.7350000143051147
+        ],
+        "canopy_cap3": [
+          -0.050710681825876236,
+          0.09571067988872528,
+          1.7350000143051147
+        ],
+        "canopy_cap4": [
+          -0.07999999821186066,
+          0.02500000037252903,
+          1.7350000143051147
+        ],
+        "canopy_cap5": [
+          -0.050710681825876236,
+          -0.04571068286895752,
+          1.7350000143051147
+        ],
+        "canopy_cap6": [
+          0.019999999552965164,
+          -0.07500000298023224,
+          1.7350000143051147
+        ],
+        "canopy_cap7": [
+          0.09071068465709686,
+          -0.04571068286895752,
+          1.7350000143051147
+        ]
+      },
+      "acceptedByRoot": true,
+      "formAcceptedByRoot": true,
+      "formReview": {
+        "status": "Accepted form and original clips preserved; living cover-break review pending",
+        "proof": "models/evidence/canopy-r2-07-form-death-parity.json"
+      },
+      "rootMotionNode": "canopy",
+      "exportedChecks": "models/evidence/canopy-r2-07-exported-checks.json",
+      "contactChecks": "models/evidence/canopy-r2-07-exported-checks.json",
+      "terminalChecks": "models/evidence/canopy-r2-07-form-death-parity.json",
+      "livingCoverChecks": "models/evidence/canopy-r2-07-living-cover-checks.json",
+      "attackSheet": "models/previews/canopy-r2-06-review1-attack-sheet.png",
+      "deathSheet": "models/previews/canopy-r2-06-review1-death-sheet.png",
+      "livingCoverSheet": "models/previews/canopy-r2-07-living1-cover-break-sheet.png",
+      "disabledGameFrame": "models/previews/canopy-r2-07-living1-cover_disabled-game.png",
+      "storyboard": "models/scripts/storyboards.json",
+      "views": {
+        "game": "models/previews/canopy-r2-03-review1-game.png",
+        "top": "models/previews/canopy-r2-03-review1-top.png",
+        "profile": "models/previews/canopy-r2-03-review1-profile.png",
+        "back": "models/previews/canopy-r2-03-review1-back.png"
+      },
+      "oldNew": "models/previews/canopy-r2-03-review1-r1-r2.png",
+      "rootReview": {
+        "at": "2026-10-12T07:44:28.056Z",
+        "scope": "concept model form and animation",
+        "attack": "evidence/root-browser-models/canopy-attack.png",
+        "death": "evidence/root-browser-models/canopy-death.png",
+        "checks": "evidence/root-browser-models/actual-runtime.json",
+        "gameIntegration": false,
+        "gamePerformance": false
+      }
+    }
+  ],
+  "acceptance": {
+    "conceptNativeModels": true,
+    "htmlEventCameras": true,
+    "gameIntegration": false,
+    "gameplayBalance": false,
+    "gamePerformance": false
+  },
+  "acceptanceStage": "Concept models, unique animations and all eight interactive event camera views independently reviewed by root; game integration, multiplayer balance and game performance remain unverified.",
+  "geometryFormParity": "models/evidence/r2-06-form-parity.json",
+  "textureAB": {
+    "revision": "ab2",
+    "assetRevision": "ab2-03",
+    "acceptedByRoot": true,
+    "readyForReview": true,
+    "defaultVariant": "A",
+    "gameAdoption": false,
+    "status": "Accepted by root as a working comparison concept; final visual choice remains with owner; not adopted in game.",
+    "atlas": "models/textures/ab2/readable-atlas-512.png",
+    "atlasSHA256": "0286eb23aa299b4f8273b50f03d83161bc13c233e0b4888b94d1be82494a8a8f",
+    "resolution": [
+      512,
+      512
+    ],
+    "bytes": 252346,
+    "images": 1,
+    "models": [
+      {
+        "id": "foreman",
+        "surfaces": "Льняной фартук, волокна щита и потёртости скоб",
+        "glb": "models/glb/foreman-r2-06-texture-ab2-03.glb",
+        "glbSHA256": "259705bc7307a4191f14a0e21781e6753b2ac1cb2569d47d5bbe740fc92f3560",
+        "parity": "models/evidence/foreman-r2-06-texture-ab2-03-parity.json",
+        "mappedMeshes": [
+          "foreman_apron_geometry",
+          "foreman_braceL_geometry",
+          "foreman_braceR_geometry",
+          "foreman_hammer_geometry",
+          "foreman_lever_geometry",
+          "foreman_shield_geometry"
+        ],
+        "materials": 5,
+        "primitives": 35,
+        "blend": "models/blend/foreman-r2-06-texture-ab2-03.blend",
+        "blenderMappedMeshes": [
+          {
+            "mesh": "foreman_apron_geometry",
+            "mappedLoops": 352
+          },
+          {
+            "mesh": "foreman_braceL_geometry",
+            "mappedLoops": 24
+          },
+          {
+            "mesh": "foreman_braceR_geometry",
+            "mappedLoops": 24
+          },
+          {
+            "mesh": "foreman_hammer_geometry",
+            "mappedLoops": 42
+          },
+          {
+            "mesh": "foreman_lever_geometry",
+            "mappedLoops": 54
+          },
+          {
+            "mesh": "foreman_shield_geometry",
+            "mappedLoops": 672
+          }
+        ]
+      },
+      {
+        "id": "jampump",
+        "surfaces": "Льняной фартук и потёртости бака",
+        "glb": "models/glb/jampump-r2-06-texture-ab2-03.glb",
+        "glbSHA256": "5167f42c369cf99427690d93e7a04ffeefc54644b449b79491a1c7badb5c49e8",
+        "parity": "models/evidence/jampump-r2-06-texture-ab2-03-parity.json",
+        "mappedMeshes": [
+          "jampump_apron_geometry",
+          "jampump_lever_geometry",
+          "jampump_nozzle_geometry",
+          "jampump_tank_geometry"
+        ],
+        "materials": 5,
+        "primitives": 43,
+        "blend": "models/blend/jampump-r2-06-texture-ab2-03.blend",
+        "blenderMappedMeshes": [
+          {
+            "mesh": "jampump_apron_geometry",
+            "mappedLoops": 352
+          },
+          {
+            "mesh": "jampump_lever_geometry",
+            "mappedLoops": 54
+          },
+          {
+            "mesh": "jampump_nozzle_geometry",
+            "mappedLoops": 120
+          },
+          {
+            "mesh": "jampump_tank_geometry",
+            "mappedLoops": 784
+          }
+        ]
+      },
+      {
+        "id": "miller",
+        "surfaces": "Ткань фартука и мешка, волокна мельничного колеса",
+        "glb": "models/glb/miller-r2-06-texture-ab2-03.glb",
+        "glbSHA256": "6f0ade7be5a9b9e24f197b7ab03dde13acf908eb3a76d6eadcf41d7e960b536d",
+        "parity": "models/evidence/miller-r2-06-texture-ab2-03-parity.json",
+        "mappedMeshes": [
+          "miller_apron_geometry",
+          "miller_blade0_geometry",
+          "miller_blade1_geometry",
+          "miller_blade2_geometry",
+          "miller_blade3_geometry",
+          "miller_crank_geometry",
+          "miller_frame_geometry",
+          "miller_sack_geometry",
+          "miller_scarf_geometry",
+          "miller_sleeveL_geometry",
+          "miller_sleeveR_geometry",
+          "miller_wheel_geometry"
+        ],
+        "materials": 5,
+        "primitives": 40,
+        "blend": "models/blend/miller-r2-06-texture-ab2-03.blend",
+        "blenderMappedMeshes": [
+          {
+            "mesh": "miller_apron_geometry",
+            "mappedLoops": 352
+          },
+          {
+            "mesh": "miller_blade0_geometry",
+            "mappedLoops": 36
+          },
+          {
+            "mesh": "miller_blade1_geometry",
+            "mappedLoops": 36
+          },
+          {
+            "mesh": "miller_blade2_geometry",
+            "mappedLoops": 36
+          },
+          {
+            "mesh": "miller_blade3_geometry",
+            "mappedLoops": 36
+          },
+          {
+            "mesh": "miller_crank_geometry",
+            "mappedLoops": 54
+          },
+          {
+            "mesh": "miller_frame_geometry",
+            "mappedLoops": 288
+          },
+          {
+            "mesh": "miller_sack_geometry",
+            "mappedLoops": 324
+          },
+          {
+            "mesh": "miller_scarf_geometry",
+            "mappedLoops": 408
+          },
+          {
+            "mesh": "miller_sleeveL_geometry",
+            "mappedLoops": 84
+          },
+          {
+            "mesh": "miller_sleeveR_geometry",
+            "mappedLoops": 84
+          },
+          {
+            "mesh": "miller_wheel_geometry",
+            "mappedLoops": 1044
+          }
+        ]
+      }
+    ],
+    "sourceQuantiles": [
+      {
+        "quadrant": 0,
+        "sourceLinearP025": 0.21760942752063273,
+        "sourceLinearP975": 0.3838478563964367,
+        "outputLinearRange": [
+          0.34,
+          1
+        ]
+      },
+      {
+        "quadrant": 1,
+        "sourceLinearP025": 0.5501906150460243,
+        "sourceLinearP975": 0.8392855550765992,
+        "outputLinearRange": [
+          0.56,
+          1
+        ]
+      },
+      {
+        "quadrant": 2,
+        "sourceLinearP025": 0.23333177952468395,
+        "sourceLinearP975": 0.36848079848885534,
+        "outputLinearRange": [
+          0.28,
+          1
+        ]
+      },
+      {
+        "quadrant": 3,
+        "sourceLinearP025": 0.29378275738954546,
+        "sourceLinearP975": 0.4231270910561085,
+        "outputLinearRange": [
+          0.64,
+          1
+        ]
+      }
+    ],
+    "rootReview": {
+      "at": "2026-10-12T14:24:47.441Z",
+      "reviewer": "root",
+      "acceptedAs": "Working concept A/B only",
+      "assetRevision": "ab2-03",
+      "observed": "Wood and fabric visibly differ; faces remain plain; camera/frame/mesh comparison is honest.",
+      "boundary": "Texture marks are large and contrasty in places. Final material taste remains the owner choice. No automatic adoption into the game.",
+      "ownerDecisionPending": true,
+      "gameAdoption": false,
+      "screenshots": [
+        "models/previews/ab2/foreman-comparison.png",
+        "models/previews/ab2/jampump-comparison.png",
+        "models/previews/ab2/miller-comparison.png"
+      ]
+    }
+  },
+  "eventCameraEvidence": "evidence/root-event-cameras/critical-camera-states.json"
+}

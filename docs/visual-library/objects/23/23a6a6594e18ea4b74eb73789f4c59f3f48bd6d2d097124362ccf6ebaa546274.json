@@ -1,0 +1,203 @@
+{
+  "recordedAt": "2026-10-12T06:04:51.683Z",
+  "sourceFreeze": "79c7aa9061682aefdbf130d1fcc03e5689c7ecfd3dde341bcc65a9eac089b332",
+  "sourceFiles": 40,
+  "checks": [
+    {
+      "case": "wave16-kite",
+      "initialHash": 740502655,
+      "source": "actual SimRun/server shared step,35steps",
+      "passed": true,
+      "tick": 35,
+      "alive": 94
+    },
+    {
+      "case": "wave17-kite",
+      "initialHash": 2153560649,
+      "source": "actual SimRun/server shared step,35steps",
+      "passed": true,
+      "tick": 35,
+      "alive": 98
+    },
+    {
+      "case": "wave18-range",
+      "initialHash": 2076743752,
+      "source": "actual SimRun/server shared step,35steps",
+      "passed": true,
+      "tick": 35,
+      "alive": 102
+    },
+    {
+      "case": "wave19-guard",
+      "initialHash": 274728851,
+      "source": "actual SimRun/server shared step,35steps",
+      "passed": true,
+      "tick": 35,
+      "alive": 106
+    },
+    {
+      "case": "boss20-kite",
+      "initialHash": 1139308684,
+      "source": "actual SimRun/server shared step,35steps",
+      "passed": true,
+      "tick": 35,
+      "alive": 12
+    },
+    {
+      "case": "boss20-guard",
+      "initialHash": 203764072,
+      "source": "actual SimRun/server shared step,35steps",
+      "passed": true,
+      "tick": 35,
+      "alive": 12
+    },
+    {
+      "case": "boss20-range",
+      "initialHash": 1580377472,
+      "source": "actual SimRun/server shared step,35steps",
+      "passed": true,
+      "tick": 35,
+      "alive": 12
+    },
+    {
+      "case": "recipes-kite",
+      "initialHash": 3147219336,
+      "source": "actual SimRun/server shared step,35steps",
+      "passed": true,
+      "tick": 35,
+      "alive": 1
+    },
+    {
+      "case": "recipes-guard",
+      "initialHash": 2552695961,
+      "source": "actual SimRun/server shared step,35steps",
+      "passed": true,
+      "tick": 35,
+      "alive": 1
+    },
+    {
+      "case": "hook-contact",
+      "initialHash": 695938761,
+      "source": "actual SimRun/server shared step,35steps",
+      "passed": true,
+      "tick": 35,
+      "alive": 1
+    },
+    {
+      "case": "mole-Q",
+      "initialHash": 2948597782,
+      "source": "actual SimRun/server shared step,35steps",
+      "passed": true,
+      "tick": 35,
+      "alive": 1
+    },
+    {
+      "case": "rail-KB",
+      "initialHash": 3131326005,
+      "source": "actual SimRun/server shared step,35steps",
+      "passed": true,
+      "tick": 35,
+      "alive": 1
+    },
+    {
+      "case": "chain-twohits",
+      "initialHash": 4114220656,
+      "source": "actual SimRun/server shared step,35steps",
+      "passed": true,
+      "tick": 35,
+      "alive": 1
+    },
+    {
+      "case": "boss-phases",
+      "initialHash": 4139154799,
+      "source": "actual SimRun/server shared step,35steps",
+      "passed": true,
+      "tick": 35,
+      "alive": 1
+    },
+    {
+      "case": "distinct-deaths",
+      "initialHash": 2659240277,
+      "source": "actual SimRun/server shared step,35steps",
+      "passed": true,
+      "tick": 35,
+      "alive": 5
+    },
+    {
+      "case": "crowd-mixed",
+      "initialHash": 992307343,
+      "source": "actual SimRun/server shared step,35steps",
+      "passed": true,
+      "tick": 35,
+      "alive": 300
+    },
+    {
+      "case": "crowd-beetles",
+      "initialHash": 3498989214,
+      "source": "actual SimRun/server shared step,35steps",
+      "passed": true,
+      "tick": 35,
+      "alive": 300
+    },
+    {
+      "case": "timer20-to21",
+      "initialHash": 3280030446,
+      "source": "actual SimRun/server shared step,35steps",
+      "passed": true,
+      "tick": 35,
+      "alive": 12
+    },
+    {
+      "case": "mole-Q",
+      "passed": true,
+      "source": "actual charged Q input, not terminal-state injection",
+      "planted": {
+        "tick": 138,
+        "delta": 5.379858288491564e-15
+      },
+      "deaths": []
+    },
+    {
+      "case": "distinct-deaths",
+      "passed": true,
+      "source": "actual charged Q input, not terminal-state injection",
+      "planted": null,
+      "deaths": [
+        "hookclaw",
+        "wickmole",
+        "railhopper",
+        "chainwarden",
+        "cauldronmaster"
+      ]
+    }
+  ],
+  "passed": true,
+  "builtAssets": [
+    {
+      "id": "hookclaw",
+      "file": "hookclaw-sFILKhPz.glb",
+      "sha256": "b09162ef0c6aa575b461bdddb36100d9b761a254661da42045645fae0d31e79f"
+    },
+    {
+      "id": "wickmole",
+      "file": "wickmole-z8SSNohh.glb",
+      "sha256": "24c549c3ce061e7e393ff08f73b173e37e74077544ea9f6745747f34744245cb"
+    },
+    {
+      "id": "railhopper",
+      "file": "railhopper-yPxYN1e_.glb",
+      "sha256": "edf92d78c331f45deeee75db8a53b6e41b6df4ad9efe31857a9cdb0b99efe02f"
+    },
+    {
+      "id": "chainwarden",
+      "file": "chainwarden-D-frHuxa.glb",
+      "sha256": "129a73308dd0afcb3ec0c315dfde44af66b0edf5f783098a7152f1de5b5f5653"
+    },
+    {
+      "id": "cauldronmaster",
+      "file": "cauldronmaster-DUBScM7B.glb",
+      "sha256": "66b7e7d7b492090875add0ab7242f097b65ff33facb5eedeaea7fb88a19a6350"
+    }
+  ],
+  "limits": "Prep checks only. No browser, live websocket replay, screenshot/phase/VAT/FPS claims."
+}

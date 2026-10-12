@@ -1,0 +1,22 @@
+{
+  "revision": "R6 doc-only successor",
+  "commit": "4d354e33310ba3bd20272b27a90de552ccfa2732",
+  "testedSourceSHA": "79c7aa9061682aefdbf130d1fcc03e5689c7ecfd3dde341bcc65a9eac089b332",
+  "testedBase": "41b91a8",
+  "testedFiles": 40,
+  "currentExactTestedFiles": 39,
+  "changedAfterGameplay": [
+    {
+      "path": "docs/survivors/expansion-v2.md",
+      "testedSHA": "26312b3265d657e785ecc53f7807744e51264ef3c91387a7be88cff59ceb64ab",
+      "currentSHA": "be1e3533c9102a86b67ee024cae80ec847cb8196f0ee6f9934b12b03de360dc1",
+      "reason": "Root report/handoff doc only after actual acceptance"
+    }
+  ],
+  "gameCodeAndGLBUntouched": true,
+  "mainMerged": false,
+  "pushed": false,
+  "deployed": false,
+  "phoneVerified": false,
+  "htmlBrowserSmoke": "pending root after Product Lab window"
+}

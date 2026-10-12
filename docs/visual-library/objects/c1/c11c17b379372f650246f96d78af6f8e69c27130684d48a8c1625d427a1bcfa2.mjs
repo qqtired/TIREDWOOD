@@ -1,0 +1,9 @@
+import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import {pathToFileURL} from 'node:url';
+const GAME='[LOCAL_PATH]',threeUrl=pathToFileURL(GAME+'../../../../../../game-opus/node_modules/three/build/three.module.js').href,loaderUrl=pathToFileURL(GAME+'../../../../../../game-opus/node_modules/three/examples/jsm/loaders/GLTFLoader.js').href;
+const source=fs.readFileSync(new URL('./native-canopy-actors.js',import.meta.url),'utf8').replace("'three'",JSON.stringify(threeUrl)).replace("'three/addons/loaders/GLTFLoader.js'",JSON.stringify(loaderUrl)),{canopyScenePose}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
+const entry={id:'canopy',sceneClips:{coverBreak:'canopy_canopy_break',coverDisabled:'canopy_cover_disabled'},clipTimings:[['canopy_idle',2],['canopy_canopy_break',2.833333],['canopy_cover_disabled',2]].map(([name,span])=>({name,inputStart:1/24,inputEnd:1/24+span}))};
+test('living canopy counter preserves exact impact deadline, actual offset, right group and replay',()=>{
+ const state={t:5.9,choice:'canopy',choiceAt:5};assert.equal(canopyScenePose(entry,state,0).coverage,true);state.t=6;let p=canopyScenePose(entry,state,0);assert.equal(p.coverage,false);assert.equal(p.time,1/24);assert.equal(p.clip,'canopy_canopy_break');assert.equal(p.alive,true);
+ state.t=8.9;p=canopyScenePose(entry,state,0);assert.equal(p.clip,'canopy_cover_disabled');assert.equal(p.disabled,true);assert.equal(canopyScenePose(entry,state,1).coverage,true);assert.equal(canopyScenePose(entry,state,1).clip,'canopy_idle');const end=p;state.t=0;assert.equal(canopyScenePose(entry,state,0).coverage,true);state.t=8.9;assert.deepEqual(canopyScenePose(entry,state,0),end);
+ assert(!source.includes("name=entry.id+'_death'"));assert(!source.includes('cap.rotation'));assert(!source.includes('retime'));
+});

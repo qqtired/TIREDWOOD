@@ -1,0 +1,194 @@
+{
+  "models": [
+    {
+      "id": "ropecrab",
+      "name": "Канатник",
+      "glb": "models/glb/ropecrab-v3.glb",
+      "blend": "blender/ropecrab-v3.blend",
+      "render": "models/previews/ropecrab-v3.png",
+      "triangles": 3512,
+      "clips": [
+        "ropecrab_idle",
+        "ropecrab_walk",
+        "ropecrab_windup",
+        "ropecrab_attack",
+        "ropecrab_hit",
+        "ropecrab_death",
+        "ropecrab_route_attach",
+        "ropecrab_open"
+      ],
+      "animationStatus": "exported rigid-part clips; concept timing, not game integration",
+      "mcpEvidence": "models/evidence/ropecrab-v3-checks.json",
+      "height": 1.21,
+      "rigType": "rigid object animation, no skin",
+      "reference": "art/originals/01-mobs.png",
+      "mcpReceipt": "models/evidence/mcp-final-corrections.json",
+      "mcpSession": "models/evidence/mcp-session-start.json",
+      "previewViews": [
+        "models/previews/ropecrab-v3-profile.png",
+        "models/previews/ropecrab-v3-back.png",
+        "models/previews/ropecrab-v3-game.png"
+      ]
+    },
+    {
+      "id": "jampump",
+      "name": "Смоливщик",
+      "glb": "models/glb/jampump-v2.glb",
+      "blend": "blender/jampump-v2.blend",
+      "render": "models/previews/jampump-v2.png",
+      "triangles": 3466,
+      "clips": [
+        "jampump_idle",
+        "jampump_walk",
+        "jampump_windup",
+        "jampump_attack",
+        "jampump_hit",
+        "jampump_death",
+        "jampump_pump",
+        "jampump_open"
+      ],
+      "animationStatus": "exported rigid-part clips; concept timing, not game integration",
+      "mcpEvidence": "models/evidence/jampump-v2-checks.json",
+      "height": 1.589,
+      "rigType": "rigid object animation, no skin",
+      "reference": "art/originals/01-mobs.png",
+      "mcpReceipt": "models/evidence/mcp-final-corrections.json",
+      "mcpSession": "models/evidence/mcp-session-start.json",
+      "previewViews": [
+        "models/previews/jampump-v2-profile.png",
+        "models/previews/jampump-v2-back.png",
+        "models/previews/jampump-v2-game.png"
+      ]
+    },
+    {
+      "id": "canopy",
+      "name": "Зонтиковик",
+      "glb": "models/glb/canopy-v2.glb",
+      "blend": "blender/canopy-v2.blend",
+      "render": "models/previews/canopy-v2.png",
+      "triangles": 2384,
+      "clips": [
+        "canopy_idle",
+        "canopy_walk",
+        "canopy_windup",
+        "canopy_attack",
+        "canopy_hit",
+        "canopy_death",
+        "canopy_canopy_break",
+        "canopy_open"
+      ],
+      "animationStatus": "exported rigid-part clips; concept timing, not game integration",
+      "mcpEvidence": "models/evidence/canopy-v2-checks.json",
+      "height": 1.79,
+      "rigType": "rigid object animation, no skin",
+      "reference": "art/originals/01-mobs.png",
+      "mcpReceipt": "models/evidence/mcp-final-corrections.json",
+      "mcpSession": "models/evidence/mcp-session-start.json",
+      "previewViews": [
+        "models/previews/canopy-v2-profile.png",
+        "models/previews/canopy-v2-back.png",
+        "models/previews/canopy-v2-game.png"
+      ]
+    },
+    {
+      "id": "foreman",
+      "name": "Старшина осады",
+      "glb": "models/glb/foreman-v2.glb",
+      "blend": "blender/foreman-v2.blend",
+      "render": "models/previews/foreman-v2.png",
+      "triangles": 5464,
+      "clips": [
+        "foreman_idle",
+        "foreman_walk",
+        "foreman_windup",
+        "foreman_attack",
+        "foreman_hit",
+        "foreman_death",
+        "foreman_device_set",
+        "foreman_recover"
+      ],
+      "animationStatus": "exported rigid-part clips; concept timing, not game integration",
+      "mcpEvidence": "models/evidence/foreman-v2-checks.json",
+      "height": 2.44,
+      "rigType": "rigid object animation, no skin",
+      "reference": "art/originals/02-elite.png",
+      "mcpReceipt": "models/evidence/mcp-final-corrections.json",
+      "mcpSession": "models/evidence/mcp-session-start.json",
+      "previewViews": [
+        "models/previews/foreman-v2-profile.png",
+        "models/previews/foreman-v2-back.png",
+        "models/previews/foreman-v2-game.png"
+      ]
+    },
+    {
+      "id": "crabcrane",
+      "name": "Краб-Кран",
+      "glb": "models/glb/crabcrane-v2.glb",
+      "blend": "blender/crabcrane-v2.blend",
+      "render": "models/previews/crabcrane-v2.png",
+      "triangles": 13476,
+      "clips": [
+        "crabcrane_idle",
+        "crabcrane_walk",
+        "crabcrane_windup",
+        "crabcrane_attack",
+        "crabcrane_hit",
+        "crabcrane_death",
+        "crabcrane_spawn",
+        "crabcrane_anchor_set",
+        "crabcrane_hook_windup",
+        "crabcrane_hook_swing",
+        "crabcrane_open",
+        "crabcrane_rage",
+        "crabcrane_recover"
+      ],
+      "animationStatus": "exported rigid-part clips; concept timing, not game integration",
+      "mcpEvidence": "models/evidence/crabcrane-v2-checks.json",
+      "height": 3.572,
+      "rigType": "rigid object animation, no skin",
+      "reference": "art/originals/03-crab-boss.png",
+      "mcpReceipt": "models/evidence/mcp-final-corrections.json",
+      "mcpSession": "models/evidence/mcp-session-start.json",
+      "previewViews": [
+        "models/previews/crabcrane-v2-profile.png",
+        "models/previews/crabcrane-v2-back.png",
+        "models/previews/crabcrane-v2-game.png"
+      ]
+    },
+    {
+      "id": "miller",
+      "name": "Мельничиха",
+      "glb": "models/glb/miller-v1.glb",
+      "blend": "blender/miller-v1.blend",
+      "render": "models/previews/miller-v1.png",
+      "triangles": 16632,
+      "clips": [
+        "miller_idle",
+        "miller_walk",
+        "miller_windup",
+        "miller_attack",
+        "miller_hit",
+        "miller_death",
+        "miller_spawn",
+        "miller_crank",
+        "miller_gust",
+        "miller_jammed",
+        "miller_open",
+        "miller_rage",
+        "miller_recover"
+      ],
+      "animationStatus": "exported rigid-part clips; concept timing, not game integration",
+      "mcpEvidence": "models/evidence/miller-v1-checks.json",
+      "height": 4.49,
+      "rigType": "rigid object animation, no skin",
+      "reference": "art/originals/04-miller-boss.png",
+      "mcpReceipt": "models/evidence/mcp-miller-v1.json",
+      "mcpSession": "models/evidence/mcp-session-start.json",
+      "previewViews": [
+        "models/previews/miller-v1-profile.png",
+        "models/previews/miller-v1-back.png",
+        "models/previews/miller-v1-game.png"
+      ]
+    }
+  ]
+}

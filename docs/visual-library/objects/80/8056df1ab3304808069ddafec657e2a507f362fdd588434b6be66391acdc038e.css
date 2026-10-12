@@ -1,0 +1,20 @@
+/* Иконки — витрина набора (префикс .ic-) */
+.ic-wrap { display: grid; gap: var(--sp-5); }
+.ic-lead { max-width: 820px; margin: 0; font-size: var(--fs-16); line-height: 1.5; opacity: .9; }
+.ic-h { display: flex; align-items: baseline; gap: 10px; margin: 0 0 var(--sp-4); font: 900 var(--fs-22)/1.1 var(--font-display); }
+.ic-h span { font: 700 var(--fs-14)/1 var(--font-text); opacity: .65; }
+.ic-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: 12px; }
+.ic-tile { position: relative; display: grid; justify-items: center; gap: 6px; padding: 12px 8px 10px; border: 1px solid var(--line); border-radius: var(--r-md); background: color-mix(in srgb, var(--surf-text) 7%, transparent); color: inherit; font: 700 var(--fs-14)/1.2 var(--font-text); text-align: center; cursor: pointer; transition: transform .12s ease, border-color .12s ease; }
+.ic-tile:hover { border-color: var(--gold); transform: translateY(-2px); }
+.ic-big { width: 84px; height: 84px; object-fit: contain; filter: drop-shadow(0 3px 2px rgba(0, 0, 0, .25)); }
+.ic-small { position: absolute; right: 8px; bottom: 30px; width: 32px; height: 32px; object-fit: contain; }
+.ic-tile.is-pop .ic-big { animation: ic-pop .35s cubic-bezier(.2, 1.6, .4, 1); }
+@keyframes ic-pop { 0% { transform: scale(.8); } 100% { transform: scale(1); } }
+.ic-swap-row { display: flex; flex-wrap: wrap; gap: 14px 22px; }
+.ic-swap { display: grid; grid-template-columns: auto auto auto; grid-template-rows: auto auto; align-items: center; column-gap: 8px; }
+.ic-swap small { grid-column: 1 / -1; font-size: var(--fs-13); opacity: .75; text-align: center; }
+.ic-emoji { font-size: 34px; line-height: 1; }
+.ic-arrow { font-weight: 900; opacity: .6; }
+.ic-swap img { width: 48px; height: 48px; object-fit: contain; }
+.ic-note { margin: 0; font-size: var(--fs-14); opacity: .7; }
+@media (prefers-reduced-motion: reduce) { .ic-tile, .ic-tile.is-pop .ic-big { transition: none; animation: none; } }

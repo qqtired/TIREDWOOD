@@ -1,0 +1,73 @@
+{
+  "status": "design proposal agreed between concept and balance workers; owner approval and gameplay validation remain pending",
+  "baseline": {
+    "lastWave": 100,
+    "livePoolCap": 60,
+    "bodyCapByTeam": { "1": 60, "2": 85, "4": 135 },
+    "ordinaryRoles": ["Шаркун", "Шустрик", "Бугай", "Липучка", "Пузырь", "Крылатка", "Щитоносец", "Плевальщик", "Подрывник", "Лекарь", "Чугунок"],
+    "bossRotation": ["Барон Варенья", "Таран", "Валун", "Король-Тыква", "Ткачиха", "Леший"],
+    "bossFrequency": 7,
+    "superWaves": [25, 50, 75, 100],
+    "final": "Кракен IV и Барон одновременно",
+    "autoRespawnSeconds": 5,
+    "playerHp": 100,
+    "gateMaxBase": 1600,
+    "crystalMaxBase": 2500,
+    "rally": { "seconds": 8, "cooldownSeconds": 30, "structureMitigation": 0.5 },
+    "sources": ["shared/fort.ts:19-57", "shared/fortkinds.ts:34-35,78-98", "shared/fortwaves.ts:6-47,225-228"]
+  },
+  "newRoles": [
+    { "name": "Канатник", "firstWave": 18, "baseHp": 90, "speed": 2.6, "gateDps": 5, "crystalDps": 6, "hit": 10, "catalogCost": 5, "urgencySlots": 1, "ability": { "setupSeconds": 4, "ropeLimit": 1, "crewLimit": 4, "aimedHits": 3 } },
+    { "name": "Смоливщик", "firstWave": 24, "baseHp": 110, "speed": 2, "gateDps": 6, "crystalDps": 8, "hit": 12, "catalogCost": 6, "urgencySlots": 1, "ability": { "warningSeconds": 1.8, "durationSeconds": 6, "towerRateReduction": 0.45, "towerDebuffLimit": 1, "aimedHits": 2 } },
+    { "name": "Зонтиковик", "firstWave": 32, "baseHp": 140, "speed": 1.8, "gateDps": 10, "crystalDps": 10, "hit": 12, "catalogCost": 6, "urgencySlots": 1, "ability": { "protectedOrdinaryLimit": 3, "fieldLimit": 2, "frontAndTopReduction": 0.35, "lockWeakspotMultiplier": 1.6, "explosiveAndFlankBypass": true } },
+    { "name": "Старшина", "firstWave": 40, "rankOn": "existing shield/sapper", "hpMultiplier": 1.5, "urgencySlots": 2, "ability": { "setupSeconds": 4, "deviceLimit": 1, "aimedHits": 4 } }
+  ],
+  "deviceCounter": { "normalAimedPlayerShot": 1, "heavyAimedPlayerShot": 2, "minimumAcceptedHitIntervalSeconds": 0.12, "shotgunPelletsAreOneShot": true, "turretBodyHitsCount": false, "bodyCanBeKilledNormally": true, "replacesEarlierFixed120And80HpSuggestion": true },
+  "newBosses": [
+    { "name": "Краб-Кран", "waves": [56, 91], "replaceRepeatedOldBoss": true },
+    { "name": "Мельничиха", "waves": [63, 98], "replaceRepeatedOldBoss": true }
+  ],
+  "director": {
+    "additionalHpMultiplier": 1,
+    "newRolesReplaceExistingHpBudgetShare": true,
+    "livePoolCap": 60,
+    "reservedUrgentSlotsWithinPool": 6,
+    "bodyCapByTeam": { "1": 60, "2": 85, "4": 135 },
+    "activeUrgencySlotsByTeam": { "1": 2, "2": 3, "4": 4 },
+    "specialistLiveLimitByTeam": { "1": 6, "2": 8, "4": 12 },
+    "simultaneousNewAbilities": 2,
+    "weights": { "newRoleAbility": 1, "eliteSiegeAbility": 2, "bossActiveAttack": 2, "hazardEvent": 2, "oldFlyerOrSpitterWarning": 0.5, "oldSapperLitFuse": 1 },
+    "queuedUrgencyMustNotBeSilentlySkipped": true,
+    "firstEncounterIsolatedUrgencySeconds": 4,
+    "minimumPersonalDeadlineSeparationSeconds": 2.5,
+    "minimumSafeConnectedRouteWidthMeters": 2.4,
+    "maximumProtectionModifiersOnOneTarget": 1,
+    "forbiddenCombo": "umbrella protection + shield/armored reduction + medic healing; exit blockade + lane hit + slow + hazard",
+    "finalUsesWholeFourPlayerUrgencyBudget": true
+  },
+  "combatRepair": { "channelSeconds": 4, "sharedCooldownAfterSuccessSeconds": 8, "scope": "separate cooldown per gate/crystal station", "interruptOnMovementOrPlayerDamage": true, "chargeGoldOnCompletion": true, "simultaneousCompletionLimit": 1, "breakInstant": true, "keepCurrentPricesAndHpFractionsFirstAB": true },
+  "newDamage": { "ordinarySpecialHitCap": 45, "bossHitCap": 75, "minimumBossWarningSeconds": 1.8, "minimumBossOpenSeconds": 3, "doesNotSilentlyChangeAllOldAttacks": true, "unavoidableOverlapsForbidden": true },
+  "playtestTargets": {
+    "notPredictions": true,
+    "noviceFirst10Completion": { "minimum": 0.9 },
+    "midTeamTypicalClearRange": [40, 60],
+    "advancedTeamTypicalClearRange": [75, 100],
+    "fourPlayerFull100WinRateRange": [0.25, 0.45],
+    "ordinaryEarlySeconds": [25, 40],
+    "ordinaryMidSeconds": [35, 45],
+    "ordinaryLateSeconds": [40, 55],
+    "bossSeconds": [60, 100],
+    "krakenSeconds": [90, 140],
+    "finalSeconds": [150, 210],
+    "normalBreakSeconds": 10,
+    "bossBreakSeconds": 18,
+    "beforeKrakenBreakSeconds": 30,
+    "readySeconds": 3,
+    "fullRunMinutes": [90, 110],
+    "naturalExitMilestones": [20, 40, 60],
+    "meaningfulPositionOrPriorityChangesPerDefenderPer3LateWaves": 2
+  },
+  "verificationRequired": ["1/2/4 players", "novice/mid/advanced and separately unattainable legal-max gear", "deterministic seed budget coverage", "every new counterplay and failure route", "actual four-player later-wave sessions", "full run and duration/rewards", "position/priority changes", "repair channel pressure", "geometric unavoidable-overlap detection", "desktop rendering/network budget"],
+  "notRunByBalanceWorker": ["full check/test/build", "game server", "browser", "real players", "phone", "production", "Blender"],
+  "notes": ["Source calculation data and tables are available in balance-data.json and tables.md.", "No single cause of Roman's easy wave-98 session is proven without session telemetry.", "Literal damage-level-60 maximum is not a reachable normal 100-wave build.", "Do not merge old fixed device HP and new hitcounter specifications."]
+}

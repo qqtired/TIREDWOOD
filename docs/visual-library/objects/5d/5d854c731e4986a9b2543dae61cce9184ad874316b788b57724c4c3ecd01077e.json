@@ -1,0 +1,14 @@
+{
+  "case": "distinct-deaths",
+  "automated": "FAIL",
+  "visual": "NOT_ACCEPTED",
+  "error": "Error: semantic capture condition not observed\n    at http://127.0.0.1:5317/__dungeon_qa/client.mjs:76:127",
+  "flags": {
+    "nativeGlobalMenuResumed": true,
+    "ticksAdvanced": true,
+    "serverParity": true,
+    "fiveDeaths": true
+  },
+  "elapsedMs": 12255,
+  "sourceFreeze": "79c7aa9061682aefdbf130d1fcc03e5689c7ecfd3dde341bcc65a9eac089b332"
+}

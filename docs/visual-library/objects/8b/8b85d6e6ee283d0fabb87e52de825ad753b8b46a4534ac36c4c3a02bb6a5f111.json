@@ -1,0 +1,62 @@
+{
+  "recordedAt": "2026-10-12T07:34:34.551Z",
+  "status": "BLOCKED_NOT_ACCEPTED",
+  "default": "plain",
+  "plainDefaultChanged": false,
+  "rootObserved": {
+    "policy": "production CSP connect-src self wss://game.tired.solutions; blob fetch rejected",
+    "loaderError": "GLTFLoader could not load embedded texture and returned map=null"
+  },
+  "sourceVerified": {
+    "threeVersion": "0.186.1",
+    "dungeonLoader": "client/dungeon/assets.ts:61 ordinary GLTFLoader",
+    "chromeBitmapSelection": "node_modules/three/examples/jsm/loaders/GLTFLoader.js:2653-2661",
+    "embeddedBlobURL": "node_modules/three/examples/jsm/loaders/GLTFLoader.js:3359-3369",
+    "bitmapFetch": "node_modules/three/src/loaders/ImageBitmapLoader.js:173",
+    "nullTextureFallback": "node_modules/three/examples/jsm/loaders/GLTFLoader.js:3331",
+    "CSP": "tools/release/csp-proxy.mjs:8",
+    "embeddedPNGBytes": 919127,
+    "pngSize": [
+      1024,
+      1024
+    ],
+    "images": 1,
+    "textures": 1,
+    "texCoord": 0
+  },
+  "actualEvidence": {
+    "result": "../evidence/runtime-r6-root/failures/run-1791789653175-C/atlas/result.json",
+    "resultSHA256": "8089b86fa832d2abc7f446f72ccbddfa59accf20643391e93603c66dfb28cc4b",
+    "snapshot": "../evidence/runtime-r6-root/failures/run-1791789653175-C/atlas/soft-same-pose.json",
+    "snapshotSHA256": "30a5bbac6f37132f36f57956b8d02dff26dc548f24c43baa1d847938632ce82a",
+    "automated": "FAIL",
+    "visual": "NOT_ACCEPTED",
+    "serverParity": true,
+    "sameActualRendererPose": true,
+    "softShaderLinked": true,
+    "softMapBound": false,
+    "defaultRestored": true,
+    "failedPrograms": [],
+    "liveMaterialsWithMap": 0,
+    "originalResult": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791789653175-C/atlas/result.json",
+    "originalSnapshot": "/tmp/tiredwood-farm-pack1.NNujvo/dungeon-runtime-r6/late-captures/run-1791789653175-C/atlas/soft-same-pose.json"
+  },
+  "interpretation": "Shader link success here is an untextured shader; live atlas/VAT texture acceptance under production CSP is not established. Native structure/brightness/exact-motion proofs remain valid.",
+  "necessity": "No loader/CSP change needed for current plain-default delivery; optional atlas remains a separate unaccepted experiment.",
+  "futureMinimalProposal": {
+    "preferred": "Scoped GLTFLoader plugin decodes already loaded embedded PNG/JPEG bufferView with createImageBitmap(new Blob(bytes)) directly, avoiding fetch(blob). Preserve standard GLTF sampler/flipY/colorSpace and existing UV/map factor path.",
+    "alternative": "Scoped TextureLoader with data URI made from embedded bytes; current img-src data: permits that image path. TextureLoader alone with the existing blob URL is not claimed compatible without a CSP test.",
+    "notApplied": true,
+    "CSPRelaxation": false,
+    "acceptance": "Same production CSP, no texture load/CSP violations, actual merged live material map and UV0 bound with positive image dimensions, shader link, same-pose A/B and performance before accepting."
+  },
+  "runtimeHelpersOwnedByRoot": true,
+  "runtimeHelpersEditedByThisAgent": false,
+  "gameSourceEdited": false,
+  "ranChrome": false,
+  "ranServer": false,
+  "ranBuild": false,
+  "rebundled": false,
+  "sourceFreeze": "79c7aa9061682aefdbf130d1fcc03e5689c7ecfd3dde341bcc65a9eac089b332",
+  "durableEvidence": true
+}

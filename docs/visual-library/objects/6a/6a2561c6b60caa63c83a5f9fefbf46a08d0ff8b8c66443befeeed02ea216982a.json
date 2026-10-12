@@ -1,0 +1,13 @@
+{
+  "case": "timer20-to21",
+  "automated": "FAIL",
+  "visual": "NOT_ACCEPTED",
+  "error": "Boss disappeared at timer",
+  "flags": {
+    "nativeGlobalMenuResumed": true,
+    "ticksAdvanced": true,
+    "serverParity": true
+  },
+  "elapsedMs": 125225,
+  "sourceFreeze": "79c7aa9061682aefdbf130d1fcc03e5689c7ecfd3dde341bcc65a9eac089b332"
+}

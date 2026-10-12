@@ -1,0 +1,44 @@
+[
+  {
+    "name": "pier-day",
+    "width": 1440,
+    "height": 900,
+    "meanChannelDelta": 0.2527919238683128,
+    "pixelsOver16Pct": 0.6607253086419753
+  },
+  {
+    "name": "spawn-day",
+    "width": 1440,
+    "height": 900,
+    "meanChannelDelta": 0.6351211419753087,
+    "pixelsOver16Pct": 0.6504629629629629
+  },
+  {
+    "name": "games-day",
+    "width": 1440,
+    "height": 900,
+    "meanChannelDelta": 0.010246913580246915,
+    "pixelsOver16Pct": 0.02808641975308642
+  },
+  {
+    "name": "marina-day",
+    "width": 1440,
+    "height": 900,
+    "meanChannelDelta": 0.018878343621399177,
+    "pixelsOver16Pct": 0.045910493827160496
+  },
+  {
+    "name": "spawn-night",
+    "width": 1440,
+    "height": 900,
+    "meanChannelDelta": 0.37898148148148153,
+    "pixelsOver16Pct": 0.6191358024691358
+  },
+  {
+    "name": "marina-rain",
+    "width": 1440,
+    "height": 900,
+    "meanChannelDelta": 1.2160007716049381,
+    "pixelsOver16Pct": 1.1277777777777778
+  }
+]

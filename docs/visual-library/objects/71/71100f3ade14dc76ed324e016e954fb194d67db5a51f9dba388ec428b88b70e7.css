@@ -1,0 +1,20 @@
+/* «Портовая регата» на ките 2.0 (client/lobby/regattahud.ts): те же детали, что у картинга (client/ui/kit/modes.css, .mo-*),
+   акцент — морская лазурь. Регата живёт на набережной: части в слотах кита прячет сама (hidden), пока ты не в катере. */
+
+/* свои части в общих слотах кита — только на набережной и только у гонщика (html[data-rg] ставит regattahud.ts) */
+html:not([data-room='lobby']) .rg-only, html:not([data-rg]) .rg-only { display: none !important; }
+.k-hud .rg-only[hidden] { display: none !important; }
+
+/* цвет режима — у слоёв кита, пока ты в катере (бейдж, тосты, полоса «через N с») */
+html[data-rg] { --mode-w: var(--m-regatta); --mode-h: var(--mh-regatta); }
+
+/* крупный баннер регаты («Круг 2», «Последний круг!», «Финиш!») — поменьше (is-sm), чтобы не закрывать воду */
+html[data-rg] .k-hud > .k-slot--c .k-hero-title { font-size: calc(40px * var(--display-scale)); }
+/* «Не туда!» держится, пока плывёшь против хода (снимает regattahud.ts), — без растворения */
+html[data-rg] .k-hud > .k-slot--c > .k-hero--lose.is-play { animation: k-hero-pop .7s var(--ease-pop) both; }
+
+/* в катере эмоции не нужны: внизу справа — только скорость */
+html[data-rg] .pz-emotes { display: none !important; }
+
+/* итоги: пилюля «ещё!» — у ника, не переносом */
+.rg-scrim .k-who { flex-wrap: nowrap; white-space: nowrap; }

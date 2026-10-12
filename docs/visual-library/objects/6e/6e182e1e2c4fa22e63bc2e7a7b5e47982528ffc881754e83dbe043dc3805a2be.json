@@ -1,0 +1,78 @@
+{
+  "status": "PASS",
+  "file": "../../../../models/glb/ropecrab-r2-07.glb",
+  "sha256": "8cad56396653cfa2b49aa9885cc6d42949a782be2927e0cd61ded48b36c712c0",
+  "scope": "Actual GLB pincer/shaft exported ports during entire prepare and attack before .58s jaw release; intended free motion after release",
+  "heldReleaseKeySeconds": 0.58,
+  "checks": {
+    "heldShaftContact": true,
+    "jawsReleaseCorrectly": true
+  },
+  "clips": [
+    {
+      "clip": "windup",
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 4.041666507720947,
+      "heldUntilKeySeconds": 3.999999839812517,
+      "maxHeldPortGapM": 7.903428646861198e-8,
+      "maxHeldJawAngleRadians": 0.0005982205221994746,
+      "finalReleasedJawAngleRadians": 0,
+      "worstKeySeconds": 1.75,
+      "postRelease": []
+    },
+    {
+      "clip": "attack",
+      "inputStart": 0.0416666679084301,
+      "inputEnd": 0.875,
+      "heldUntilKeySeconds": 0.58,
+      "maxHeldPortGapM": 5.960464477539063e-8,
+      "maxHeldJawAngleRadians": 0,
+      "finalReleasedJawAngleRadians": 0.3000000194673948,
+      "worstKeySeconds": 0,
+      "postRelease": [
+        {
+          "keyTime": 0.5833333333333334,
+          "inputTime": 0.6250000012417635,
+          "gapM": 0.00013331177102360523,
+          "jawOpeningRadians": 0.00020452457752947637
+        },
+        {
+          "keyTime": 0.625,
+          "inputTime": 0.6666666679084301,
+          "gapM": 0.019044312546380067,
+          "jawOpeningRadians": 0.032520181982685886
+        },
+        {
+          "keyTime": 0.6666666666666666,
+          "inputTime": 0.7083333345750967,
+          "gapM": 0.044245118606069514,
+          "jawOpeningRadians": 0.10298857934684541
+        },
+        {
+          "keyTime": 0.7083333333333334,
+          "inputTime": 0.7500000012417635,
+          "gapM": 0.04571669240323534,
+          "jawOpeningRadians": 0.18715279955120703
+        },
+        {
+          "keyTime": 0.75,
+          "inputTime": 0.7916666679084301,
+          "gapM": 0.02354325827978629,
+          "jawOpeningRadians": 0.2605559506228501
+        },
+        {
+          "keyTime": 0.7916666666666666,
+          "inputTime": 0.8333333345750967,
+          "gapM": 0.00845470294821251,
+          "jawOpeningRadians": 0.29874127376012405
+        },
+        {
+          "keyTime": 0.8333333333333334,
+          "inputTime": 0.8750000012417635,
+          "gapM": 0.009999990463256836,
+          "jawOpeningRadians": 0.3000000194673948
+        }
+      ]
+    }
+  ]
+}

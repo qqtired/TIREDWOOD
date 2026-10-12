@@ -1,0 +1,3 @@
+Original generated file: [LOCAL_PATH]
+Tool: image_gen.imagegen (built-in image generation)
+Model: identifier not exposed by the built-in tool

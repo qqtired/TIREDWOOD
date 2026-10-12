@@ -1,0 +1,868 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>im tired</title>
+<meta name="description" content="im tired">
+<meta name="theme-color" content="#000000">
+<meta name="color-scheme" content="dark">
+<meta property="og:title" content="im tired">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://tired.solutions/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23000'/%3E%3Crect x='4' y='11' width='8' height='2' fill='%23fff'/%3E%3C/svg%3E">
+<script>document.documentElement.classList.add('js')</script>
+<style>
+  :root {
+    --bg: #000;
+    --fg: #fff;
+    --red: #ff2a55;
+    --cyan: #27e1ff;
+    --p: 1;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body { height: 100%; background: var(--bg); overflow: hidden; }
+
+  body {
+    display: grid;
+    place-items: center;
+    color: var(--fg);
+    font: 400 clamp(12px, 0.45vw + 8px, 15px) / 1 ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection { background: var(--fg); color: var(--bg); }
+
+  /* ---------- text ---------- */
+
+  .stage { position: relative; z-index: 1; }
+
+  /* ---------- lighthouse ---------- */
+
+  .lighthouse {
+    position: absolute;
+    bottom: calc(100% + 2.2rem);
+    left: 50%;
+    width: 64ch;
+    height: 36em;
+    font-family: inherit;
+    font-size: min(9px, calc((100vw - 48px) / 40), calc((50vh - 64px) / 36));
+    font-size: min(9px, calc((100vw - 48px) / 40), calc((50svh - 64px) / 36));
+    line-height: 1.2;
+    letter-spacing: 0;
+    white-space: pre;
+    color: var(--fg);
+    opacity: 0.82;
+    transform: translateX(-50%);
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .word {
+    position: relative;
+    font: inherit;
+    letter-spacing: 0.35em;
+    padding-left: 0.35em; /* balances trailing letter-spacing so the text sits dead centre */
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.28);
+    will-change: transform, opacity;
+  }
+
+  .txt { position: relative; display: inline-block; white-space: pre; }
+
+  .txt::before,
+  .txt::after {
+    content: attr(data-text);
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    mix-blend-mode: screen;
+    text-shadow: none;
+    pointer-events: none;
+  }
+  .txt::before { color: var(--red); }
+  .txt::after  { color: var(--cyan); }
+
+  .cur {
+    position: absolute;
+    left: 100%;
+    top: 0;
+    animation: blink 1.2s steps(1) infinite;
+  }
+  .js .cur { opacity: 0; animation: none; }
+  .js.ready .cur { opacity: 1; animation: blink 1.2s steps(1) infinite; }
+
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* glitch burst: toggled from JS */
+  .glitch .word { transform: translate(var(--gx, 0), var(--gy, 0)); }
+  .glitch .txt::before { opacity: 0.9; animation: split-a 0.26s steps(1) infinite; }
+  .glitch .txt::after  { opacity: 0.9; animation: split-b 0.26s steps(1) infinite; }
+
+  @keyframes split-a {
+    0%   { clip-path: inset(10% 0 60% 0); transform: translate(calc(var(--p) * -2px), 0); }
+    25%  { clip-path: inset(62% 0 8% 0);  transform: translate(calc(var(--p) * 3px), 0); }
+    50%  { clip-path: inset(30% 0 42% 0); transform: translate(calc(var(--p) * -4px), 0); }
+    75%  { clip-path: inset(80% 0 2% 0);  transform: translate(calc(var(--p) * 1px), 0); }
+    100% { clip-path: inset(4% 0 78% 0);  transform: translate(calc(var(--p) * -1px), 0); }
+  }
+  @keyframes split-b {
+    0%   { clip-path: inset(55% 0 20% 0); transform: translate(calc(var(--p) * 2px), 0); }
+    25%  { clip-path: inset(4% 0 70% 0);  transform: translate(calc(var(--p) * -3px), 0); }
+    50%  { clip-path: inset(70% 0 10% 0); transform: translate(calc(var(--p) * 3px), 0); }
+    75%  { clip-path: inset(20% 0 56% 0); transform: translate(calc(var(--p) * -2px), 0); }
+    100% { clip-path: inset(40% 0 36% 0); transform: translate(calc(var(--p) * 1px), 0); }
+  }
+
+  /* ---------- social links ---------- */
+
+  /* hangs under the word, so the word itself stays dead centre */
+  .links {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    display: flex;
+    gap: 1em;
+    margin-top: 1.9em;
+    transform: translateX(-50%);
+  }
+
+  .link {
+    position: relative;
+    display: block;
+    padding: 0.6em;
+    color: var(--fg);
+    opacity: 0.55;
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: opacity 0.15s;
+  }
+  .link:hover, .link:focus-visible, .link.hot { opacity: 1; }
+  .link:focus-visible { outline: 1px dashed rgba(255, 255, 255, 0.35); outline-offset: 1px; }
+  .js .link:not(.on) { opacity: 0; pointer-events: none; }
+
+  /* fingers: bigger hit area, same look (padding grows, gap and offset shrink to match) */
+  @media (pointer: coarse) {
+    .links { gap: 0.2em; margin-top: 1.5em; }
+    .link { padding: 1em; }
+  }
+
+  .ico { position: relative; display: block; width: 1.45em; height: 1.45em; }
+  .ico svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .ico .m { filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.35)); }
+  .ico .r, .ico .c { opacity: 0; mix-blend-mode: screen; }
+  .ico .r { color: var(--red); }
+  .ico .c { color: var(--cyan); }
+
+  /* hovered: steady colour fringe */
+  .link.hot .ico .r { opacity: 0.75; transform: translate(-1px, 0); }
+  .link.hot .ico .c { opacity: 0.75; transform: translate(1px, 0); }
+
+  /* glitch: shared bursts (.glitch-links) and per-icon zaps (.zap), both from JS */
+  .glitch-links .link.on .ico, .link.zap .ico { transform: translate(var(--lx, 0), var(--ly, 0)); }
+  .glitch-links .link.on .ico .r, .link.zap .ico .r { opacity: 0.9; animation: split-a 0.26s steps(1) infinite; }
+  .glitch-links .link.on .ico .c, .link.zap .ico .c { opacity: 0.9; animation: split-b 0.26s steps(1) infinite; }
+
+  /* centred under its own icon */
+  .handle {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-top: 0.3em;
+    padding-left: 0.2em;
+    font-size: 0.82em;
+    letter-spacing: 0.2em;
+    white-space: pre;
+    opacity: 0.75;
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.25);
+    transform: translateX(-50%);
+    pointer-events: none;
+  }
+
+  /* ---------- screen fx ---------- */
+
+  .fx { position: fixed; pointer-events: none; }
+
+  .slices { inset: 0; z-index: 2; }
+  .slice { position: absolute; display: block; background: var(--fg); }
+  .slice.band { background: var(--noise, none) 0 0 / 200px 200px; }
+
+  /* Fine film grain behind the content; a small overscan keeps every edge covered. */
+  .grain {
+    inset: -96px;
+    z-index: 0;
+    opacity: 0.16;
+    background: var(--noise, none) 0 0 / 256px 256px;
+    animation: grain 1s steps(1) infinite;
+  }
+  @keyframes grain {
+    0%   { transform: translate(0, 0); }
+    10%  { transform: translate(-32px, -48px); }
+    20%  { transform: translate(-64px, 24px); }
+    30%  { transform: translate(40px, -72px); }
+    40%  { transform: translate(-24px, 64px); }
+    50%  { transform: translate(-80px, 32px); }
+    60%  { transform: translate(64px, 0); }
+    70%  { transform: translate(0, 48px); }
+    80%  { transform: translate(24px, 80px); }
+    90%  { transform: translate(-48px, 40px); }
+  }
+
+  /* dark scanlines: invisible on black, they only texture the text */
+  .scan {
+    inset: 0;
+    z-index: 4;
+    background: repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.32) 0 1px, transparent 1px 3px);
+  }
+
+  /* slow crt roll bar */
+  .roll {
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 30vh;
+    z-index: 5;
+    background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.03) 50%, transparent);
+    animation: roll 11s linear infinite;
+  }
+  @keyframes roll {
+    from { transform: translateY(-30vh); }
+    to   { transform: translateY(130vh); }
+  }
+
+  .vignette {
+    inset: 0;
+    z-index: 6;
+    background: radial-gradient(ellipse at center, transparent 50%, rgba(0, 0, 0, 0.6) 100%);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .grain, .cur, .js.ready .cur { animation: none; }
+    .roll { display: none; }
+  }
+</style>
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-tg" viewBox="0 0 24 24"><path d="M21 4 3 11l5.2 2L10 19l3-3.6 4.6 4.2zM8.2 13 18.5 6.6l-7.3 7.2-1.2 5.2"/></symbol>
+    <symbol id="i-ig" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="4.8"/><circle cx="12" cy="12" r="3.9"/><circle cx="16.9" cy="7.1" r="0.5" fill="currentColor"/></symbol>
+  </svg>
+
+  <main class="stage">
+    <pre class="lighthouse" aria-hidden="true">         ·   *
+                                +                  .
+                              ##*+-
+                             ###*+=-
+                             -:+*+:-   .......::::::::::::::::::
+    .                   ·    -:*o*:-=====-----------::::::::::::
+                             -:+*+:-  ...:::::::-:::::::::::::::
+                           :#:*:+:+:=:              ............
+          *               --------::...     ·
+   .        .               #%%##*+-:
+                            #%%##*+-:
+                       *    #%%##*+=:   .
+                    *       ::::::...
+                            ::::.:...              .
+        ·                   ::::::...          ·
+        .                  ##%###*+=-:
+                           #%%###*+=-:
+                           #%%###*+=-:
+                           :::::::....
+_______________..-------=--:::::::....###+=____________.....____
+         ..-------. -%%%##+:::::::....%%#*=-.        .....~~...
+            :   ~=**=.***+-#%%#...+=-:*++-:=%#*+.  --      -~~~~
+           :  :%%%%#*+-..%%%%#*+-.+:%%#*+:#%%#*+-.--        -~~~
+~~       : :: ~++*++=:..#%%##*+=-.%%%##*+=:.      #+~~-  -~-
+   ~~      ~~~~~~~   ~~  ====-:...-+*++--..  -- .*+=.
+ ~~       =*=     ~    ~        -~~~~===~    --               ~
+        ~~         ~~~            -~~   --        ~~~        ~~~
+      ~~~         ~                 ~~~-       ~   ~~
+         ~~            ~~         ~~~~         ~~             ~
+             ~~      ~   ~~      -~~   ~           ~~~        ~~</pre>
+    <h1 class="word" aria-label="im tired"><span class="txt" data-text="im tired" aria-hidden="true">im tired</span><span class="cur" aria-hidden="true">_</span></h1>
+    <nav class="links" aria-label="social">
+      <a class="link" href="https://t.me/qqtired" target="_blank" rel="noopener noreferrer" aria-label="Telegram @qqtired" data-handle="@qqtired">
+        <span class="ico" aria-hidden="true"><svg class="m" viewBox="0 0 24 24"><use href="#i-tg"/></svg><svg class="r" viewBox="0 0 24 24"><use href="#i-tg"/></svg><svg class="c" viewBox="0 0 24 24"><use href="#i-tg"/></svg></span>
+        <span class="handle" aria-hidden="true"></span>
+      </a>
+      <a class="link" href="https://www.instagram.com/lostintired/" target="_blank" rel="noopener noreferrer" aria-label="Instagram @lostintired" data-handle="@lostintired">
+        <span class="ico" aria-hidden="true"><svg class="m" viewBox="0 0 24 24"><use href="#i-ig"/></svg><svg class="r" viewBox="0 0 24 24"><use href="#i-ig"/></svg><svg class="c" viewBox="0 0 24 24"><use href="#i-ig"/></svg></span>
+        <span class="handle" aria-hidden="true"></span>
+      </a>
+    </nav>
+  </main>
+
+  <div class="fx slices" aria-hidden="true"></div>
+  <div class="fx grain" aria-hidden="true"></div>
+  <div class="fx scan" aria-hidden="true"></div>
+  <div class="fx roll" aria-hidden="true"></div>
+  <div class="fx vignette" aria-hidden="true"></div>
+
+<script>
+(() => {
+  const root = document.documentElement;
+  const word = document.querySelector('.word');
+  const txt = document.querySelector('.txt');
+  const slices = document.querySelector('.slices');
+  const nav = document.querySelector('.links');
+  const links = [...document.querySelectorAll('.link')];
+
+  const TARGET = 'im tired';
+  const GLYPHS = '!<>-_\\/[]{}=+*^?#%&@$01';
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const pick = s => s[Math.floor(Math.random() * s.length)];
+  const later = (fn, ms) => setTimeout(fn, ms);
+  const set = s => { txt.textContent = s; txt.dataset.text = s; };
+
+  // A soft, monochrome tile, generated once at the display's pixel density.
+  try {
+    const size = Math.round(256 * Math.min(window.devicePixelRatio || 1, 2));
+    const c = document.createElement('canvas');
+    c.width = c.height = size;
+    const ctx = c.getContext('2d');
+    const img = ctx.createImageData(size, size);
+    for (let i = 0; i < img.data.length; i += 4) {
+      const v = Math.round((Math.random() + Math.random()) * 127.5);
+      img.data[i] = img.data[i + 1] = img.data[i + 2] = v;
+      img.data[i + 3] = 255;
+    }
+    ctx.putImageData(img, 0, 0);
+    root.style.setProperty('--noise', `url(${c.toDataURL('image/png')})`);
+  } catch (e) { /* no grain, still fine */ }
+
+  // ---------- intro: scrambled glyphs settle into the word ----------
+
+  function decode(done) {
+    const n = TARGET.length;
+    const appear = [...TARGET].map((_, i) => i * 70);
+    const settle = appear.map(t => t + rand(350, 900));
+    const end = Math.max(...settle);
+    const start = performance.now();
+    let last = 0;
+
+    const frame = now => {
+      const t = now - start;
+      if (now - last > 45) {
+        last = now;
+        set([...TARGET].map((ch, i) => {
+          if (ch === ' ' || t < appear[i]) return ' ';
+          return t >= settle[i] ? ch : pick(GLYPHS);
+        }).join(''));
+      }
+      if (t < end) requestAnimationFrame(frame);
+      else { set(TARGET); done(); }
+    };
+    requestAnimationFrame(frame);
+  }
+
+  // ---------- glitch burst ----------
+
+  let busy = false;
+
+  function slice(p, y) {
+    const el = document.createElement('i');
+    const s = el.style;
+    const r = Math.random();
+    const nearText = Math.random() < 0.35;
+    s.top = y != null ? `${(y + rand(-10, 10)).toFixed(1)}px`
+      : nearText ? `calc(50% + ${rand(-14, 14).toFixed(1)}px)` : `${rand(0, 100).toFixed(1)}%`;
+
+    if (r < 0.45) {            // thin bright line
+      el.className = 'slice';
+      s.height = Math.random() < 0.7 ? '1px' : '2px';
+      s.left = `${rand(-10, 50)}%`;
+      s.width = `${rand(20, 100)}%`;
+      s.opacity = Math.min(0.5, rand(0.06, 0.28) * p).toFixed(2);
+    } else if (r < 0.85) {     // full-width noise band
+      el.className = 'slice band';
+      s.height = `${rand(2, 10 * p) | 0}px`;
+      s.left = '0';
+      s.width = '100%';
+      s.opacity = rand(0.12, 0.4).toFixed(2);
+      s.backgroundPosition = `${rand(0, 200) | 0}px ${rand(0, 200) | 0}px`;
+    } else {                   // small noise block
+      el.className = 'slice band';
+      s.height = `${rand(6, 34) | 0}px`;
+      s.left = `${rand(0, 92)}%`;
+      s.width = `${rand(3, 18)}%`;
+      s.opacity = rand(0.15, 0.45).toFixed(2);
+    }
+    return el;
+  }
+
+  // The icons join in on some bursts, not all, so the screen doesn't get too busy.
+  function burst(p = 1, then, withLinks = Math.random() < 0.4) {
+    if (busy || document.hidden) { then && then(); return; }
+    busy = true;
+    const until = performance.now() + rand(140, 340) * (0.6 + 0.4 * p);
+    const swapLetters = Math.random() < 0.45;
+    root.style.setProperty('--p', p.toFixed(2));
+    root.classList.add('glitch');
+    root.classList.toggle('glitch-links', withLinks);
+
+    const step = () => {
+      word.style.setProperty('--gx', `${(rand(-3, 3) * p).toFixed(1)}px`);
+      word.style.setProperty('--gy', `${(rand(-1, 1) * p).toFixed(1)}px`);
+      if (withLinks) links.forEach(a => jolt(a, p * 0.8));
+      const count = Math.round(rand(1, 2 + 2 * p));
+      slices.replaceChildren(...Array.from({ length: count }, () => slice(p)));
+
+      if (swapLetters) {
+        const chars = [...TARGET];
+        const i = Math.floor(Math.random() * chars.length);
+        if (chars[i] !== ' ') chars[i] = pick(GLYPHS);
+        set(chars.join(''));
+      }
+
+      if (performance.now() < until) later(step, rand(40, 85));
+      else {
+        root.classList.remove('glitch', 'glitch-links');
+        slices.replaceChildren();
+        set(TARGET);
+        busy = false;
+        then && then();
+      }
+    };
+    step();
+  }
+
+  function flicker(then) {
+    word.animate(
+      [{ opacity: 1 }, { opacity: 0.25 }, { opacity: 1 }, { opacity: 0.55 }, { opacity: 1 }],
+      { duration: rand(160, 260) }
+    ).onfinish = then;
+  }
+
+  // Random glitches every few seconds, sometimes a stuttering double hit.
+  function loop() {
+    later(() => {
+      if (Math.random() < 0.25) return flicker(loop);
+      burst(rand(0.6, 1.2), () => {
+        if (Math.random() < 0.35) later(() => burst(rand(0.4, 0.9), loop), rand(60, 180));
+        else loop();
+      });
+    }, rand(2500, 7000));
+  }
+
+  // Now and then the word slowly nods off (the icons with it), then jolts awake.
+  function doze() {
+    later(() => {
+      if (document.hidden) return doze();
+      const timing = { duration: rand(3200, 4200), easing: 'cubic-bezier(.45,0,.85,1)', fill: 'forwards' };
+      const fade = el => el.animate([{ opacity: 1 }, { opacity: 0.08, offset: 0.8 }, { opacity: 0.08 }], timing);
+      const a = fade(word);
+      const b = fade(nav);
+      a.onfinish = () => { a.cancel(); b.cancel(); burst(1.7, null, true); doze(); };
+    }, rand(18000, 30000));
+  }
+
+  // ---------- social links ----------
+
+  function jolt(a, p) {
+    a.style.setProperty('--lx', `${(rand(-3, 3) * p).toFixed(1)}px`);
+    a.style.setProperty('--ly', `${(rand(-1.5, 1.5) * p).toFixed(1)}px`);
+  }
+
+  // A glitch on one icon only, with a few noise lines running through it.
+  function zap(a, p) {
+    if (a.classList.contains('zap') || document.hidden) return;
+    a.style.setProperty('--p', p.toFixed(2));
+    a.classList.add('zap');
+    const box = a.querySelector('.ico').getBoundingClientRect();
+    const y = box.top + box.height / 2;
+    const until = performance.now() + rand(200, 340);
+    let own = [];
+
+    const step = () => {
+      jolt(a, p);
+      own.forEach(el => el.remove());
+      own = Math.random() < 0.7 ? Array.from({ length: Math.round(rand(1, 2)) }, () => slice(p, y)) : [];
+      slices.append(...own);
+      if (performance.now() < until) later(step, rand(40, 85));
+      else {
+        own.forEach(el => el.remove());
+        a.classList.remove('zap');
+      }
+    };
+    step();
+  }
+
+  // The handle types itself in out of random glyphs, like the word does.
+  // Unrevealed letters are spaces, so the centred label never changes width.
+  function typeIn(el, text) {
+    const run = (el.run = {});
+    const appear = [...text].map((_, i) => i * 35);
+    const settle = appear.map(t => t + rand(120, 360));
+    const end = Math.max(...settle);
+    const start = performance.now();
+    let last = 0;
+
+    const frame = now => {
+      if (el.run !== run) return;
+      const t = now - start;
+      if (now - last > 40) {
+        last = now;
+        el.textContent = [...text].map((ch, i) =>
+          t < appear[i] ? ' ' : t >= settle[i] ? ch : pick(GLYPHS)).join('');
+      }
+      if (t < end) requestAnimationFrame(frame);
+      else el.textContent = text;
+    };
+    requestAnimationFrame(frame);
+  }
+
+  // ...and eats itself from the right on the way out.
+  function typeOut(el) {
+    const run = (el.run = {});
+    const chars = [...el.textContent];
+    let n = chars.length;
+
+    const tick = () => {
+      if (el.run !== run) return;
+      n -= 1;
+      if (n < 0) { el.textContent = ''; return; }
+      el.textContent = chars.map((ch, i) => i < n - 1 ? ch : i <= n ? pick(GLYPHS) : ' ').join('');
+      later(tick, 22);
+    };
+    tick();
+  }
+
+  // Hover or keyboard focus lights an icon up and shows its handle.
+  links.forEach(a => {
+    const handle = a.querySelector('.handle');
+    let hover = false, focus = false, hot = false;
+
+    const sync = () => {
+      if ((hover || focus) === hot) return;
+      hot = hover || focus;
+      a.classList.toggle('hot', hot);
+      if (reduce) handle.textContent = hot ? a.dataset.handle : '';
+      else if (hot) { typeIn(handle, a.dataset.handle); zap(a, 1.4); }
+      else typeOut(handle);
+    };
+
+    a.addEventListener('pointerenter', () => { hover = true; sync(); });
+    a.addEventListener('pointerleave', () => { hover = false; sync(); });
+    a.addEventListener('focus', () => { focus = a.matches(':focus-visible'); sync(); });
+    a.addEventListener('blur', () => { focus = false; sync(); });
+    // coming back from the profile tab or via Back: don't leave an icon stuck lit
+    window.addEventListener('pageshow', () => { hover = focus = false; sync(); });
+  });
+
+  // The icons switch on one after another, like an old screen warming up.
+  function powerOn() {
+    const steps = [0, 0.8, 0.05, 0.5, 0, 1, 0.55];
+    links.forEach((a, i) => later(() => {
+      a.classList.add('on');
+      a.animate(steps.map(opacity => ({ opacity, easing: 'steps(1)' })), { duration: 520 });
+      later(() => zap(a, 1.2), 300);
+    }, i * 220));
+  }
+
+  if (reduce) {
+    root.classList.add('ready');
+    links.forEach(a => a.classList.add('on'));
+    return;
+  }
+
+  set(' '.repeat(TARGET.length));
+  later(() => decode(() => {
+    root.classList.add('ready');
+    later(() => burst(1.3, loop), 250);
+    later(powerOn, 700);
+    doze();
+  }), 500);
+})();
+</script>
+<script type="module">
+/*
+Lighthouse from https://ascii.rest/lighthouse/
+Source: https://ascii.rest/pieces/lighthouse.js (retrieved 2026-10-07).
+Original renderer; local playback and responsive placement.
+
+MIT License
+
+Copyright (c) 2026 bas3line (https://github.com/bas3line)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+const meta = {
+    name: "lighthouse",
+    category: "objects",
+    note: "a beam sweeping over night sea from a lighthouse on rocks",
+    cols: 64,
+    rows: 30,
+    fps: 20,
+};
+const RAMP = " .:-=+*#%@";
+const TC = 32; // the tower's column
+const LAMP = 5; // the lamp's row
+const HORIZON = 19;
+const PERIOD = 8; // seconds a turn
+const TOP = 9, FOOT = 24; // the shaft's rows
+const WT = 2.1, WB = 3.1; // its half width at the top and the foot, in rows
+const BAND = 3; // rows to a band, dark and light in turn
+// Boulders heaped round the foot, back to front, as [x, y, half width, half height,
+// waterline]: x in rows from the tower. The two behind it stand clear of the sea.
+const ROCKS = [
+    [-3.9, 21.1, 2.3, 1.7, 99], [3.9, 20.9, 2.4, 1.8, 99], [-6.6, 22.9, 2.3, 1.6, 23.9], [6.7, 22.7, 2.2, 1.5, 23.6],
+    [-1.7, 23.5, 2.7, 1.8, 24.8], [3.1, 23.8, 2.5, 1.7, 25.1], [-9.3, 24.5, 1.5, 0.9, 25], [9.2, 24.2, 1.3, 0.8, 24.7],
+];
+const BEHIND = 2; // the boulders the tower stands in front of
+// Where surf strikes: the boulder, the side it breaks on (none for foam alone), and when in the swell.
+const SURF = [[6, -1, 0], [7, 1, 0.45], [3, 1, 0.8], [2, -1, 0.3], [4, 0, 0.62], [5, 0, 0.15]];
+const SWELL = 3.2; // seconds between breakers
+const hash = (x, y) => {
+    let h = Math.imul(x, 0x27d4eb2d) ^ Math.imul(y, 0x165667b1);
+    h = Math.imul(h ^ (h >>> 15), 0x85ebca6b);
+    return ((h ^ (h >>> 13)) >>> 0) / 4294967296;
+};
+function lighthouse() {
+    const { cols, rows } = meta;
+    const N = cols * rows;
+    // The lighthouse and its rocks never move: light as 0..1 where they are, -1 where they are not.
+    const still = new Float32Array(N).fill(-1);
+    const rockAt = new Int8Array(N).fill(-1);
+    const moon = (u, v, nz) => Math.max(0, -0.5 * u - 0.45 * v + 0.75 * nz); // lit from the upper left
+    for (let r = 0; r < rows; r++)
+        for (let c = 0; c < cols; c++) {
+            const k = r * cols + c, x = (c - TC) / 2, y = r + 0.5;
+            // The rocks behind the tower first, then the tower, then the rocks before it.
+            const boulder = (i) => {
+                const [bx, by, rx, ry, wl] = ROCKS[i];
+                const u = (x - bx) / rx, v = (y - by) / ry, q = u * u + v * v;
+                if (q >= 1 || y > wl + 0.5)
+                    return false;
+                const nz = Math.sqrt(1 - q);
+                // A dark rim on each, so heaped boulders keep apart; a little grain.
+                still[k] = (0.06 + 0.86 * moon(u, v, nz)) * Math.min(1, 0.15 + nz * 1.8) + 0.06 * (hash(c, r) - 0.5);
+                rockAt[k] = i;
+                return true;
+            };
+            for (let i = 0; i < BEHIND; i++)
+                boulder(i);
+            // The shaft: banded, round, a door at its foot and a slit of a light in a band.
+            if (r >= TOP && r <= FOOT) {
+                const w = WT + ((WB - WT) * (r - TOP)) / (FOOT - TOP);
+                if (Math.abs(x) <= w) {
+                    const u = x / (w + 0.25), nz = Math.sqrt(1 - u * u);
+                    const dark = Math.floor((r - TOP) / BAND) % 2 === 1;
+                    let v = (dark ? 0.24 : 0.92) * (0.2 + 0.8 * moon(u, 0, nz));
+                    if (r >= FOOT - 3 && r < FOOT && Math.abs(x) < 0.6)
+                        v = 0.03;
+                    if (r === TOP + BAND + 1 && x === 0)
+                        v = 0.03;
+                    still[k] = v;
+                    rockAt[k] = -1;
+                }
+            }
+            // The gallery: a rail of posts, and the deck under it in shadow.
+            if (r === TOP - 2 && Math.abs(x) <= 2.9)
+                still[k] = Math.abs(x) > 2.6 ? 0.55 : (c - TC) % 2 ? 0.2 : 0.6 - 0.25 * (x / 3);
+            if (r === TOP - 1 && Math.abs(x) <= 3)
+                still[k] = 0.45 * (0.25 + 0.75 * moon(x / 3.2, 0.3, Math.sqrt(1 - (x / 3.2) ** 2)));
+            // The roof: a dome with a vent on top, moonlit on the left.
+            if (r >= LAMP - 3 && r <= LAMP - 2) {
+                const rw = r === LAMP - 2 ? 1.85 : 1.15;
+                if (Math.abs(x) <= rw) {
+                    const u = x / (rw + 0.3);
+                    still[k] = 0.12 + 0.6 * moon(u, -0.4, Math.sqrt(1 - u * u));
+                }
+            }
+            if (r === LAMP - 4 && x === 0)
+                still[k] = 0.5;
+            for (let i = BEHIND; i < ROCKS.length; i++)
+                boulder(i);
+        }
+    // Stars, a few and faint.
+    const stars = [];
+    for (let i = 0; i < 24; i++) {
+        const c = Math.floor(hash(i, 1) * cols), r = Math.floor(hash(i, 2) * (HORIZON - 2));
+        if (still[r * cols + c] < 0 && Math.abs(c - TC) > 4)
+            stars.push([r * cols + c, hash(i, 3) < 0.2 ? "*" : hash(i, 3) < 0.6 ? "." : "·"]);
+    }
+    // The surf: where each breaker strikes, at the waterline on its boulder's outer flank.
+    const surf = SURF.map(([i, side, ph]) => {
+        const [bx, , rx, , wl] = ROCKS[i];
+        return [TC + 2 * (bx + rx * side * 0.95), wl - 0.2, side, ph];
+    });
+    // The beam in the haze through a cell: a cone seen side on, so the more it
+    // turns toward or away from us the shorter, wider and brighter it looks.
+    const beamAt = (dx, dy, c, s) => {
+        const fore = Math.max(Math.abs(c), 0.1);
+        const ax = Math.sign(c) || 1, ay = Math.min(0.35, 0.02 / fore);
+        const m = Math.hypot(ax, ay), a = (dx * ax + dy * ay) / m;
+        if (a <= 0)
+            return 0;
+        const across = Math.abs(dx * ay - dy * ax) / m;
+        const half = 0.5 + a * (0.11 / fore);
+        return Math.exp(-((across / half) ** 4)) * Math.exp(-a / (22 * fore)) * Math.min(1.6, 1 / fore ** 0.3) * (s < 0 ? 0.75 : 1);
+    };
+    // On paper the beam stays ink, drawn only in the light end of the ramp, a pale shaft.
+    const BEAM = [" .:-=+*#", " ..::--="];
+    return (t, { paper = false } = {}) => {
+        const th = -0.35 + (2 * Math.PI * t) / PERIOD;
+        const c = Math.cos(th), s = Math.sin(th);
+        const face = Math.max(0, s) ** 10; // the lens turned square to us
+        const out = new Array(N).fill(" ");
+        const light = new Float32Array(cols);
+        const ramp = BEAM[paper ? 1 : 0];
+        for (let r = 0; r < rows; r++)
+            for (let cc = 0; cc < cols; cc++) {
+                const k = r * cols + cc, dx = (cc - TC) / 2, dy = r + 0.5 - (LAMP + 0.5);
+                const glare = Math.exp(-((Math.hypot(dx, dy) / (1.2 + 2.2 * face)) ** 2)) * (0.5 + 1.2 * face);
+                if (r < HORIZON) {
+                    const b = beamAt(dx, dy, c, s) + glare;
+                    if (r === LAMP)
+                        light[cc] = b;
+                    if (still[k] >= 0)
+                        continue;
+                    const i = Math.min(7, Math.floor(b * 6 + 0.35 * hash(cc, r)));
+                    if (i > 0)
+                        out[k] = ramp[i];
+                    continue;
+                }
+                // The sea: crests rolling in, finer toward the horizon, lit under the beam.
+                const d = r - HORIZON + 1, x = cc / (3.2 / d + 0.6);
+                const wave = Math.sin(x * 0.9 + d * 1.7 - t * 2.2 + Math.sin(x * 0.31 + d) * 1.5) + 0.6 * Math.sin(x * 0.43 - d * 0.9 + t * 1.3);
+                const lit = Math.min(1, (light[cc] || 0) * 0.9 + glare * 0.5) * Math.exp(-(d - 1) / 6);
+                if (wave > 0.9 - 0.5 * lit)
+                    out[k] = lit > 0.5 ? "=" : lit > 0.2 ? "~" : d < 3 ? "-" : "~";
+                else if (wave > 0.4 - 0.4 * lit && (d < 3 || lit > 0.15))
+                    out[k] = d < 3 ? "." : "-";
+                else if (d === 1)
+                    out[k] = "_";
+            }
+        for (const [k, ch] of stars)
+            if (out[k] === " ")
+                out[k] = ch;
+        // The lighthouse and rocks over the rest, each boulder washed by the swell at
+        // its own waterline; the lantern glows from within.
+        const swell = ROCKS.map((b, i) => b[4] + 0.45 * Math.sin((2 * Math.PI * t) / SWELL + i * 1.9) + 0.25 * Math.sin(t * 1.3 + i));
+        for (let k = 0; k < N; k++) {
+            const v = still[k];
+            if (v < 0)
+                continue;
+            if (rockAt[k] >= 0 && Math.floor(k / cols) + 0.5 > swell[rockAt[k]])
+                continue;
+            const i = Math.max(1, Math.min(9, Math.round(v * 9)));
+            out[k] = RAMP[paper ? 10 - i : i];
+        }
+        const glow = 0.75 + 0.25 * face;
+        for (let r = LAMP - 1; r <= LAMP + 1; r++)
+            for (let x = -3; x <= 3; x++) {
+                const edge = Math.abs(x) === 3, bar = Math.abs(x) === 2;
+                const v = edge ? 0.34 : bar ? 0.2 : glow * (1 - 0.1 * Math.abs(x)) * (r === LAMP ? 1 : 0.85);
+                const i = Math.max(1, Math.min(9, Math.round(v * 9)));
+                // On paper the glass, being light, keeps to the pale end like the beam.
+                out[r * cols + TC + x] = paper && !edge && !bar ? ramp[Math.min(7, Math.round(v * 7))] : RAMP[paper ? 10 - i : i];
+            }
+        // The lamp, and the rays when it faces us.
+        const L = LAMP * cols + TC;
+        out[L] = face > 0.3 ? "@" : s > -0.2 ? "*" : "o";
+        if (face > 0.5) {
+            out[L - cols] = out[L + cols] = "|";
+            out[L - 1] = out[L + 1] = "=";
+        }
+        // Surf: a breaker bursts on a boulder, its spray thrown up in a fan that falls back as drops.
+        surf.forEach(([x0, y0, side, ph], n) => {
+            const u = (((t / SWELL + ph) % 1) + 1) % 1, tt = u * SWELL;
+            if (tt > 1.6)
+                return;
+            // Foam spreading along the waterline where it broke.
+            const fr = Math.floor(y0 + 0.7);
+            for (let j = -4; j <= 4; j++) {
+                const cx = Math.round(x0) + j;
+                if (tt < 1.3 && Math.abs(j) <= 1 + tt * 3 && cx >= 0 && cx < cols && fr < rows)
+                    out[fr * cols + cx] = tt < 0.5 && Math.abs(j) < 2 ? "=" : "~";
+            }
+            if (!side)
+                return;
+            // The spray, a fan of drops thrown up and out off the rock, thick at first, falling back as it thins.
+            for (let j = 0; j < 18; j++) {
+                const f = j / 17, h1 = hash(j, n + 7), h2 = hash(j, n + 19);
+                const vx = side * (1 + 13 * f * f) + (h1 - 0.5) * 3, vy = (11 - 6 * f) * (0.8 + 0.4 * h2);
+                const up = vy - 18 * tt > 0;
+                for (let back = 0; back <= (up ? 1 : 0); back++) {
+                    const ts = tt - back * 0.06;
+                    const cx = Math.round(x0 + vx * ts), cy = Math.round(y0 - vy * ts + 9 * ts * ts);
+                    if (ts < 0 || cy < 0 || cy >= rows || cx < 0 || cx >= cols || cy > y0 + 0.3)
+                        continue;
+                    const k = cy * cols + cx;
+                    if (rockAt[k] >= 0 && tt > 0.2)
+                        continue;
+                    out[k] = back ? (out[k] === " " || out[k] === "~" ? "'" : out[k]) : tt < 0.22 ? (f < 0.4 ? "#" : "*") : up ? "*" : tt < 1.15 ? ":" : ".";
+                }
+            }
+        });
+        const lines = [];
+        for (let r = 0; r < rows; r++)
+            lines.push(out.slice(r * cols, (r + 1) * cols).join(""));
+        return lines.join("\n");
+    };
+}
+
+const art = document.querySelector('.lighthouse');
+const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+const render = lighthouse();
+let request = 0;
+let elapsed = 0;
+let previous = 0;
+let lastDraw = 0;
+
+function tick(now) {
+  if (previous) elapsed += (now - previous) / 1000;
+  previous = now;
+  if (now - lastDraw >= 1000 / meta.fps) {
+    art.textContent = render(elapsed);
+    lastDraw = now;
+  }
+  request = requestAnimationFrame(tick);
+}
+
+function syncPlayback() {
+  cancelAnimationFrame(request);
+  previous = 0;
+  if (motion.matches) {
+    art.textContent = render(0);
+    return;
+  }
+  if (!document.hidden) request = requestAnimationFrame(tick);
+}
+
+document.addEventListener('visibilitychange', syncPlayback);
+motion.addEventListener('change', syncPlayback);
+syncPlayback();
+</script>
+</body>
+</html>

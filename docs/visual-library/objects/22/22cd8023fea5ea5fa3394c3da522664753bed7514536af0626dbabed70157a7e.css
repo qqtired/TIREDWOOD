@@ -1,0 +1,9 @@
+/* Ферма: мини-игра «Набери лейку» (client/farm/well.ts). Рамка — окно кита (.k-scrim > .k-window.farm-wellwin, раскладка — farm.css);
+   здесь — только то, что нужно самому полю: курсор, канвас и появление баннера итога. */
+.fw { user-select: none; -webkit-user-select: none; touch-action: none; font-variant-numeric: tabular-nums; }
+.fw [hidden] { display: none !important; }
+.fw-stage { cursor: grab; }
+.fw-stage.down { cursor: grabbing; }
+.fw-canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+.fw-stage .farm-field-hero { opacity: 0; pointer-events: none; transition: opacity .16s ease; }
+.fw-stage .farm-field-hero.is-show { opacity: 1; }

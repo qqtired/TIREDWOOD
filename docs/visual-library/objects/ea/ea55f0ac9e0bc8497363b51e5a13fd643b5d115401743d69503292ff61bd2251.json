@@ -1,0 +1,27 @@
+{
+  "id": "wickmole",
+  "tris": 3468,
+  "parts": 8,
+  "clips": [
+    "wickmole_idle",
+    "wickmole_walk",
+    "wickmole_windup",
+    "wickmole_attack",
+    "wickmole_hit",
+    "wickmole_death"
+  ],
+  "bbox": [
+    [
+      -0.5436556339263916,
+      -0.4650000035762787,
+      0.02360662817955017
+    ],
+    [
+      0.5375672578811646,
+      0.661017656326294,
+      1.7917519807815552
+    ]
+  ],
+  "background": true,
+  "fps": 24
+}

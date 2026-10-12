@@ -1,0 +1,14 @@
+{
+  "case": "recipes-kite",
+  "automated": "FAIL",
+  "visual": "NOT_ACCEPTED",
+  "error": "Recipe route died",
+  "flags": {
+    "nativeGlobalMenuResumed": true,
+    "ticksAdvanced": true,
+    "serverParity": true,
+    "mouseCard": true
+  },
+  "elapsedMs": 89563,
+  "sourceFreeze": "79c7aa9061682aefdbf130d1fcc03e5689c7ecfd3dde341bcc65a9eac089b332"
+}

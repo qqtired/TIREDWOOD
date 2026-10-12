@@ -1,0 +1,66 @@
+{
+  "case": "boss20-kite",
+  "type": "normalHP",
+  "seed": 704304,
+  "accelerated": true,
+  "initialHash": 1139308684,
+  "edits": [
+    "skip to wave20",
+    "assume previous 19 waves for local fixture counters",
+    "finished legal5+5 inventory and temper5 supplied by setup, not earned"
+  ],
+  "seconds": 120,
+  "normalHP": true,
+  "heroHp": 100,
+  "weapons": [
+    {
+      "id": "lantern",
+      "lv": 7,
+      "evo": 1
+    },
+    {
+      "id": "embers",
+      "lv": 7,
+      "evo": 1
+    },
+    {
+      "id": "pickaxe",
+      "lv": 7,
+      "evo": 1
+    },
+    {
+      "id": "charges",
+      "lv": 7,
+      "evo": 1
+    },
+    {
+      "id": "spark",
+      "lv": 7,
+      "evo": 1
+    }
+  ],
+  "passives": [
+    {
+      "id": "might",
+      "lv": 5
+    },
+    {
+      "id": "cooldown",
+      "lv": 5
+    },
+    {
+      "id": "amount",
+      "lv": 2
+    },
+    {
+      "id": "speed",
+      "lv": 5
+    },
+    {
+      "id": "magnet",
+      "lv": 5
+    }
+  ],
+  "source": "original game.d.makeRun returned actual run; setup before first view/hash",
+  "receivedAt": 654132.200000003
+}

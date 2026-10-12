@@ -1,0 +1,13 @@
+{
+  "case": "atlas",
+  "automated": "FAIL",
+  "visual": "NOT_ACCEPTED",
+  "error": "TypeError: Cannot read properties of undefined (reading 'scene')\n    at jc (http://127.0.0.1:5317/assets/scene-qxw6dDxs.js:152:18696)\n    at new Hc (http://127.0.0.1:5317/assets/scene-qxw6dDxs.js:204:300)\n    at Object.atlas (http://127.0.0.1:5317/__dungeon_qa/client.mjs:88:40)",
+  "flags": {
+    "nativeGlobalMenuResumed": true,
+    "ticksAdvanced": true,
+    "serverParity": true
+  },
+  "elapsedMs": 6617,
+  "sourceFreeze": "79c7aa9061682aefdbf130d1fcc03e5689c7ecfd3dde341bcc65a9eac089b332"
+}

@@ -1,0 +1,535 @@
+{
+  "status": "local model exports validated; final root/user visual acceptance pending",
+  "camera_elevation_deg": 62,
+  "lineup": "models/previews/lineup-game62.png",
+  "sourceProof": "models/session-proof.json",
+  "provenance": "models/PROVENANCE.md",
+  "glbValidation": "models/glb-validation.json",
+  "models": [
+    {
+      "id": "hookclaw",
+      "tris": 2549,
+      "parts": 9,
+      "clips": [
+        "hookclaw_idle",
+        "hookclaw_walk",
+        "hookclaw_windup",
+        "hookclaw_attack",
+        "hookclaw_hit",
+        "hookclaw_death"
+      ],
+      "bbox": [
+        [
+          -0.9494473934173584,
+          -1.1762348413467407,
+          0.0068645477294921875
+        ],
+        [
+          1.1460273265838623,
+          0.7368213534355164,
+          1.3837559223175049
+        ]
+      ],
+      "background": true,
+      "fps": 24,
+      "glb": "models/hookclaw.glb",
+      "blend": "blender/hookclaw.blend",
+      "script": "models/scripts/hookclaw.py",
+      "reference": "art/hookclaw/hookclaw.png",
+      "previews": {
+        "threeQuarter": "models/previews/hookclaw-3q.png",
+        "gameCamera": "models/previews/hookclaw-top.png",
+        "profile": "models/previews/hookclaw-profile.png",
+        "back": "models/previews/hookclaw-back.png",
+        "poses": "models/previews/hookclaw-poses.png"
+      },
+      "bytes": 99340,
+      "sha256": "682089869b5957031345c919350d3bed63d9501977b728da3b9dbbb7c65e3983",
+      "actualGlbClips": [
+        {
+          "name": "hookclaw_idle",
+          "durationSec": 2,
+          "channels": 27,
+          "movingChannels": 2,
+          "loopEndpointMaxDelta": 6.123233849335533e-18
+        },
+        {
+          "name": "hookclaw_walk",
+          "durationSec": 0.75,
+          "channels": 27,
+          "movingChannels": 14,
+          "loopEndpointMaxDelta": 3.306546468892729e-17
+        },
+        {
+          "name": "hookclaw_windup",
+          "durationSec": 0.7916666865348816,
+          "channels": 27,
+          "movingChannels": 3,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "hookclaw_attack",
+          "durationSec": 0.7916666865348816,
+          "channels": 27,
+          "movingChannels": 4,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "hookclaw_hit",
+          "durationSec": 0.4166666567325592,
+          "channels": 27,
+          "movingChannels": 3,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "hookclaw_death",
+          "durationSec": 1.5,
+          "channels": 27,
+          "movingChannels": 10,
+          "loopEndpointMaxDelta": 0
+        }
+      ]
+    },
+    {
+      "id": "wickmole",
+      "tris": 3468,
+      "parts": 8,
+      "clips": [
+        "wickmole_idle",
+        "wickmole_walk",
+        "wickmole_windup",
+        "wickmole_attack",
+        "wickmole_hit",
+        "wickmole_death"
+      ],
+      "bbox": [
+        [
+          -0.5436556339263916,
+          -0.4650000035762787,
+          0.02360662817955017
+        ],
+        [
+          0.5375672578811646,
+          0.661017656326294,
+          1.7917519807815552
+        ]
+      ],
+      "background": true,
+      "fps": 24,
+      "glb": "models/wickmole.glb",
+      "blend": "blender/wickmole.blend",
+      "script": "models/scripts/wickmole.py",
+      "reference": "art/wickmole/wickmole.png",
+      "previews": {
+        "threeQuarter": "models/previews/wickmole-3q.png",
+        "gameCamera": "models/previews/wickmole-top.png",
+        "profile": "models/previews/wickmole-profile.png",
+        "back": "models/previews/wickmole-back.png",
+        "poses": "models/previews/wickmole-poses.png"
+      },
+      "bytes": 124788,
+      "sha256": "d9e1c3b7d78f31a56fcf012f61cb3c9ca44d02eb39917699edaeec9e3ef3976c",
+      "actualGlbClips": [
+        {
+          "name": "wickmole_idle",
+          "durationSec": 2,
+          "channels": 24,
+          "movingChannels": 3,
+          "loopEndpointMaxDelta": 3.673940475037442e-18
+        },
+        {
+          "name": "wickmole_walk",
+          "durationSec": 1.1666666269302368,
+          "channels": 24,
+          "movingChannels": 9,
+          "loopEndpointMaxDelta": 3.0616171314629196e-17
+        },
+        {
+          "name": "wickmole_windup",
+          "durationSec": 0.9166666865348816,
+          "channels": 24,
+          "movingChannels": 6,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "wickmole_attack",
+          "durationSec": 1,
+          "channels": 24,
+          "movingChannels": 5,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "wickmole_hit",
+          "durationSec": 0.4166666567325592,
+          "channels": 24,
+          "movingChannels": 4,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "wickmole_death",
+          "durationSec": 1.6666666269302368,
+          "channels": 24,
+          "movingChannels": 7,
+          "loopEndpointMaxDelta": 0
+        }
+      ]
+    },
+    {
+      "id": "railhopper",
+      "tris": 2478,
+      "parts": 9,
+      "clips": [
+        "railhopper_idle",
+        "railhopper_walk",
+        "railhopper_windup",
+        "railhopper_attack",
+        "railhopper_hit",
+        "railhopper_death"
+      ],
+      "bbox": [
+        [
+          -0.6528310775756836,
+          -0.923567533493042,
+          0.011564195156097412
+        ],
+        [
+          0.6528310775756836,
+          1.0357975959777832,
+          1.261425256729126
+        ]
+      ],
+      "background": true,
+      "fps": 24,
+      "glb": "models/railhopper.glb",
+      "blend": "blender/railhopper.blend",
+      "script": "models/scripts/railhopper.py",
+      "reference": "art/railhopper/railhopper.png",
+      "previews": {
+        "threeQuarter": "models/previews/railhopper-3q.png",
+        "gameCamera": "models/previews/railhopper-top.png",
+        "profile": "models/previews/railhopper-profile.png",
+        "back": "models/previews/railhopper-back.png",
+        "poses": "models/previews/railhopper-poses.png"
+      },
+      "bytes": 99412,
+      "sha256": "d3c3981952c2323ecbd022eb7b552b44a42b513c1377b0a80a0c6addb2039528",
+      "actualGlbClips": [
+        {
+          "name": "railhopper_idle",
+          "durationSec": 2,
+          "channels": 27,
+          "movingChannels": 2,
+          "loopEndpointMaxDelta": 4.286263818611965e-18
+        },
+        {
+          "name": "railhopper_walk",
+          "durationSec": 0.8333333134651184,
+          "channels": 27,
+          "movingChannels": 14,
+          "loopEndpointMaxDelta": 2.449293787888397e-17
+        },
+        {
+          "name": "railhopper_windup",
+          "durationSec": 1,
+          "channels": 27,
+          "movingChannels": 4,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "railhopper_attack",
+          "durationSec": 1,
+          "channels": 27,
+          "movingChannels": 5,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "railhopper_hit",
+          "durationSec": 0.4166666567325592,
+          "channels": 27,
+          "movingChannels": 3,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "railhopper_death",
+          "durationSec": 1.5,
+          "channels": 27,
+          "movingChannels": 9,
+          "loopEndpointMaxDelta": 0
+        }
+      ]
+    },
+    {
+      "id": "chainwarden",
+      "tris": 4876,
+      "parts": 12,
+      "clips": [
+        "chainwarden_idle",
+        "chainwarden_walk",
+        "chainwarden_windup",
+        "chainwarden_attack",
+        "chainwarden_windup_r",
+        "chainwarden_attack_r",
+        "chainwarden_recover",
+        "chainwarden_hit",
+        "chainwarden_death"
+      ],
+      "bbox": [
+        [
+          -0.7900000214576721,
+          -0.5270000100135803,
+          0.01343536376953125
+        ],
+        [
+          0.7541989684104919,
+          0.7200000286102295,
+          2.4437615871429443
+        ]
+      ],
+      "background": true,
+      "fps": 24,
+      "glb": "models/chainwarden.glb",
+      "blend": "blender/chainwarden.blend",
+      "script": "models/scripts/chainwarden.py",
+      "reference": "art/chainwarden/chainwarden.png",
+      "previews": {
+        "threeQuarter": "models/previews/chainwarden-3q.png",
+        "gameCamera": "models/previews/chainwarden-top.png",
+        "profile": "models/previews/chainwarden-profile.png",
+        "back": "models/previews/chainwarden-back.png",
+        "poses": "models/previews/chainwarden-poses.png"
+      },
+      "bytes": 217468,
+      "sha256": "518ffb2838104ceb9513d0227c11a4fcceb14635dc95bdd5fb33d480eac1e8ff",
+      "actualGlbClips": [
+        {
+          "name": "chainwarden_idle",
+          "durationSec": 2,
+          "channels": 36,
+          "movingChannels": 3,
+          "loopEndpointMaxDelta": 3.0616169246677665e-18
+        },
+        {
+          "name": "chainwarden_walk",
+          "durationSec": 1.5,
+          "channels": 36,
+          "movingChannels": 18,
+          "loopEndpointMaxDelta": 2.939152380029954e-17
+        },
+        {
+          "name": "chainwarden_windup",
+          "durationSec": 1.2083333730697632,
+          "channels": 36,
+          "movingChannels": 12,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "chainwarden_attack",
+          "durationSec": 1.1666666269302368,
+          "channels": 36,
+          "movingChannels": 14,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "chainwarden_windup_r",
+          "durationSec": 0.9166666865348816,
+          "channels": 36,
+          "movingChannels": 12,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "chainwarden_attack_r",
+          "durationSec": 1.1666666269302368,
+          "channels": 36,
+          "movingChannels": 14,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "chainwarden_recover",
+          "durationSec": 2,
+          "channels": 36,
+          "movingChannels": 8,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "chainwarden_hit",
+          "durationSec": 0.5,
+          "channels": 36,
+          "movingChannels": 11,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "chainwarden_death",
+          "durationSec": 2,
+          "channels": 36,
+          "movingChannels": 15,
+          "loopEndpointMaxDelta": 0
+        }
+      ]
+    },
+    {
+      "id": "cauldronmaster",
+      "tris": 14738,
+      "parts": 13,
+      "bones": 13,
+      "clips": [
+        "cauldronmaster_idle",
+        "cauldronmaster_walk",
+        "cauldronmaster_appear",
+        "cauldronmaster_windup",
+        "cauldronmaster_attack",
+        "cauldronmaster_lid_open",
+        "cauldronmaster_pour_wind",
+        "cauldronmaster_pour",
+        "cauldronmaster_boil_wind",
+        "cauldronmaster_boil",
+        "cauldronmaster_phase1",
+        "cauldronmaster_phase2",
+        "cauldronmaster_phase3",
+        "cauldronmaster_recover",
+        "cauldronmaster_hit",
+        "cauldronmaster_death"
+      ],
+      "bbox": [
+        [
+          -1.866157054901123,
+          -1.7448960542678833,
+          0
+        ],
+        [
+          2.000244617462158,
+          2.0381078720092773,
+          4.795445442199707
+        ]
+      ],
+      "background": true,
+      "fps": 24,
+      "glb": "models/cauldronmaster.glb",
+      "blend": "blender/cauldronmaster.blend",
+      "script": "models/scripts/cauldronmaster.py",
+      "reference": "art/cauldronmaster/cauldronmaster.png",
+      "previews": {
+        "threeQuarter": "models/previews/cauldronmaster-3q.png",
+        "gameCamera": "models/previews/cauldronmaster-top.png",
+        "profile": "models/previews/cauldronmaster-profile.png",
+        "back": "models/previews/cauldronmaster-back.png",
+        "poses": "models/previews/cauldronmaster-poses.png"
+      },
+      "bytes": 630128,
+      "sha256": "5dcece4f0c41ae7b3a54177f3328b64f360c0a75962624d55c037f62d4747f8c",
+      "actualGlbClips": [
+        {
+          "name": "cauldronmaster_idle",
+          "durationSec": 2,
+          "channels": 39,
+          "movingChannels": 4,
+          "loopEndpointMaxDelta": 6.123233849335533e-18
+        },
+        {
+          "name": "cauldronmaster_walk",
+          "durationSec": 2,
+          "channels": 39,
+          "movingChannels": 11,
+          "loopEndpointMaxDelta": 1.469576190014977e-17
+        },
+        {
+          "name": "cauldronmaster_appear",
+          "durationSec": 1.5,
+          "channels": 39,
+          "movingChannels": 1,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "cauldronmaster_windup",
+          "durationSec": 1.2916666269302368,
+          "channels": 39,
+          "movingChannels": 6,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "cauldronmaster_attack",
+          "durationSec": 2,
+          "channels": 39,
+          "movingChannels": 6,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "cauldronmaster_lid_open",
+          "durationSec": 2,
+          "channels": 39,
+          "movingChannels": 1,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "cauldronmaster_pour_wind",
+          "durationSec": 1.2083333730697632,
+          "channels": 39,
+          "movingChannels": 5,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "cauldronmaster_pour",
+          "durationSec": 2,
+          "channels": 39,
+          "movingChannels": 4,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "cauldronmaster_boil_wind",
+          "durationSec": 1.5,
+          "channels": 39,
+          "movingChannels": 6,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "cauldronmaster_boil",
+          "durationSec": 2,
+          "channels": 39,
+          "movingChannels": 4,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "cauldronmaster_phase1",
+          "durationSec": 2,
+          "channels": 39,
+          "movingChannels": 4,
+          "loopEndpointMaxDelta": 6.123233849335533e-18
+        },
+        {
+          "name": "cauldronmaster_phase2",
+          "durationSec": 1.5,
+          "channels": 39,
+          "movingChannels": 4,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "cauldronmaster_phase3",
+          "durationSec": 1.5,
+          "channels": 39,
+          "movingChannels": 5,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "cauldronmaster_recover",
+          "durationSec": 2,
+          "channels": 39,
+          "movingChannels": 2,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "cauldronmaster_hit",
+          "durationSec": 0.5833333134651184,
+          "channels": 39,
+          "movingChannels": 5,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "cauldronmaster_death",
+          "durationSec": 3,
+          "channels": 39,
+          "movingChannels": 10,
+          "loopEndpointMaxDelta": 0
+        }
+      ]
+    }
+  ]
+}

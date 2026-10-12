@@ -1,0 +1,348 @@
+{
+  "valid": true,
+  "models": [
+    {
+      "id": "hookclaw",
+      "bytes": 99340,
+      "meshCount": 9,
+      "skins": [],
+      "clips": [
+        {
+          "name": "hookclaw_idle",
+          "durationSec": 2,
+          "channels": 27,
+          "movingChannels": 2,
+          "loopEndpointMaxDelta": 6.123233849335533e-18
+        },
+        {
+          "name": "hookclaw_walk",
+          "durationSec": 0.75,
+          "channels": 27,
+          "movingChannels": 14,
+          "loopEndpointMaxDelta": 3.306546468892729e-17
+        },
+        {
+          "name": "hookclaw_windup",
+          "durationSec": 0.7916666865348816,
+          "channels": 27,
+          "movingChannels": 3,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "hookclaw_attack",
+          "durationSec": 0.7916666865348816,
+          "channels": 27,
+          "movingChannels": 4,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "hookclaw_hit",
+          "durationSec": 0.4166666567325592,
+          "channels": 27,
+          "movingChannels": 3,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "hookclaw_death",
+          "durationSec": 1.5,
+          "channels": 27,
+          "movingChannels": 10,
+          "loopEndpointMaxDelta": 0
+        }
+      ]
+    },
+    {
+      "id": "wickmole",
+      "bytes": 124788,
+      "meshCount": 8,
+      "skins": [],
+      "clips": [
+        {
+          "name": "wickmole_idle",
+          "durationSec": 2,
+          "channels": 24,
+          "movingChannels": 3,
+          "loopEndpointMaxDelta": 3.673940475037442e-18
+        },
+        {
+          "name": "wickmole_walk",
+          "durationSec": 1.1666666269302368,
+          "channels": 24,
+          "movingChannels": 9,
+          "loopEndpointMaxDelta": 3.0616171314629196e-17
+        },
+        {
+          "name": "wickmole_windup",
+          "durationSec": 0.9166666865348816,
+          "channels": 24,
+          "movingChannels": 6,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "wickmole_attack",
+          "durationSec": 1,
+          "channels": 24,
+          "movingChannels": 5,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "wickmole_hit",
+          "durationSec": 0.4166666567325592,
+          "channels": 24,
+          "movingChannels": 4,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "wickmole_death",
+          "durationSec": 1.6666666269302368,
+          "channels": 24,
+          "movingChannels": 7,
+          "loopEndpointMaxDelta": 0
+        }
+      ]
+    },
+    {
+      "id": "railhopper",
+      "bytes": 99412,
+      "meshCount": 9,
+      "skins": [],
+      "clips": [
+        {
+          "name": "railhopper_idle",
+          "durationSec": 2,
+          "channels": 27,
+          "movingChannels": 2,
+          "loopEndpointMaxDelta": 4.286263818611965e-18
+        },
+        {
+          "name": "railhopper_walk",
+          "durationSec": 0.8333333134651184,
+          "channels": 27,
+          "movingChannels": 14,
+          "loopEndpointMaxDelta": 2.449293787888397e-17
+        },
+        {
+          "name": "railhopper_windup",
+          "durationSec": 1,
+          "channels": 27,
+          "movingChannels": 4,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "railhopper_attack",
+          "durationSec": 1,
+          "channels": 27,
+          "movingChannels": 5,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "railhopper_hit",
+          "durationSec": 0.4166666567325592,
+          "channels": 27,
+          "movingChannels": 3,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "railhopper_death",
+          "durationSec": 1.5,
+          "channels": 27,
+          "movingChannels": 9,
+          "loopEndpointMaxDelta": 0
+        }
+      ]
+    },
+    {
+      "id": "chainwarden",
+      "bytes": 217468,
+      "meshCount": 12,
+      "skins": [],
+      "clips": [
+        {
+          "name": "chainwarden_idle",
+          "durationSec": 2,
+          "channels": 36,
+          "movingChannels": 3,
+          "loopEndpointMaxDelta": 3.0616169246677665e-18
+        },
+        {
+          "name": "chainwarden_walk",
+          "durationSec": 1.5,
+          "channels": 36,
+          "movingChannels": 18,
+          "loopEndpointMaxDelta": 2.939152380029954e-17
+        },
+        {
+          "name": "chainwarden_windup",
+          "durationSec": 1.2083333730697632,
+          "channels": 36,
+          "movingChannels": 12,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "chainwarden_attack",
+          "durationSec": 1.1666666269302368,
+          "channels": 36,
+          "movingChannels": 14,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "chainwarden_windup_r",
+          "durationSec": 0.9166666865348816,
+          "channels": 36,
+          "movingChannels": 12,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "chainwarden_attack_r",
+          "durationSec": 1.1666666269302368,
+          "channels": 36,
+          "movingChannels": 14,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "chainwarden_recover",
+          "durationSec": 2,
+          "channels": 36,
+          "movingChannels": 8,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "chainwarden_hit",
+          "durationSec": 0.5,
+          "channels": 36,
+          "movingChannels": 11,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "chainwarden_death",
+          "durationSec": 2,
+          "channels": 36,
+          "movingChannels": 15,
+          "loopEndpointMaxDelta": 0
+        }
+      ]
+    },
+    {
+      "id": "cauldronmaster",
+      "bytes": 630128,
+      "meshCount": 1,
+      "skins": [
+        13
+      ],
+      "clips": [
+        {
+          "name": "cauldronmaster_idle",
+          "durationSec": 2,
+          "channels": 39,
+          "movingChannels": 4,
+          "loopEndpointMaxDelta": 6.123233849335533e-18
+        },
+        {
+          "name": "cauldronmaster_walk",
+          "durationSec": 2,
+          "channels": 39,
+          "movingChannels": 11,
+          "loopEndpointMaxDelta": 1.469576190014977e-17
+        },
+        {
+          "name": "cauldronmaster_appear",
+          "durationSec": 1.5,
+          "channels": 39,
+          "movingChannels": 1,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "cauldronmaster_windup",
+          "durationSec": 1.2916666269302368,
+          "channels": 39,
+          "movingChannels": 6,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "cauldronmaster_attack",
+          "durationSec": 2,
+          "channels": 39,
+          "movingChannels": 6,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "cauldronmaster_lid_open",
+          "durationSec": 2,
+          "channels": 39,
+          "movingChannels": 1,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "cauldronmaster_pour_wind",
+          "durationSec": 1.2083333730697632,
+          "channels": 39,
+          "movingChannels": 5,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "cauldronmaster_pour",
+          "durationSec": 2,
+          "channels": 39,
+          "movingChannels": 4,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "cauldronmaster_boil_wind",
+          "durationSec": 1.5,
+          "channels": 39,
+          "movingChannels": 6,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "cauldronmaster_boil",
+          "durationSec": 2,
+          "channels": 39,
+          "movingChannels": 4,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "cauldronmaster_phase1",
+          "durationSec": 2,
+          "channels": 39,
+          "movingChannels": 4,
+          "loopEndpointMaxDelta": 6.123233849335533e-18
+        },
+        {
+          "name": "cauldronmaster_phase2",
+          "durationSec": 1.5,
+          "channels": 39,
+          "movingChannels": 4,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "cauldronmaster_phase3",
+          "durationSec": 1.5,
+          "channels": 39,
+          "movingChannels": 5,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "cauldronmaster_recover",
+          "durationSec": 2,
+          "channels": 39,
+          "movingChannels": 2,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "cauldronmaster_hit",
+          "durationSec": 0.5833333134651184,
+          "channels": 39,
+          "movingChannels": 5,
+          "loopEndpointMaxDelta": 0
+        },
+        {
+          "name": "cauldronmaster_death",
+          "durationSec": 3,
+          "channels": 39,
+          "movingChannels": 10,
+          "loopEndpointMaxDelta": 0
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,108 @@
+/* Вываживание, 04.10 (вечер): оценка улова, натяжение лески и водка на шкале (client/lobby/fishgame.ts, fishgrade.ts).
+   Шкала и её подписи — fish2.css и fisheco.css; здесь только новое. Цвета — те, что уже есть у рыбалки. */
+
+/* ---------------------------------------------------------------- оценка: цвет */
+.frg0 { --grc: var(--gold-text); }
+.frg1 { --grc: var(--good-text); }
+.frg2 { --grc: var(--info-text); }
+.frg3 { --grc: var(--plate-text); }
+.frg4 { --grc: var(--bad-text); }
+
+/* живой счёт под полосой улова: «2 ошибки · Сойдёт ×1,25»; ошибка — плашка вздрагивает красным */
+.fr-grade {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--surf-dim);
+  font: 600 var(--fs-14)/1.2 var(--font-text);
+  white-space: nowrap;
+}
+.fr-grade[hidden] { display: none; }
+.fr-grade b { color: var(--grc); font: 900 var(--fs-16)/1 var(--font-text); }
+.fr-grade.bump { animation: fr-grade-bump 0.45s ease-out; }
+@keyframes fr-grade-bump {
+  from {
+    transform: scale(1.22);
+    color: var(--bad-text);
+  }
+}
+
+/* ---------------------------------------------------------------- натяжение лески: зеркало «леска провисла» */
+.fe-taut { display: none; }
+.fr.taut .fe-taut { display: inline-flex; animation: fe-stand 0.45s ease-out 2; }
+.fr.taut .fr-slot > .fr-hint { opacity: 0; transition: none; }
+.fr.taut .fr-slot > .fe-stand { display: none; }
+/* зона прижата к верху и звенит: краснеет и мелко дрожит (дрожь — translate: transform зоны ставит fishgame.ts) */
+.fr.taut .fr-zone {
+  background: rgba(222, 62, 44, 0.85);
+  border-color: rgba(255, 178, 160, 1);
+  box-shadow: 0 0 16px rgba(255, 70, 50, 0.8);
+  animation: fr-taut 0.1s linear infinite;
+}
+@keyframes fr-taut { 50% { translate: 0 1.5px; } }
+
+/* ---------------------------------------------------------------- водка: пьяный рыбак */
+/* в глазах двоится: бледный двойник рыбы чуть в стороне */
+.fr-ghost { display: none; opacity: 0.5; }
+.fr.drunk .fr-ghost { display: block; }
+.fr.won .fr-ghost,
+.fr.lost .fr-ghost { display: none; }
+
+/* моргание: шкала и полоса улова на 0,2–0,3 с пропадают — «веки» сходятся к середине и расходятся */
+.fr-bar,
+.fr-prog { transition: opacity 0.09s ease-out, scale 0.09s ease-out; }
+.fr.blink .fr-bar,
+.fr.blink .fr-prog {
+  opacity: 0;
+  scale: 1 0.05;
+  transition-duration: 0.06s;
+  transition-timing-function: ease-in;
+}
+
+/* икота: «ик!» слева от шкалы — зону в этот миг подбрасывает */
+.fr-hic {
+  position: absolute;
+  left: 50%;
+  top: 24%;
+  translate: -100px 0;
+  display: none;
+  padding: 3px 9px;
+  border-radius: 12px 12px 12px 3px;
+  background: var(--cream);
+  color: #3b2a1e;
+  font: 900 17px/1.1 Rubik, system-ui, sans-serif;
+  text-shadow: none;
+  box-shadow: 0 4px 12px rgba(10, 5, 8, 0.4);
+  rotate: -12deg;
+}
+.fr-hic.show { display: block; animation: fr-hic 0.65s ease-out forwards; }
+@keyframes fr-hic {
+  0% { transform: scale(0.4); opacity: 0; }
+  18% { transform: scale(1.15); opacity: 1; }
+  70% { opacity: 1; }
+  100% { transform: translateY(-14px); opacity: 0; }
+}
+
+/* «Прекратить» (хотфикс 10.10) — кнопка кита с клавишей X на нижнем краю рамки (fishkit.css .fi-reel-quit); шкала сама
+   мышь не ловит, кнопка — ловит (мышью, когда курсор свободен, и пальцем). Бой кончился — кнопки нет. */
+.fr.won .fi-reel-quit,
+.fr.lost .fi-reel-quit { display: none; }
+
+/* срочные надписи (кит k-pill--bad): видны, только когда нужно */
+.fe-stand, .fe-slack { display: none; }
+.fe-stand.show { display: inline-flex; animation: fe-stand .45s ease-out 3; }
+.fr.slack .fe-slack { display: inline-flex; animation: fe-stand .45s ease-out 2; }
+@keyframes fe-stand { from { transform: scale(1.25); } to { transform: scale(1); } }
+
+/* под шкалой — что меняет бой сейчас: держать мифика дольше, повадка рыбы (бонус 3-го уровня) */
+.fe-reelbonus { display: flex; flex-direction: column; gap: 2px; max-width: 220px; color: var(--surf-dim); font: 600 var(--fs-13)/1.3 var(--font-text); text-align: center; }
+.fe-reelbonus:empty { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .fr-grade.bump,
+  .fr.taut .fe-taut,
+  .fr.taut .fr-zone,
+  .fr-hic.show,
+  .fe-stand.show,
+  .fr.slack .fe-slack { animation: none; }
+}

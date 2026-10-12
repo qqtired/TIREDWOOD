@@ -1,0 +1,10 @@
+{
+  "source": "first five after independent QA fixes",
+  "sha256": "8f7a87d7f91e843ccf48c0c3575908d1120502a5828483b17f363761e13fd067",
+  "preserved": [
+    "locationHud rename",
+    "clean/enamel dungeon bottom48",
+    "50px fullscreen chrome"
+  ],
+  "date": "2026-10-12"
+}

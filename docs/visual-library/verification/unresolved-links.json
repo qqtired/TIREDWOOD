@@ -1,0 +1,1178 @@
+[
+  {
+    "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/r5-2026-10-12/index.html",
+    "reference": "art/PROVENANCE.md",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/r5-2026-10-12/index.html",
+    "reference": "source/calculate.mjs",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/r5-2026-10-12/index.html",
+    "reference": "source/build.mjs",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/r5-2026-10-12/index.html",
+    "reference": "revision2/models/manifest.json",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/revision1-rejected/index.html",
+    "reference": "brief.md",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/revision1-rejected/index.html",
+    "reference": "design-data.json",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/revision1-rejected/index.html",
+    "reference": "source/calculations.json",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/revision1-rejected/index.html",
+    "reference": "art/PROVENANCE.md",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/revision1-rejected/index.html",
+    "reference": "source/calculate.mjs",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/v1-2026-10-12/revision1-rejected/index.html",
+    "reference": "source/build.mjs",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/game-opus/tools/survivors/page/src/p2-body.html",
+    "reference": "map.svg",
+    "attribute": "src",
+    "template": true,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/game-opus/docs/survivors/page/index.html",
+    "reference": "map.svg",
+    "attribute": "src",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/game-opus/docs/survivors/page/index.html",
+    "reference": "art/game-wave.jpg",
+    "attribute": "src",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/revision1-rejected/index.html",
+    "reference": "brief.md",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/revision1-rejected/index.html",
+    "reference": "design-data.json",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/revision1-rejected/index.html",
+    "reference": "source/calculations.json",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/revision1-rejected/index.html",
+    "reference": "art/PROVENANCE.md",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/revision1-rejected/index.html",
+    "reference": "source/calculate.mjs",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/revision1-rejected/index.html",
+    "reference": "source/build.mjs",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/r4-2026-10-12/index.html",
+    "reference": "art/PROVENANCE.md",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/r4-2026-10-12/index.html",
+    "reference": "source/calculate.mjs",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/r4-2026-10-12/index.html",
+    "reference": "source/build.mjs",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/r4-2026-10-12/index.html",
+    "reference": "revision2/models/manifest.json",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/game-opus/dist/lab/index.html",
+    "reference": "/assets/lab-CI92mFZY.js",
+    "attribute": "src",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/game-opus/dist/lab/index.html",
+    "reference": "/assets/modulepreload-polyfill-P2Xu9kJm.js",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/game-opus/dist/lab/index.html",
+    "reference": "/assets/preload-helper-BZ1Pz5am.js",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/game-opus/dist/lab/index.html",
+    "reference": "/assets/constants-DX4pjONL.js",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/game-opus/dist/lab/index.html",
+    "reference": "/assets/text-BQ5x2JnB.js",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/game-opus/dist/lab/index.html",
+    "reference": "/assets/dom-Be318g7y.js",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/game-opus/dist/lab/index.html",
+    "reference": "/assets/constants-D5RBV2Q4.css",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/game-opus/dist/lab/index.html",
+    "reference": "/assets/text-DAbz9e2E.css",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/game-opus/dist/lab/index.html",
+    "reference": "/assets/lab-BRPBYOvS.css",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/game-opus/dist/lab/index.html",
+    "reference": "./plaza3/",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/game-opus/dist/lab/index.html",
+    "reference": "./plaza3/arcade/",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/game-opus/dist/lab/fitting-room/index.html",
+    "reference": "/assets/fitting-BwWRnCUe.js",
+    "attribute": "src",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/game-opus/dist/lab/fitting-room/index.html",
+    "reference": "/assets/modulepreload-polyfill-P2Xu9kJm.js",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/game-opus/dist/lab/fitting-room/index.html",
+    "reference": "/assets/constants-DX4pjONL.js",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/game-opus/dist/lab/fitting-room/index.html",
+    "reference": "/assets/dom-Be318g7y.js",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/game-opus/dist/lab/fitting-room/index.html",
+    "reference": "/assets/rolldown-runtime-DK3Fl9T5.js",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/game-opus/dist/lab/fitting-room/index.html",
+    "reference": "/assets/three-vendor-DhqmfOh_.js",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/game-opus/dist/lab/fitting-room/index.html",
+    "reference": "/assets/gfx-Dh-ppcOa.js",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/game-opus/dist/lab/fitting-room/index.html",
+    "reference": "/assets/looksky-AQJITX34.js",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/game-opus/dist/lab/fitting-room/index.html",
+    "reference": "/assets/fishgear-B9HagEfX.js",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/game-opus/dist/lab/fitting-room/index.html",
+    "reference": "/assets/kit3d-BIEPBFnI.js",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/game-opus/dist/lab/fitting-room/index.html",
+    "reference": "/assets/renderer-DNcpTeiR.js",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/game-opus/dist/lab/fitting-room/index.html",
+    "reference": "/assets/constants-D5RBV2Q4.css",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/game-opus/dist/lab/fitting-room/index.html",
+    "reference": "/assets/fishgear-DT6e83hH.css",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/game-opus/dist/lab/fitting-room/index.html",
+    "reference": "/assets/fitting-_rMmJVTl.css",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v1/index.html",
+    "reference": "../../game-opus/docs/superpowers/specs/2026-10-02-fortress-design.md",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v1/index.html",
+    "reference": "../../game-opus/shared/fortkinds.ts",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v1/index.html",
+    "reference": "../../game-opus/shared/fortwaves.ts",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v1/index.html",
+    "reference": "../../game-opus/server/fort/director.ts",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v1/index.html",
+    "reference": "../../game-opus/shared/fortarsenal.ts",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v1/index.html",
+    "reference": "../../game-opus/server/fort/arsenal.ts",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v1/index.html",
+    "reference": "../../game-opus/server/fort/horde.ts",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/reports/tiredwood-fortress-expansion-2026-10-11/v1/index.html",
+    "reference": "../../game-opus/server/fort/game.ts",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/reports/tiredwood-dungeon-waves-16-20-2026-10-11/index.html",
+    "reference": "evidence/runtime-r6-root/gate/dungeon-r6-test.log",
+    "attribute": "href",
+    "template": false,
+    "reason": "Служебный лог или архив намеренно не включён"
+  },
+  {
+    "origin": "workspace/reports/tiredwood-code-review-2026-10-07/frozen-source/dist/lab/index.html",
+    "reference": "/assets/lab--QxSzK09.js",
+    "attribute": "src",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/reports/tiredwood-code-review-2026-10-07/frozen-source/dist/lab/index.html",
+    "reference": "/assets/preload-helper-BKrSQD1R.js",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/reports/tiredwood-code-review-2026-10-07/frozen-source/dist/lab/index.html",
+    "reference": "/assets/text-Bpydllqo.js",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/reports/tiredwood-code-review-2026-10-07/frozen-source/dist/lab/index.html",
+    "reference": "/assets/text-C11hFG7N.css",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/reports/tiredwood-code-review-2026-10-07/frozen-source/dist/lab/index.html",
+    "reference": "/assets/lab-DCRndaSa.css",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/reports/tiredwood-code-review-2026-10-07/report.html",
+    "reference": "spector-full-game.json.gz",
+    "attribute": "href",
+    "template": false,
+    "reason": "Служебный лог или архив намеренно не включён"
+  },
+  {
+    "origin": "workspace/reports/tiredwood-code-review-2026-10-07/report.html",
+    "reference": "gate.log",
+    "attribute": "href",
+    "template": false,
+    "reason": "Служебный лог или архив намеренно не включён"
+  },
+  {
+    "origin": "workspace/reports/tiredwood-code-review-2026-10-07/report.html",
+    "reference": "final-current-gate.log",
+    "attribute": "href",
+    "template": false,
+    "reason": "Служебный лог или архив намеренно не включён"
+  },
+  {
+    "origin": "workspace/reports/tiredwood-code-review-2026-10-07/report.html",
+    "reference": "baseline-source-8146e57.tar",
+    "attribute": "href",
+    "template": false,
+    "reason": "Служебный лог или архив намеренно не включён"
+  },
+  {
+    "origin": "workspace/reports/tiredwood-code-review-2026-10-07/frozen-source/docs/visual-rebuild/preview.html",
+    "reference": "evidence/boat-final.png",
+    "attribute": "src",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/reports/tiredwood-code-review-2026-10-07/frozen-source/docs/visual-rebuild/preview.html",
+    "reference": "evidence/boat-bay-final.png",
+    "attribute": "src",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/reports/tiredwood-code-review-2026-10-07/frozen-source/docs/visual-rebuild/preview.html",
+    "reference": "evidence/boat-gameplay-final.jpg",
+    "attribute": "src",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/reports/tiredwood-code-review-2026-10-07/frozen-source/docs/visual-rebuild/preview.html",
+    "reference": "evidence/skill-gameplay-final.jpg",
+    "attribute": "src",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/reports/tiredwood-code-review-2026-10-07/frozen-source/docs/visual-rebuild/preview.html",
+    "reference": "evidence/cat-sleep-final.png",
+    "attribute": "src",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/reports/tiredwood-code-review-2026-10-07/frozen-source/docs/visual-rebuild/preview.html",
+    "reference": "evidence/gull-profile-final.png",
+    "attribute": "src",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/reports/tiredwood-code-review-2026-10-07/frozen-source/docs/visual-rebuild/preview.html",
+    "reference": "evidence/cat-sleep-final.png",
+    "attribute": "poster",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/reports/tiredwood-code-review-2026-10-07/frozen-source/docs/visual-rebuild/preview.html",
+    "reference": "evidence/critters-motion.webm",
+    "attribute": "src",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/reports/tiredwood-code-review-2026-10-07/frozen-source/docs/visual-rebuild/preview.html",
+    "reference": "evidence/crab-final.png",
+    "attribute": "src",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/.claude/worktrees/mcp-blender-integration-127bb2/reports/tiredwood-code-review-2026-10-07/frozen-source/docs/visual-rebuild/preview.html",
+    "reference": "evidence/boat-final.png",
+    "attribute": "src",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/.claude/worktrees/mcp-blender-integration-127bb2/reports/tiredwood-code-review-2026-10-07/frozen-source/docs/visual-rebuild/preview.html",
+    "reference": "evidence/boat-bay-final.png",
+    "attribute": "src",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/.claude/worktrees/mcp-blender-integration-127bb2/reports/tiredwood-code-review-2026-10-07/frozen-source/docs/visual-rebuild/preview.html",
+    "reference": "evidence/boat-gameplay-final.jpg",
+    "attribute": "src",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/.claude/worktrees/mcp-blender-integration-127bb2/reports/tiredwood-code-review-2026-10-07/frozen-source/docs/visual-rebuild/preview.html",
+    "reference": "evidence/skill-gameplay-final.jpg",
+    "attribute": "src",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/.claude/worktrees/mcp-blender-integration-127bb2/reports/tiredwood-code-review-2026-10-07/frozen-source/docs/visual-rebuild/preview.html",
+    "reference": "evidence/cat-sleep-final.png",
+    "attribute": "src",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/.claude/worktrees/mcp-blender-integration-127bb2/reports/tiredwood-code-review-2026-10-07/frozen-source/docs/visual-rebuild/preview.html",
+    "reference": "evidence/gull-profile-final.png",
+    "attribute": "src",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/.claude/worktrees/mcp-blender-integration-127bb2/reports/tiredwood-code-review-2026-10-07/frozen-source/docs/visual-rebuild/preview.html",
+    "reference": "evidence/cat-sleep-final.png",
+    "attribute": "poster",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/.claude/worktrees/mcp-blender-integration-127bb2/reports/tiredwood-code-review-2026-10-07/frozen-source/docs/visual-rebuild/preview.html",
+    "reference": "evidence/critters-motion.webm",
+    "attribute": "src",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/.claude/worktrees/mcp-blender-integration-127bb2/reports/tiredwood-code-review-2026-10-07/frozen-source/docs/visual-rebuild/preview.html",
+    "reference": "evidence/crab-final.png",
+    "attribute": "src",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "workspace/.claude/worktrees/mcp-blender-integration-127bb2/reports/tiredwood-code-review-2026-10-07/report.html",
+    "reference": "spector-full-game.json.gz",
+    "attribute": "href",
+    "template": false,
+    "reason": "Служебный лог или архив намеренно не включён"
+  },
+  {
+    "origin": "workspace/.claude/worktrees/mcp-blender-integration-127bb2/reports/tiredwood-code-review-2026-10-07/report.html",
+    "reference": "gate.log",
+    "attribute": "href",
+    "template": false,
+    "reason": "Служебный лог или архив намеренно не включён"
+  },
+  {
+    "origin": "workspace/.claude/worktrees/mcp-blender-integration-127bb2/reports/tiredwood-code-review-2026-10-07/report.html",
+    "reference": "final-current-gate.log",
+    "attribute": "href",
+    "template": false,
+    "reason": "Служебный лог или архив намеренно не включён"
+  },
+  {
+    "origin": "workspace/.claude/worktrees/mcp-blender-integration-127bb2/reports/tiredwood-code-review-2026-10-07/report.html",
+    "reference": "baseline-source-8146e57.tar",
+    "attribute": "href",
+    "template": false,
+    "reason": "Служебный лог или архив намеренно не включён"
+  },
+  {
+    "origin": "workspace/reports/tiredwood-waterfront-optimization-2026-10-12/index.html",
+    "reference": "final-gate.log",
+    "attribute": "href",
+    "template": false,
+    "reason": "Служебный лог или архив намеренно не включён"
+  },
+  {
+    "origin": "worktrees/game-opus-dungeon-ui3/docs/survivors/page/index.html",
+    "reference": "map.svg",
+    "attribute": "src",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-dungeon-ui3/docs/survivors/page/index.html",
+    "reference": "art/game-wave.jpg",
+    "attribute": "src",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-dungeon-ui3/tools/survivors/page/src/p2-body.html",
+    "reference": "map.svg",
+    "attribute": "src",
+    "template": true,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-farm-review3/docs/survivors/page/index.html",
+    "reference": "map.svg",
+    "attribute": "src",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-farm-review3/docs/survivors/page/index.html",
+    "reference": "art/game-wave.jpg",
+    "attribute": "src",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-farm-review3/tools/survivors/page/src/p2-body.html",
+    "reference": "map.svg",
+    "attribute": "src",
+    "template": true,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-fortress-approved/tools/fortress/index.html",
+    "reference": "../v2/index.html",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-fortress-approved/tools/survivors/page/src/p2-body.html",
+    "reference": "map.svg",
+    "attribute": "src",
+    "template": true,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-fortress-approved/docs/survivors/page/index.html",
+    "reference": "map.svg",
+    "attribute": "src",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-fortress-approved/docs/survivors/page/index.html",
+    "reference": "art/game-wave.jpg",
+    "attribute": "src",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-integration-review3/docs/survivors/page/index.html",
+    "reference": "map.svg",
+    "attribute": "src",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-integration-review3/docs/survivors/page/index.html",
+    "reference": "art/game-wave.jpg",
+    "attribute": "src",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-integration-review3/dist/lab/index.html",
+    "reference": "/assets/lab-FpNw8Oar.js",
+    "attribute": "src",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-integration-review3/dist/lab/index.html",
+    "reference": "/assets/modulepreload-polyfill-P2Xu9kJm.js",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-integration-review3/dist/lab/index.html",
+    "reference": "/assets/preload-helper-BZ1Pz5am.js",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-integration-review3/dist/lab/index.html",
+    "reference": "/assets/constants-DX4pjONL.js",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-integration-review3/dist/lab/index.html",
+    "reference": "/assets/text-BQ5x2JnB.js",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-integration-review3/dist/lab/index.html",
+    "reference": "/assets/dom-Be318g7y.js",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-integration-review3/dist/lab/index.html",
+    "reference": "/assets/constants-D5RBV2Q4.css",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-integration-review3/dist/lab/index.html",
+    "reference": "/assets/text-DAbz9e2E.css",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-integration-review3/dist/lab/index.html",
+    "reference": "/assets/lab-BRPBYOvS.css",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-integration-review3/dist/lab/index.html",
+    "reference": "./plaza3/",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-integration-review3/dist/lab/index.html",
+    "reference": "./plaza3/arcade/",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-integration-review3/dist/lab/fitting-room/index.html",
+    "reference": "/assets/fitting-DbPBSa5D.js",
+    "attribute": "src",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-integration-review3/dist/lab/fitting-room/index.html",
+    "reference": "/assets/modulepreload-polyfill-P2Xu9kJm.js",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-integration-review3/dist/lab/fitting-room/index.html",
+    "reference": "/assets/constants-DX4pjONL.js",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-integration-review3/dist/lab/fitting-room/index.html",
+    "reference": "/assets/dom-Be318g7y.js",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-integration-review3/dist/lab/fitting-room/index.html",
+    "reference": "/assets/rolldown-runtime-DK3Fl9T5.js",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-integration-review3/dist/lab/fitting-room/index.html",
+    "reference": "/assets/three-vendor-DhqmfOh_.js",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-integration-review3/dist/lab/fitting-room/index.html",
+    "reference": "/assets/gfx-Dh-ppcOa.js",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-integration-review3/dist/lab/fitting-room/index.html",
+    "reference": "/assets/looksky-BEWWj9-_.js",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-integration-review3/dist/lab/fitting-room/index.html",
+    "reference": "/assets/fishgear-CP3Q84VQ.js",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-integration-review3/dist/lab/fitting-room/index.html",
+    "reference": "/assets/kit3d-TV8X0khd.js",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-integration-review3/dist/lab/fitting-room/index.html",
+    "reference": "/assets/renderer-DNcpTeiR.js",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-integration-review3/dist/lab/fitting-room/index.html",
+    "reference": "/assets/constants-D5RBV2Q4.css",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-integration-review3/dist/lab/fitting-room/index.html",
+    "reference": "/assets/fishgear-DT6e83hH.css",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-integration-review3/dist/lab/fitting-room/index.html",
+    "reference": "/assets/fitting-_rMmJVTl.css",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-integration-review3/tools/survivors/page/src/p2-body.html",
+    "reference": "map.svg",
+    "attribute": "src",
+    "template": true,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-integration-review3/tools/fortress/index.html",
+    "reference": "../v2/index.html",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-island-review2/dist/lab/index.html",
+    "reference": "/assets/lab-CI92mFZY.js",
+    "attribute": "src",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-island-review2/dist/lab/index.html",
+    "reference": "/assets/modulepreload-polyfill-P2Xu9kJm.js",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-island-review2/dist/lab/index.html",
+    "reference": "/assets/preload-helper-BZ1Pz5am.js",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-island-review2/dist/lab/index.html",
+    "reference": "/assets/constants-DX4pjONL.js",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-island-review2/dist/lab/index.html",
+    "reference": "/assets/text-BQ5x2JnB.js",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-island-review2/dist/lab/index.html",
+    "reference": "/assets/dom-Be318g7y.js",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-island-review2/dist/lab/index.html",
+    "reference": "/assets/constants-D5RBV2Q4.css",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-island-review2/dist/lab/index.html",
+    "reference": "/assets/text-DAbz9e2E.css",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-island-review2/dist/lab/index.html",
+    "reference": "/assets/lab-BRPBYOvS.css",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-island-review2/dist/lab/index.html",
+    "reference": "./plaza3/",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-island-review2/dist/lab/index.html",
+    "reference": "./plaza3/arcade/",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-island-review2/dist/lab/fitting-room/index.html",
+    "reference": "/assets/fitting-BwWRnCUe.js",
+    "attribute": "src",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-island-review2/dist/lab/fitting-room/index.html",
+    "reference": "/assets/modulepreload-polyfill-P2Xu9kJm.js",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-island-review2/dist/lab/fitting-room/index.html",
+    "reference": "/assets/constants-DX4pjONL.js",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-island-review2/dist/lab/fitting-room/index.html",
+    "reference": "/assets/dom-Be318g7y.js",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-island-review2/dist/lab/fitting-room/index.html",
+    "reference": "/assets/rolldown-runtime-DK3Fl9T5.js",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-island-review2/dist/lab/fitting-room/index.html",
+    "reference": "/assets/three-vendor-DhqmfOh_.js",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-island-review2/dist/lab/fitting-room/index.html",
+    "reference": "/assets/gfx-Dh-ppcOa.js",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-island-review2/dist/lab/fitting-room/index.html",
+    "reference": "/assets/looksky-AQJITX34.js",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-island-review2/dist/lab/fitting-room/index.html",
+    "reference": "/assets/fishgear-B9HagEfX.js",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-island-review2/dist/lab/fitting-room/index.html",
+    "reference": "/assets/kit3d-BIEPBFnI.js",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-island-review2/dist/lab/fitting-room/index.html",
+    "reference": "/assets/renderer-DNcpTeiR.js",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-island-review2/dist/lab/fitting-room/index.html",
+    "reference": "/assets/constants-D5RBV2Q4.css",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-island-review2/dist/lab/fitting-room/index.html",
+    "reference": "/assets/fishgear-DT6e83hH.css",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-island-review2/dist/lab/fitting-room/index.html",
+    "reference": "/assets/fitting-_rMmJVTl.css",
+    "attribute": "href",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-island-review2/docs/survivors/page/index.html",
+    "reference": "map.svg",
+    "attribute": "src",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-island-review2/docs/survivors/page/index.html",
+    "reference": "art/game-wave.jpg",
+    "attribute": "src",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-island-review2/tools/survivors/page/src/p2-body.html",
+    "reference": "map.svg",
+    "attribute": "src",
+    "template": true,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-park-review3/docs/survivors/page/index.html",
+    "reference": "map.svg",
+    "attribute": "src",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-park-review3/docs/survivors/page/index.html",
+    "reference": "art/game-wave.jpg",
+    "attribute": "src",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-park-review3/tools/survivors/page/src/p2-body.html",
+    "reference": "map.svg",
+    "attribute": "src",
+    "template": true,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-racing-review3/docs/survivors/page/index.html",
+    "reference": "map.svg",
+    "attribute": "src",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-racing-review3/docs/survivors/page/index.html",
+    "reference": "art/game-wave.jpg",
+    "attribute": "src",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-racing-review3/tools/survivors/page/src/p2-body.html",
+    "reference": "map.svg",
+    "attribute": "src",
+    "template": true,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-social-review3/docs/survivors/page/index.html",
+    "reference": "map.svg",
+    "attribute": "src",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-social-review3/docs/survivors/page/index.html",
+    "reference": "art/game-wave.jpg",
+    "attribute": "src",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-social-review3/tools/survivors/page/src/p2-body.html",
+    "reference": "map.svg",
+    "attribute": "src",
+    "template": true,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-waterfront-review3/tools/survivors/page/src/p2-body.html",
+    "reference": "map.svg",
+    "attribute": "src",
+    "template": true,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-waterfront-review3/docs/survivors/page/index.html",
+    "reference": "map.svg",
+    "attribute": "src",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  },
+  {
+    "origin": "worktrees/game-opus-waterfront-review3/docs/survivors/page/index.html",
+    "reference": "art/game-wave.jpg",
+    "attribute": "src",
+    "template": false,
+    "reason": "Отсутствующая ссылка исходной версии"
+  }
+]

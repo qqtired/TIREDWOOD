@@ -1,0 +1,755 @@
+{
+  "recordedAt": "2026-10-12T08:18:26.761Z",
+  "outcome": "Gameplay accepted locally by root, exact tested R6 preserved; not deployed or phone verified",
+  "reviewer": "root",
+  "rootReviewedPNGs": true,
+  "testedIdentity": "./identity/tested-r6-freeze.json",
+  "docOnlySuccessor": {
+    "revision": "R6 doc-only successor",
+    "commit": "4d354e33310ba3bd20272b27a90de552ccfa2732",
+    "testedSourceSHA": "79c7aa9061682aefdbf130d1fcc03e5689c7ecfd3dde341bcc65a9eac089b332",
+    "testedBase": "41b91a8",
+    "testedFiles": 40,
+    "currentExactTestedFiles": 39,
+    "changedAfterGameplay": [
+      {
+        "path": "docs/survivors/expansion-v2.md",
+        "testedSHA": "26312b3265d657e785ecc53f7807744e51264ef3c91387a7be88cff59ceb64ab",
+        "currentSHA": "be1e3533c9102a86b67ee024cae80ec847cb8196f0ee6f9934b12b03de360dc1",
+        "reason": "Root report/handoff doc only after actual acceptance"
+      }
+    ],
+    "gameCodeAndGLBUntouched": true,
+    "mainMerged": false,
+    "pushed": false,
+    "deployed": false,
+    "phoneVerified": false,
+    "htmlBrowserSmoke": "pending root after Product Lab window"
+  },
+  "normal": {
+    "withoutHooks": true,
+    "naturalDeathKills": 85,
+    "level": 2,
+    "clientServerResultParity": true,
+    "restartPauseResumeExit": "PASS root observed"
+  },
+  "waves": {
+    "wallInputBudgetsSec": [
+      25,
+      25,
+      30,
+      30
+    ],
+    "ids": [
+      "wave16-kite",
+      "wave17-kite",
+      "wave18-range",
+      "wave19-guard"
+    ],
+    "scope": "Short accelerated initial stages; not entire wave timer or continuous first15 waves"
+  },
+  "bosses": [
+    {
+      "id": "boss20-kite",
+      "eventTick": 1465,
+      "seconds": 48.833333333333336,
+      "postVictoryHp": 74,
+      "hpMax": 100,
+      "policy": "actual movement/dash/Q/mouse cards",
+      "timeBasis": "die FX evaluated on event tick; shared step increments t at end",
+      "hpBasis": "Final result after normal level-up heal, not immediate pre-heal death frame"
+    },
+    {
+      "id": "boss20-range",
+      "eventTick": 1555,
+      "seconds": 51.833333333333336,
+      "postVictoryHp": 46,
+      "hpMax": 100,
+      "policy": "actual movement/dash/Q/mouse cards",
+      "timeBasis": "die FX evaluated on event tick; shared step increments t at end",
+      "hpBasis": "Final result after normal level-up heal, not immediate pre-heal death frame"
+    },
+    {
+      "id": "boss20-guard",
+      "eventTick": 1698,
+      "seconds": 56.6,
+      "postVictoryHp": 89,
+      "hpMax": 200,
+      "policy": "outer-ring-no-charge",
+      "timeBasis": "die FX evaluated on event tick; shared step increments t at end",
+      "hpBasis": "Final result after normal level-up heal, not immediate pre-heal death frame"
+    }
+  ],
+  "recipes": {
+    "legalFivePlusFive": true,
+    "uniqueEvos": 8,
+    "ids": [
+      "lantern",
+      "embers",
+      "pickaxe",
+      "charges",
+      "spark",
+      "fireflies",
+      "stalactites",
+      "beam"
+    ],
+    "realXpCardAndFiveChestPickupsPerBuild": true,
+    "catalystsRetained": true,
+    "serverHashesMatch": true,
+    "fixtureCorrection": "One initial chest moved out of actual stairs collision before run; identical setup on client/server; no game change"
+  },
+  "registration": {
+    "cases": [
+      "hook-contact",
+      "mole-Q",
+      "rail-KB",
+      "chain-twohits",
+      "crowd-mixed",
+      "crowd-beetles",
+      "distinct-deaths",
+      "boss-phases",
+      "timer20-to21"
+    ],
+    "families": [
+      "ladle",
+      "ladle2",
+      "pour",
+      "boil"
+    ],
+    "morphMotion": true,
+    "phaseBoneClip": true,
+    "lidWorldLocked": true,
+    "fullDeaths": true,
+    "bossDeathSec": 4,
+    "crowd300MissingVisibleLives": 0,
+    "timer21Carryover": true,
+    "scope": "10000HP/invulnerability/enemyHP50 fixtures prove registration, not normal balance"
+  },
+  "atlas": {
+    "status": "NOT_ACCEPTED",
+    "reason": "Production CSP blocks embedded blob fetch; actual map=null",
+    "plainDefault": true
+  },
+  "fullGate": {
+    "check": true,
+    "tests": 1962,
+    "passed": 1961,
+    "failed": 0,
+    "skipped": 1,
+    "build": true
+  },
+  "failedAttempts": 13,
+  "guardFailuresPreserved": true,
+  "chainRawResultAnomaly": "Late atlas EEXIST overwrote per-case result; canonical batch PASS and both exact poses/replay preserved",
+  "boundaries": [
+    "Accelerated starting setups, not continuous first15 waves",
+    "Three single-seed normalHP boss battles, not mass balance playtest",
+    "Clean performance benchmark and real phone not claimed",
+    "Atlas under production CSP NOT ACCEPTED; plain remains default",
+    "Offline HTML browser smoke pending root",
+    "Local commit only; not main/push/deploy"
+  ],
+  "cases": [
+    {
+      "id": "hook-contact",
+      "run": "run-1791788845093-C",
+      "automated": "PASS",
+      "rootVisualReview": "ACCEPTED_LOCALLY root-reported after PNG inspection",
+      "serverParity": true,
+      "fixtureType": "contactFixture",
+      "normalHP": false,
+      "finalHero": {
+        "x": 120,
+        "z": 120,
+        "hp": 86,
+        "hpMax": 100,
+        "level": 1,
+        "qHold": 0,
+        "qCd": 0
+      },
+      "flags": {
+        "nativeGlobalMenuResumed": true,
+        "ticksAdvanced": true,
+        "serverParity": true,
+        "warning": true,
+        "actualHit": true,
+        "fullCycle": true
+      },
+      "rawResult": "Original PASS; visual status predates subsequent root review"
+    },
+    {
+      "id": "mole-Q",
+      "run": "run-1791788912099-C",
+      "automated": "PASS",
+      "rootVisualReview": "ACCEPTED_LOCALLY root-reported after PNG inspection",
+      "serverParity": true,
+      "fixtureType": "contactFixture",
+      "normalHP": false,
+      "finalHero": {
+        "x": 120,
+        "z": 120,
+        "hp": 100,
+        "hpMax": 100,
+        "level": 1,
+        "qHold": 0,
+        "qCd": 223
+      },
+      "flags": {
+        "nativeGlobalMenuResumed": true,
+        "ticksAdvanced": true,
+        "serverParity": true,
+        "realQ": true,
+        "physicalPlacement": true
+      },
+      "rawResult": "Original PASS; visual status predates subsequent root review"
+    },
+    {
+      "id": "rail-KB",
+      "run": "run-1791788912099-C",
+      "automated": "PASS",
+      "rootVisualReview": "ACCEPTED_LOCALLY root-reported after PNG inspection",
+      "serverParity": true,
+      "fixtureType": "contactFixture",
+      "normalHP": false,
+      "finalHero": {
+        "x": 120,
+        "z": 121.00000000000001,
+        "hp": 100,
+        "hpMax": 100,
+        "level": 1,
+        "qHold": 0,
+        "qCd": 0
+      },
+      "flags": {
+        "nativeGlobalMenuResumed": true,
+        "ticksAdvanced": true,
+        "serverParity": true,
+        "realKnockback": true,
+        "warningFollows": true,
+        "realShot": true
+      },
+      "rawResult": "Original PASS; visual status predates subsequent root review"
+    },
+    {
+      "id": "chain-twohits",
+      "run": "run-1791788912099-C",
+      "automated": "PASS",
+      "rootVisualReview": "ACCEPTED_LOCALLY root-reported after PNG inspection",
+      "serverParity": true,
+      "fixtureType": "contactFixture",
+      "normalHP": false,
+      "finalHero": {
+        "x": 120,
+        "z": 121.98524260474103,
+        "hp": 78,
+        "hpMax": 100,
+        "level": 1,
+        "qHold": 0,
+        "qCd": 0
+      },
+      "flags": {
+        "nativeGlobalMenuResumed": true,
+        "ticksAdvanced": true,
+        "serverParity": true,
+        "firstImpact": true,
+        "backImpact": true
+      },
+      "rawResult": "Raw file is atlas/EEXIST FAIL; canonical-batch-result.json results entry is chain PASS"
+    },
+    {
+      "id": "crowd-mixed",
+      "run": "run-1791788912099-C",
+      "automated": "PASS",
+      "rootVisualReview": "ACCEPTED_LOCALLY root-reported after PNG inspection",
+      "serverParity": true,
+      "fixtureType": "crowdFixture",
+      "normalHP": false,
+      "finalHero": {
+        "x": 120,
+        "z": 120,
+        "hp": 100,
+        "hpMax": 100,
+        "level": 1,
+        "qHold": 0,
+        "qCd": 0
+      },
+      "flags": {
+        "nativeGlobalMenuResumed": true,
+        "ticksAdvanced": true,
+        "serverParity": true,
+        "live300": true,
+        "noMissingModels": true
+      },
+      "rawResult": "Original PASS; visual status predates subsequent root review"
+    },
+    {
+      "id": "crowd-beetles",
+      "run": "run-1791788912099-C",
+      "automated": "PASS",
+      "rootVisualReview": "ACCEPTED_LOCALLY root-reported after PNG inspection",
+      "serverParity": true,
+      "fixtureType": "crowdFixture",
+      "normalHP": false,
+      "finalHero": {
+        "x": 120,
+        "z": 120,
+        "hp": 100,
+        "hpMax": 100,
+        "level": 1,
+        "qHold": 0,
+        "qCd": 0
+      },
+      "flags": {
+        "nativeGlobalMenuResumed": true,
+        "ticksAdvanced": true,
+        "serverParity": true,
+        "live300": true,
+        "noMissingModels": true
+      },
+      "rawResult": "Original PASS; visual status predates subsequent root review"
+    },
+    {
+      "id": "distinct-deaths",
+      "run": "run-1791789380183-C",
+      "automated": "PASS",
+      "rootVisualReview": "ACCEPTED_LOCALLY root-reported after PNG inspection",
+      "serverParity": true,
+      "fixtureType": "deathFixture",
+      "normalHP": false,
+      "finalHero": {
+        "x": 120,
+        "z": 120,
+        "hp": 100,
+        "hpMax": 100,
+        "level": 41,
+        "qHold": 0,
+        "qCd": 160
+      },
+      "flags": {
+        "nativeGlobalMenuResumed": true,
+        "ticksAdvanced": true,
+        "serverParity": true,
+        "fiveDeaths": true,
+        "mouseCard": true,
+        "ordinaryFullDeath": true,
+        "bossFullDeath": true
+      },
+      "rawResult": "Original PASS; visual status predates subsequent root review"
+    },
+    {
+      "id": "boss-phases",
+      "run": "run-1791789380183-C",
+      "automated": "PASS",
+      "rootVisualReview": "ACCEPTED_LOCALLY root-reported after PNG inspection",
+      "serverParity": true,
+      "fixtureType": "registrationOnly",
+      "normalHP": false,
+      "finalHero": {
+        "x": 121.95730014102426,
+        "z": 121.31465945390491,
+        "hp": 9770,
+        "hpMax": 10000,
+        "level": 8,
+        "qHold": 0,
+        "qCd": 0
+      },
+      "flags": {
+        "nativeGlobalMenuResumed": true,
+        "ticksAdvanced": true,
+        "serverParity": true,
+        "phase1": true,
+        "phase2": true,
+        "phase3": true,
+        "attackFamilies": [
+          "pause",
+          "ladle",
+          "pour",
+          "roar",
+          "ladle2",
+          "boil"
+        ],
+        "allFamilies": true,
+        "lidWorldLocked": true,
+        "liquidMorphMoves": true
+      },
+      "rawResult": "Original PASS; visual status predates subsequent root review"
+    },
+    {
+      "id": "timer20-to21",
+      "run": "run-1791789380183-C",
+      "automated": "PASS",
+      "rootVisualReview": "ACCEPTED_LOCALLY root-reported after PNG inspection",
+      "serverParity": true,
+      "fixtureType": "timerFixture",
+      "normalHP": false,
+      "finalHero": {
+        "x": 120,
+        "z": 120,
+        "hp": 100,
+        "hpMax": 100,
+        "level": 1,
+        "qHold": 0,
+        "qCd": 0
+      },
+      "flags": {
+        "nativeGlobalMenuResumed": true,
+        "ticksAdvanced": true,
+        "serverParity": true,
+        "actualTimer": true,
+        "bossCarryover": true
+      },
+      "rawResult": "Original PASS; visual status predates subsequent root review"
+    },
+    {
+      "id": "wave16-kite",
+      "run": "run-1791790167971-A",
+      "automated": "PASS",
+      "rootVisualReview": "ACCEPTED_LOCALLY root-reported after PNG inspection",
+      "serverParity": true,
+      "fixtureType": "normalHP",
+      "normalHP": true,
+      "finalHero": {
+        "x": 116.08295421262032,
+        "z": 104.82650704769806,
+        "hp": 61,
+        "hpMax": 100,
+        "level": 6,
+        "qHold": 0,
+        "qCd": 18
+      },
+      "flags": {
+        "nativeGlobalMenuResumed": true,
+        "ticksAdvanced": true,
+        "serverParity": true,
+        "dash": true,
+        "warn:spark_pulse": true,
+        "warn:ember_splash": true,
+        "q": true,
+        "mouseCard": true,
+        "warn:spit": true,
+        "weaponDamage": true,
+        "survived": true
+      },
+      "rawResult": "Original PASS; visual status predates subsequent root review"
+    },
+    {
+      "id": "wave17-kite",
+      "run": "run-1791790167971-A",
+      "automated": "PASS",
+      "rootVisualReview": "ACCEPTED_LOCALLY root-reported after PNG inspection",
+      "serverParity": true,
+      "fixtureType": "normalHP",
+      "normalHP": true,
+      "finalHero": {
+        "x": 136.87543291452093,
+        "z": 126.66297866246772,
+        "hp": 62,
+        "hpMax": 100,
+        "level": 5,
+        "qHold": 0,
+        "qCd": 0
+      },
+      "flags": {
+        "nativeGlobalMenuResumed": true,
+        "ticksAdvanced": true,
+        "serverParity": true,
+        "dash": true,
+        "warn:spark_pulse": true,
+        "q": true,
+        "warn:ember_splash": true,
+        "mouseCard": true,
+        "warn:spit": true,
+        "warn:plant_warn": true,
+        "warn:heal": true,
+        "weaponDamage": true,
+        "survived": true
+      },
+      "rawResult": "Original PASS; visual status predates subsequent root review"
+    },
+    {
+      "id": "wave18-range",
+      "run": "run-1791790167971-A",
+      "automated": "PASS",
+      "rootVisualReview": "ACCEPTED_LOCALLY root-reported after PNG inspection",
+      "serverParity": true,
+      "fixtureType": "normalHP",
+      "normalHP": true,
+      "finalHero": {
+        "x": 118.6497046185367,
+        "z": 109.21025880510209,
+        "hp": 56,
+        "hpMax": 100,
+        "level": 7,
+        "qHold": 0,
+        "qCd": 235
+      },
+      "flags": {
+        "nativeGlobalMenuResumed": true,
+        "ticksAdvanced": true,
+        "serverParity": true,
+        "dash": true,
+        "warn:boulder": true,
+        "warn:stal": true,
+        "warn:spark_pulse": true,
+        "q": true,
+        "warn:ember_splash": true,
+        "warn:spit": true,
+        "warn:rail_warn": true,
+        "mouseCard": true,
+        "warn:plant_warn": true,
+        "warn:charge": true,
+        "weaponDamage": true,
+        "survived": true
+      },
+      "rawResult": "Original PASS; visual status predates subsequent root review"
+    },
+    {
+      "id": "wave19-guard",
+      "run": "run-1791790167971-A",
+      "automated": "PASS",
+      "rootVisualReview": "ACCEPTED_LOCALLY root-reported after PNG inspection",
+      "serverParity": true,
+      "fixtureType": "normalHP",
+      "normalHP": true,
+      "finalHero": {
+        "x": 108.84970461853679,
+        "z": 103.81025880510182,
+        "hp": 158,
+        "hpMax": 200,
+        "level": 6,
+        "qHold": 0,
+        "qCd": 167
+      },
+      "flags": {
+        "nativeGlobalMenuResumed": true,
+        "ticksAdvanced": true,
+        "serverParity": true,
+        "dash": true,
+        "warn:boulder": true,
+        "warn:stal": true,
+        "q": true,
+        "warn:ember_splash": true,
+        "warn:spit": true,
+        "warn:rail_warn": true,
+        "warn:plant_warn": true,
+        "mouseCard": true,
+        "warn:heal": true,
+        "weaponDamage": true,
+        "survived": true
+      },
+      "rawResult": "Original PASS; visual status predates subsequent root review"
+    },
+    {
+      "id": "boss20-kite",
+      "run": "run-1791790167971-A",
+      "automated": "PASS",
+      "rootVisualReview": "ACCEPTED_LOCALLY root-reported after PNG inspection",
+      "serverParity": true,
+      "fixtureType": "normalHP",
+      "normalHP": true,
+      "finalHero": {
+        "x": 117.33537738317546,
+        "z": 108.23878110862127,
+        "hp": 74,
+        "hpMax": 100,
+        "level": 5,
+        "qHold": 0,
+        "qCd": 68
+      },
+      "flags": {
+        "nativeGlobalMenuResumed": true,
+        "ticksAdvanced": true,
+        "serverParity": true,
+        "dash": true,
+        "warn:spark_pulse": true,
+        "warn:ember_splash": true,
+        "q": true,
+        "warn:cauldron_pour": true,
+        "mouseCard": true,
+        "warn:cauldron_flow": true,
+        "warn:cauldron_boil": true,
+        "bossKilled": true,
+        "weaponDamage": true,
+        "survived": true
+      },
+      "rawResult": "Original PASS; visual status predates subsequent root review"
+    },
+    {
+      "id": "boss20-range",
+      "run": "run-1791790167971-A",
+      "automated": "PASS",
+      "rootVisualReview": "ACCEPTED_LOCALLY root-reported after PNG inspection",
+      "serverParity": true,
+      "fixtureType": "normalHP",
+      "normalHP": true,
+      "finalHero": {
+        "x": 123.13050865276327,
+        "z": 133.45649711574578,
+        "hp": 46,
+        "hpMax": 100,
+        "level": 5,
+        "qHold": 0,
+        "qCd": 1
+      },
+      "flags": {
+        "nativeGlobalMenuResumed": true,
+        "ticksAdvanced": true,
+        "serverParity": true,
+        "dash": true,
+        "warn:boulder": true,
+        "warn:stal": true,
+        "warn:spark_pulse": true,
+        "q": true,
+        "warn:ember_splash": true,
+        "warn:cauldron_pour": true,
+        "mouseCard": true,
+        "warn:cauldron_flow": true,
+        "warn:cauldron_ladle": true,
+        "warn:cauldron_boil": true,
+        "bossKilled": true,
+        "weaponDamage": true,
+        "survived": true
+      },
+      "rawResult": "Original PASS; visual status predates subsequent root review"
+    },
+    {
+      "id": "boss20-guard",
+      "run": "run-1791790821910-A",
+      "automated": "PASS",
+      "rootVisualReview": "ACCEPTED_LOCALLY root-reported after PNG inspection",
+      "serverParity": true,
+      "fixtureType": "normalHP",
+      "normalHP": true,
+      "finalHero": {
+        "x": 115.61480068227469,
+        "z": 121.67395670477856,
+        "hp": 89,
+        "hpMax": 200,
+        "level": 4,
+        "qHold": 0,
+        "qCd": 0
+      },
+      "flags": {
+        "nativeGlobalMenuResumed": true,
+        "ticksAdvanced": true,
+        "serverParity": true,
+        "warn:boulder": true,
+        "warn:stal": true,
+        "warn:ember_splash": true,
+        "warn:cauldron_pour": true,
+        "warn:cauldron_flow": true,
+        "bossKilled": true,
+        "weaponDamage": true,
+        "survived": true
+      },
+      "rawResult": "Original PASS; visual status predates subsequent root review"
+    },
+    {
+      "id": "recipes-kite",
+      "run": "run-1791791188486-B",
+      "automated": "PASS",
+      "rootVisualReview": "ACCEPTED_LOCALLY root-reported after PNG inspection",
+      "serverParity": true,
+      "fixtureType": "recipeFixture",
+      "normalHP": false,
+      "finalHero": {
+        "x": 121.13407070887439,
+        "z": 111.1302525316942,
+        "hp": 100,
+        "hpMax": 100,
+        "level": 2,
+        "qHold": 0,
+        "qCd": 0
+      },
+      "flags": {
+        "ticksAdvanced": true,
+        "serverParity": true,
+        "mouseCard": true,
+        "mouseChest": true,
+        "allFiveEvolved": true,
+        "legalFivePlusFive": true,
+        "catalystsRetained": true,
+        "evoIds": [
+          "lantern",
+          "embers",
+          "pickaxe",
+          "charges",
+          "spark"
+        ]
+      },
+      "rawResult": "Original PASS; visual status predates subsequent root review"
+    },
+    {
+      "id": "recipes-guard",
+      "run": "run-1791791188486-B",
+      "automated": "PASS",
+      "rootVisualReview": "ACCEPTED_LOCALLY root-reported after PNG inspection",
+      "serverParity": true,
+      "fixtureType": "recipeFixture",
+      "normalHP": false,
+      "finalHero": {
+        "x": 121.21005050633882,
+        "z": 111.25025253169387,
+        "hp": 200,
+        "hpMax": 200,
+        "level": 2,
+        "qHold": 0,
+        "qCd": 0
+      },
+      "flags": {
+        "nativeGlobalMenuResumed": true,
+        "ticksAdvanced": true,
+        "serverParity": true,
+        "mouseCard": true,
+        "mouseChest": true,
+        "allFiveEvolved": true,
+        "legalFivePlusFive": true,
+        "catalystsRetained": true,
+        "evoIds": [
+          "lantern",
+          "embers",
+          "fireflies",
+          "stalactites",
+          "beam"
+        ]
+      },
+      "rawResult": "Original PASS; visual status predates subsequent root review"
+    }
+  ],
+  "progressionContext": {
+    "status": "POWERED_UPPER_FIXTURE_NOT_TYPICAL_PROGRESSION",
+    "receipt": "source/progression-arithmetic.json",
+    "review": "source/progression-context.md",
+    "totalUpgradeChoices": [
+      61,
+      64,
+      64
+    ],
+    "xpOnlyRequired": [
+      19520,
+      21440,
+      21440
+    ],
+    "evoChestsEach": 5,
+    "plannedXpThrough15": 8430,
+    "maxSweepThrough15": 600,
+    "plannedXpThrough19": 12429,
+    "maxSweepThrough19": 950,
+    "neededChestUpgradesBefore16": [
+      16,
+      23,
+      19
+    ],
+    "neededChestUpgradesBefore20": [
+      6,
+      14,
+      9
+    ],
+    "minimumRecipeReady": {
+      "upgradeChoices": 39,
+      "xpOnly": 8190,
+      "evoChests": 5
+    },
+    "conclusion": "Full fixture builds are a powered upper comparison requiring active chest collection/favorable choices, not typical or guaranteed at16/20. XP alone is insufficient. Arithmetic does not show impossibility with active chest route; three wins validate full-build functions/tactics, not progression or statistical balance."
+  }
+}

@@ -1,0 +1,1272 @@
+{
+  "createdAt": "2026-10-11T23:24:37.271Z",
+  "reason": "Roman requested original v1 preserved before R2 implementation",
+  "sourceCommit": "62f814f",
+  "files": [
+    {
+      "path": "./art/PROVENANCE.md",
+      "bytes": 2903,
+      "sha256": "59758604827447da6ac41bce1b843db898e68ee4cd6c940c6964ab605243f259"
+    },
+    {
+      "path": "./art/cauldronmaster/cauldronmaster.png",
+      "bytes": 2099176,
+      "sha256": "0d75afa2d9487d4950803d09015935d436bb7c11650dc63be6b4c8fdecdd695c"
+    },
+    {
+      "path": "art/cauldronmaster/codex.jsonl",
+      "bytes": 236346,
+      "sha256": "f6a7b9813b0c72730cbb4be7c206070c31cefbf294cc001bc9bd18465baa400d"
+    },
+    {
+      "path": "./art/cauldronmaster/final.txt",
+      "bytes": 548,
+      "sha256": "8d85a7ddb040b4cebe360565357a8ba9704d16deae4b412b56425db53d0d1164"
+    },
+    {
+      "path": "./art/cauldronmaster/orig-source.txt",
+      "bytes": 120,
+      "sha256": "51962b73fbe28413ab6bcee5a6bd970c98ca0ffb3bd543197b95a1f0b305bccc"
+    },
+    {
+      "path": "./art/cauldronmaster/orig.png",
+      "bytes": 2099176,
+      "sha256": "0d75afa2d9487d4950803d09015935d436bb7c11650dc63be6b4c8fdecdd695c"
+    },
+    {
+      "path": "./art/cauldronmaster/process.json",
+      "bytes": 92,
+      "sha256": "3665f44b45f8b3b8534afcf2bfafc4d1538c24fe30346212cbbe2eb88796e2a1"
+    },
+    {
+      "path": "./art/cauldronmaster/prompt.txt",
+      "bytes": 3463,
+      "sha256": "974d9a3d2fdb1f844978c607ed2f931398d129ea6684e54de9df25b4cce20c5d"
+    },
+    {
+      "path": "./art/cauldronmaster/receipt.json",
+      "bytes": 377,
+      "sha256": "5b69e66b54ccd6add2c0088f333426597fa969abfd1eec97883039e38b96afbf"
+    },
+    {
+      "path": "./art/cauldronmaster/source.txt",
+      "bytes": 268,
+      "sha256": "d50b65e8b9672365c25b478ae3bf8011ca7a9b3353b633dad9bb83c2a425efcd"
+    },
+    {
+      "path": "./art/chainwarden/chainwarden.png",
+      "bytes": 2173433,
+      "sha256": "275acbb0ebc6e9491c46992099c478f151e40c7431f34d460c185cdbcb8efaea"
+    },
+    {
+      "path": "art/chainwarden/codex.jsonl",
+      "bytes": 312401,
+      "sha256": "0ed93d9c17e0908a203eea0e70d195ae258e467fb8a104ac07ffca37b9883660"
+    },
+    {
+      "path": "./art/chainwarden/final.txt",
+      "bytes": 610,
+      "sha256": "16b7194a8f03ca25f89afd6445a8cb2d830ee5641b594e8641f56d34d445a9d3"
+    },
+    {
+      "path": "./art/chainwarden/orig-source.txt",
+      "bytes": 120,
+      "sha256": "06de9c1c8ee68463bdffcba651723b35bacb91c2f7c578bb26ec68f84de048e0"
+    },
+    {
+      "path": "./art/chainwarden/orig.png",
+      "bytes": 2173433,
+      "sha256": "275acbb0ebc6e9491c46992099c478f151e40c7431f34d460c185cdbcb8efaea"
+    },
+    {
+      "path": "./art/chainwarden/process.json",
+      "bytes": 92,
+      "sha256": "c740d264a389b5476bdf256a537df39326a698ac9b52e385dcbfeb5a3e88d4e5"
+    },
+    {
+      "path": "./art/chainwarden/prompt.txt",
+      "bytes": 3137,
+      "sha256": "e0df7b413df75af5141400d8cd0607b04c9b65e9938be7594d475130bafcb08c"
+    },
+    {
+      "path": "./art/chainwarden/receipt.json",
+      "bytes": 371,
+      "sha256": "3328024f69c328a85d5c11a2ce25f40879fbb97cb7885bcdad23c457ffbdcf85"
+    },
+    {
+      "path": "./art/chainwarden/source.txt",
+      "bytes": 336,
+      "sha256": "eb3ea016314ae6022a2a2c95091391c1309a719026c879983d32a25c8f332718"
+    },
+    {
+      "path": "art/hookclaw/codex.jsonl",
+      "bytes": 220820,
+      "sha256": "fafa9d8513d8c9a09e82d6831463bc5fed006590baadbc7f75f4e63651ae3980"
+    },
+    {
+      "path": "./art/hookclaw/final.txt",
+      "bytes": 564,
+      "sha256": "1f2c89706f284ea0db43e8bd3d1103525c710670bb68ca969d7c7d9d0f816f16"
+    },
+    {
+      "path": "./art/hookclaw/hookclaw.png",
+      "bytes": 2192636,
+      "sha256": "0638cf6dea1cd824b66f39275388773f9802b85c0a5852174725ba16bc1e8e8d"
+    },
+    {
+      "path": "./art/hookclaw/orig-source.txt",
+      "bytes": 120,
+      "sha256": "2b326f570743db607a4d77848d13d4ed6e5d4a4192863059c28a3e1acd0c8dad"
+    },
+    {
+      "path": "./art/hookclaw/orig.png",
+      "bytes": 2192636,
+      "sha256": "0638cf6dea1cd824b66f39275388773f9802b85c0a5852174725ba16bc1e8e8d"
+    },
+    {
+      "path": "./art/hookclaw/process.json",
+      "bytes": 92,
+      "sha256": "0411e1699f1414460668e26399888aee6f0dfae132776c02548f29298236b3be"
+    },
+    {
+      "path": "./art/hookclaw/prompt.txt",
+      "bytes": 3001,
+      "sha256": "e335821b92862d2f07b5407543c7546978d050b3dc5ce847acaa5568674dbee1"
+    },
+    {
+      "path": "./art/hookclaw/receipt.json",
+      "bytes": 365,
+      "sha256": "6da1808aeb0feb3b19f77053d0dfba313cbc1457ead860b44801ac5ea1218607"
+    },
+    {
+      "path": "./art/hookclaw/source.txt",
+      "bytes": 249,
+      "sha256": "758200a40f7a245a0bdf67f913ddae95d84af0ddb8e8fc98fc4fb1dcffd49b2a"
+    },
+    {
+      "path": "./art/provenance.json",
+      "bytes": 3657,
+      "sha256": "da3e3b78dee6bda90383d460812aabd89fb496321d94151674d5e87ff3d65fea"
+    },
+    {
+      "path": "art/railhopper/codex.jsonl",
+      "bytes": 159918,
+      "sha256": "03eee20fc2d8dec6f74aa44e3fc15c51baaf7148ed67501acbc5684e23cd1f0d"
+    },
+    {
+      "path": "./art/railhopper/final.txt",
+      "bytes": 564,
+      "sha256": "7940c57ba10694828264dd9ab3145bd3aaab6cc7ee2de322918a73cb8adf65d5"
+    },
+    {
+      "path": "./art/railhopper/orig-source.txt",
+      "bytes": 120,
+      "sha256": "a72a1512a3be697a8684a4f2a42dc70c93b74e47f2e7f3217aa5f1f0443d1804"
+    },
+    {
+      "path": "./art/railhopper/orig.png",
+      "bytes": 2020292,
+      "sha256": "66e39703ccf4fa1d993c9f31d977bd4400836f22a9ae2823cd1751fcf67ea062"
+    },
+    {
+      "path": "./art/railhopper/process.json",
+      "bytes": 92,
+      "sha256": "c9a789619000aeb4739f0c4eb85c4c9c82d2f9736d8287e6f3c8dde4a747b294"
+    },
+    {
+      "path": "./art/railhopper/prompt.txt",
+      "bytes": 3056,
+      "sha256": "5eee871f3c440dcd5023e88196e98853cde8d28dea9d55d87af92151df4de08e"
+    },
+    {
+      "path": "./art/railhopper/railhopper.png",
+      "bytes": 2020292,
+      "sha256": "66e39703ccf4fa1d993c9f31d977bd4400836f22a9ae2823cd1751fcf67ea062"
+    },
+    {
+      "path": "./art/railhopper/receipt.json",
+      "bytes": 369,
+      "sha256": "5ff2ec4e7c419afd3f1735f9b626e355daaa627580ef81e49c2f33cf49e01c01"
+    },
+    {
+      "path": "./art/railhopper/source.txt",
+      "bytes": 257,
+      "sha256": "11cbe492b67a1de45af4bc12668b773ca2d82649f018cf9f86907459d34b7e63"
+    },
+    {
+      "path": "art/wickmole/codex.jsonl",
+      "bytes": 329727,
+      "sha256": "a1e84e0373f4a3e645b417d48ed2aa77248483cc59466cde545376c2765e3dc9"
+    },
+    {
+      "path": "./art/wickmole/final.txt",
+      "bytes": 407,
+      "sha256": "61e5b3157888d3019f07ef771521019e1e5a86f9f6c196231f670e436d078eb7"
+    },
+    {
+      "path": "./art/wickmole/orig-source.txt",
+      "bytes": 120,
+      "sha256": "08bf63ad0608c14462718100dc6745e2560e9767fcc82226c590769c15fa05cd"
+    },
+    {
+      "path": "./art/wickmole/orig.png",
+      "bytes": 2273708,
+      "sha256": "d078f1dac40e47b1ffe6a79387415355e91d31b016068aad0730164ef7032723"
+    },
+    {
+      "path": "./art/wickmole/process.json",
+      "bytes": 92,
+      "sha256": "b1d828299478f6de21e6901693eb1e373b595064d489b223cf8ef5fc2f9ebdef"
+    },
+    {
+      "path": "./art/wickmole/prompt.txt",
+      "bytes": 3008,
+      "sha256": "300b11673f5bc9b64e5f4fb8ead065180f315ad372fe2551b4ed7b9d1e124cb0"
+    },
+    {
+      "path": "./art/wickmole/receipt.json",
+      "bytes": 365,
+      "sha256": "9a27b10af82e9f6a43ed2dd85ba646f9ad4003afc26392faf769a3e294666075"
+    },
+    {
+      "path": "./art/wickmole/source.txt",
+      "bytes": 419,
+      "sha256": "2e67d8765163b93a3b7954186b46a9fb9d2e8b321d850f99f6ffae5e041be47a"
+    },
+    {
+      "path": "./art/wickmole/wickmole.png",
+      "bytes": 2273708,
+      "sha256": "d078f1dac40e47b1ffe6a79387415355e91d31b016068aad0730164ef7032723"
+    },
+    {
+      "path": "blender/cauldronmaster.blend",
+      "bytes": 441565,
+      "sha256": "15ec6dd65aba0f8dd3eabf610c9405440f025b6a25cb227b889fc066d6a46bd2"
+    },
+    {
+      "path": "blender/cauldronmaster.blend1",
+      "bytes": 435561,
+      "sha256": "38d69672797c1afba7954fbc5ff864f83c68541b1a91764a7beee0d9039d5f12"
+    },
+    {
+      "path": "blender/chainwarden.blend",
+      "bytes": 330657,
+      "sha256": "ec593fb4732413ffa40b661b19dd4d508d01f1348c1183516f42561d952a3a87"
+    },
+    {
+      "path": "blender/chainwarden.blend1",
+      "bytes": 260920,
+      "sha256": "90d40669174d7c4cc0b7836a2e5fc3392e08477f24c8fe8be5b9392ee63f228f"
+    },
+    {
+      "path": "blender/hookclaw.blend",
+      "bytes": 176417,
+      "sha256": "b934910d0a17618f020adbd19ea0231f45fa641ddef469d728394bc8a625136a"
+    },
+    {
+      "path": "blender/hookclaw.blend1",
+      "bytes": 176379,
+      "sha256": "08cec94f5bc7cf6a0148fcf495c3a2660ee7eeb6734edbfbbdf4a5c090c1cd52"
+    },
+    {
+      "path": "blender/railhopper.blend",
+      "bytes": 178264,
+      "sha256": "68a14ce12087aed134db81f99835199f734677df63daf4845eb4fc8f1e2b09c5"
+    },
+    {
+      "path": "blender/railhopper.blend1",
+      "bytes": 172517,
+      "sha256": "7762bbb732971baa936f0cc0adb98580c50be0465de6bbcd0700c3b399d8d0b7"
+    },
+    {
+      "path": "blender/wickmole.blend",
+      "bytes": 195630,
+      "sha256": "c0f77c4d04d9a207c9d3701feda93b715ceed95d6e9efc4d80646f59d6076651"
+    },
+    {
+      "path": "./brief.md",
+      "bytes": 13855,
+      "sha256": "e470d8bc949e67f45cc22ce45cda53904d8e59e956fcf319565086f2bc5bb3c9"
+    },
+    {
+      "path": "./design-data.json",
+      "bytes": 24498,
+      "sha256": "079fca2f0f498637178ea29b3d068a225ac80448dae2716ac27d985fa75e66d2"
+    },
+    {
+      "path": "./index.html",
+      "bytes": 26249497,
+      "sha256": "a6370d383ab0b47a074c9ecd6026d9be7da25e8e67b09bfbf10a19b28fd4c3cd"
+    },
+    {
+      "path": "./models/PROVENANCE.md",
+      "bytes": 2254,
+      "sha256": "eeba0367048c66eb5e7bb23612fa7569ad5e18eb68f14ef9645b14dcd474c7d1"
+    },
+    {
+      "path": "./models/baseline/beetle.glb",
+      "bytes": 80396,
+      "sha256": "03c892798a5ca4d7b17d068ac8b43d72949085b681a7c71a6f39fe82a1e461dc"
+    },
+    {
+      "path": "./models/baseline/boss.glb",
+      "bytes": 921076,
+      "sha256": "3f3922c3d08702ed3c9100b031754bbd9e69092f694435b384b0dfcd97fdafc4"
+    },
+    {
+      "path": "./models/baseline/cooper.glb",
+      "bytes": 150380,
+      "sha256": "cd5bc0964948483862cff80e0b7191ba0b1fa741df04ef1c33b6a6de8a7fcc34"
+    },
+    {
+      "path": "./models/baseline/hero.glb",
+      "bytes": 515416,
+      "sha256": "107a479700a65663a31fb137d4a81319ea38878d17c0ab3e902b3441c47939bd"
+    },
+    {
+      "path": "./models/baseline/rat.glb",
+      "bytes": 69876,
+      "sha256": "1ab016a07fab797b15b450eba0e459a30b24e34db62d9e4fd4b9072affc834dc"
+    },
+    {
+      "path": "./models/cauldronmaster-manifest.json",
+      "bytes": 768,
+      "sha256": "2b48ff0b59b9094ec7a866d468f86ecd3676c2543f60498685c1fc38795a4dbe"
+    },
+    {
+      "path": "./models/cauldronmaster.glb",
+      "bytes": 630128,
+      "sha256": "5dcece4f0c41ae7b3a54177f3328b64f360c0a75962624d55c037f62d4747f8c"
+    },
+    {
+      "path": "./models/chainwarden-manifest.json",
+      "bytes": 538,
+      "sha256": "089405febc14c89790c2f67e13c091e958ffc4357509756cb93910efe72d3ca8"
+    },
+    {
+      "path": "./models/chainwarden.glb",
+      "bytes": 217468,
+      "sha256": "518ffb2838104ceb9513d0227c11a4fcceb14635dc95bdd5fb33d480eac1e8ff"
+    },
+    {
+      "path": "./models/glb-validation.json",
+      "bytes": 9017,
+      "sha256": "c0c9b446e68f8a704c42f34f80f7398fd2e488bac6f98f8f0b53fc96d7c6ca7c"
+    },
+    {
+      "path": "./models/hookclaw-manifest.json",
+      "bytes": 435,
+      "sha256": "529a7ca4873e612a4f7c0387f5cc3ed8f592702d92920695b3873b0f6a3df049"
+    },
+    {
+      "path": "./models/hookclaw.glb",
+      "bytes": 99340,
+      "sha256": "682089869b5957031345c919350d3bed63d9501977b728da3b9dbbb7c65e3983"
+    },
+    {
+      "path": "./models/lineup-manifest.json",
+      "bytes": 2535,
+      "sha256": "1fe927f0845b710ecaa397604e6a019355c9796212cdf372546bae6a3c614651"
+    },
+    {
+      "path": "./models/manifest.json",
+      "bytes": 15100,
+      "sha256": "1f087f1ca80a47cf0e1738eab8db8164ec5c09c5d5cd5faf0e0b9fbc713f8e31"
+    },
+    {
+      "path": "./models/previews/_boss-sheet-tmp.png",
+      "bytes": 44765,
+      "sha256": "df525f0f4a2583cd2860d42b4c106bb0d0530ce1c11e0e36e006dd493d40e8d9"
+    },
+    {
+      "path": "./models/previews/_sheet_tmp.png",
+      "bytes": 32403,
+      "sha256": "beabc3ed7a4420c9032e23fbe3df5a51d2249973917010b79d372e69db83fdd1"
+    },
+    {
+      "path": "./models/previews/cauldronmaster-3q.png",
+      "bytes": 487241,
+      "sha256": "fd0eb37e438edf253a84a346d6f43ca6c968b535233d4d4b971f02223bb09168"
+    },
+    {
+      "path": "./models/previews/cauldronmaster-back.png",
+      "bytes": 476561,
+      "sha256": "10c2b08695f4f45fe067ac9ba7c7657516d8a945bbc5c819f4fe6eecdbc63d59"
+    },
+    {
+      "path": "./models/previews/cauldronmaster-poses.png",
+      "bytes": 577135,
+      "sha256": "e5da85e2fe79b414ef55a60680a9e487183e54306f4f1ad2a7e1eb24cca49f6f"
+    },
+    {
+      "path": "./models/previews/cauldronmaster-profile.png",
+      "bytes": 472325,
+      "sha256": "92408f7aef74859a6aee8b24087ed2d0b2eb50c7bbc221bd6537735219a3374b"
+    },
+    {
+      "path": "./models/previews/cauldronmaster-top.png",
+      "bytes": 480386,
+      "sha256": "bc51eb1ee2003fbcdf90c602fdf0fcbfbc1bdaa0fdd9b9ba42613a36e94a0654"
+    },
+    {
+      "path": "./models/previews/chainwarden-3q.png",
+      "bytes": 480441,
+      "sha256": "e353686c287b8ee9c19d6beebae3984789e33476c89eaae838f7cc99c7c083b6"
+    },
+    {
+      "path": "./models/previews/chainwarden-back.png",
+      "bytes": 469010,
+      "sha256": "942ef1841c9c56845dd61c7f6ac37230288b89cf6568581015afec6d4e0d16f6"
+    },
+    {
+      "path": "./models/previews/chainwarden-poses.png",
+      "bytes": 285794,
+      "sha256": "5201e4a62490b17fe48a7df14fd96c7cf3a317e4280a79d958693a6bc3cf5c58"
+    },
+    {
+      "path": "./models/previews/chainwarden-profile.png",
+      "bytes": 468398,
+      "sha256": "d7f35d87e239a45700db7f6b940bacf113da960dd8874cb285be4d9761852a35"
+    },
+    {
+      "path": "./models/previews/chainwarden-top.png",
+      "bytes": 486655,
+      "sha256": "01464166213954aab2fdff5fdb63c7c0a96dc3f77f2a343b7a210e8b1b6dc631"
+    },
+    {
+      "path": "./models/previews/hookclaw-3q.png",
+      "bytes": 450444,
+      "sha256": "68d5edb5898610598952adab95ab9032c34916a9d710ac4022c4d44f9c2e19ea"
+    },
+    {
+      "path": "./models/previews/hookclaw-back.png",
+      "bytes": 482056,
+      "sha256": "116ff2d2970608b7ca2d23960f78d9716e48347e80da854ca9eebe9d74d1e96f"
+    },
+    {
+      "path": "./models/previews/hookclaw-poses.png",
+      "bytes": 253165,
+      "sha256": "88cfbc7d640f975bf924f08d4e6e3bc8616427e3dbda2ad7af1300e66732908d"
+    },
+    {
+      "path": "./models/previews/hookclaw-profile.png",
+      "bytes": 453247,
+      "sha256": "138424321fb69ef80e7eb6a1931f72fa0713cd5600b2beb10c03ee43f6771e83"
+    },
+    {
+      "path": "./models/previews/hookclaw-top.png",
+      "bytes": 471856,
+      "sha256": "59b520975e204db3fbd91f8e766daba7ded51f0a07a3aa746c888bac57f9449e"
+    },
+    {
+      "path": "./models/previews/lineup-game62.png",
+      "bytes": 980329,
+      "sha256": "7bc593974eacd363aa286f20b1349fd6c47be6df8bd6bf4950c61f5404872f78"
+    },
+    {
+      "path": "./models/previews/railhopper-3q.png",
+      "bytes": 457159,
+      "sha256": "c8a5ff74ffb0f8fc1203808975230d62ee82bb57c546406fb23f6e75e30b19dd"
+    },
+    {
+      "path": "./models/previews/railhopper-back.png",
+      "bytes": 482170,
+      "sha256": "3ea7bd3c18c7e22b048e29460509de0cf53a05879ca076a0efb2e1c7dd8d166d"
+    },
+    {
+      "path": "./models/previews/railhopper-poses.png",
+      "bytes": 257092,
+      "sha256": "8e6f6d42c987c8d8f37da1100d44ec9b36e4c473bb563d4acfcce11d04b3b555"
+    },
+    {
+      "path": "./models/previews/railhopper-profile.png",
+      "bytes": 462799,
+      "sha256": "a2e92c60855e19910a22a70ee9cb9ef6f4a70ef203d89aecf1e6e945b0470e68"
+    },
+    {
+      "path": "./models/previews/railhopper-top.png",
+      "bytes": 475966,
+      "sha256": "22aaf81d8b25945bb35f5042e9786be5d8ad3bc29493044361db2a208f5f09a3"
+    },
+    {
+      "path": "./models/previews/wickmole-3q.png",
+      "bytes": 472735,
+      "sha256": "96ccbea346ebcc40099bc792d43594be22a1bf2141ebce0c0eb6cc00d8b63d0f"
+    },
+    {
+      "path": "./models/previews/wickmole-back.png",
+      "bytes": 458148,
+      "sha256": "75ef7dae2c89010b95b882466589eb4793653c1694c2e1b1dba32fe8d12a4448"
+    },
+    {
+      "path": "./models/previews/wickmole-poses.png",
+      "bytes": 284352,
+      "sha256": "ba12f4d79bb43b09d241f6240f08f5ff28d9e2130815273192387226e6a09426"
+    },
+    {
+      "path": "./models/previews/wickmole-profile.png",
+      "bytes": 468503,
+      "sha256": "c5531b7ed0765b4ddf957c8f38aff2b780c3df42fc93b0b7c0e7b0efd1c902a6"
+    },
+    {
+      "path": "./models/previews/wickmole-top.png",
+      "bytes": 479910,
+      "sha256": "3e990de9e3374cc9457c62334987ab38b0a9a8f5739a9e44d10d3b5c20749a3d"
+    },
+    {
+      "path": "./models/railhopper-manifest.json",
+      "bytes": 446,
+      "sha256": "bf367ef3a78e07d4fb340a766717e452c7f9205b520c5083c84b58f45c357c81"
+    },
+    {
+      "path": "./models/railhopper.glb",
+      "bytes": 99412,
+      "sha256": "d3c3981952c2323ecbd022eb7b552b44a42b513c1377b0a80a0c6addb2039528"
+    },
+    {
+      "path": "models/scripts/cauldronmaster.py",
+      "bytes": 14625,
+      "sha256": "1db6667256120b604e5245e3b616fe7cfe5864106ab4dc02db4efd8dac8469f4"
+    },
+    {
+      "path": "models/scripts/chainwarden.py",
+      "bytes": 8674,
+      "sha256": "1d7ffa94f8ebc9bb7898b9187909c9b7a7e0e95791751e05ebeb645d25f4cbb8"
+    },
+    {
+      "path": "models/scripts/headless_mcp_bootstrap.py",
+      "bytes": 1717,
+      "sha256": "d8325a242c794c41818e47dc997c047a3df51d4f4dd44155da3bfb6b21ac331f"
+    },
+    {
+      "path": "models/scripts/hookclaw.py",
+      "bytes": 4517,
+      "sha256": "4972217c481b3dbf213a86adc164751ad0c8d63304d856861952831fde09c6c1"
+    },
+    {
+      "path": "models/scripts/inspect_models.py",
+      "bytes": 4911,
+      "sha256": "4075c555ef991154959ab192006f6bb5d796357ebb2580cf2f4fb3c2ce5c3399"
+    },
+    {
+      "path": "models/scripts/mobkit.py",
+      "bytes": 33647,
+      "sha256": "47a11bb1e821d7e0e5f290a7c8b67cd561641b3c5ef870f68f17298b031a0f2c"
+    },
+    {
+      "path": "models/scripts/railhopper.py",
+      "bytes": 4188,
+      "sha256": "33eed21f4e74f865a8ac35a132f7d1daede07ebf95a4b97b6ccccc543771fac4"
+    },
+    {
+      "path": "./models/scripts/validate-glb.mjs",
+      "bytes": 2293,
+      "sha256": "1f8a16abd851fa7484bb916c809beb4fe2d671a08f21c5155419a85b96c2355a"
+    },
+    {
+      "path": "models/scripts/wickmole.py",
+      "bytes": 6072,
+      "sha256": "8a7ff61f57efa3118abe3c35843bcd1a28a9ca3506fc042d7b6c523818881748"
+    },
+    {
+      "path": "./models/session-proof.json",
+      "bytes": 292,
+      "sha256": "251809388907d9972880061a4feff95924f8cc4caf3b180e4a5f7ca0d6132f87"
+    },
+    {
+      "path": "./models/v1/cauldronmaster/cauldronmaster-3q.png",
+      "bytes": 485892,
+      "sha256": "91896c6608dc50f0b78cc92769aa250a7908d0f656693ba70c89246149c9e5da"
+    },
+    {
+      "path": "models/v1/cauldronmaster/cauldronmaster.blend",
+      "bytes": 435561,
+      "sha256": "38d69672797c1afba7954fbc5ff864f83c68541b1a91764a7beee0d9039d5f12"
+    },
+    {
+      "path": "./models/v1/cauldronmaster/cauldronmaster.glb",
+      "bytes": 615732,
+      "sha256": "ade22f42454d253933100302d583424289c26344cf0fccb0401c69e6d68aa8fc"
+    },
+    {
+      "path": "models/v1/cauldronmaster/cauldronmaster.py",
+      "bytes": 14337,
+      "sha256": "89127ecff986a086808119f7cc684aa28e8b771dfce9372d9368ee40228302a8"
+    },
+    {
+      "path": "models/v1/cauldronmaster/mobkit.py",
+      "bytes": 33647,
+      "sha256": "47a11bb1e821d7e0e5f290a7c8b67cd561641b3c5ef870f68f17298b031a0f2c"
+    },
+    {
+      "path": "./models/v1/chainwarden/chainwarden-3q.png",
+      "bytes": 479078,
+      "sha256": "1977e929574159c5eba10717363462651f71400bee0b00e4b494cc17ab6bd646"
+    },
+    {
+      "path": "models/v1/chainwarden/chainwarden.blend",
+      "bytes": 264185,
+      "sha256": "26912194b5db5ecc97cff88463990265f6998c218914e3112fda5b204d7a67b0"
+    },
+    {
+      "path": "./models/v1/chainwarden/chainwarden.glb",
+      "bytes": 190968,
+      "sha256": "e0ba837cedb985c2abc790255a64ea462aea5f4f5b2e059de3eb9a9697e1f471"
+    },
+    {
+      "path": "models/v1/chainwarden/chainwarden.py",
+      "bytes": 6975,
+      "sha256": "96f3083801d70b58cf728f68ba16d848a2315107063a53cf684f29e2958bbde5"
+    },
+    {
+      "path": "models/v1/chainwarden/mobkit.py",
+      "bytes": 33647,
+      "sha256": "47a11bb1e821d7e0e5f290a7c8b67cd561641b3c5ef870f68f17298b031a0f2c"
+    },
+    {
+      "path": "./models/v1/hookclaw/hookclaw-3q.png",
+      "bytes": 437712,
+      "sha256": "c3e7c6fed6ad46490988cc8460fa32b3b54b7f2649fe8a08e8259ead5b2309c6"
+    },
+    {
+      "path": "models/v1/hookclaw/hookclaw.blend",
+      "bytes": 175709,
+      "sha256": "b9ebfd4a1d9d6bb04cb46e420abc0b50b03f2fe3d35b054820e7afe11fcd1feb"
+    },
+    {
+      "path": "./models/v1/hookclaw/hookclaw.glb",
+      "bytes": 99340,
+      "sha256": "83336c3b49a3c52f1e6607e305d088d69a4abcab397a2d88eeed3a9d4577d059"
+    },
+    {
+      "path": "models/v1/hookclaw/hookclaw.py",
+      "bytes": 4508,
+      "sha256": "cff16ab6047283e130520a811a6e0b8c2b4a7952a0b81e65eb0977215f06c356"
+    },
+    {
+      "path": "models/v1/hookclaw/mobkit.py",
+      "bytes": 33256,
+      "sha256": "0ed2994f049eac04a1b60104d85fe1a452d9dd7086e5cfc92268964b5e906014"
+    },
+    {
+      "path": "models/v1/railhopper/mobkit.py",
+      "bytes": 33647,
+      "sha256": "47a11bb1e821d7e0e5f290a7c8b67cd561641b3c5ef870f68f17298b031a0f2c"
+    },
+    {
+      "path": "./models/v1/railhopper/railhopper-3q.png",
+      "bytes": 456454,
+      "sha256": "c08c11f58b107ef7ba1a1e5f5261bdd5cb7b8c3b63c4af2b90c4f429c8f58c3a"
+    },
+    {
+      "path": "models/v1/railhopper/railhopper.blend",
+      "bytes": 172517,
+      "sha256": "7762bbb732971baa936f0cc0adb98580c50be0465de6bbcd0700c3b399d8d0b7"
+    },
+    {
+      "path": "./models/v1/railhopper/railhopper.glb",
+      "bytes": 92284,
+      "sha256": "794f82318e0699bd8a81bbd0948f842e2dd14d2ea496e5d1dd03d0a59287108b"
+    },
+    {
+      "path": "models/v1/railhopper/railhopper.py",
+      "bytes": 4033,
+      "sha256": "81d3c3807e5acbb7aa85b301679f34f73ce07257dba2879aaefa1abff589ef7f"
+    },
+    {
+      "path": "models/v1/wickmole/mobkit.py",
+      "bytes": 33647,
+      "sha256": "47a11bb1e821d7e0e5f290a7c8b67cd561641b3c5ef870f68f17298b031a0f2c"
+    },
+    {
+      "path": "./models/v1/wickmole/wickmole-3q.png",
+      "bytes": 472735,
+      "sha256": "96ccbea346ebcc40099bc792d43594be22a1bf2141ebce0c0eb6cc00d8b63d0f"
+    },
+    {
+      "path": "models/v1/wickmole/wickmole.blend",
+      "bytes": 195630,
+      "sha256": "c0f77c4d04d9a207c9d3701feda93b715ceed95d6e9efc4d80646f59d6076651"
+    },
+    {
+      "path": "./models/v1/wickmole/wickmole.glb",
+      "bytes": 124788,
+      "sha256": "d9e1c3b7d78f31a56fcf012f61cb3c9ca44d02eb39917699edaeec9e3ef3976c"
+    },
+    {
+      "path": "models/v1/wickmole/wickmole.py",
+      "bytes": 6072,
+      "sha256": "8a7ff61f57efa3118abe3c35843bcd1a28a9ca3506fc042d7b6c523818881748"
+    },
+    {
+      "path": "./models/wickmole-manifest.json",
+      "bytes": 432,
+      "sha256": "ea55f0ac9e0bc8497363b51e5a13fd643b5d115401743d69503292ff61bd2251"
+    },
+    {
+      "path": "./models/wickmole.glb",
+      "bytes": 124788,
+      "sha256": "d9e1c3b7d78f31a56fcf012f61cb3c9ca44d02eb39917699edaeec9e3ef3976c"
+    },
+    {
+      "path": "revision1-rejected/blender/cauldronmaster.blend",
+      "bytes": 441565,
+      "sha256": "15ec6dd65aba0f8dd3eabf610c9405440f025b6a25cb227b889fc066d6a46bd2"
+    },
+    {
+      "path": "revision1-rejected/blender/cauldronmaster.blend1",
+      "bytes": 435561,
+      "sha256": "38d69672797c1afba7954fbc5ff864f83c68541b1a91764a7beee0d9039d5f12"
+    },
+    {
+      "path": "revision1-rejected/blender/chainwarden.blend",
+      "bytes": 330657,
+      "sha256": "ec593fb4732413ffa40b661b19dd4d508d01f1348c1183516f42561d952a3a87"
+    },
+    {
+      "path": "revision1-rejected/blender/chainwarden.blend1",
+      "bytes": 260920,
+      "sha256": "90d40669174d7c4cc0b7836a2e5fc3392e08477f24c8fe8be5b9392ee63f228f"
+    },
+    {
+      "path": "revision1-rejected/blender/hookclaw.blend",
+      "bytes": 176417,
+      "sha256": "b934910d0a17618f020adbd19ea0231f45fa641ddef469d728394bc8a625136a"
+    },
+    {
+      "path": "revision1-rejected/blender/hookclaw.blend1",
+      "bytes": 176379,
+      "sha256": "08cec94f5bc7cf6a0148fcf495c3a2660ee7eeb6734edbfbbdf4a5c090c1cd52"
+    },
+    {
+      "path": "revision1-rejected/blender/railhopper.blend",
+      "bytes": 178264,
+      "sha256": "68a14ce12087aed134db81f99835199f734677df63daf4845eb4fc8f1e2b09c5"
+    },
+    {
+      "path": "revision1-rejected/blender/railhopper.blend1",
+      "bytes": 172517,
+      "sha256": "7762bbb732971baa936f0cc0adb98580c50be0465de6bbcd0700c3b399d8d0b7"
+    },
+    {
+      "path": "revision1-rejected/blender/wickmole.blend",
+      "bytes": 195630,
+      "sha256": "c0f77c4d04d9a207c9d3701feda93b715ceed95d6e9efc4d80646f59d6076651"
+    },
+    {
+      "path": "./revision1-rejected/index.html",
+      "bytes": 26249497,
+      "sha256": "a6370d383ab0b47a074c9ecd6026d9be7da25e8e67b09bfbf10a19b28fd4c3cd"
+    },
+    {
+      "path": "./revision1-rejected/models/PROVENANCE.md",
+      "bytes": 2254,
+      "sha256": "eeba0367048c66eb5e7bb23612fa7569ad5e18eb68f14ef9645b14dcd474c7d1"
+    },
+    {
+      "path": "./revision1-rejected/models/baseline/beetle.glb",
+      "bytes": 80396,
+      "sha256": "03c892798a5ca4d7b17d068ac8b43d72949085b681a7c71a6f39fe82a1e461dc"
+    },
+    {
+      "path": "./revision1-rejected/models/baseline/boss.glb",
+      "bytes": 921076,
+      "sha256": "3f3922c3d08702ed3c9100b031754bbd9e69092f694435b384b0dfcd97fdafc4"
+    },
+    {
+      "path": "./revision1-rejected/models/baseline/cooper.glb",
+      "bytes": 150380,
+      "sha256": "cd5bc0964948483862cff80e0b7191ba0b1fa741df04ef1c33b6a6de8a7fcc34"
+    },
+    {
+      "path": "./revision1-rejected/models/baseline/hero.glb",
+      "bytes": 515416,
+      "sha256": "107a479700a65663a31fb137d4a81319ea38878d17c0ab3e902b3441c47939bd"
+    },
+    {
+      "path": "./revision1-rejected/models/baseline/rat.glb",
+      "bytes": 69876,
+      "sha256": "1ab016a07fab797b15b450eba0e459a30b24e34db62d9e4fd4b9072affc834dc"
+    },
+    {
+      "path": "./revision1-rejected/models/cauldronmaster-manifest.json",
+      "bytes": 768,
+      "sha256": "2b48ff0b59b9094ec7a866d468f86ecd3676c2543f60498685c1fc38795a4dbe"
+    },
+    {
+      "path": "./revision1-rejected/models/cauldronmaster.glb",
+      "bytes": 630128,
+      "sha256": "5dcece4f0c41ae7b3a54177f3328b64f360c0a75962624d55c037f62d4747f8c"
+    },
+    {
+      "path": "./revision1-rejected/models/chainwarden-manifest.json",
+      "bytes": 538,
+      "sha256": "089405febc14c89790c2f67e13c091e958ffc4357509756cb93910efe72d3ca8"
+    },
+    {
+      "path": "./revision1-rejected/models/chainwarden.glb",
+      "bytes": 217468,
+      "sha256": "518ffb2838104ceb9513d0227c11a4fcceb14635dc95bdd5fb33d480eac1e8ff"
+    },
+    {
+      "path": "./revision1-rejected/models/glb-validation.json",
+      "bytes": 9017,
+      "sha256": "c0c9b446e68f8a704c42f34f80f7398fd2e488bac6f98f8f0b53fc96d7c6ca7c"
+    },
+    {
+      "path": "./revision1-rejected/models/hookclaw-manifest.json",
+      "bytes": 435,
+      "sha256": "529a7ca4873e612a4f7c0387f5cc3ed8f592702d92920695b3873b0f6a3df049"
+    },
+    {
+      "path": "./revision1-rejected/models/hookclaw.glb",
+      "bytes": 99340,
+      "sha256": "682089869b5957031345c919350d3bed63d9501977b728da3b9dbbb7c65e3983"
+    },
+    {
+      "path": "./revision1-rejected/models/lineup-manifest.json",
+      "bytes": 2535,
+      "sha256": "1fe927f0845b710ecaa397604e6a019355c9796212cdf372546bae6a3c614651"
+    },
+    {
+      "path": "./revision1-rejected/models/manifest.json",
+      "bytes": 15100,
+      "sha256": "1f087f1ca80a47cf0e1738eab8db8164ec5c09c5d5cd5faf0e0b9fbc713f8e31"
+    },
+    {
+      "path": "./revision1-rejected/models/previews/_boss-sheet-tmp.png",
+      "bytes": 44765,
+      "sha256": "df525f0f4a2583cd2860d42b4c106bb0d0530ce1c11e0e36e006dd493d40e8d9"
+    },
+    {
+      "path": "./revision1-rejected/models/previews/_sheet_tmp.png",
+      "bytes": 32403,
+      "sha256": "beabc3ed7a4420c9032e23fbe3df5a51d2249973917010b79d372e69db83fdd1"
+    },
+    {
+      "path": "./revision1-rejected/models/previews/cauldronmaster-3q.png",
+      "bytes": 487241,
+      "sha256": "fd0eb37e438edf253a84a346d6f43ca6c968b535233d4d4b971f02223bb09168"
+    },
+    {
+      "path": "./revision1-rejected/models/previews/cauldronmaster-back.png",
+      "bytes": 476561,
+      "sha256": "10c2b08695f4f45fe067ac9ba7c7657516d8a945bbc5c819f4fe6eecdbc63d59"
+    },
+    {
+      "path": "./revision1-rejected/models/previews/cauldronmaster-poses.png",
+      "bytes": 577135,
+      "sha256": "e5da85e2fe79b414ef55a60680a9e487183e54306f4f1ad2a7e1eb24cca49f6f"
+    },
+    {
+      "path": "./revision1-rejected/models/previews/cauldronmaster-profile.png",
+      "bytes": 472325,
+      "sha256": "92408f7aef74859a6aee8b24087ed2d0b2eb50c7bbc221bd6537735219a3374b"
+    },
+    {
+      "path": "./revision1-rejected/models/previews/cauldronmaster-top.png",
+      "bytes": 480386,
+      "sha256": "bc51eb1ee2003fbcdf90c602fdf0fcbfbc1bdaa0fdd9b9ba42613a36e94a0654"
+    },
+    {
+      "path": "./revision1-rejected/models/previews/chainwarden-3q.png",
+      "bytes": 480441,
+      "sha256": "e353686c287b8ee9c19d6beebae3984789e33476c89eaae838f7cc99c7c083b6"
+    },
+    {
+      "path": "./revision1-rejected/models/previews/chainwarden-back.png",
+      "bytes": 469010,
+      "sha256": "942ef1841c9c56845dd61c7f6ac37230288b89cf6568581015afec6d4e0d16f6"
+    },
+    {
+      "path": "./revision1-rejected/models/previews/chainwarden-poses.png",
+      "bytes": 285794,
+      "sha256": "5201e4a62490b17fe48a7df14fd96c7cf3a317e4280a79d958693a6bc3cf5c58"
+    },
+    {
+      "path": "./revision1-rejected/models/previews/chainwarden-profile.png",
+      "bytes": 468398,
+      "sha256": "d7f35d87e239a45700db7f6b940bacf113da960dd8874cb285be4d9761852a35"
+    },
+    {
+      "path": "./revision1-rejected/models/previews/chainwarden-top.png",
+      "bytes": 486655,
+      "sha256": "01464166213954aab2fdff5fdb63c7c0a96dc3f77f2a343b7a210e8b1b6dc631"
+    },
+    {
+      "path": "./revision1-rejected/models/previews/hookclaw-3q.png",
+      "bytes": 450444,
+      "sha256": "68d5edb5898610598952adab95ab9032c34916a9d710ac4022c4d44f9c2e19ea"
+    },
+    {
+      "path": "./revision1-rejected/models/previews/hookclaw-back.png",
+      "bytes": 482056,
+      "sha256": "116ff2d2970608b7ca2d23960f78d9716e48347e80da854ca9eebe9d74d1e96f"
+    },
+    {
+      "path": "./revision1-rejected/models/previews/hookclaw-poses.png",
+      "bytes": 253165,
+      "sha256": "88cfbc7d640f975bf924f08d4e6e3bc8616427e3dbda2ad7af1300e66732908d"
+    },
+    {
+      "path": "./revision1-rejected/models/previews/hookclaw-profile.png",
+      "bytes": 453247,
+      "sha256": "138424321fb69ef80e7eb6a1931f72fa0713cd5600b2beb10c03ee43f6771e83"
+    },
+    {
+      "path": "./revision1-rejected/models/previews/hookclaw-top.png",
+      "bytes": 471856,
+      "sha256": "59b520975e204db3fbd91f8e766daba7ded51f0a07a3aa746c888bac57f9449e"
+    },
+    {
+      "path": "./revision1-rejected/models/previews/lineup-game62.png",
+      "bytes": 980329,
+      "sha256": "7bc593974eacd363aa286f20b1349fd6c47be6df8bd6bf4950c61f5404872f78"
+    },
+    {
+      "path": "./revision1-rejected/models/previews/railhopper-3q.png",
+      "bytes": 457159,
+      "sha256": "c8a5ff74ffb0f8fc1203808975230d62ee82bb57c546406fb23f6e75e30b19dd"
+    },
+    {
+      "path": "./revision1-rejected/models/previews/railhopper-back.png",
+      "bytes": 482170,
+      "sha256": "3ea7bd3c18c7e22b048e29460509de0cf53a05879ca076a0efb2e1c7dd8d166d"
+    },
+    {
+      "path": "./revision1-rejected/models/previews/railhopper-poses.png",
+      "bytes": 257092,
+      "sha256": "8e6f6d42c987c8d8f37da1100d44ec9b36e4c473bb563d4acfcce11d04b3b555"
+    },
+    {
+      "path": "./revision1-rejected/models/previews/railhopper-profile.png",
+      "bytes": 462799,
+      "sha256": "a2e92c60855e19910a22a70ee9cb9ef6f4a70ef203d89aecf1e6e945b0470e68"
+    },
+    {
+      "path": "./revision1-rejected/models/previews/railhopper-top.png",
+      "bytes": 475966,
+      "sha256": "22aaf81d8b25945bb35f5042e9786be5d8ad3bc29493044361db2a208f5f09a3"
+    },
+    {
+      "path": "./revision1-rejected/models/previews/wickmole-3q.png",
+      "bytes": 472735,
+      "sha256": "96ccbea346ebcc40099bc792d43594be22a1bf2141ebce0c0eb6cc00d8b63d0f"
+    },
+    {
+      "path": "./revision1-rejected/models/previews/wickmole-back.png",
+      "bytes": 458148,
+      "sha256": "75ef7dae2c89010b95b882466589eb4793653c1694c2e1b1dba32fe8d12a4448"
+    },
+    {
+      "path": "./revision1-rejected/models/previews/wickmole-poses.png",
+      "bytes": 284352,
+      "sha256": "ba12f4d79bb43b09d241f6240f08f5ff28d9e2130815273192387226e6a09426"
+    },
+    {
+      "path": "./revision1-rejected/models/previews/wickmole-profile.png",
+      "bytes": 468503,
+      "sha256": "c5531b7ed0765b4ddf957c8f38aff2b780c3df42fc93b0b7c0e7b0efd1c902a6"
+    },
+    {
+      "path": "./revision1-rejected/models/previews/wickmole-top.png",
+      "bytes": 479910,
+      "sha256": "3e990de9e3374cc9457c62334987ab38b0a9a8f5739a9e44d10d3b5c20749a3d"
+    },
+    {
+      "path": "./revision1-rejected/models/railhopper-manifest.json",
+      "bytes": 446,
+      "sha256": "bf367ef3a78e07d4fb340a766717e452c7f9205b520c5083c84b58f45c357c81"
+    },
+    {
+      "path": "./revision1-rejected/models/railhopper.glb",
+      "bytes": 99412,
+      "sha256": "d3c3981952c2323ecbd022eb7b552b44a42b513c1377b0a80a0c6addb2039528"
+    },
+    {
+      "path": "revision1-rejected/models/scripts/cauldronmaster.py",
+      "bytes": 14625,
+      "sha256": "1db6667256120b604e5245e3b616fe7cfe5864106ab4dc02db4efd8dac8469f4"
+    },
+    {
+      "path": "revision1-rejected/models/scripts/chainwarden.py",
+      "bytes": 8674,
+      "sha256": "1d7ffa94f8ebc9bb7898b9187909c9b7a7e0e95791751e05ebeb645d25f4cbb8"
+    },
+    {
+      "path": "revision1-rejected/models/scripts/headless_mcp_bootstrap.py",
+      "bytes": 1717,
+      "sha256": "d8325a242c794c41818e47dc997c047a3df51d4f4dd44155da3bfb6b21ac331f"
+    },
+    {
+      "path": "revision1-rejected/models/scripts/hookclaw.py",
+      "bytes": 4517,
+      "sha256": "4972217c481b3dbf213a86adc164751ad0c8d63304d856861952831fde09c6c1"
+    },
+    {
+      "path": "revision1-rejected/models/scripts/inspect_models.py",
+      "bytes": 4911,
+      "sha256": "4075c555ef991154959ab192006f6bb5d796357ebb2580cf2f4fb3c2ce5c3399"
+    },
+    {
+      "path": "revision1-rejected/models/scripts/mobkit.py",
+      "bytes": 33647,
+      "sha256": "47a11bb1e821d7e0e5f290a7c8b67cd561641b3c5ef870f68f17298b031a0f2c"
+    },
+    {
+      "path": "revision1-rejected/models/scripts/railhopper.py",
+      "bytes": 4188,
+      "sha256": "33eed21f4e74f865a8ac35a132f7d1daede07ebf95a4b97b6ccccc543771fac4"
+    },
+    {
+      "path": "./revision1-rejected/models/scripts/validate-glb.mjs",
+      "bytes": 2293,
+      "sha256": "1f8a16abd851fa7484bb916c809beb4fe2d671a08f21c5155419a85b96c2355a"
+    },
+    {
+      "path": "revision1-rejected/models/scripts/wickmole.py",
+      "bytes": 6072,
+      "sha256": "8a7ff61f57efa3118abe3c35843bcd1a28a9ca3506fc042d7b6c523818881748"
+    },
+    {
+      "path": "./revision1-rejected/models/session-proof.json",
+      "bytes": 292,
+      "sha256": "251809388907d9972880061a4feff95924f8cc4caf3b180e4a5f7ca0d6132f87"
+    },
+    {
+      "path": "./revision1-rejected/models/v1/cauldronmaster/cauldronmaster-3q.png",
+      "bytes": 485892,
+      "sha256": "91896c6608dc50f0b78cc92769aa250a7908d0f656693ba70c89246149c9e5da"
+    },
+    {
+      "path": "revision1-rejected/models/v1/cauldronmaster/cauldronmaster.blend",
+      "bytes": 435561,
+      "sha256": "38d69672797c1afba7954fbc5ff864f83c68541b1a91764a7beee0d9039d5f12"
+    },
+    {
+      "path": "./revision1-rejected/models/v1/cauldronmaster/cauldronmaster.glb",
+      "bytes": 615732,
+      "sha256": "ade22f42454d253933100302d583424289c26344cf0fccb0401c69e6d68aa8fc"
+    },
+    {
+      "path": "revision1-rejected/models/v1/cauldronmaster/cauldronmaster.py",
+      "bytes": 14337,
+      "sha256": "89127ecff986a086808119f7cc684aa28e8b771dfce9372d9368ee40228302a8"
+    },
+    {
+      "path": "revision1-rejected/models/v1/cauldronmaster/mobkit.py",
+      "bytes": 33647,
+      "sha256": "47a11bb1e821d7e0e5f290a7c8b67cd561641b3c5ef870f68f17298b031a0f2c"
+    },
+    {
+      "path": "./revision1-rejected/models/v1/chainwarden/chainwarden-3q.png",
+      "bytes": 479078,
+      "sha256": "1977e929574159c5eba10717363462651f71400bee0b00e4b494cc17ab6bd646"
+    },
+    {
+      "path": "revision1-rejected/models/v1/chainwarden/chainwarden.blend",
+      "bytes": 264185,
+      "sha256": "26912194b5db5ecc97cff88463990265f6998c218914e3112fda5b204d7a67b0"
+    },
+    {
+      "path": "./revision1-rejected/models/v1/chainwarden/chainwarden.glb",
+      "bytes": 190968,
+      "sha256": "e0ba837cedb985c2abc790255a64ea462aea5f4f5b2e059de3eb9a9697e1f471"
+    },
+    {
+      "path": "revision1-rejected/models/v1/chainwarden/chainwarden.py",
+      "bytes": 6975,
+      "sha256": "96f3083801d70b58cf728f68ba16d848a2315107063a53cf684f29e2958bbde5"
+    },
+    {
+      "path": "revision1-rejected/models/v1/chainwarden/mobkit.py",
+      "bytes": 33647,
+      "sha256": "47a11bb1e821d7e0e5f290a7c8b67cd561641b3c5ef870f68f17298b031a0f2c"
+    },
+    {
+      "path": "./revision1-rejected/models/v1/hookclaw/hookclaw-3q.png",
+      "bytes": 437712,
+      "sha256": "c3e7c6fed6ad46490988cc8460fa32b3b54b7f2649fe8a08e8259ead5b2309c6"
+    },
+    {
+      "path": "revision1-rejected/models/v1/hookclaw/hookclaw.blend",
+      "bytes": 175709,
+      "sha256": "b9ebfd4a1d9d6bb04cb46e420abc0b50b03f2fe3d35b054820e7afe11fcd1feb"
+    },
+    {
+      "path": "./revision1-rejected/models/v1/hookclaw/hookclaw.glb",
+      "bytes": 99340,
+      "sha256": "83336c3b49a3c52f1e6607e305d088d69a4abcab397a2d88eeed3a9d4577d059"
+    },
+    {
+      "path": "revision1-rejected/models/v1/hookclaw/hookclaw.py",
+      "bytes": 4508,
+      "sha256": "cff16ab6047283e130520a811a6e0b8c2b4a7952a0b81e65eb0977215f06c356"
+    },
+    {
+      "path": "revision1-rejected/models/v1/hookclaw/mobkit.py",
+      "bytes": 33256,
+      "sha256": "0ed2994f049eac04a1b60104d85fe1a452d9dd7086e5cfc92268964b5e906014"
+    },
+    {
+      "path": "revision1-rejected/models/v1/railhopper/mobkit.py",
+      "bytes": 33647,
+      "sha256": "47a11bb1e821d7e0e5f290a7c8b67cd561641b3c5ef870f68f17298b031a0f2c"
+    },
+    {
+      "path": "./revision1-rejected/models/v1/railhopper/railhopper-3q.png",
+      "bytes": 456454,
+      "sha256": "c08c11f58b107ef7ba1a1e5f5261bdd5cb7b8c3b63c4af2b90c4f429c8f58c3a"
+    },
+    {
+      "path": "revision1-rejected/models/v1/railhopper/railhopper.blend",
+      "bytes": 172517,
+      "sha256": "7762bbb732971baa936f0cc0adb98580c50be0465de6bbcd0700c3b399d8d0b7"
+    },
+    {
+      "path": "./revision1-rejected/models/v1/railhopper/railhopper.glb",
+      "bytes": 92284,
+      "sha256": "794f82318e0699bd8a81bbd0948f842e2dd14d2ea496e5d1dd03d0a59287108b"
+    },
+    {
+      "path": "revision1-rejected/models/v1/railhopper/railhopper.py",
+      "bytes": 4033,
+      "sha256": "81d3c3807e5acbb7aa85b301679f34f73ce07257dba2879aaefa1abff589ef7f"
+    },
+    {
+      "path": "revision1-rejected/models/v1/wickmole/mobkit.py",
+      "bytes": 33647,
+      "sha256": "47a11bb1e821d7e0e5f290a7c8b67cd561641b3c5ef870f68f17298b031a0f2c"
+    },
+    {
+      "path": "./revision1-rejected/models/v1/wickmole/wickmole-3q.png",
+      "bytes": 472735,
+      "sha256": "96ccbea346ebcc40099bc792d43594be22a1bf2141ebce0c0eb6cc00d8b63d0f"
+    },
+    {
+      "path": "revision1-rejected/models/v1/wickmole/wickmole.blend",
+      "bytes": 195630,
+      "sha256": "c0f77c4d04d9a207c9d3701feda93b715ceed95d6e9efc4d80646f59d6076651"
+    },
+    {
+      "path": "./revision1-rejected/models/v1/wickmole/wickmole.glb",
+      "bytes": 124788,
+      "sha256": "d9e1c3b7d78f31a56fcf012f61cb3c9ca44d02eb39917699edaeec9e3ef3976c"
+    },
+    {
+      "path": "revision1-rejected/models/v1/wickmole/wickmole.py",
+      "bytes": 6072,
+      "sha256": "8a7ff61f57efa3118abe3c35843bcd1a28a9ca3506fc042d7b6c523818881748"
+    },
+    {
+      "path": "./revision1-rejected/models/wickmole-manifest.json",
+      "bytes": 432,
+      "sha256": "ea55f0ac9e0bc8497363b51e5a13fd643b5d115401743d69503292ff61bd2251"
+    },
+    {
+      "path": "./revision1-rejected/models/wickmole.glb",
+      "bytes": 124788,
+      "sha256": "d9e1c3b7d78f31a56fcf012f61cb3c9ca44d02eb39917699edaeec9e3ef3976c"
+    },
+    {
+      "path": "./revision2/animation-storyboard.md",
+      "bytes": 17046,
+      "sha256": "3daedb998b8c1f86f8a08fae14f7251e9c0263ce412812c7ce3a8ea28c0e2df1"
+    },
+    {
+      "path": "revision2/models/scripts/hookclaw.py",
+      "bytes": 5946,
+      "sha256": "81a9448d08d96504553b582ee9f1cd2985e8b690661d0f2df1a3094deab15d15"
+    },
+    {
+      "path": "revision2/models/scripts/mobkit.py",
+      "bytes": 33657,
+      "sha256": "cd5c090c0dada3a4db19bb64bf15bafbd75f725f1b0c9a01e019a4ad82b4beb2"
+    },
+    {
+      "path": "revision2/models/scripts/motionkit.py",
+      "bytes": 1790,
+      "sha256": "32d46a15c0441d90376d77fbeafdbbf21bc82f5d5bbd9d5529c27fd8afc7113e"
+    },
+    {
+      "path": "revision2/models/scripts/railhopper.py",
+      "bytes": 3054,
+      "sha256": "999ec18abb473e22f35638e679f028b75db7a444be0610aab70362d3bd0d68a8"
+    },
+    {
+      "path": "revision2/models/scripts/wickmole.py",
+      "bytes": 4661,
+      "sha256": "58d6cb50a064cfebf7d329b509cb42bfcc3d420bdbe6a66c149bd8b00a66034c"
+    },
+    {
+      "path": "./source/baseline-design-data.json",
+      "bytes": 79992,
+      "sha256": "68880be96eb18939f5629cee5304885f7938d43981ffdb11fd4d63c37f2027a9"
+    },
+    {
+      "path": "./source/baseline-level-data.json",
+      "bytes": 103831,
+      "sha256": "a9a47bd09a0453581d9bbbca7f86492dc8899b423dab4965e995ee4a8489c506"
+    },
+    {
+      "path": "./source/build-receipt.json",
+      "bytes": 465,
+      "sha256": "b5491344025e9d5e07d3c659183e72d08dd1a5c5d6a2b3c192c9078ec5ebcb20"
+    },
+    {
+      "path": "./source/build.mjs",
+      "bytes": 10268,
+      "sha256": "a29236e5d18a99dd40047effb19c6c58b877701a5050e758b655ed7028eabcb2"
+    },
+    {
+      "path": "./source/calculate.mjs",
+      "bytes": 7670,
+      "sha256": "2188d39fbb13a22d240cabbf608a97cbcb6a360abb50733048ac2ce3e0fe4dc6"
+    },
+    {
+      "path": "./source/calculations.json",
+      "bytes": 25172,
+      "sha256": "5c0afc19d5744df54bc682b0e8c1791e93f77a3c9f311fbfedb4a78fda74afdb"
+    },
+    {
+      "path": "./source/generate-refs.mjs",
+      "bytes": 8918,
+      "sha256": "8bff1416177c6f93574dbbbf44d251932a68ae4a4733cd90e81d0593c8bd6a2f"
+    },
+    {
+      "path": "./source/index.template.html",
+      "bytes": 48884,
+      "sha256": "dac9c7c22a44cea13da6ee58372c8bdff35719317ac26a7601d687898579c96f"
+    },
+    {
+      "path": "./source/proposal.mjs",
+      "bytes": 16690,
+      "sha256": "ce764a1f4d031e745d1ebfe87b238d8bc864452ccbb82fb0bed94adaab7e14c0"
+    },
+    {
+      "path": "./source/verification.json",
+      "bytes": 13398,
+      "sha256": "efc9bb81897d0a42476a3df51912ffb2345f125aadcb8f58e083fb0ea9542ca1"
+    },
+    {
+      "path": "./source/verify.mjs",
+      "bytes": 4980,
+      "sha256": "cee843df1cf88615b765f5cebfcd7082acfff891baffcfcb242f6b1ecf798661"
+    },
+    {
+      "path": "./viewer/app.js",
+      "bytes": 23399,
+      "sha256": "7d687aab39332183f7422982437c6ca6da788c12df7efedfb94cef1c6f772e02"
+    },
+    {
+      "path": "./viewer/bundle.js",
+      "bytes": 674809,
+      "sha256": "05e310dce821785e547146e82880baaaf33a7a37301d68c1e0cf58741d6d6a47"
+    },
+    {
+      "path": "./viewer/model.js",
+      "bytes": 5477,
+      "sha256": "5e24c7be7806c67fb1b12f440e404c649c6ae7416213d6eb967703354dcb7191"
+    }
+  ]
+}

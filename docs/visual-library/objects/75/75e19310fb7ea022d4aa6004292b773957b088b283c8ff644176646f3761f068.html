@@ -1,0 +1,276 @@
+<div class="shell">
+<nav class="nav" aria-label="Разделы страницы">
+  <div><a class="brand" href="#top">Подземелье</a><p class="tag">TIREDWOOD · дизайн режима</p></div>
+  <ol id="navlist"></ol>
+</nav>
+<main>
+<div class="wrap">
+
+<!-- 1. ШАПКА -->
+<section class="sec top" id="top" aria-labelledby="h-top" style="padding-top:28px">
+  <div class="banner">
+    <div class="inner">
+      <div class="kick">TIREDWOOD · новый соло-режим</div>
+      <h1 id="h-top">Подземелье</h1>
+      <p>Ты — Фонарщик в погребах под набережной. Оружие бьёт само, ты выбираешь, где стоять, когда рвануть и когда бахнуть зарядом. Отбил больше всех волн — попал на доску у входа.</p>
+      <div class="row">
+        <a class="btn primary" href="#decide">К решениям</a>
+        <a class="btn" href="#play">Как это играется</a>
+      </div>
+    </div>
+  </div>
+  <div class="stats" id="stats">
+    <div class="stat"><b>10 волн</b><span>за ~12 минут, потом бесконечно</span></div>
+    <div class="stat"><b>Босс на 10-й</b><span>Старый Повидл, 3 фазы</span></div>
+    <div class="stat"><b>8 оружий</b><span>8 разных механик, по 7 уровней</span></div>
+    <div class="stat"><b>240 × 240 м</b><span>карта без шва, края склеены</span></div>
+  </div>
+  <div class="status">
+    <span class="pill amber">Дизайн на одобрение</span>
+    <span class="note">Код игры пока не тронут. Внизу — 7 вопросов, ответы собираются одной строкой для чата.</span>
+  </div>
+</section>
+
+<!-- 2. КАК ИГРАЕТСЯ -->
+<section class="sec" id="play" aria-labelledby="h-play">
+  <header><div class="eyebrow">02 · Как играется</div><h2 id="h-play">Секунда, волна, передышка, забег</h2>
+  <p class="lead">Бой не рвётся паузами. Выбор улучшений ждёт передышки, а в бою ты бегаешь.</p></header>
+  <div class="cycle">
+    <div class="step"><div class="when">1 секунда</div><h3>Бег</h3><p>Ведёшь героя, обходишь толпу, собираешь бирюзовые осколки опыта, уходишь с сиреневых кругов плевков.</p></div>
+    <div class="step"><div class="when">45–65 секунд</div><h3>Волна</h3><p>Держишься до конца таймера или перебиваешь отряд раньше. Каждые 15–25 с что-то случается: стая, налёт, кольцо, элита.</p></div>
+    <div class="step"><div class="when">5 секунд</div><h3>Передышка</h3><p>«Волна отбита», осколки слетаются к тебе, на каждую ★ — выбор 1 из 3 карточек. Дальше 5 с до новой волны.</p></div>
+    <div class="step"><div class="when">~12 минут</div><h3>Забег</h3><p>10 волн, босс Старый Повидл, потом бесконечно: босс каждые 10 волн. Смерть — конец забега. Рекорд — сколько волн отбил.</p></div>
+  </div>
+  <h3>Управление</h3>
+  <p class="note" style="margin-top:-4px">Нажми любую из этих клавиш — плашка загорится.</p>
+  <div class="ctl" id="controls"></div>
+  <h3>Почему не скучно</h3>
+  <div class="grid g3">
+    <div class="card"><b>Честные удары.</b> У каждого удара врага есть метка на полу до удара: круг, полоса, сектор. Смерть всегда видна заранее.</div>
+    <div class="card"><b>Сила растёт заметно.</b> К 9-й волне урон героя в ~18 раз больше, чем на 1-й. Первая эволюция приходит прямо перед боссом.</div>
+    <div class="card"><b>Новый уровень — вспышка.</b> Фонарь отталкивает врагов на 3 м, лечит на 10 HP, в углу загорается ★. Игра не останавливается.</div>
+  </div>
+</section>
+
+<!-- 3. ГЕРОЙ -->
+<section class="sec" id="hero" aria-labelledby="h-hero">
+  <header><div class="eyebrow">03 · Герой и активные действия</div><h2 id="h-hero">Фонарщик</h2>
+  <p class="lead">Смотритель старых погребов: каска с лампой, кожаный фартук, на цепи большой фонарь. Свет фонаря — главный образ и стартовое оружие.</p></header>
+  <div class="hero-grid">
+    <div><div class="viewer" id="v-hero"></div><div class="vtools" id="t-hero"></div></div>
+    <div class="card"><h4>Характеристики</h4><div class="kv" id="herostats"></div></div>
+  </div>
+  <div class="grid g2" style="margin-top:14px" id="actives"></div>
+  <div class="card demo">
+    <h4>Полигон: попробуй рывок и удар</h4>
+    <canvas id="arena" width="800" height="500" tabindex="0" aria-label="Мини-полигон: рывок и удар фонарём"></canvas>
+    <div class="bar">
+      <button class="btn" id="a-dash">Рывок <span class="key" style="min-width:auto;height:auto;padding:1px 8px;font-size:12px">Пробел</span></button>
+      <button class="btn" id="a-q">Удар: держи <span class="key" style="min-width:auto;height:auto;padding:1px 8px;font-size:12px">Q</span></button>
+      <button class="btn small" id="a-reset">Расставить врагов</button>
+      <span class="ro" id="a-ro">Клик по полю — рывок туда. WASD — бег.</span>
+    </div>
+    <p class="note" style="margin:8px 0 0">Сетка — метры. Белое кольцо — полный заряд. Между тапом и полным зарядом радиус в демо растёт плавно (в игре уточним).</p>
+  </div>
+</section>
+
+<!-- 4. ОРУЖИЕ -->
+<section class="sec" id="weapons" aria-labelledby="h-weapons">
+  <header><div class="eyebrow">04 · Оружие</div><h2 id="h-weapons">Восемь оружий — восемь механик</h2>
+  <p class="lead">У каждого 7 уровней. Нажми карточку и двигай ползунок: числа берутся из данных, подсвечено то, что выросло.</p></header>
+  <div class="wgrid" id="wgrid"></div>
+  <div class="wdetail" id="wdetail" aria-live="polite"></div>
+  <h3>Эволюции</h3>
+  <p class="note" style="margin-top:-4px">Оружие на 7-м уровне + нужная пассивка любого уровня — и в ближайшей передышке первой лежит золотая карточка. Пассивка остаётся. Остальным четырём оружиям эволюции придут следующим обновлением.</p>
+  <div class="evo-grid" id="evogrid"></div>
+  <h3>Пассивки</h3>
+  <div class="pgrid" id="pgrid"></div>
+</section>
+
+<!-- 5. ОПЫТ И КАРТОЧКИ -->
+<section class="sec" id="levelup" aria-labelledby="h-levelup">
+  <header><div class="eyebrow">05 · Опыт и карточки улучшений</div><h2 id="h-levelup">Опыт копится в волне, выбор — в передышке</h2>
+  <p class="lead">Новый уровень в бою — вспышка и звезда ★. Карточки открываются после волны, время стоит. Макет можно «понажимать».</p></header>
+  <div class="pick" id="pick"></div>
+  <div class="grid g2" style="margin-top:14px">
+    <div class="card"><h4>Сколько опыта нужно</h4>
+      <div class="xpcalc"><div><label for="xpL" class="note">Уровень героя</label><input type="range" id="xpL" min="1" max="50" value="1"></div><div id="xpres"></div></div>
+      <div class="gems" style="margin-top:12px" id="gems"></div>
+    </div>
+    <div class="card"><h4>Правила карточек</h4><ul id="cardrules" style="margin:0;padding-left:18px;color:var(--text-2);font-size:14.5px"></ul></div>
+  </div>
+</section>
+
+<!-- 6. БЕСТИАРИЙ -->
+<section class="sec" id="bestiary" aria-labelledby="h-bestiary">
+  <header><div class="eyebrow">06 · Бестиарий</div><h2 id="h-bestiary">Армия Барона Варенья</h2>
+  <p class="lead">6 рядовых, 2 элиты и личинки босса. Общая примета: фиолетовые пятна варенья и светящиеся сиреневые глаза. Жук-щитоносец для краткости — «Щитожук».</p></header>
+  <div class="bgrid" id="bgrid"></div>
+  <div class="bdetail" id="bdetail" aria-live="polite"></div>
+</section>
+
+<!-- 7. ВОЛНЫ -->
+<section class="sec" id="waves" aria-labelledby="h-waves">
+  <header><div class="eyebrow">07 · Волны</div><h2 id="h-waves">Десять волн и бесконечность</h2>
+  <p class="lead">Столбцы — сколько здоровья надо снять за волну. Линия — «давление»: нужный урон в секунду, делённый на урон среднего игрока. Нажми волну.</p></header>
+  <div class="legend"><span><i style="background:#8a5a2f;border:1px solid #c98b45"></i>HP волны</span><span><i style="background:repeating-linear-gradient(45deg,#6e2a7f,#6e2a7f 3px,#3a1550 3px,#3a1550 6px)"></i>HP босса</span><span><i style="background:var(--turq-2);height:3px;vertical-align:3px"></i>давление</span><span class="note">до 0,8 — легко · 0,8–1,05 — напряжённо · больше 1,2 — толпа копится</span></div>
+  <div class="chartbox scroll-x" id="chart1"></div>
+  <div class="wdet card" id="wdet" aria-live="polite" style="margin-top:14px"></div>
+  <h3>Бесконечные волны 11–25</h3>
+  <p class="note" style="margin-top:-4px">Модель среднего игрока. Давление выше 1,2 — это стена: дальше 25-й почти никто не дойдёт без будущей прокачки.</p>
+  <div class="chartbox scroll-x" id="chart2"></div>
+  <div class="reach" id="reach" aria-label="Докуда доходят игроки"></div>
+  <p class="note" id="endnote" style="margin-top:8px"></p>
+</section>
+
+<!-- 8. БОСС -->
+<section class="sec" id="boss" aria-labelledby="h-boss">
+  <header><div class="eyebrow">08 · Босс 10-й волны</div><h2 id="h-boss">Старый Повидл</h2>
+  <p class="lead">Огромный пещерный червь: бронированная голова, светящиеся сегменты варенья. Роет, выныривает с ударной волной, плюётся, зовёт личинок. Три фазы.</p></header>
+  <div class="boss-grid">
+    <div><div class="viewer" id="v-boss"></div><div class="vtools" id="t-boss"></div>
+      <div class="stats" style="grid-template-columns:repeat(2,minmax(0,1fr));margin-top:12px" id="bossstats"></div></div>
+    <div>
+      <div class="tabs" role="tablist" aria-label="Фазы босса" id="phtabs"></div>
+      <div class="hpband" id="hpband" aria-hidden="true"></div>
+      <div id="phbody" aria-live="polite"></div>
+    </div>
+  </div>
+  <h3>Боссы 20, 30, 40 и дальше</h3>
+  <p class="note" style="margin-top:-4px">Новых моделей не нужно: тот же червь, но другое окружение и правила.</p>
+  <div class="scroll-x"><table class="tbl" id="bosstable"></table></div>
+</section>
+
+<!-- 9. КАРТА -->
+<section class="sec" id="map" aria-labelledby="h-map">
+  <header><div class="eyebrow">09 · Карта</div><h2 id="h-map">Тор 240 × 240 м</h2>
+  <p class="lead">Ушёл вправо — вышел слева, шва не видно. Пять зон, у каждой свой цвет света и свой ориентир. Схему можно приближать и двигать мышью.</p></header>
+  <div class="mapframe">
+    <div class="maptools"><button class="btn small" id="mz-out" aria-label="Отдалить">−</button><button class="btn small" id="mz-in" aria-label="Приблизить">+</button><button class="btn small" id="mz-fit">Вся</button></div>
+    <div class="mapscroll" id="mapscroll" tabindex="0" aria-label="Схема карты, можно прокручивать"><img id="mapimg" src="map.svg" alt="Схема карты «Подземелья»: пять зон, постройки, ориентиры" width="1720" height="1440"></div>
+  </div>
+  <div class="note" style="margin-top:6px">Колесо мыши и пальцы прокручивают; кнопки меняют масштаб.</div>
+  <h3>Зоны</h3>
+  <div class="zones" id="zones"></div>
+  <h3>Ориентиры</h3>
+  <div class="lm" id="landmarks"></div>
+  <h3>Края склеены</h3>
+  <div class="wrapdemo">
+    <div><canvas id="wrapmap" width="480" height="480" aria-label="Вся карта с героем и рамкой камеры"></canvas><div class="cap">Вся карта 240 × 240 м. Жёлтая рамка — экран камеры, точка — герой.</div></div>
+    <div><canvas id="wrapcam" width="720" height="470" aria-label="Что видит камера"></canvas><div class="cap" id="wrapcap">Так видит камера: герой переходит через край, а картинка не рвётся.</div></div>
+  </div>
+  <div class="row" style="margin-top:12px;align-items:center">
+    <button class="btn" id="w-play" aria-pressed="true">Пауза</button>
+    <div class="tabs" id="w-dir" role="group" aria-label="Куда идёт герой"></div>
+    <button class="btn small" id="w-edge">Подвести к краю</button>
+    <span class="ro mono note" id="w-ro"></span>
+  </div>
+</section>
+
+<!-- 10. ПОСТРОЙКИ -->
+<section class="sec" id="buildings" aria-labelledby="h-buildings">
+  <header><div class="eyebrow">10 · Постройки</div><h2 id="h-buildings">Четыре базовые и восемь на выбор</h2>
+  <p class="lead">Базовые — по решению владельца. Дополнительные придумали мы: отметь, какие хочешь. Выбор попадёт в итоговую строку внизу.</p></header>
+  <div class="bld" id="bld"></div>
+  <h3>Дополнительные: выбери</h3>
+  <p class="note" style="margin-top:-4px">Рекомендуем фонари-маяки, пороховые бочки, гриб-батут и вагонетку: они сильнее всего меняют движение по карте.</p>
+  <div class="opt" id="opt"></div>
+</section>
+
+<!-- 11. НАГРАДЫ -->
+<section class="sec" id="rewards" aria-labelledby="h-rewards">
+  <header><div class="eyebrow">11 · Награды и рекорды</div><h2 id="h-rewards">Жетоны и доска у входа</h2>
+  <p class="lead">Жетоны считает сервер. Ориентир — 8–15 жетонов в минуту. Рекорд — число отбитых волн, при равенстве выше тот, кто быстрее.</p></header>
+  <div class="formula" id="formula"></div>
+  <div class="calc" style="margin-top:14px">
+    <div class="card"><h4>Калькулятор</h4>
+      <label class="note" for="cw">Дошёл до волны: <b class="num" id="cwv" style="color:var(--amber-2)">10</b></label>
+      <input type="range" id="cw" min="1" max="40" value="10">
+      <label class="chip" style="margin-top:8px;cursor:pointer"><input type="checkbox" id="crec" style="accent-color:var(--gold)"> новый личный рекорд (+15)</label>
+      <div style="margin-top:14px"><div class="bigres" id="cres">130</div><div class="note" id="cnote"></div></div>
+    </div>
+    <div class="card scroll-x"><h4>Дошёл до — жетоны — в минуту</h4><table class="tbl" id="ctable"></table></div>
+  </div>
+  <h3>Макеты экранов</h3>
+  <div class="mocks">
+    <div>
+      <h4>Табличка у входа на площади</h4>
+      <div class="board" id="board"></div>
+      <p class="note" style="margin:6px 0 0">Каменная доска рядом с пещерой, топ-5 каждой вкладки, переключение мышью. Свой результат — золотом, даже если не в топе. Ники — примеры.</p>
+      <h4 style="margin-top:16px">Строка в профиле</h4>
+      <div class="profile"><div class="ttl">Профиль · Подземелье</div><span class="num" style="color:var(--amber-2)">рекорд 14 волн · 18:32 · забегов 23 · боссов 2 · за неделю 12</span></div>
+    </div>
+    <div><h4>Экран итогов</h4><div class="res" id="res"></div></div>
+  </div>
+</section>
+
+<!-- 12. HUD -->
+<section class="sec" id="hud" aria-labelledby="h-hud">
+  <header><div class="eyebrow">12 · HUD</div><h2 id="h-hud">Экран во время волны</h2>
+  <p class="lead">Только то, что нужно, и крупно. Нажимай на кружки — подпись подсветится.</p></header>
+  <div class="scroll-x"><div class="hudwrap"><div class="hud" id="hudmock">
+    <div class="xp"><i></i><span>Ур. 22</span></div>
+    <div class="wave"><b>Волна 4</b><div class="sq"><i></i></div><span>0:41</span></div>
+    <div class="hp"><div class="bar"><i></i><span>76 / 100</span></div><div class="buffs"><div class="bf">⚡<i>18</i></div><span class="st">★★</span></div></div>
+    <div class="kills"><span>Убито 312</span><div class="pa" title="Пауза">⏸ Esc</div></div>
+    <div class="slots"><div class="line"><div class="sl">🏮<i>5</i></div><div class="sl">🔥<i>3</i></div><div class="sl">🪨<i>4</i></div><div class="sl">✨<i>2</i></div></div><div class="line"><div class="sl p">🕯<i>2</i></div><div class="sl p">⛑<i>1</i></div><div class="sl p">🥾<i>3</i></div></div></div>
+    <div class="acts"><div class="ab" style="--p:100%"><div><b>[Пробел]</b><br><span>Рывок</span></div></div><div class="ab q" style="--p:62%"><div><b>[Q]</b><br><span>Удар</span></div></div></div>
+    <div class="arrow">Бочар ➜</div><div class="arrow l">◀ родник</div>
+    <button class="pin" data-pin="1" style="left:49%;top:0.5%">1</button>
+    <button class="pin" data-pin="2" style="left:57%;top:9%">2</button>
+    <button class="pin" data-pin="3" style="left:25%;top:7%">3</button>
+    <button class="pin" data-pin="4" style="left:17%;top:80%">4</button>
+    <button class="pin" data-pin="5" style="left:66%;top:84%">5</button>
+    <button class="pin" data-pin="6" style="left:90%;top:9%">6</button>
+    <button class="pin" data-pin="7" style="left:90%;top:44%">7</button>
+  </div></div></div>
+  <ol class="hudlegend" id="hudlegend"></ol>
+  <p class="note">Макет собран на HTML и картинке key-art, это не настоящий кадр игры. Передышка: баннер «Волна 4 отбита! +9 🪙», карточки, затем карточка следующей волны и «Через 5 с · Enter — в бой».</p>
+</section>
+
+<!-- 13. МОДЕЛИ -->
+<section class="sec" id="models" aria-labelledby="h-models">
+  <header><div class="eyebrow">13 · Модели</div><h2 id="h-models">3D-просмотрщик</h2>
+  <p class="lead">Все модели из Blender. Что готово — крути мышью и включай анимации. Что в работе — показано превью. Список обновляется командой <code>node tools/survivors/page/sync.mjs</code>.</p></header>
+  <div class="mviewer">
+    <div class="mlist" id="mlist" role="group" aria-label="Список моделей"></div>
+    <div>
+      <div class="minfo" id="minfo"></div>
+      <div class="viewer wide" id="v-main"></div>
+      <div class="vtools" id="t-main"></div>
+      <div class="legend3d"><span><i class="dot" style="background:var(--ok)"></i>модель готова</span><span><i class="dot" style="background:var(--amber)"></i>есть только превью</span><span><i class="dot" style="background:var(--line-2)"></i>пока нет</span><span id="mcount"></span></div>
+    </div>
+  </div>
+</section>
+
+<!-- 14. АРТ -->
+<section class="sec" id="art" aria-labelledby="h-art">
+  <header><div class="eyebrow">14 · Концепт-арт</div><h2 id="h-art">Как это выглядит</h2>
+  <p class="lead">Семь картинок, нарисованных через Codex. Надписей на них нет. Нажми — откроется крупно.</p></header>
+  <div class="gallery" id="gallery"></div>
+  <p class="note" style="margin-top:8px">Промпты и источники — в <code>docs/survivors/art/PROVENANCE.md</code>.</p>
+</section>
+
+<!-- 15. РЕШЕНИЯ -->
+<section class="sec" id="decide" aria-labelledby="h-decide">
+  <header><div class="eyebrow">15 · Решения владельца</div><h2 id="h-decide">Семь вопросов</h2>
+  <p class="lead">Рекомендованный вариант стоит первым и уже выбран. Поменяй, что не нравится, и нажми «Скопировать ответы».</p></header>
+  <div id="qs"></div>
+  <div class="copybox">
+    <h4>Ответы для чата</h4>
+    <code id="answer" aria-live="polite"></code>
+    <div class="row"><button class="btn primary" id="copy">Скопировать ответы</button><button class="btn small" id="reset">Сбросить на рекомендованные</button><span class="note" id="copied" role="status"></span></div>
+  </div>
+  <h3>Решил сам (ведущий)</h3>
+  <p class="note" style="margin-top:-4px">Эти вещи уже решены, чтобы не грузить тебя мелочами. Скажи, если что-то не так.</p>
+  <div class="own" id="own"></div>
+  <footer class="foot">Источники: <code>docs/survivors/brief.md</code>, <code>design.md</code>, <code>level.md</code>, данные <code>design-data.json</code> и <code>level-data.json</code>, карта <code>map.svg</code>, арт и модели. Страница читает копии из <code>page/</code>.</footer>
+</section>
+
+</div>
+</main>
+</div>
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Картинка крупно">
+  <img id="lbimg" alt=""><div class="cap" id="lbcap"></div>
+  <div class="lb"><button class="btn small" id="lbprev">← Назад</button><button class="btn small" id="lbclose">Закрыть (Esc)</button><button class="btn small" id="lbnext">Дальше →</button></div>
+</div>

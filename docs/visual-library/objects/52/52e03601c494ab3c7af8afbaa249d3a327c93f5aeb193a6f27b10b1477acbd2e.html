@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Доска идей · Game Opus</title>
+<meta name="description" content="Идеи для игры на game.tired.solutions: приклей свою стикером, лайкни чужие.">
+<meta name="theme-color" content="#c9a06a">
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="./style.css">
+<script src="./app.js" defer></script>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="back" href="/">← в игру</a>
+    <h1>Доска идей</h1>
+    <p class="hint">Придумал, что добавить в игру? Приклей стикер, а понравившимся поставь 👍. Здесь идеи не потеряются, как в чате.</p>
+    <p class="admin-bar" id="admin-bar" hidden>режим админа · <button type="button" id="admin-exit" class="link">выйти</button></p>
+  </header>
+
+  <form class="compose" id="compose" autocomplete="off" novalidate>
+    <label class="sr" for="text">Идея</label>
+    <textarea id="text" maxlength="300" rows="3" placeholder="Твоя идея… например: «катер, чтобы кататься до маяка»"></textarea>
+    <div class="row">
+      <label class="sr" for="nick">Ник</label>
+      <input id="nick" maxlength="24" placeholder="Твой ник" autocomplete="nickname">
+      <div class="colors" id="colors" role="radiogroup" aria-label="Цвет стикера"></div>
+      <span class="count" id="count" aria-live="polite">0/300</span>
+      <button type="submit" class="send" id="send">Приклеить</button>
+    </div>
+  </form>
+
+  <nav class="bar" aria-label="Какие идеи показать">
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" data-tab="open" aria-selected="true">Идеи <span class="n" id="n-open"></span></button>
+      <button type="button" role="tab" data-tab="done" aria-selected="false">Сделано ✓ <span class="n" id="n-done"></span></button>
+    </div>
+    <div class="sort" role="group" aria-label="Порядок">
+      <button type="button" data-sort="new" aria-pressed="true">свежие</button>
+      <button type="button" data-sort="top" aria-pressed="false">популярные</button>
+    </div>
+  </nav>
+
+  <main class="board" id="board" aria-live="polite"></main>
+  <p class="empty" id="empty" hidden></p>
+  <noscript><p class="empty">Для доски нужен JavaScript.</p></noscript>
+</div>
+<div class="toast" id="toast" role="status" hidden></div>
+</body>
+</html>

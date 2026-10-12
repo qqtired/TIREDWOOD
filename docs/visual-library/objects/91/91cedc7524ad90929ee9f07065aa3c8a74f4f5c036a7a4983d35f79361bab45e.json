@@ -1,0 +1,18 @@
+{
+  "ok": true,
+  "node": "v24.15.0",
+  "protectedSourceFiles": 12,
+  "preservationComparisons": 135,
+  "featureChecks": [
+    "Pins folds and restores context",
+    "Context help can be pinned",
+    "Jelly damage retains previous HP",
+    "Jelly ready signal toggles",
+    "Umbra rewards expand under critical event",
+    "Mosaic moves one context toward action",
+    "Mosaic HP detail is reversible"
+  ],
+  "cssRules": 626,
+  "errors": [],
+  "verificationKind": "structural-and-state-only"
+}

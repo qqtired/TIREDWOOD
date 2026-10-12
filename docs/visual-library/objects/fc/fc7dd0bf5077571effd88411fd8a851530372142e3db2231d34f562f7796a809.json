@@ -1,0 +1,31 @@
+{
+  "repo": "[LOCAL_PATH]",
+  "url": "http://127.0.0.1:5377",
+  "dataDir": "/var/folders/2b/pm5qjpwd4dsccy28fwctvgq00000gn/T/tiredwood-code-review-3dxg3j",
+  "flags": {
+    "FORTRESS": "1",
+    "FIGHT": "1",
+    "FISH2": "1",
+    "SKILL": "1",
+    "BOATRACE": "1",
+    "HIDE": "1",
+    "STORM": "1",
+    "PIRATES": "1",
+    "VOICE": "1",
+    "GIFTS": "1",
+    "LAB": "1",
+    "JUKEBOX": "1",
+    "ROULETTE": "1",
+    "RATRACE": "1",
+    "BILLIARDS": "1",
+    "PLANE": "1",
+    "VOTEKICK": "1"
+  },
+  "devGo": true,
+  "builtClient": true,
+  "pid": 32430,
+  "parentPid": 32428,
+  "createdAt": "2026-10-07T17:29:25.774Z",
+  "status": "stopped",
+  "stoppedAt": "2026-10-07T17:50:19.780Z"
+}

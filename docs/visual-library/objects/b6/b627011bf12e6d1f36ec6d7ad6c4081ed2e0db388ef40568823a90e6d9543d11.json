@@ -1,0 +1,17 @@
+{
+  "case": "boss-phases",
+  "automated": "FAIL",
+  "visual": "NOT_ACCEPTED",
+  "error": "Error: real UI target absent\n    at <anonymous>:1:162\n    at <anonymous>:1:273",
+  "flags": {
+    "nativeGlobalMenuResumed": true,
+    "ticksAdvanced": true,
+    "serverParity": true,
+    "phase1": true,
+    "phase2": true,
+    "phase3": true,
+    "mouseCard": true
+  },
+  "elapsedMs": 67008,
+  "sourceFreeze": "79c7aa9061682aefdbf130d1fcc03e5689c7ecfd3dde341bcc65a9eac089b332"
+}

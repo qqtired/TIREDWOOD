@@ -1,0 +1,1404 @@
+{
+  "date": "2026-10-12",
+  "commit": "41b91a8 + uncommitted mode/dungeon-expansion-v2",
+  "worktree": "[LOCAL_PATH]",
+  "baselineCommit": "62f814f",
+  "method": "Read-only startWave extraction + 60s native weapon traces after 10s warmup; static targets, no AI, no shield, no buffs, no Q, no overkill. Isolated weapon traces have no passives; build traces use legal 5 weapon +5 catalyst builds and 5 temper. Not survival or playtest.",
+  "runtimeDataMatchesDoc": true,
+  "waves": [
+    {
+      "n": 11,
+      "duration": 70,
+      "hpMul": 8.443013333333335,
+      "dmgMul": 1.6,
+      "minAlive": 74,
+      "regular": {
+        "rat": 550,
+        "slime": 13,
+        "beetle": 13,
+        "spitter": 22
+      },
+      "events": [
+        {
+          "at": 10.5,
+          "type": "elite",
+          "mob": "shaman",
+          "n": 1,
+          "done": 0
+        }
+      ],
+      "totals": {
+        "rat": 550,
+        "slime": 13,
+        "beetle": 13,
+        "spitter": 22,
+        "shaman": 1
+      },
+      "bodies": 599,
+      "hp": 69503,
+      "xp": 747,
+      "mix": "rats",
+      "boss": null,
+      "bossFamily": null
+    },
+    {
+      "n": 12,
+      "duration": 70,
+      "hpMul": 5.877153333333335,
+      "dmgMul": 1.66,
+      "minAlive": 78,
+      "regular": {
+        "rat": 474,
+        "shroom": 55,
+        "spitter": 69
+      },
+      "events": [
+        {
+          "at": 10.5,
+          "type": "elite",
+          "mob": "barrel",
+          "n": 1,
+          "done": 0
+        },
+        {
+          "at": 24.5,
+          "type": "swarm",
+          "mob": "bat",
+          "n": 28,
+          "done": 0
+        },
+        {
+          "at": 38.5,
+          "type": "ring",
+          "mob": "shroom",
+          "n": 28,
+          "done": 0
+        },
+        {
+          "at": 55,
+          "type": "horde",
+          "mob": "",
+          "n": 0,
+          "done": 0
+        }
+      ],
+      "totals": {
+        "rat": 474,
+        "shroom": 83,
+        "spitter": 69,
+        "barrel": 1,
+        "bat": 28
+      },
+      "bodies": 655,
+      "hp": 87952,
+      "xp": 1081,
+      "mix": "grove",
+      "boss": null,
+      "bossFamily": null
+    },
+    {
+      "n": 13,
+      "duration": 70,
+      "hpMul": 6.333472310000001,
+      "dmgMul": 1.72,
+      "minAlive": 82,
+      "regular": {
+        "rat": 462,
+        "beetle": 86,
+        "spitter": 51
+      },
+      "events": [
+        {
+          "at": 10.5,
+          "type": "elite",
+          "mob": "shaman",
+          "n": 1,
+          "done": 0
+        }
+      ],
+      "totals": {
+        "rat": 462,
+        "beetle": 86,
+        "spitter": 51,
+        "shaman": 1
+      },
+      "bodies": 600,
+      "hp": 75774,
+      "xp": 913,
+      "mix": "wall",
+      "boss": null,
+      "bossFamily": null
+    },
+    {
+      "n": 14,
+      "duration": 70,
+      "hpMul": 7.526590689420002,
+      "dmgMul": 1.78,
+      "minAlive": 86,
+      "regular": {
+        "rat": 459,
+        "slime": 35,
+        "spitter": 104
+      },
+      "events": [
+        {
+          "at": 10.5,
+          "type": "elite",
+          "mob": "barrel",
+          "n": 1,
+          "done": 0
+        },
+        {
+          "at": 24.5,
+          "type": "swarm",
+          "mob": "bat",
+          "n": 32,
+          "done": 0
+        },
+        {
+          "at": 31.5,
+          "type": "elite",
+          "mob": "shaman",
+          "n": 1,
+          "done": 0
+        }
+      ],
+      "totals": {
+        "rat": 459,
+        "slime": 35,
+        "spitter": 104,
+        "barrel": 1,
+        "bat": 32,
+        "shaman": 1
+      },
+      "bodies": 632,
+      "hp": 86270,
+      "xp": 1023,
+      "mix": "spit",
+      "boss": null,
+      "bossFamily": null
+    },
+    {
+      "n": 15,
+      "duration": 70,
+      "hpMul": 12.753870404498672,
+      "dmgMul": 1.8399999999999999,
+      "minAlive": 90,
+      "regular": {
+        "rat": 189,
+        "bat": 395,
+        "shroom": 14
+      },
+      "events": [
+        {
+          "at": 10.5,
+          "type": "elite",
+          "mob": "barrel",
+          "n": 1,
+          "done": 0
+        },
+        {
+          "at": 31.5,
+          "type": "elite",
+          "mob": "shaman",
+          "n": 1,
+          "done": 0
+        },
+        {
+          "at": 38.5,
+          "type": "ring",
+          "mob": "shroom",
+          "n": 34,
+          "done": 0
+        }
+      ],
+      "totals": {
+        "rat": 189,
+        "bat": 395,
+        "shroom": 48,
+        "barrel": 1,
+        "shaman": 1
+      },
+      "bodies": 634,
+      "hp": 129834,
+      "xp": 856,
+      "mix": "sky",
+      "boss": null,
+      "bossFamily": null
+    },
+    {
+      "n": 16,
+      "duration": 70,
+      "hpMul": 7.923856257762723,
+      "dmgMul": 1.9,
+      "minAlive": 94,
+      "regular": {
+        "rat": 425,
+        "bat": 23,
+        "slime": 16,
+        "shroom": 16,
+        "beetle": 23,
+        "spitter": 27,
+        "hookclaw": 28
+      },
+      "events": [
+        {
+          "at": 4,
+          "type": "pack",
+          "mob": "hookclaw",
+          "n": 3,
+          "done": 0
+        },
+        {
+          "at": 10.5,
+          "type": "elite",
+          "mob": "barrel",
+          "n": 1,
+          "done": 0
+        },
+        {
+          "at": 24.5,
+          "type": "swarm",
+          "mob": "bat",
+          "n": 36,
+          "done": 0
+        },
+        {
+          "at": 31.5,
+          "type": "elite",
+          "mob": "shaman",
+          "n": 1,
+          "done": 0
+        },
+        {
+          "at": 55,
+          "type": "horde",
+          "mob": "",
+          "n": 0,
+          "done": 0
+        }
+      ],
+      "totals": {
+        "rat": 425,
+        "bat": 59,
+        "slime": 16,
+        "shroom": 16,
+        "beetle": 23,
+        "spitter": 27,
+        "hookclaw": 31,
+        "barrel": 1,
+        "shaman": 1
+      },
+      "bodies": 599,
+      "hp": 94849,
+      "xp": 935,
+      "mix": "",
+      "boss": null,
+      "bossFamily": null
+    },
+    {
+      "n": 17,
+      "duration": 70,
+      "hpMul": 9.514790508626861,
+      "dmgMul": 1.96,
+      "minAlive": 98,
+      "regular": {
+        "rat": 513,
+        "slime": 12,
+        "beetle": 11,
+        "spitter": 21,
+        "hookclaw": 14,
+        "wickmole": 20
+      },
+      "events": [
+        {
+          "at": 5,
+          "type": "pack",
+          "mob": "wickmole",
+          "n": 2,
+          "done": 0
+        },
+        {
+          "at": 10.5,
+          "type": "elite",
+          "mob": "shaman",
+          "n": 1,
+          "done": 0
+        },
+        {
+          "at": 31.5,
+          "type": "elite",
+          "mob": "barrel",
+          "n": 1,
+          "done": 0
+        },
+        {
+          "at": 45,
+          "type": "pack",
+          "mob": "hookclaw",
+          "n": 4,
+          "done": 0
+        }
+      ],
+      "totals": {
+        "rat": 513,
+        "slime": 12,
+        "beetle": 11,
+        "spitter": 21,
+        "hookclaw": 18,
+        "wickmole": 22,
+        "shaman": 1,
+        "barrel": 1
+      },
+      "bodies": 599,
+      "hp": 101218,
+      "xp": 879,
+      "mix": "",
+      "boss": null,
+      "bossFamily": null
+    },
+    {
+      "n": 18,
+      "duration": 70,
+      "hpMul": 8.668822005978653,
+      "dmgMul": 2.02,
+      "minAlive": 102,
+      "regular": {
+        "rat": 375,
+        "bat": 38,
+        "shroom": 16,
+        "spitter": 36,
+        "hookclaw": 24,
+        "wickmole": 19,
+        "railhopper": 26
+      },
+      "events": [
+        {
+          "at": 4,
+          "type": "pack",
+          "mob": "railhopper",
+          "n": 2,
+          "done": 0
+        },
+        {
+          "at": 10.5,
+          "type": "elite",
+          "mob": "barrel",
+          "n": 1,
+          "done": 0
+        },
+        {
+          "at": 24.5,
+          "type": "swarm",
+          "mob": "bat",
+          "n": 40,
+          "done": 0
+        },
+        {
+          "at": 31,
+          "type": "elite",
+          "mob": "shaman",
+          "n": 1,
+          "done": 0
+        },
+        {
+          "at": 38.5,
+          "type": "ring",
+          "mob": "shroom",
+          "n": 20,
+          "done": 0
+        },
+        {
+          "at": 47,
+          "type": "elite",
+          "mob": "chainwarden",
+          "n": 1,
+          "done": 0
+        }
+      ],
+      "totals": {
+        "rat": 375,
+        "bat": 78,
+        "shroom": 36,
+        "spitter": 36,
+        "hookclaw": 24,
+        "wickmole": 19,
+        "railhopper": 28,
+        "barrel": 1,
+        "shaman": 1,
+        "chainwarden": 1
+      },
+      "bodies": 599,
+      "hp": 122768,
+      "xp": 1057,
+      "mix": "",
+      "boss": null,
+      "bossFamily": null
+    },
+    {
+      "n": 19,
+      "duration": 70,
+      "hpMul": 8.089220534648685,
+      "dmgMul": 2.08,
+      "minAlive": 106,
+      "regular": {
+        "rat": 369,
+        "beetle": 69,
+        "spitter": 41,
+        "hookclaw": 33,
+        "wickmole": 21,
+        "railhopper": 42
+      },
+      "events": [
+        {
+          "at": 10.5,
+          "type": "elite",
+          "mob": "shaman",
+          "n": 1,
+          "done": 0
+        },
+        {
+          "at": 27,
+          "type": "elite",
+          "mob": "barrel",
+          "n": 1,
+          "done": 0
+        },
+        {
+          "at": 44,
+          "type": "elite",
+          "mob": "chainwarden",
+          "n": 1,
+          "done": 0
+        },
+        {
+          "at": 55,
+          "type": "pressure",
+          "mob": "",
+          "n": 0,
+          "done": 0
+        }
+      ],
+      "totals": {
+        "rat": 369,
+        "beetle": 69,
+        "spitter": 41,
+        "hookclaw": 33,
+        "wickmole": 21,
+        "railhopper": 42,
+        "shaman": 1,
+        "barrel": 1,
+        "chainwarden": 1
+      },
+      "bodies": 578,
+      "hp": 128975,
+      "xp": 1128,
+      "mix": "",
+      "boss": null,
+      "bossFamily": null
+    },
+    {
+      "n": 20,
+      "duration": 120,
+      "hpMul": 8.655465972074094,
+      "dmgMul": 2.1399999999999997,
+      "minAlive": 12,
+      "regular": {
+        "rat": 40
+      },
+      "events": [
+        {
+          "at": 0,
+          "type": "boss",
+          "mob": "povidl",
+          "n": 1,
+          "done": 0
+        }
+      ],
+      "totals": {
+        "rat": 40
+      },
+      "bodies": 40,
+      "hp": 3462,
+      "xp": 40,
+      "mix": "",
+      "boss": 64000,
+      "bossFamily": "cauldronmaster"
+    },
+    {
+      "n": 21,
+      "duration": 75,
+      "hpMul": 9.261348590119281,
+      "dmgMul": 2.2,
+      "minAlive": 114,
+      "regular": {
+        "rat": 280,
+        "shroom": 33,
+        "spitter": 41,
+        "hookclaw": 45,
+        "railhopper": 53
+      },
+      "events": [
+        {
+          "at": 11.266666666666667,
+          "type": "elite",
+          "mob": "shaman",
+          "n": 1,
+          "done": 0
+        },
+        {
+          "at": 26.266666666666666,
+          "type": "elite",
+          "mob": "barrel",
+          "n": 1,
+          "done": 0
+        },
+        {
+          "at": 41.233333333333334,
+          "type": "elite",
+          "mob": "shaman",
+          "n": 1,
+          "done": 0
+        },
+        {
+          "at": 41.266666666666666,
+          "type": "ring",
+          "mob": "shroom",
+          "n": 46,
+          "done": 0
+        }
+      ],
+      "totals": {
+        "rat": 280,
+        "shroom": 79,
+        "spitter": 41,
+        "hookclaw": 45,
+        "railhopper": 53,
+        "shaman": 2,
+        "barrel": 1
+      },
+      "bodies": 501,
+      "hp": 158193,
+      "xp": 1133,
+      "mix": "grove",
+      "boss": null,
+      "bossFamily": null
+    },
+    {
+      "n": 22,
+      "duration": 75,
+      "hpMul": 9.90964299142763,
+      "dmgMul": 2.26,
+      "minAlive": 118,
+      "regular": {
+        "rat": 275,
+        "shroom": 32,
+        "spitter": 40,
+        "hookclaw": 44,
+        "railhopper": 52
+      },
+      "events": [
+        {
+          "at": 11.266666666666667,
+          "type": "elite",
+          "mob": "chainwarden",
+          "n": 1,
+          "done": 0
+        },
+        {
+          "at": 22.5,
+          "type": "elite",
+          "mob": "shaman",
+          "n": 1,
+          "done": 0
+        },
+        {
+          "at": 26.266666666666666,
+          "type": "swarm",
+          "mob": "bat",
+          "n": 48,
+          "done": 0
+        },
+        {
+          "at": 33.733333333333334,
+          "type": "elite",
+          "mob": "barrel",
+          "n": 1,
+          "done": 0
+        },
+        {
+          "at": 45,
+          "type": "elite",
+          "mob": "shaman",
+          "n": 1,
+          "done": 0
+        }
+      ],
+      "totals": {
+        "rat": 275,
+        "shroom": 32,
+        "spitter": 40,
+        "hookclaw": 44,
+        "railhopper": 52,
+        "chainwarden": 1,
+        "shaman": 2,
+        "bat": 48,
+        "barrel": 1
+      },
+      "bodies": 495,
+      "hp": 138834,
+      "xp": 1019,
+      "mix": "grove",
+      "boss": null,
+      "bossFamily": null
+    },
+    {
+      "n": 23,
+      "duration": 75,
+      "hpMul": 10.603318000827565,
+      "dmgMul": 2.32,
+      "minAlive": 122,
+      "regular": {
+        "rat": 270,
+        "shroom": 32,
+        "spitter": 40,
+        "hookclaw": 43,
+        "railhopper": 51
+      },
+      "events": [
+        {
+          "at": 11.266666666666667,
+          "type": "elite",
+          "mob": "shaman",
+          "n": 1,
+          "done": 0
+        },
+        {
+          "at": 22.5,
+          "type": "elite",
+          "mob": "barrel",
+          "n": 1,
+          "done": 0
+        },
+        {
+          "at": 33.733333333333334,
+          "type": "elite",
+          "mob": "shaman",
+          "n": 1,
+          "done": 0
+        },
+        {
+          "at": 45,
+          "type": "elite",
+          "mob": "barrel",
+          "n": 1,
+          "done": 0
+        }
+      ],
+      "totals": {
+        "rat": 270,
+        "shroom": 32,
+        "spitter": 40,
+        "hookclaw": 43,
+        "railhopper": 51,
+        "shaman": 2,
+        "barrel": 2
+      },
+      "bodies": 440,
+      "hp": 141660,
+      "xp": 960,
+      "mix": "grove",
+      "boss": null,
+      "bossFamily": null
+    },
+    {
+      "n": 24,
+      "duration": 75,
+      "hpMul": 11.345550260885496,
+      "dmgMul": 2.38,
+      "minAlive": 126,
+      "regular": {
+        "rat": 265,
+        "shroom": 31,
+        "spitter": 39,
+        "hookclaw": 42,
+        "railhopper": 50
+      },
+      "events": [
+        {
+          "at": 11.266666666666667,
+          "type": "elite",
+          "mob": "barrel",
+          "n": 1,
+          "done": 0
+        },
+        {
+          "at": 22.5,
+          "type": "elite",
+          "mob": "shaman",
+          "n": 1,
+          "done": 0
+        },
+        {
+          "at": 26.266666666666666,
+          "type": "swarm",
+          "mob": "bat",
+          "n": 52,
+          "done": 0
+        },
+        {
+          "at": 33.733333333333334,
+          "type": "elite",
+          "mob": "barrel",
+          "n": 1,
+          "done": 0
+        },
+        {
+          "at": 41.266666666666666,
+          "type": "ring",
+          "mob": "shroom",
+          "n": 52,
+          "done": 0
+        },
+        {
+          "at": 45,
+          "type": "elite",
+          "mob": "shaman",
+          "n": 1,
+          "done": 0
+        },
+        {
+          "at": 60,
+          "type": "horde",
+          "mob": "",
+          "n": 0,
+          "done": 0
+        }
+      ],
+      "totals": {
+        "rat": 265,
+        "shroom": 83,
+        "spitter": 39,
+        "hookclaw": 42,
+        "railhopper": 50,
+        "barrel": 2,
+        "shaman": 2,
+        "bat": 52
+      },
+      "bodies": 535,
+      "hp": 203437,
+      "xp": 1202,
+      "mix": "grove",
+      "boss": null,
+      "bossFamily": null
+    },
+    {
+      "n": 25,
+      "duration": 75,
+      "hpMul": 12.13973877914748,
+      "dmgMul": 2.44,
+      "minAlive": 130,
+      "regular": {
+        "rat": 260,
+        "shroom": 31,
+        "spitter": 38,
+        "hookclaw": 42,
+        "railhopper": 49
+      },
+      "events": [
+        {
+          "at": 11.266666666666667,
+          "type": "elite",
+          "mob": "chainwarden",
+          "n": 1,
+          "done": 0
+        },
+        {
+          "at": 22.5,
+          "type": "elite",
+          "mob": "shaman",
+          "n": 1,
+          "done": 0
+        },
+        {
+          "at": 33.733333333333334,
+          "type": "elite",
+          "mob": "barrel",
+          "n": 1,
+          "done": 0
+        },
+        {
+          "at": 45,
+          "type": "elite",
+          "mob": "shaman",
+          "n": 1,
+          "done": 0
+        }
+      ],
+      "totals": {
+        "rat": 260,
+        "shroom": 31,
+        "spitter": 38,
+        "hookclaw": 42,
+        "railhopper": 49,
+        "chainwarden": 1,
+        "shaman": 2,
+        "barrel": 1
+      },
+      "bodies": 424,
+      "hp": 158873,
+      "xp": 931,
+      "mix": "grove",
+      "boss": null,
+      "bossFamily": null
+    }
+  ],
+  "cases": {
+    "single": {
+      "label": "Одна цель",
+      "desc": "Неподвижная элита в 4 м, R 0.8 м, без щита",
+      "positions": [
+        [
+          4,
+          0,
+          0.8
+        ]
+      ]
+    },
+    "bossBody": {
+      "label": "Открытый босс",
+      "desc": "Одна неподвижная крупная цель в 5 м, R 1.8 м; без щита/нырка/переходов",
+      "positions": [
+        [
+          5,
+          0,
+          1.8
+        ]
+      ]
+    },
+    "column": {
+      "label": "Колонна",
+      "desc": "8 рядовых в линии от 3 до 12.1 м, R 0.35 м",
+      "positions": [
+        [
+          3,
+          -0.25,
+          0.35
+        ],
+        [
+          4.3,
+          0.25,
+          0.35
+        ],
+        [
+          5.6,
+          -0.25,
+          0.35
+        ],
+        [
+          6.9,
+          0.25,
+          0.35
+        ],
+        [
+          8.2,
+          -0.25,
+          0.35
+        ],
+        [
+          9.5,
+          0.25,
+          0.35
+        ],
+        [
+          10.8,
+          -0.25,
+          0.35
+        ],
+        [
+          12.1,
+          0.25,
+          0.35
+        ]
+      ]
+    },
+    "surround": {
+      "label": "Вокруг",
+      "desc": "12 рядовых равномерно вокруг героя в 3.2 м, R 0.35 м",
+      "positions": [
+        [
+          3.2,
+          0,
+          0.35
+        ],
+        [
+          2.771281292110204,
+          1.5999999999999999,
+          0.35
+        ],
+        [
+          1.6000000000000005,
+          2.7712812921102037,
+          0.35
+        ],
+        [
+          1.9594348786357652e-16,
+          3.2,
+          0.35
+        ],
+        [
+          -1.5999999999999994,
+          2.771281292110204,
+          0.35
+        ],
+        [
+          -2.771281292110204,
+          1.5999999999999999,
+          0.35
+        ],
+        [
+          -3.2,
+          3.9188697572715305e-16,
+          0.35
+        ],
+        [
+          -2.7712812921102046,
+          -1.5999999999999992,
+          0.35
+        ],
+        [
+          -1.6000000000000014,
+          -2.7712812921102032,
+          0.35
+        ],
+        [
+          -5.878304635907295e-16,
+          -3.2,
+          0.35
+        ],
+        [
+          1.6000000000000005,
+          -2.7712812921102037,
+          0.35
+        ],
+        [
+          2.771281292110203,
+          -1.6000000000000014,
+          0.35
+        ]
+      ]
+    },
+    "spread": {
+      "label": "Редкая стая",
+      "desc": "8 рядовых по кругу в 8–10 м, R 0.35 м",
+      "positions": [
+        [
+          8,
+          0,
+          0.35
+        ],
+        [
+          6.3639610306789285,
+          6.363961030678928,
+          0.35
+        ],
+        [
+          6.123233995736766e-16,
+          10,
+          0.35
+        ],
+        [
+          -5.65685424949238,
+          5.656854249492381,
+          0.35
+        ],
+        [
+          -9,
+          1.102182119232618e-15,
+          0.35
+        ],
+        [
+          -7.071067811865477,
+          -7.071067811865475,
+          0.35
+        ],
+        [
+          -1.4695761589768238e-15,
+          -8,
+          0.35
+        ],
+        [
+          6.363961030678926,
+          -6.363961030678929,
+          0.35
+        ]
+      ]
+    }
+  },
+  "traces": [
+    {
+      "id": "lantern",
+      "name": "Фонарь",
+      "level": 7,
+      "evolved": false,
+      "dps": {
+        "single": 37.2,
+        "bossBody": 37.2,
+        "column": 148.8,
+        "surround": 186,
+        "spread": 0
+      }
+    },
+    {
+      "id": "lantern",
+      "name": "Негасимый фонарь",
+      "level": 7,
+      "evolved": true,
+      "dps": {
+        "single": 46.79,
+        "bossBody": 46.79,
+        "column": 233.96,
+        "surround": 467.92,
+        "spread": 93.58
+      }
+    },
+    {
+      "id": "embers",
+      "name": "Угольки",
+      "level": 7,
+      "evolved": false,
+      "dps": {
+        "single": 97.75,
+        "bossBody": 97.75,
+        "column": 195.5,
+        "surround": 176.52,
+        "spread": 99.17
+      }
+    },
+    {
+      "id": "embers",
+      "name": "Жаровой залп",
+      "level": 7,
+      "evolved": true,
+      "dps": {
+        "single": 187.5,
+        "bossBody": 187.5,
+        "column": 345,
+        "surround": 357.5,
+        "spread": 187.5
+      }
+    },
+    {
+      "id": "pickaxe",
+      "name": "Кирка",
+      "level": 7,
+      "evolved": false,
+      "dps": {
+        "single": 119.7,
+        "bossBody": 119.7,
+        "column": 239.4,
+        "surround": 119.7,
+        "spread": 39.9
+      }
+    },
+    {
+      "id": "pickaxe",
+      "name": "Рудничный маховик",
+      "level": 7,
+      "evolved": true,
+      "dps": {
+        "single": 113.6,
+        "bossBody": 227.2,
+        "column": 454.4,
+        "surround": 340.8,
+        "spread": 0
+      }
+    },
+    {
+      "id": "fireflies",
+      "name": "Светляки",
+      "level": 7,
+      "evolved": false,
+      "dps": {
+        "single": 23.5,
+        "bossBody": 23.5,
+        "column": 23.5,
+        "surround": 282,
+        "spread": 0
+      }
+    },
+    {
+      "id": "fireflies",
+      "name": "Рой светляков",
+      "level": 7,
+      "evolved": true,
+      "dps": {
+        "single": 33.9,
+        "bossBody": 33.9,
+        "column": 63.9,
+        "surround": 270,
+        "spread": 0
+      }
+    },
+    {
+      "id": "spark",
+      "name": "Искра",
+      "level": 7,
+      "evolved": false,
+      "dps": {
+        "single": 19.93,
+        "bossBody": 19.93,
+        "column": 109.63,
+        "surround": 179.4,
+        "spread": 39.87
+      }
+    },
+    {
+      "id": "spark",
+      "name": "Грозовая друза",
+      "level": 7,
+      "evolved": true,
+      "dps": {
+        "single": 41.6,
+        "bossBody": 41.6,
+        "column": 259.39,
+        "surround": 357.31,
+        "spread": 139.5
+      }
+    },
+    {
+      "id": "stalactites",
+      "name": "Сталактиты",
+      "level": 7,
+      "evolved": false,
+      "dps": {
+        "single": 83.6,
+        "bossBody": 83.6,
+        "column": 228.63,
+        "surround": 250.8,
+        "spread": 83.6
+      }
+    },
+    {
+      "id": "stalactites",
+      "name": "Обвал",
+      "level": 7,
+      "evolved": true,
+      "dps": {
+        "single": 130.53,
+        "bossBody": 130.53,
+        "column": 401.3,
+        "surround": 461.6,
+        "spread": 130.53
+      }
+    },
+    {
+      "id": "charges",
+      "name": "Шашки",
+      "level": 7,
+      "evolved": false,
+      "dps": {
+        "single": 17.33,
+        "bossBody": 17.33,
+        "column": 66.67,
+        "surround": 712,
+        "spread": 0
+      }
+    },
+    {
+      "id": "charges",
+      "name": "Пороховая связка",
+      "level": 7,
+      "evolved": true,
+      "dps": {
+        "single": 47.3,
+        "bossBody": 48.73,
+        "column": 63.07,
+        "surround": 663.63,
+        "spread": 0
+      }
+    },
+    {
+      "id": "beam",
+      "name": "Маячный луч",
+      "level": 7,
+      "evolved": false,
+      "dps": {
+        "single": 23.33,
+        "bossBody": 23.33,
+        "column": 186.67,
+        "surround": 93.33,
+        "spread": 46.67
+      }
+    },
+    {
+      "id": "beam",
+      "name": "Маяк",
+      "level": 7,
+      "evolved": true,
+      "dps": {
+        "single": 26.67,
+        "bossBody": 26.67,
+        "column": 213.33,
+        "surround": 320,
+        "spread": 213.33
+      }
+    }
+  ],
+  "builds": [
+    {
+      "id": "kite",
+      "name": "Кайт и ловушки",
+      "weapons": [
+        {
+          "id": "lantern",
+          "evolved": true
+        },
+        {
+          "id": "embers",
+          "evolved": true
+        },
+        {
+          "id": "pickaxe",
+          "evolved": true
+        },
+        {
+          "id": "charges",
+          "evolved": true
+        },
+        {
+          "id": "spark",
+          "evolved": true
+        }
+      ],
+      "passives": {
+        "might": 5,
+        "cooldown": 5,
+        "amount": 2,
+        "speed": 5,
+        "magnet": 5
+      },
+      "temper": 5,
+      "tradeoff": "Пять готовых эволюций: сильнее погоня и связные стаи; 100 HP, без Каски/лечения/урона сверху. Пять катализаторов занимают все бонусные слоты.",
+      "dps": {
+        "single": 1461.49,
+        "bossBody": 1760.75,
+        "column": 4626.6,
+        "surround": 6977.13,
+        "spread": 1753.57
+      }
+    },
+    {
+      "id": "guard",
+      "name": "Защитный круг",
+      "weapons": [
+        {
+          "id": "lantern",
+          "evolved": true
+        },
+        {
+          "id": "embers",
+          "evolved": true
+        },
+        {
+          "id": "fireflies",
+          "evolved": true
+        },
+        {
+          "id": "stalactites",
+          "evolved": true
+        },
+        {
+          "id": "beam",
+          "evolved": true
+        }
+      ],
+      "passives": {
+        "might": 5,
+        "maxhp": 5,
+        "armor": 5,
+        "cooldown": 5,
+        "area": 5
+      },
+      "temper": 5,
+      "tradeoff": "200 HP, броня, лечение Роя и Обвал; нет Сапог/Кремня/Подковы. Связные дальние цепи и бумеранги уступают место защите.",
+      "dps": {
+        "single": 1073.29,
+        "bossBody": 1079.53,
+        "column": 4089.71,
+        "surround": 5159.71,
+        "spread": 1960.29
+      }
+    },
+    {
+      "id": "range",
+      "name": "Дальний коридор",
+      "weapons": [
+        {
+          "id": "lantern",
+          "evolved": true
+        },
+        {
+          "id": "embers",
+          "evolved": true
+        },
+        {
+          "id": "spark",
+          "evolved": true
+        },
+        {
+          "id": "stalactites",
+          "evolved": true
+        },
+        {
+          "id": "beam",
+          "evolved": true
+        }
+      ],
+      "passives": {
+        "might": 5,
+        "armor": 5,
+        "area": 5,
+        "cooldown": 5,
+        "magnet": 5
+      },
+      "temper": 5,
+      "tradeoff": "Достаёт стрелков и разные стороны; 100 HP, нет ускорения рывка/лечения/Шашек. На открытом боссе залп силён, но пять эволюций требуют пяти сундуков.",
+      "dps": {
+        "single": 1135.69,
+        "bossBody": 1135.69,
+        "column": 4708.81,
+        "surround": 5677.34,
+        "spread": 2608.68
+      }
+    }
+  ],
+  "hashes": {
+    "shared/dungeon/data.ts": "2c4dd3483a1cdde6b723e52d7b654793818df4a8f585b4798ce3f32f1ef1121b",
+    "shared/dungeon/weapons.ts": "6a7a5bf12bfd51fbdf0493660f5310a307f013e3b2f851cf381a3843b3b09b40",
+    "shared/dungeon/director.ts": "ffa09a8e4295edcb8a6a0c63df2ac0d018b49c3a31caea21e75da6935eeb62ae",
+    "shared/dungeon/boss.ts": "fd9fd375458225256816fd34ea575d05e53dea348bc70e40a2bec9502b941734",
+    "shared/dungeon/cauldron.ts": "186ee5b9921c7a9142f07733f2b3bd043ff4fd7168288426bda7433a485e87c5",
+    "shared/dungeon/expansion.ts": "df6e201796818accfdab08fb3a9d60c9582f484dbf1f3fe1925b950a8341ca78",
+    "shared/dungeon/enemycharges.ts": "ce0e6df23c1ba86acb42d4a3cdbc7ea0f44c8b096a08aecf0aab42cd1180cac1",
+    "shared/dungeon/mobs.ts": "da51aea88bb3ef3bfaf008b3a41c27811ad715bef2165050f0a9f1f763926299",
+    "shared/dungeon/props.ts": "163ee32657b4410eb52a13d0dc8aed0705798e1ca5bd017c38b96f0e7da2806b",
+    "shared/dungeon/pickups.ts": "90508eac73a77fa121ffe86c1a1b3d2d24662569c5cde2864ec2ae44537af382",
+    "shared/dungeon/progress.ts": "b4721b606669d70d824126526605aafd06e898cfd92bcfab851178ed52cdee80",
+    "shared/dungeon/core.ts": "af9099a0b414de38be0b4a8fec5cb8721d1a403b1a2037d809d84be92acdb6b2",
+    "shared/dungeon/sim.ts": "9e285f3b383603a4c2abc498988f622006c4e5aa3b6d8b6f7b5e1f53c1e7a163",
+    "shared/dungeon/api.ts": "0f61ef35fd3a982ead4c38a711d8b548389d0f71546e81ac9f66f78530f16b08",
+    "client/dungeon/simview.ts": "b496b80edde01aa72e9188c4512c78a027621de8ce1ad1f62d876b09fa98e7fc",
+    "client/dungeon/mobs.ts": "10b4c2b92682699d037a796a9e7823fdcac6436cbf6663f11a97f71aed65263b",
+    "client/dungeon/boss.ts": "69767abe83eb4da5cc8dc4025649bd96260ea4ec939c8240aa7c8a251b62e41e",
+    "client/dungeon/weaponvisuals.ts": "05938d3968e52edbf34f2109377c86d978de476e88804967099882db23c0645d",
+    "client/dungeon/zones.ts": "83dc291dd57e0a160bed63017ee512c38470cfcaef67d09e3b044f8f5eb73d27",
+    "docs/survivors/design-data.json": "932a6775825747f3126c596dea0143cf5b34b1b040e87c3e05e45a20f5965849",
+    "docs/survivors/level-data.json": "a9a47bd09a0453581d9bbbca7f86492dc8899b423dab4965e995ee4a8489c506",
+    "tools/survivors/balance.mjs": "bdd518a78fd9168d7f148184e584211f62b5b8102abe26a0a3f6e29180b400ec"
+  },
+  "measurementsReusedFrom": {
+    "commit": "bd182c2 + uncommitted mode/dungeon-expansion-v2",
+    "reason": "Weapon/director/simulation numerical source hashes unchanged. R5 root changes only unreachable client alert branch and erased test const annotations. No DPS/wave/encounter rerun."
+  }
+}

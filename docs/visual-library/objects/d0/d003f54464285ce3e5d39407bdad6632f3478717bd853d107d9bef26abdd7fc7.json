@@ -1,0 +1,138 @@
+{
+  "scope": "Read-only review of client runtime, input timing, prediction/reconciliation, remote interpolation and WebRTC lifecycle. No repository edits, browser/server starts, production access or load tests.",
+  "evidenceBasis": "Static source review plus two bounded, pure Node reproductions against current local source. Runtime frequency, FPS and actual network effects are not measured.",
+  "findings": [
+    {
+      "severity": "P2",
+      "confidence": "high",
+      "title": "Сверка катера и самолёта нарушает непрерывность картинки между тиками",
+      "path": "../../game-opus/client/lobby/regattapredict.ts",
+      "lines": {
+        "start": 77,
+        "end": 101
+      },
+      "evidence": [
+        "accept() saves old state only, resets prev to authoritative state, replays entries and calculates offset from old current state. The render path uses lerp(prev,state,alpha)+offset (regatta.ts:514–525). When ack==newest and a small correction occurs, prev and state become identical; offset protects alpha=1 but not the displayed position for alpha<1.",
+        "Pure Node reproduction: initialize RgPredictor with placeRgBoat(), velocity 12 m/s, predict seq=1, accept ack=1 with authoritative x correction +0.05 m. Measured draw discontinuity: alpha=0 => 0.20326797385620665 m; alpha=0.5 => 0.10163398692809977 m; alpha=1 => 0 m. Predicted one-tick displacement was 0.20326797385620665 m.",
+        "Same algorithm in client/lobby/plane.ts:192–216 resets prev to server state and derives offset from old current state; rendering at 446–448 interpolates prev/state. General Predictor.reconcile preserves continuity by translating prev by the same position correction (client/predict.ts:149–154).",
+        "Reproduction persisted as regatta-correction-repro.mjs and regatta-correction-repro.json beside this report. Rg confirmed by executing current source; Plane follows from code comparison and has not been executed."
+      ],
+      "trigger": "While moving, receive a correction for newest predicted input, e.g. server-only boat collision. The receipt occurs between simulation ticks, so render alpha is below 1. At 120 Hz alpha spans intermediate values; at 60 Hz it is also often below 1 because queue pacing adjusts tick rate by ±3%. More pending inputs can reduce or alter the jump but do not ensure continuity when replay changes velocity.",
+      "consequence": "A small server correction can cause a visible position/camera jump as large as one physics step, despite correction offset smoothing; on faster plane motion the same formula can magnify the visible movement. This is a source/probe result, not a measured in-game incidence rate.",
+      "proposal": "Preserve previous displayed interpolation interval during reconciliation, as shared Predictor does, or calculate offset relative to the actual displayed pose and rebuild a coherent prev/current pair. Keep deliberate teleport snap thresholds. Use one consistent approach for RgPredictor and PlanePredictor.",
+      "validationNeeded": "Add continuity regression with ack==newest, one or more pending inputs, correction changing velocity, alpha 0/0.5/1 and teleport thresholds. Then verify two clients during boat collisions and plane correction at 60/120 Hz and representative lag. Existing regatta/plane tests cover shared physics but do not prove client visual continuity."
+    },
+    {
+      "severity": "P2",
+      "confidence": "medium",
+      "title": "Ввод продолжает попадать в забитую исходящую очередь WebSocket",
+      "path": "../../game-opus/client/net.ts",
+      "lines": {
+        "start": 85,
+        "end": 90
+      },
+      "evidence": [
+        "sendBinary() checks OPEN and time since last received message only. It does not check ws.bufferedAmount, even though Net.buffered exposes it at lines 102–103. Input callers enqueue one packet per simulation step in lobby, race, paintball, fort, fight, skill and hide.",
+        "Bounded pure Node fake-socket probe set readyState=OPEN, bufferedAmount=1048576 and lastRx=performance.now(); two sendBinary(new Uint8Array(24)) calls both invoked socket.send(). Output: queuedBytesBefore=1048576, inputPacketsAdded=2, lastReceiveFresh=true.",
+        "lastRx is refreshed by every inbound JSON/binary message (net.ts:38–40). Therefore recent incoming traffic is not proof of writable outgoing transport. The current guard limits fully silent connections after 2.5 s, but it does not bound an asymmetrically congested outgoing queue."
+      ],
+      "trigger": "An outgoing transport stalls or stays behind while inbound server traffic remains recent. Browser remains OPEN and send() accumulates buffered messages; binary input continues at 60 ticks/s until receive silence passes the existing threshold, if it ever does.",
+      "consequence": "Stale controls accumulate in ordered TCP output. After recovery they are delivered ahead of current controls and can create catch-up/reconciliation or delayed button release. Queue growth is proven by the control-flow/probe; frequency and user-visible magnitude require a network measurement.",
+      "proposal": "Introduce a measured input-specific outgoing backlog policy before send(): bound obsolete input backlog using bufferedAmount and an age/time budget; coordinate with prediction and reconnect semantics rather than silently dropping authoritative actions. Keep WebSocket and measure before considering a transport replacement.",
+      "validationNeeded": "A fake-socket regression for a full output buffer and recovery plus an authorized local two-client asymmetric network test measuring queued bytes, age of applied inputs and corrections. No such runtime network test was run."
+    }
+  ],
+  "reviewedCoverage": [
+    {
+      "area": "App/runtime",
+      "files": [
+        "client/app.ts",
+        "client/net.ts",
+        "client/input.ts"
+      ],
+      "observed": "requestAnimationFrame may skip whole frames with cap; simulation runs fixed 60 Hz through scene accumulators; app caps dt at 250 ms, most matches at 100 ms. Input angles update from mouse events before next sim tick. Latched bits retain short taps. Incoming messages have stale-socket identity guards."
+    },
+    {
+      "area": "Prediction and interpolation",
+      "files": [
+        "client/predict.ts",
+        "client/remote.ts",
+        "client/race/predict.ts",
+        "client/race/match.ts",
+        "client/fight/predict.ts",
+        "client/fight/match.ts",
+        "client/fort/match.ts",
+        "client/paintball/match.ts"
+      ],
+      "observed": "256-entry prediction histories and replay; common RemoteTrack uses fixed typed-array history and angle interpolation with bounded extrapolation. Race/fight/paintball/fort use queue pacing ±3%. Smoothing uses exp(-rate*dt), so time constant is independent of display refresh. Display interpolation intentionally introduces up to a one-tick interval; it does not mean input physics waits a whole display frame."
+    },
+    {
+      "area": "Hide/skill",
+      "files": [
+        "client/hide/motion.ts",
+        "client/hide/scene.ts",
+        "client/skilltest/scene.ts"
+      ],
+      "observed": "Both already interpolate remote movement, not just assign latest JSON state. Hide uses ClockSync minDelay=8 ticks and RemoteTrack, handles delta stationary props and resets motion on enter. Skill minDelay=7.5 ticks, time-tagged peer history and mover compensation; dynamics share displayed time with local pose."
+    },
+    {
+      "area": "Water/plane",
+      "files": [
+        "client/lobby/regatta.ts",
+        "client/lobby/regattapredict.ts",
+        "client/lobby/plane.ts",
+        "client/lobby/scene.ts"
+      ],
+      "observed": "Regatta currently receives binary snapshots; server/lobby/regatta.ts:468–486 documents/implements send every 2 ticks (30 Hz), contrary to old optimization doc mentioning 20 Hz JSON. Remote boat poses interpolate BoatTrack. Plane has time-tagged track, extra view delay=3 ticks and bounded extrapolation=8. Scripted boats/ferries derive poses from shared time rather than raw packet position."
+    },
+    {
+      "area": "HUD/GC hot paths",
+      "files": [
+        "client/fight/hud.ts",
+        "client/fight/match.ts",
+        "client/paintball/hud.ts",
+        "client/race/hud.ts",
+        "client/lobby/scene.ts"
+      ],
+      "observed": "Race/paintball HUD cache many text/structure values. Fight setTop/setFoes cache structure; it does not rebuild enemy DOM every frame. Some per-frame allocation remains: fight builds foes array/objects + string key, hide builds hunter view objects, ClockSync builds/sorts lag array every 15 samples. No profile supports ranking these above draw-call/render cost; treat as measurement targets, not demonstrated FPS bottlenecks."
+    },
+    {
+      "area": "WebRTC lifecycle",
+      "files": [
+        "client/voice.ts",
+        "client/app.ts",
+        "test/voice-client.test.ts"
+      ],
+      "observed": "Reviewed peer creation/drop, RTC serialized operation queue, generation guards, negotiation/restart, receive audio teardown, mic acquire/reacquire, synchronous talk cutoff, permission races, reconnect and dispose. No high-confidence material lifecycle issue identified in this bounded review."
+    },
+    {
+      "area": "Docs and local state",
+      "files": [
+        "AGENTS.md",
+        "docs/product.md",
+        "docs/optimization.md",
+        "docs/README.md",
+        "docs/design.md",
+        "docs/STATUS.md",
+        "README.md"
+      ],
+      "observed": "AGENTS and product/optimization read; large docs read by relevant networking/simulation/voice sections and current release/map context. Top repository and game repository are dirty; no edits to either. Current runtime files inspected are source evidence, release descriptions are dated documentation, not proof of deployed runtime."
+    }
+  ],
+  "strengths": [
+    "Shared deterministic physics plus input-sequence replay; explicit room epoch prevents old-room controls from being applied in a new room.",
+    "Ring-buffer typed arrays for common remote history, no unbounded extrapolation; teleport/life transition handling prevents interpolation through the map.",
+    "Queue-aware pacing and dt-based exponential smoothing address refresh-rate independence in common modes.",
+    "Mic privacy boundary disables tracks synchronously before signaling/callbacks. Late capture results stop stale streams; RTC operations validate generation and peer identity. Peer teardown detaches callbacks, timers, audio srcObject and closes the connection.",
+    "HUD structure already cached in the audited modes; retrospective optimization notes should be rechecked against current source before turning them into work."
+  ],
+  "followupMeasurementTargets": [
+    "Prediction replay range: source guards missing ring entries using e.seq, not an ack-age bound. General Predictor.reconcile only rejects ack>newest, then hardSet replays from ack+1 (predict.ts:126–131,159–175). Similar KartPredictor and FightPredictor branches. Binary snapshots decode ack as uint32; InputQueue starts at ack=0. Actual old-ack incidence during asymmetric input/receive silence is not established, and realistic gaps are short, so retain as measurement/coverage target, not a reported FPS defect.",
+    "Measure actual correction count, interpolation age, input queue bytes/age and per-mode CPU before changing transport or snapshot rates. No UDP migration recommendation follows from this review."
+  ],
+  "skippedChecks": [
+    "No check/test/build full gate: review makes no repository changes and parent forbids servers/browser/load tests.",
+    "No desktop browser verification, no mobile device or emulation, no production status check.",
+    "No measured FPS, GC, network jitter, simultaneous-player or WebRTC runtime acceptance."
+  ]
+}

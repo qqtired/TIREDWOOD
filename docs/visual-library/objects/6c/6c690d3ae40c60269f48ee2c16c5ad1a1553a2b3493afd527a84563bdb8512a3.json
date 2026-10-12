@@ -1,0 +1,6043 @@
+{
+  "case": "boss-phases",
+  "seedCase": "boss-phases",
+  "automated": "PASS",
+  "visual": "PENDING_ROOT_REVIEW",
+  "sourceFreeze": "79c7aa9061682aefdbf130d1fcc03e5689c7ecfd3dde341bcc65a9eac089b332",
+  "flags": {
+    "nativeGlobalMenuResumed": true,
+    "ticksAdvanced": true,
+    "serverParity": true,
+    "phase1": true,
+    "phase2": true,
+    "phase3": true,
+    "attackFamilies": [
+      "pause",
+      "ladle",
+      "pour",
+      "roar",
+      "ladle2",
+      "boil"
+    ],
+    "allFamilies": true,
+    "lidWorldLocked": true,
+    "liquidMorphMoves": true
+  },
+  "captures": [
+    "entry",
+    "phase-1",
+    "phase-2",
+    "phase-3",
+    "final-checkpoint"
+  ],
+  "elapsedMs": 58055,
+  "state": {
+    "tick": 1547,
+    "hash": 3453280912,
+    "wave": 21,
+    "stage": "breather",
+    "end": "running",
+    "hero": {
+      "x": 121.95730014102426,
+      "z": 121.31465945390491,
+      "hp": 9770,
+      "hpMax": 10000,
+      "level": 8,
+      "qHold": 0,
+      "qCd": 0
+    },
+    "cards": true,
+    "chest": false,
+    "alive": 0,
+    "mobs": [
+      {
+        "id": 206,
+        "k": "cauldronmaster",
+        "x": 122.53738056166932,
+        "z": 118.55522200408232,
+        "hp": 0,
+        "die": 1545,
+        "st": "rest",
+        "attackKind": "boil",
+        "attackAt": 1444,
+        "attackStep": 1,
+        "ax": 0.7605168526589272,
+        "az": 0.6493181938169912,
+        "kx": 0,
+        "kz": 0,
+        "stunT": 0
+      }
+    ],
+    "bosses": [],
+    "marks": [
+      {
+        "id": 1621,
+        "src": -1,
+        "what": "stal",
+        "k": "circle",
+        "x": 122.53738056166932,
+        "z": 118.55522200408232,
+        "r": 3.3000000000000003,
+        "dx": 0,
+        "dz": 0,
+        "w": 0,
+        "len": 0,
+        "t0": 1541,
+        "t1": 1552
+      },
+      {
+        "id": 1622,
+        "src": -1,
+        "what": "stal",
+        "k": "circle",
+        "x": 122.53738056166932,
+        "z": 118.55522200408232,
+        "r": 3.3000000000000003,
+        "dx": 0,
+        "dz": 0,
+        "w": 0,
+        "len": 0,
+        "t0": 1541,
+        "t1": 1552
+      },
+      {
+        "id": 1623,
+        "src": -1,
+        "what": "stal",
+        "k": "circle",
+        "x": 122.53738056166932,
+        "z": 118.55522200408232,
+        "r": 3.3000000000000003,
+        "dx": 0,
+        "dz": 0,
+        "w": 0,
+        "len": 0,
+        "t0": 1541,
+        "t1": 1552
+      },
+      {
+        "id": 1624,
+        "src": -1,
+        "what": "stal",
+        "k": "circle",
+        "x": 122.53738056166932,
+        "z": 118.55522200408232,
+        "r": 3.3000000000000003,
+        "dx": 0,
+        "dz": 0,
+        "w": 0,
+        "len": 0,
+        "t0": 1541,
+        "t1": 1552
+      }
+    ],
+    "enemyCharges": [],
+    "weapons": [
+      {
+        "id": "lantern",
+        "lv": 7,
+        "evo": 1
+      },
+      {
+        "id": "embers",
+        "lv": 7,
+        "evo": 1
+      },
+      {
+        "id": "fireflies",
+        "lv": 7,
+        "evo": 1
+      },
+      {
+        "id": "stalactites",
+        "lv": 7,
+        "evo": 1
+      },
+      {
+        "id": "beam",
+        "lv": 7,
+        "evo": 1
+      }
+    ],
+    "stats": {
+      "kills": 5,
+      "bosses": 1,
+      "dmg": {
+        "lantern": 7494.400000000003,
+        "fireflies": 3078.7200000000043,
+        "beam": 5913.5999999999985,
+        "embers": 29435.19999999969,
+        "stalactites": 20012.799999999974
+      },
+      "killedBy": "",
+      "waves": 20,
+      "ms": 51500,
+      "chests": 5,
+      "lamps": 0
+    },
+    "fx": []
+  },
+  "frames": [
+    {
+      "tick": 995,
+      "hp": 9794,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [
+        {
+          "k": "shot"
+        }
+      ],
+      "phase": 2,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 998,
+      "hp": 9794,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 2,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1001,
+      "hp": 9794,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "rock"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "rock"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "rock"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "rock"
+        }
+      ],
+      "phase": 2,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1003,
+      "hp": 9794,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "phase": 2,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1006,
+      "hp": 9794,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [
+        {
+          "k": "hit",
+          "id": -1
+        }
+      ],
+      "phase": 2,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1009,
+      "hp": 9794,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "ember_splash",
+        "ember_splash",
+        "ember_splash",
+        "ember_splash",
+        "ember_splash"
+      ],
+      "fx": [
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "cone"
+        },
+        {
+          "k": "cone"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "shot"
+        }
+      ],
+      "phase": 2,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1012,
+      "hp": 9794,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "phase": 2,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1015,
+      "hp": 9794,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 2,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1017,
+      "hp": 9794,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 2,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1020,
+      "hp": 9794,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [
+        {
+          "k": "hit",
+          "id": -1
+        }
+      ],
+      "phase": 2,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1023,
+      "hp": 9794,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal",
+        "ember_splash"
+      ],
+      "fx": [
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "shot"
+        }
+      ],
+      "phase": 2,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1026,
+      "hp": 9794,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "phase": 2,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1029,
+      "hp": 9794,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "phase": 2,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1032,
+      "hp": 9794,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "phase": 2,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1034,
+      "hp": 9794,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "phase": 2,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1037,
+      "hp": 9794,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [
+        {
+          "k": "shot"
+        }
+      ],
+      "phase": 2,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1040,
+      "hp": 9794,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 2,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1043,
+      "hp": 9794,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 2,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1046,
+      "hp": 9794,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 2,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1048,
+      "hp": 9794,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [
+        {
+          "k": "boss",
+          "what": "phase"
+        },
+        {
+          "k": "boss",
+          "what": "roar"
+        }
+      ],
+      "phase": 3,
+      "act": "roar",
+      "missing": 0
+    },
+    {
+      "tick": 1049,
+      "hp": 9794,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "phase": 3,
+      "act": "roar",
+      "missing": 0
+    },
+    {
+      "tick": 1052,
+      "hp": 9794,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "phase": 3,
+      "act": "roar",
+      "missing": 0
+    },
+    {
+      "tick": 1055,
+      "hp": 9794,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "phase": 3,
+      "act": "roar",
+      "missing": 0
+    },
+    {
+      "tick": 1058,
+      "hp": 9794,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "phase": 3,
+      "act": "roar",
+      "missing": 0
+    },
+    {
+      "tick": 1061,
+      "hp": 9794,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "roar",
+      "missing": 0
+    },
+    {
+      "tick": 1063,
+      "hp": 9794,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "roar",
+      "missing": 0
+    },
+    {
+      "tick": 1066,
+      "hp": 9794,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "roar",
+      "missing": 0
+    },
+    {
+      "tick": 1069,
+      "hp": 9794,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "roar",
+      "missing": 0
+    },
+    {
+      "tick": 1072,
+      "hp": 9794,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "phase": 3,
+      "act": "roar",
+      "missing": 0
+    },
+    {
+      "tick": 1075,
+      "hp": 9794,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "phase": 3,
+      "act": "roar",
+      "missing": 0
+    },
+    {
+      "tick": 1077,
+      "hp": 9794,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "phase": 3,
+      "act": "roar",
+      "missing": 0
+    },
+    {
+      "tick": 1080,
+      "hp": 9794,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "ember_splash",
+        "ember_splash",
+        "ember_splash",
+        "ember_splash",
+        "ember_splash"
+      ],
+      "fx": [
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        }
+      ],
+      "phase": 3,
+      "act": "roar",
+      "missing": 0
+    },
+    {
+      "tick": 1083,
+      "hp": 9794,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "roar",
+      "missing": 0
+    },
+    {
+      "tick": 1086,
+      "hp": 9794,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "roar",
+      "missing": 0
+    },
+    {
+      "tick": 1089,
+      "hp": 9794,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [
+        {
+          "k": "cone"
+        },
+        {
+          "k": "cone"
+        }
+      ],
+      "phase": 3,
+      "act": "roar",
+      "missing": 0
+    },
+    {
+      "tick": 1092,
+      "hp": 9794,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "roar",
+      "missing": 0
+    },
+    {
+      "tick": 1094,
+      "hp": 9794,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "ember_splash",
+        "ember_splash"
+      ],
+      "fx": [
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        }
+      ],
+      "phase": 3,
+      "act": "pause",
+      "missing": 0
+    },
+    {
+      "tick": 1097,
+      "hp": 9794,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "phase": 3,
+      "act": "pause",
+      "missing": 0
+    },
+    {
+      "tick": 1100,
+      "hp": 9794,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "phase": 3,
+      "act": "pause",
+      "missing": 0
+    },
+    {
+      "tick": 1103,
+      "hp": 9775,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "phase": 3,
+      "act": "pause",
+      "missing": 0
+    },
+    {
+      "tick": 1106,
+      "hp": 9775,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "pause",
+      "missing": 0
+    },
+    {
+      "tick": 1108,
+      "hp": 9775,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "pause",
+      "missing": 0
+    },
+    {
+      "tick": 1111,
+      "hp": 9775,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [
+        {
+          "k": "hit",
+          "id": -1
+        }
+      ],
+      "phase": 3,
+      "act": "pause",
+      "missing": 0
+    },
+    {
+      "tick": 1114,
+      "hp": 9775,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "pause",
+      "missing": 0
+    },
+    {
+      "tick": 1117,
+      "hp": 9775,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "phase": 3,
+      "act": "pause",
+      "missing": 0
+    },
+    {
+      "tick": 1120,
+      "hp": 9775,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "phase": 3,
+      "act": "pause",
+      "missing": 0
+    },
+    {
+      "tick": 1122,
+      "hp": 9775,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "phase": 3,
+      "act": "pause",
+      "missing": 0
+    },
+    {
+      "tick": 1125,
+      "hp": 9775,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "phase": 3,
+      "act": "pause",
+      "missing": 0
+    },
+    {
+      "tick": 1128,
+      "hp": 9775,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_flow",
+        "cauldron_flow",
+        "cauldron_flow",
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "pour",
+      "missing": 0
+    },
+    {
+      "tick": 1131,
+      "hp": 9775,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_flow",
+        "cauldron_flow",
+        "cauldron_flow",
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "pour",
+      "missing": 0
+    },
+    {
+      "tick": 1134,
+      "hp": 9775,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_flow",
+        "cauldron_flow",
+        "cauldron_flow",
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [
+        {
+          "k": "hit",
+          "id": -1
+        }
+      ],
+      "phase": 3,
+      "act": "pour",
+      "missing": 0
+    },
+    {
+      "tick": 1136,
+      "hp": 9775,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_flow",
+        "cauldron_flow",
+        "cauldron_flow",
+        "stal",
+        "stal",
+        "stal",
+        "stal",
+        "ember_splash",
+        "ember_splash",
+        "ember_splash",
+        "ember_splash",
+        "ember_splash"
+      ],
+      "fx": [
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        }
+      ],
+      "phase": 3,
+      "act": "pour",
+      "missing": 0
+    },
+    {
+      "tick": 1139,
+      "hp": 9775,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_flow",
+        "cauldron_flow",
+        "cauldron_flow",
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "rock"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "rock"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "rock"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "rock"
+        }
+      ],
+      "phase": 3,
+      "act": "pour",
+      "missing": 0
+    },
+    {
+      "tick": 1142,
+      "hp": 9775,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_flow",
+        "cauldron_flow",
+        "cauldron_flow"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "pour",
+      "missing": 0
+    },
+    {
+      "tick": 1145,
+      "hp": 9775,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_flow",
+        "cauldron_flow",
+        "cauldron_flow"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "pour",
+      "missing": 0
+    },
+    {
+      "tick": 1148,
+      "hp": 9775,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_flow",
+        "cauldron_flow",
+        "cauldron_flow"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "pour",
+      "missing": 0
+    },
+    {
+      "tick": 1150,
+      "hp": 9775,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_flow",
+        "cauldron_flow",
+        "cauldron_flow"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "pour",
+      "missing": 0
+    },
+    {
+      "tick": 1153,
+      "hp": 9775,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_flow",
+        "cauldron_flow",
+        "cauldron_flow",
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "cone"
+        },
+        {
+          "k": "cone"
+        }
+      ],
+      "phase": 3,
+      "act": "pour",
+      "missing": 0
+    },
+    {
+      "tick": 1156,
+      "hp": 9775,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_flow",
+        "cauldron_flow",
+        "cauldron_flow",
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [
+        {
+          "k": "hit",
+          "id": -1
+        }
+      ],
+      "phase": 3,
+      "act": "pour",
+      "missing": 0
+    },
+    {
+      "tick": 1159,
+      "hp": 9775,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_flow",
+        "cauldron_flow",
+        "cauldron_flow",
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "pour",
+      "missing": 0
+    },
+    {
+      "tick": 1162,
+      "hp": 9775,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_flow",
+        "cauldron_flow",
+        "cauldron_flow",
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "rock"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "rock"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "rock"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "rock"
+        }
+      ],
+      "phase": 3,
+      "act": "pour",
+      "missing": 0
+    },
+    {
+      "tick": 1164,
+      "hp": 9775,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "ember_splash",
+        "ember_splash",
+        "ember_splash",
+        "ember_splash",
+        "ember_splash"
+      ],
+      "fx": [
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        }
+      ],
+      "phase": 3,
+      "act": "pour",
+      "missing": 0
+    },
+    {
+      "tick": 1167,
+      "hp": 9775,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "phase": 3,
+      "act": "pour",
+      "missing": 0
+    },
+    {
+      "tick": 1170,
+      "hp": 9775,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "phase": 3,
+      "act": "pour",
+      "missing": 0
+    },
+    {
+      "tick": 1173,
+      "hp": 9775,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "phase": 3,
+      "act": "pour",
+      "missing": 0
+    },
+    {
+      "tick": 1176,
+      "hp": 9775,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "pour",
+      "missing": 0
+    },
+    {
+      "tick": 1179,
+      "hp": 9775,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [
+        {
+          "k": "hit",
+          "id": -1
+        }
+      ],
+      "phase": 3,
+      "act": "pour",
+      "missing": 0
+    },
+    {
+      "tick": 1181,
+      "hp": 9775,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "pour",
+      "missing": 0
+    },
+    {
+      "tick": 1184,
+      "hp": 9775,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "pour",
+      "missing": 0
+    },
+    {
+      "tick": 1187,
+      "hp": 9775,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "phase": 3,
+      "act": "pour",
+      "missing": 0
+    },
+    {
+      "tick": 1190,
+      "hp": 9775,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "phase": 3,
+      "act": "pour",
+      "missing": 0
+    },
+    {
+      "tick": 1193,
+      "hp": 9775,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "phase": 3,
+      "act": "pour",
+      "missing": 0
+    },
+    {
+      "tick": 1195,
+      "hp": 9775,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "phase": 3,
+      "act": "pour",
+      "missing": 0
+    },
+    {
+      "tick": 1198,
+      "hp": 9775,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "pour",
+      "missing": 0
+    },
+    {
+      "tick": 1201,
+      "hp": 9775,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "cone"
+        },
+        {
+          "k": "cone"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        }
+      ],
+      "phase": 3,
+      "act": "pour",
+      "missing": 0
+    },
+    {
+      "tick": 1204,
+      "hp": 9775,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "pour",
+      "missing": 0
+    },
+    {
+      "tick": 1207,
+      "hp": 9775,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal",
+        "boulder"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "pour",
+      "missing": 0
+    },
+    {
+      "tick": 1210,
+      "hp": 9775,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "boulder"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "pour",
+      "missing": 0
+    },
+    {
+      "tick": 1212,
+      "hp": 9775,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "boulder"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "pour",
+      "missing": 0
+    },
+    {
+      "tick": 1215,
+      "hp": 9775,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "boulder"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "pour",
+      "missing": 0
+    },
+    {
+      "tick": 1218,
+      "hp": 9775,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "boulder"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "pour",
+      "missing": 0
+    },
+    {
+      "tick": 1221,
+      "hp": 9775,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "boulder",
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "pause",
+      "missing": 0
+    },
+    {
+      "tick": 1224,
+      "hp": 9775,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "boulder",
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "pause",
+      "missing": 0
+    },
+    {
+      "tick": 1226,
+      "hp": 9775,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "boulder",
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "pause",
+      "missing": 0
+    },
+    {
+      "tick": 1229,
+      "hp": 9775,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "boulder",
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "pause",
+      "missing": 0
+    },
+    {
+      "tick": 1232,
+      "hp": 9775,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "phase": 3,
+      "act": "pause",
+      "missing": 0
+    },
+    {
+      "tick": 1235,
+      "hp": 9775,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "phase": 3,
+      "act": "pause",
+      "missing": 0
+    },
+    {
+      "tick": 1238,
+      "hp": 9756,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "phase": 3,
+      "act": "pause",
+      "missing": 0
+    },
+    {
+      "tick": 1240,
+      "hp": 9756,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "phase": 3,
+      "act": "pause",
+      "missing": 0
+    },
+    {
+      "tick": 1243,
+      "hp": 9756,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "pause",
+      "missing": 0
+    },
+    {
+      "tick": 1246,
+      "hp": 9757,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [
+        {
+          "k": "hit",
+          "id": -1
+        }
+      ],
+      "phase": 3,
+      "act": "pause",
+      "missing": 0
+    },
+    {
+      "tick": 1249,
+      "hp": 9757,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "cone"
+        },
+        {
+          "k": "cone"
+        }
+      ],
+      "phase": 3,
+      "act": "pause",
+      "missing": 0
+    },
+    {
+      "tick": 1252,
+      "hp": 9757,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "pause",
+      "missing": 0
+    },
+    {
+      "tick": 1255,
+      "hp": 9757,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_ladle"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1257,
+      "hp": 9757,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_ladle"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1260,
+      "hp": 9757,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_ladle"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1263,
+      "hp": 9757,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_ladle"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1266,
+      "hp": 9757,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_ladle",
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1269,
+      "hp": 9757,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_ladle",
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1272,
+      "hp": 9757,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_ladle",
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1274,
+      "hp": 9757,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_ladle",
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [
+        {
+          "k": "hit",
+          "id": -1
+        }
+      ],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1277,
+      "hp": 9757,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_ladle",
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "rock"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "rock"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "rock"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "rock"
+        }
+      ],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1280,
+      "hp": 9757,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_ladle"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1283,
+      "hp": 9757,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_ladle"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1286,
+      "hp": 9757,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_ladle"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1288,
+      "hp": 9757,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_ladle"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1291,
+      "hp": 9757,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_ladle",
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [
+        {
+          "k": "hit",
+          "id": -1
+        }
+      ],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1294,
+      "hp": 9757,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1297,
+      "hp": 9757,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "cone"
+        },
+        {
+          "k": "cone"
+        }
+      ],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1300,
+      "hp": 9757,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "rock"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "rock"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "rock"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "rock"
+        }
+      ],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1303,
+      "hp": 9757,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "ember_splash",
+        "ember_splash",
+        "ember_splash",
+        "ember_splash",
+        "ember_splash"
+      ],
+      "fx": [
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "shot"
+        }
+      ],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1305,
+      "hp": 9757,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1308,
+      "hp": 9757,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_ladle"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1311,
+      "hp": 9757,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_ladle"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1314,
+      "hp": 9757,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_ladle",
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1317,
+      "hp": 9757,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_ladle",
+        "stal",
+        "stal",
+        "stal",
+        "stal",
+        "ember_splash",
+        "ember_splash",
+        "ember_splash",
+        "ember_splash",
+        "ember_splash"
+      ],
+      "fx": [
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "shot"
+        }
+      ],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1320,
+      "hp": 9738,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_ladle",
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [
+        {
+          "k": "hurt"
+        }
+      ],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1322,
+      "hp": 9738,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_ladle",
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1325,
+      "hp": 9738,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_ladle"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1328,
+      "hp": 9738,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_ladle"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1331,
+      "hp": 9738,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_ladle"
+      ],
+      "fx": [
+        {
+          "k": "shot"
+        }
+      ],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1334,
+      "hp": 9738,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_ladle"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1336,
+      "hp": 9738,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_ladle",
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [
+        {
+          "k": "hit",
+          "id": -1
+        }
+      ],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1339,
+      "hp": 9738,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1342,
+      "hp": 9738,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [
+        {
+          "k": "hit",
+          "id": -1
+        }
+      ],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1345,
+      "hp": 9738,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal",
+        "ember_splash",
+        "ember_splash",
+        "ember_splash",
+        "ember_splash",
+        "ember_splash"
+      ],
+      "fx": [
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "cone"
+        },
+        {
+          "k": "cone"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "shot"
+        }
+      ],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1348,
+      "hp": 9738,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1350,
+      "hp": 9738,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1353,
+      "hp": 9738,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1356,
+      "hp": 9738,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1359,
+      "hp": 9738,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [
+        {
+          "k": "shot"
+        }
+      ],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1362,
+      "hp": 9738,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1364,
+      "hp": 9738,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1367,
+      "hp": 9738,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1370,
+      "hp": 9738,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1373,
+      "hp": 9738,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [
+        {
+          "k": "shot"
+        }
+      ],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1376,
+      "hp": 9738,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1379,
+      "hp": 9738,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1381,
+      "hp": 9738,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [
+        {
+          "k": "hit",
+          "id": -1
+        }
+      ],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1384,
+      "hp": 9738,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1387,
+      "hp": 9738,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal",
+        "ember_splash",
+        "ember_splash",
+        "ember_splash",
+        "ember_splash",
+        "ember_splash"
+      ],
+      "fx": [
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "shot"
+        }
+      ],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1390,
+      "hp": 9738,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1393,
+      "hp": 9738,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "cone"
+        },
+        {
+          "k": "cone"
+        }
+      ],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1396,
+      "hp": 9738,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [
+        {
+          "k": "hit",
+          "id": -1
+        }
+      ],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1398,
+      "hp": 9738,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1401,
+      "hp": 9738,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [
+        {
+          "k": "shot"
+        }
+      ],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1404,
+      "hp": 9738,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1407,
+      "hp": 9738,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1410,
+      "hp": 9738,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "ladle2",
+      "missing": 0
+    },
+    {
+      "tick": 1412,
+      "hp": 9738,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "pause",
+      "missing": 0
+    },
+    {
+      "tick": 1415,
+      "hp": 9738,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "rock"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "rock"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "rock"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "rock"
+        },
+        {
+          "k": "shot"
+        }
+      ],
+      "phase": 3,
+      "act": "pause",
+      "missing": 0
+    },
+    {
+      "tick": 1418,
+      "hp": 9738,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "phase": 3,
+      "act": "pause",
+      "missing": 0
+    },
+    {
+      "tick": 1421,
+      "hp": 9738,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [
+        {
+          "k": "hit",
+          "id": -1
+        }
+      ],
+      "phase": 3,
+      "act": "pause",
+      "missing": 0
+    },
+    {
+      "tick": 1424,
+      "hp": 9738,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "phase": 3,
+      "act": "pause",
+      "missing": 0
+    },
+    {
+      "tick": 1427,
+      "hp": 9719,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "pause",
+      "missing": 0
+    },
+    {
+      "tick": 1429,
+      "hp": 9719,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal",
+        "ember_splash",
+        "ember_splash",
+        "ember_splash",
+        "ember_splash",
+        "ember_splash"
+      ],
+      "fx": [
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "shot"
+        }
+      ],
+      "phase": 3,
+      "act": "pause",
+      "missing": 0
+    },
+    {
+      "tick": 1432,
+      "hp": 9719,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "pause",
+      "missing": 0
+    },
+    {
+      "tick": 1435,
+      "hp": 9719,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "pause",
+      "missing": 0
+    },
+    {
+      "tick": 1438,
+      "hp": 9719,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "rock"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "rock"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "rock"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "rock"
+        }
+      ],
+      "phase": 3,
+      "act": "pause",
+      "missing": 0
+    },
+    {
+      "tick": 1441,
+      "hp": 9719,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "cone"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "cone"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        }
+      ],
+      "phase": 3,
+      "act": "pause",
+      "missing": 0
+    },
+    {
+      "tick": 1443,
+      "hp": 9719,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "ember_splash",
+        "ember_splash",
+        "ember_splash",
+        "ember_splash",
+        "ember_splash"
+      ],
+      "fx": [
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "shot"
+        }
+      ],
+      "phase": 3,
+      "act": "pause",
+      "missing": 0
+    },
+    {
+      "tick": 1446,
+      "hp": 9719,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_boil"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "boil",
+      "missing": 0
+    },
+    {
+      "tick": 1449,
+      "hp": 9719,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_boil",
+        "boulder"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "boil",
+      "missing": 0
+    },
+    {
+      "tick": 1452,
+      "hp": 9719,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_boil",
+        "boulder",
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "boil",
+      "missing": 0
+    },
+    {
+      "tick": 1455,
+      "hp": 9719,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_boil",
+        "boulder",
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "boil",
+      "missing": 0
+    },
+    {
+      "tick": 1457,
+      "hp": 9719,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_boil",
+        "boulder",
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "cone"
+        },
+        {
+          "k": "cone"
+        },
+        {
+          "k": "shot"
+        }
+      ],
+      "phase": 3,
+      "act": "boil",
+      "missing": 0
+    },
+    {
+      "tick": 1460,
+      "hp": 9719,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_boil",
+        "boulder",
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "boil",
+      "missing": 0
+    },
+    {
+      "tick": 1463,
+      "hp": 9719,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_boil",
+        "boulder"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "boil",
+      "missing": 0
+    },
+    {
+      "tick": 1466,
+      "hp": 9719,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_boil",
+        "boulder"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "boil",
+      "missing": 0
+    },
+    {
+      "tick": 1469,
+      "hp": 9719,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_boil",
+        "boulder"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "boil",
+      "missing": 0
+    },
+    {
+      "tick": 1472,
+      "hp": 9719,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_boil"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "boil",
+      "missing": 0
+    },
+    {
+      "tick": 1474,
+      "hp": 9719,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_boil",
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "boil",
+      "missing": 0
+    },
+    {
+      "tick": 1477,
+      "hp": 9719,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_boil",
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "boil",
+      "missing": 0
+    },
+    {
+      "tick": 1480,
+      "hp": 9719,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_boil",
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "boil",
+      "missing": 0
+    },
+    {
+      "tick": 1483,
+      "hp": 9719,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_boil",
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "boil",
+      "missing": 0
+    },
+    {
+      "tick": 1486,
+      "hp": 9719,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_boil",
+        "ember_splash",
+        "ember_splash",
+        "ember_splash",
+        "ember_splash",
+        "ember_splash"
+      ],
+      "fx": [
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        }
+      ],
+      "phase": 3,
+      "act": "boil",
+      "missing": 0
+    },
+    {
+      "tick": 1489,
+      "hp": 9719,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "cauldron_boil"
+      ],
+      "fx": [
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "cone"
+        },
+        {
+          "k": "cone"
+        }
+      ],
+      "phase": 3,
+      "act": "boil",
+      "missing": 0
+    },
+    {
+      "tick": 1491,
+      "hp": 9719,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "phase": 3,
+      "act": "boil",
+      "missing": 0
+    },
+    {
+      "tick": 1494,
+      "hp": 9719,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "phase": 3,
+      "act": "boil",
+      "missing": 0
+    },
+    {
+      "tick": 1497,
+      "hp": 9719,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "boil",
+      "missing": 0
+    },
+    {
+      "tick": 1500,
+      "hp": 9719,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal",
+        "ember_splash",
+        "ember_splash",
+        "ember_splash",
+        "ember_splash",
+        "ember_splash"
+      ],
+      "fx": [
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        }
+      ],
+      "phase": 3,
+      "act": "boil",
+      "missing": 0
+    },
+    {
+      "tick": 1503,
+      "hp": 9719,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "boil",
+      "missing": 0
+    },
+    {
+      "tick": 1506,
+      "hp": 9719,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "boil",
+      "missing": 0
+    },
+    {
+      "tick": 1508,
+      "hp": 9719,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "phase": 3,
+      "act": "boil",
+      "missing": 0
+    },
+    {
+      "tick": 1511,
+      "hp": 9719,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "phase": 3,
+      "act": "boil",
+      "missing": 0
+    },
+    {
+      "tick": 1514,
+      "hp": 9719,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "phase": 3,
+      "act": "boil",
+      "missing": 0
+    },
+    {
+      "tick": 1517,
+      "hp": 9719,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "phase": 3,
+      "act": "boil",
+      "missing": 0
+    },
+    {
+      "tick": 1520,
+      "hp": 9719,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [
+        {
+          "k": "hit",
+          "id": -1
+        }
+      ],
+      "phase": 3,
+      "act": "boil",
+      "missing": 0
+    },
+    {
+      "tick": 1522,
+      "hp": 9719,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "boil",
+      "missing": 0
+    },
+    {
+      "tick": 1525,
+      "hp": 9719,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "boil",
+      "missing": 0
+    },
+    {
+      "tick": 1528,
+      "hp": 9719,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal",
+        "ember_splash",
+        "ember_splash",
+        "ember_splash",
+        "ember_splash",
+        "ember_splash"
+      ],
+      "fx": [
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        }
+      ],
+      "phase": 3,
+      "act": "boil",
+      "missing": 0
+    },
+    {
+      "tick": 1531,
+      "hp": 9719,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [
+        {
+          "k": "hit",
+          "id": -1
+        }
+      ],
+      "phase": 3,
+      "act": "boil",
+      "missing": 0
+    },
+    {
+      "tick": 1534,
+      "hp": 9700,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [
+        {
+          "k": "hurt"
+        }
+      ],
+      "phase": 3,
+      "act": "boil",
+      "missing": 0
+    },
+    {
+      "tick": 1537,
+      "hp": 9700,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "cone"
+        },
+        {
+          "k": "cone"
+        }
+      ],
+      "phase": 3,
+      "act": "boil",
+      "missing": 0
+    },
+    {
+      "tick": 1540,
+      "hp": 9700,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [],
+      "fx": [],
+      "phase": 3,
+      "act": "boil",
+      "missing": 0
+    },
+    {
+      "tick": 1542,
+      "hp": 9700,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal",
+        "ember_splash",
+        "ember_splash",
+        "ember_splash",
+        "ember_splash",
+        "ember_splash"
+      ],
+      "fx": [
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        },
+        {
+          "k": "hit",
+          "id": -1
+        },
+        {
+          "k": "boom",
+          "kind": "embers"
+        }
+      ],
+      "phase": 3,
+      "act": "boil",
+      "missing": 0
+    },
+    {
+      "tick": 1545,
+      "hp": 9700,
+      "alive": 1,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [],
+      "phase": 3,
+      "act": "boil",
+      "missing": 0
+    },
+    {
+      "tick": 1547,
+      "hp": 9770,
+      "alive": 0,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [
+        {
+          "k": "heal"
+        },
+        {
+          "k": "level"
+        },
+        {
+          "k": "heal"
+        },
+        {
+          "k": "level"
+        },
+        {
+          "k": "heal"
+        },
+        {
+          "k": "level"
+        },
+        {
+          "k": "heal"
+        },
+        {
+          "k": "level"
+        },
+        {
+          "k": "heal"
+        },
+        {
+          "k": "level"
+        },
+        {
+          "k": "heal"
+        },
+        {
+          "k": "level"
+        },
+        {
+          "k": "pick",
+          "kind": "gem1"
+        },
+        {
+          "k": "heal"
+        },
+        {
+          "k": "level"
+        },
+        {
+          "k": "pick",
+          "kind": "gem1"
+        }
+      ],
+      "missing": 0
+    },
+    {
+      "tick": 1547,
+      "hp": 9770,
+      "alive": 0,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [
+        {
+          "k": "heal"
+        },
+        {
+          "k": "level"
+        },
+        {
+          "k": "heal"
+        },
+        {
+          "k": "level"
+        },
+        {
+          "k": "heal"
+        },
+        {
+          "k": "level"
+        },
+        {
+          "k": "heal"
+        },
+        {
+          "k": "level"
+        },
+        {
+          "k": "heal"
+        },
+        {
+          "k": "level"
+        },
+        {
+          "k": "heal"
+        },
+        {
+          "k": "level"
+        },
+        {
+          "k": "pick",
+          "kind": "gem1"
+        },
+        {
+          "k": "heal"
+        },
+        {
+          "k": "level"
+        },
+        {
+          "k": "pick",
+          "kind": "gem1"
+        }
+      ],
+      "missing": 0
+    },
+    {
+      "tick": 1547,
+      "hp": 9770,
+      "alive": 0,
+      "controls": {
+        "blocked": false,
+        "appPaused": false,
+        "locked": false,
+        "wantsPointer": false,
+        "chatOpen": false,
+        "transition": "idle"
+      },
+      "marks": [
+        "stal",
+        "stal",
+        "stal",
+        "stal"
+      ],
+      "fx": [
+        {
+          "k": "heal"
+        },
+        {
+          "k": "level"
+        },
+        {
+          "k": "heal"
+        },
+        {
+          "k": "level"
+        },
+        {
+          "k": "heal"
+        },
+        {
+          "k": "level"
+        },
+        {
+          "k": "heal"
+        },
+        {
+          "k": "level"
+        },
+        {
+          "k": "heal"
+        },
+        {
+          "k": "level"
+        },
+        {
+          "k": "heal"
+        },
+        {
+          "k": "level"
+        },
+        {
+          "k": "pick",
+          "kind": "gem1"
+        },
+        {
+          "k": "heal"
+        },
+        {
+          "k": "level"
+        },
+        {
+          "k": "pick",
+          "kind": "gem1"
+        }
+      ],
+      "missing": 0
+    }
+  ]
+}

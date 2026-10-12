@@ -1,0 +1,31 @@
+{
+  "a": "../glb/foreman-r2-06.glb",
+  "b": "../glb/foreman-r2-06-textureB-canonical.glb",
+  "fingerprints": {
+    "a": {
+      "geometryUV": "25d2eb36391d82a5a9468df8b6671adc1be3029d9ce33e41ab2783e0893cea21",
+      "clips": "e5be688c2bb5476369b096a6c1f38b138631b8b5b303eabfb9aefcb25efb21ff",
+      "materials": 5,
+      "primitives": 35,
+      "textures": 0,
+      "images": 0
+    },
+    "b": {
+      "geometryUV": "25d2eb36391d82a5a9468df8b6671adc1be3029d9ce33e41ab2783e0893cea21",
+      "clips": "e5be688c2bb5476369b096a6c1f38b138631b8b5b303eabfb9aefcb25efb21ff",
+      "materials": 5,
+      "primitives": 35,
+      "textures": 1,
+      "images": 1
+    }
+  },
+  "checks": {
+    "geometryUVIdentical": true,
+    "clipsIdentical": true,
+    "materialsIdentical": true,
+    "primitivesIdentical": true,
+    "oneTextureOnly": true
+  },
+  "status": "PASS",
+  "pass": true
+}

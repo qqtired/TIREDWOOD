@@ -1,0 +1,207 @@
+/* «Крепость» на ките 2.0 — раскладка поверх кита (префикс .ft-), как на странице lab/ui «Крепость» (screens/fort.css).
+   Цвета и тени — только токены кита. Боевые части (панель бойца, стрелки, прицел, цифры) — client/ui/kit/combat.css.
+   Всё, что висит над боем, — компактно: карточка 240 с картой 96, волна в одну строку с рядом врагов, плитки под бейджем. */
+
+/* цвет режима — у слоёв кита, пока ты в крепости (бейдж, чат, тосты — тоже оранжевым) */
+html[data-room='fort'] { --mode-w: var(--m-fort); --mode-h: var(--mh-fort); }
+/* свои части в общих слотах кита — только в крепости */
+html:not([data-room='fort']) .ft-only { display: none !important; }
+.ft-world [hidden], .ft-scrim[hidden], .ft-stall-wrap[hidden], .ft-vitals[hidden] { display: none !important; }
+/* чат с голосом — в свой угол: низ-лево в крепости свободен (панель бойца — по центру) */
+html[data-room='fort'] .k-hud > .k-slot--bl { bottom: var(--edge); }
+/* крупный баннер («Ворота пали!», «Барон повержен!») — ниже стопки тостов под плашкой волны, не под ними */
+html[data-room='fort'] .k-hud > .k-slot--c:not(.ft-down) { top: 38%; }
+
+/* ---------------------------------------------------------------- окна стрелкового интерфейса пейнтбола в крепости не нужны:
+   числа идут в кит (hud.ts); остаются вспышки урона по краям, клякса на «маске», крестик «стена мешает» */
+.fort-hud :is(.scorebar, .cross, .hitmark, .card.vitals, .card.ammo, .killfeed, .center-msg, .center-sub, .banner, .shield-note, .death,
+  .board, .endscreen, .floaters, .stats) { display: none !important; }
+.ft-world { z-index: 1; }
+
+/* золото крепости — горка самородков, не монета-жетон */
+.ft-nug { display: inline-block; flex: none; width: 1.3em; height: 1.3em; object-fit: contain; vertical-align: -.3em; filter: drop-shadow(0 1px 1px rgba(20, 10, 12, .35)); }
+.k-pill .ft-nug { width: 22px; height: 22px; }
+.ft-sub { margin-left: 6px; color: var(--surf-dim); font: 500 var(--fs-14)/1.2 var(--font-text); }
+.ft-plus { color: var(--good-text); font-weight: 800; }
+
+/* ---------------------------------------------------------------- ВЛ: карта 96 + ворота/кристалл с иконками, HP и прокачкой + колокол */
+.ft-fort { display: grid; grid-template-columns: 96px 127px; align-items: center; gap: 7px; width: 240px; padding: 6px 5px; }
+.ft-map { width: 96px; height: 96px; overflow: hidden; border-radius: var(--r-sm); box-shadow: inset 0 0 0 1.5px var(--line-strong); }
+.ft-map-cv { display: block; width: 100%; height: 100%; }
+.ft-hps { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.ft-hp { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; grid-template-areas: 'icon bar pct' 'icon up up'; align-items: center; gap: 2px 3px; margin: -2px -3px; padding: 2px 3px; border-radius: var(--r-sm); }
+.ft-hp-ic { grid-area: icon; width: 32px; height: 32px; object-fit: contain; }
+.ft-hp-pct { grid-area: pct; font: 800 var(--fs-14)/1 var(--font-text); }
+.ft-hp > .k-meter { grid-area: bar; height: 4px; border: 0; }
+.ft-hp-up { grid-area: up; display: flex; align-items: center; justify-content: space-between; gap: 4px; min-width: 0; }
+.ft-hp-up .ft-pips { width: 58px; }
+.ft-hp-up .ft-tier { color: var(--surf-dim); }
+.ft-hp.is-low .ft-hp-pct { color: var(--bad-text); }
+.ft-hp.is-hit { background: var(--bad-soft); box-shadow: inset 0 0 0 1.5px var(--bad); animation: ft-hit .5s ease-in-out infinite alternate; }
+.ft-bell { display: flex; align-items: center; gap: 5px; font: 700 var(--fs-13)/1.1 var(--font-text); white-space: nowrap; }
+.ft-bell img { flex: none; width: 18px; height: 18px; object-fit: contain; }
+.ft-bell b { font-weight: 700; }
+.ft-stats { margin-top: -2px; padding: 0 4px; font-variant-numeric: tabular-nums; }
+@keyframes ft-hit { to { box-shadow: inset 0 0 0 2px var(--bad), 0 0 10px var(--bad-soft); } }
+
+/* ---------------------------------------------------------------- ВП: плитки под бейджем; «команда» — точки цветов ников */
+.ft-tiles.is-off { display: none; }
+.k-tile-face:has(> .ft-dots) > img { width: 34px; height: 34px; margin-top: -8px; }
+.ft-dots { position: absolute; left: 0; right: 0; bottom: 5px; display: flex; justify-content: center; gap: 3px; }
+.ft-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--nick); box-shadow: 0 0 0 1px var(--line-strong); }
+.ft-dots i.is-down { background: var(--bad); box-shadow: 0 0 0 1.5px var(--bad-text); }
+.ft-dots i.is-ready { box-shadow: 0 0 0 2px var(--good); }
+
+/* ---------------------------------------------------------------- ВЦ: плашка волны (.k-event) + маленький ряд врагов */
+.ft-of { color: var(--surf-dim); font-weight: 600; }
+.ft-left small { margin-right: 4px; color: var(--surf-dim); font: 600 var(--fs-13)/1 var(--font-text); }
+.k-event-sub.ft-foes { display: flex; align-items: center; gap: 9px; margin-top: 2px; color: var(--plate-text); font: 800 var(--fs-13)/1 var(--font-text); }
+.k-event-sub.ft-foes--row { grid-column: 1 / -1; grid-row: 3; margin-top: 6px; padding-left: 2px; }
+.ft-chip { display: inline-flex; flex: none; align-items: center; gap: 2px; }
+.ft-chip-ic { width: 20px; height: 20px; object-fit: contain; filter: drop-shadow(0 1px 1px rgba(20, 10, 12, .3)); }
+.ft-chip.is-new { padding: 1px 6px 1px 2px; border-radius: var(--r-pill); background: var(--gold-soft); box-shadow: inset 0 0 0 1px var(--gold); color: var(--gold-text); }
+.ft-chip.is-boss { padding: 1px 6px 1px 2px; border-radius: var(--r-pill); background: var(--bad-soft); box-shadow: inset 0 0 0 1px var(--bad); color: var(--bad-text); }
+.ft-chip.is-more { color: var(--surf-dim); }
+/* голосование «сдаться»: вопрос и две маленькие кнопки в одну строку */
+.k-event:has(> .ft-vote-actions) .k-event-sub b { color: var(--plate-text); font-weight: 800; }
+.k-event > .ft-vote-actions { grid-column: 3; grid-row: 1 / span 2; gap: 14px; margin: 0 4px 0 8px; }
+.ft-vote-actions .k-btn--sm { min-height: 32px; padding: 3px 12px 4px; font-size: var(--fs-14); }
+
+/* ---------------------------------------------------------------- босс: та же плашка, полоса 16 с числом, строка «что делать» */
+.k-event:has(> .ft-bar) { width: 420px; }
+.k-event:has(> .ft-bar) .k-event-timer { color: var(--plate-text); }
+.k-event > .k-meter.ft-bar { height: 16px; margin-top: 7px; border: var(--track-border); }
+.k-event > .k-meter.ft-bar + .k-meter.ft-bar { margin-top: 4px; }
+.ft-bar .k-meter-label { font-size: var(--fs-13); }
+.ft-parts { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin-top: 6px; }
+.ft-part { display: flex; flex-direction: column; gap: 3px; color: var(--surf-dim); font: 600 var(--fs-13)/1 var(--font-text); }
+.ft-part > .k-meter { height: 4px; border: 0; }
+.ft-part.is-off { opacity: .5; }
+.ft-do { grid-column: 1 / -1; display: flex; align-items: center; gap: 7px; margin-top: 7px; padding: 4px 10px 4px 5px; overflow: hidden; border-radius: var(--r-sm); background: var(--surf-3); font: 500 var(--fs-14)/1.2 var(--font-text); white-space: nowrap; }
+.ft-do > span { overflow: hidden; text-overflow: ellipsis; }
+.ft-do img { flex: none; width: 20px; height: 20px; object-fit: contain; }
+.ft-do b { font-weight: 800; }
+.ft-do.is-danger { background: var(--bad-soft); box-shadow: inset 0 0 0 1px var(--bad); }
+.ft-do.is-go { background: var(--info-soft); box-shadow: inset 0 0 0 1px var(--info); }
+
+/* ---------------------------------------------------------------- новичку: карточка под тостами + подсветка того, о чём речь */
+.ft-coach { max-width: 360px; align-items: start; padding-top: 8px; padding-bottom: 9px; box-shadow: var(--plate-shadow), inset 0 0 0 1.5px var(--mode); }
+.ft-coach .k-toast-ic { grid-row: 1 / span 3; align-self: start; }
+.ft-coach-n { display: block; margin-bottom: 3px; color: color-mix(in srgb, var(--mode) var(--accent-k, 100%), var(--accent-to, #000)); font: 800 var(--fs-13)/1 var(--font-text); letter-spacing: .06em; text-transform: uppercase; }
+.ft-coach .k-toast-title { white-space: normal; }
+.ft-coach .k-toast-sub { color: var(--surf-text); font-size: var(--fs-14); line-height: 1.4; white-space: normal; }
+.ft-coach .k-key { vertical-align: 1px; }
+.ft-coach-time { grid-column: 2; height: 4px; margin-top: 7px; border: 0; }
+/* полоса времени подсказки тает сама за её срок (--life — из coach.ts) */
+.ft-coach-time > .k-meter-fill { animation: ft-drain var(--life, 10s) linear forwards; transition: none; }
+@keyframes ft-drain { from { width: 100%; } to { width: 0; } }
+.ft-spot { outline: 3px solid var(--gold); outline-offset: 5px; box-shadow: var(--plate-shadow), 0 0 32px var(--gold) !important; animation: ft-spot 1.2s ease-in-out infinite alternate; }
+.k-arm.ft-spot { outline: 0; box-shadow: inset 0 0 0 2px var(--gold), 0 0 0 3px var(--gold), 0 0 24px var(--gold) !important; }
+.k-tile.ft-spot { outline: 0; box-shadow: none !important; }
+.k-tile.ft-spot > .k-tile-face { outline: 3px solid var(--gold); outline-offset: 4px; box-shadow: var(--plate-shadow), 0 0 28px var(--gold); }
+@keyframes ft-spot { to { outline-offset: 8px; } }
+
+/* ---------------------------------------------------------------- низ: подсказка действия над панелью бойца */
+.ft-prompt .k-ic { width: 26px; height: 26px; }
+.ft-prompt .k-pill { gap: 4px; }
+.ft-prompt.is-tap { pointer-events: auto; cursor: pointer; }
+.ft-vitals .k-arm > img { object-fit: contain; }
+
+/* ---------------------------------------------------------------- прилавок (немодальный, справа под бейджем) */
+/* низ — выше панели бойца (низ-центр: 8 + 52 px над краем и зазор): на 1440 окно не заходит на «Shift рывок» */
+.ft-stall-wrap { position: absolute; z-index: 12; top: 72px; right: var(--edge); bottom: calc(var(--edge) + 72px); width: 450px; display: flex; flex-direction: column; justify-content: flex-start; pointer-events: auto; }
+.ft-stall { display: flex; flex-direction: column; width: 100%; max-height: 100%; }
+.ft-stall .k-win-head { gap: 12px; padding-left: 16px; padding-right: 16px; padding-bottom: 12px; }
+.ft-stall .k-win-title { font-size: calc(var(--fs-22) * var(--display-scale)); line-height: 1.1; white-space: normal; }
+.ft-stall-sub { margin: 0; color: var(--surf-dim); font: 600 var(--fs-14)/1.2 var(--font-text); }
+.ft-stall .k-win-body { padding: 14px 14px 12px; }
+.ft-stall .k-win-foot { justify-content: flex-start; padding: 10px 16px 12px; }
+.ft-stall .k-win-foot .k-note { margin: 0; }
+.ft-gold-pill { gap: 6px; }
+/* 9 строк должны влезть на 1440×900 без прокрутки: мышь захвачена, листать прилавок нельзя */
+.ft-rows { display: flex; flex-direction: column; gap: 4px; }
+.ft-row { display: grid; grid-template-columns: 26px 42px minmax(0, 1fr) auto; align-items: center; gap: 8px; width: 100%; min-height: 48px; padding: 4px 10px; color: var(--surf-text); font: inherit; text-align: left; cursor: pointer; transition: box-shadow .15s, transform .06s; }
+.ft-row-key { justify-self: center; align-self: center; }
+.touch .ft-row { grid-template-columns: 42px minmax(0, 1fr) auto; }
+button.ft-row:hover { box-shadow: inset 0 0 0 1.5px var(--line-strong); }
+button.ft-row:active { transform: translateY(1px); }
+.ft-row-icw { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.ft-row-ic { width: 40px; height: 40px; object-fit: contain; filter: drop-shadow(0 2px 2px rgba(20, 10, 12, .3)); }
+.ft-row-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ft-row-name { display: flex; align-items: center; gap: 8px; }
+.ft-row-name b { font: 800 var(--fs-16)/1.15 var(--font-text); white-space: nowrap; }
+/* описание целиком: коротко в одну строку, длинное — во вторую (обрезанный текст владелец не любит) */
+.ft-row-det { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; color: var(--surf-dim); font: 500 var(--fs-14)/1.25 var(--font-text); }
+.ft-row-buy { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.ft-row-buy .k-pill { gap: 4px; }
+.ft-why { color: var(--bad-text); font: 700 var(--fs-13)/1 var(--font-text); white-space: nowrap; }
+.ft-why--lock { display: inline-flex; align-items: center; gap: 4px; color: var(--surf-dim); font-size: var(--fs-14); }
+.ft-why--lock img { width: 22px; height: 22px; object-fit: contain; }
+.ft-pips { display: flex; gap: 1px; width: 42px; }
+.ft-pips i { flex: 1; height: 5px; border-radius: 2px; background: var(--track); box-shadow: inset 0 0 0 1px var(--line-strong); }
+.ft-pips i.on { background: var(--gold); box-shadow: none; }
+.ft-tier { color: var(--surf-faint); font: 700 var(--fs-13)/1 var(--font-text); white-space: nowrap; }
+.ft-row.is-locked { opacity: .62; cursor: default; }
+.ft-row.is-no { box-shadow: inset 0 0 0 2px var(--bad), 0 0 18px var(--bad-soft); animation: ft-no .32s ease-in-out 2; }
+.ft-row.is-ok { box-shadow: inset 0 0 0 2px var(--good), 0 0 18px var(--good-soft); }
+.ft-msg { font-weight: 700; }
+.ft-stall .k-win-foot .ft-msg.k-bad { color: var(--bad-text); }
+.ft-stall .k-win-foot .ft-msg.k-good { color: var(--good-text); }
+.ft-strength { margin-bottom: 12px; }
+.ft-tower-note { margin: 0 0 10px; color: var(--surf-dim); font-size: var(--fs-14); }
+@keyframes ft-no { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+
+/* ---------------------------------------------------------------- повалили */
+.k-slot--c.ft-down { top: 44%; gap: 14px; }
+.ft-down .k-hero-sub .k-ic { width: 28px; height: 28px; }
+.ft-respawn { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: 4px 10px; width: 240px; padding: 8px 14px 9px; font: 600 var(--fs-14)/1.2 var(--font-text); }
+.ft-respawn b { color: var(--good-text); font: 800 var(--fs-22)/1 var(--font-text); }
+.ft-respawn .k-meter { grid-column: 1 / -1; width: 100%; height: 4px; border: 0; }
+.ft-respawn .ft-sub { grid-column: 1 / -1; margin: 0; font-size: var(--fs-13); }
+
+/* ---------------------------------------------------------------- Tab и итоги */
+.ft-scrim { pointer-events: auto; }
+.ft-scrim-light { background: radial-gradient(70% 70% at 50% 45%, rgba(16, 10, 12, .2), rgba(16, 10, 12, .45)); pointer-events: none; }
+.ft-tab { width: 760px; }
+.ft-tab .k-table td { padding-top: 6px; padding-bottom: 6px; }
+.ft-ping { color: var(--surf-dim); }
+.ft-tab-h { margin: 14px 0 8px; color: var(--surf-faint); font: 800 var(--fs-13)/1 var(--font-text); letter-spacing: .08em; text-transform: uppercase; }
+.ft-others { display: flex; flex-wrap: wrap; gap: 8px; }
+.ft-tab .k-win-foot { justify-content: flex-start; }
+.ft-tab .k-win-foot .k-note { margin: 0; }
+.ft-results { width: 820px; }
+.ft-results .k-win-body { padding-top: 12px; }
+.ft-results .k-results-title.ft-lose { color: var(--bad-text); }
+.ft-mvp { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; padding: 8px 14px 8px 8px; border-radius: var(--r-md); background: var(--surf-2); font: 500 var(--fs-16)/1.3 var(--font-text); }
+.ft-mvp > span { flex: 1; }
+.ft-mvp-ic { width: 40px; height: 40px; object-fit: contain; }
+.ft-results .k-table tr.ft-total td { background: var(--surf-3); font-weight: 800; }
+.ft-reward { margin-top: 10px; }
+.ft-reward[hidden] { display: none !important; }
+.ft-runs { margin: 12px 0 0; color: var(--surf-dim); font: 500 var(--fs-14)/1.4 var(--font-text); }
+.ft-runs b { color: var(--surf-text); }
+.ft-runs .is-this { color: var(--gold-text); font-weight: 700; }
+.ft-res-timer { display: block; margin-top: 2px; font: 600 var(--fs-13)/1 var(--font-text); opacity: .85; }
+
+/* ---------------------------------------------------------------- слой без zoom: прицел, стрелки угроз, цифры урона */
+.ft-cross { --gap: 6px; }
+.ft-cross > i:nth-child(1) { transform: translateY(calc(-1 * (var(--gap) + 5px))); }
+.ft-cross > i:nth-child(2) { transform: translateY(calc(var(--gap) + 5px)); }
+.ft-cross > i:nth-child(3) { transform: rotate(90deg) translateY(calc(-1 * (var(--gap) + 5px))); }
+.ft-cross > i:nth-child(4) { transform: rotate(90deg) translateY(calc(var(--gap) + 5px)); }
+.ft-cross.is-kill::after { --hit: var(--bad); }
+.hud.dead .ft-cross { display: none; }
+.ft-edges { position: absolute; inset: 0; pointer-events: none; }
+.ft-edges .k-edge { scale: var(--hud-k, 1); }
+.ft-floats { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.ft-floats .k-float { left: 0; top: 0; will-change: transform, opacity; }
+.ft-floats .k-float img { width: 22px; height: 22px; }
+
+/* ---------------------------------------------------------------- телефон: окна поуже, прилавок — ниже кнопок сверху */
+.touch .ft-stall-wrap { top: 64px; bottom: var(--edge); width: 380px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ft-hp.is-hit, .ft-row.is-no, .ft-spot, .k-tile.ft-spot > .k-tile-face { animation: none !important; }
+}
+
+.ft-repair-meter{width:110px;min-width:80px}
