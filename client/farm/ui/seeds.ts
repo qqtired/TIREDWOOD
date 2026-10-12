@@ -1,12 +1,14 @@
 // Окно Семечкина (lab/ui/screens/farm.js «Семечкин: каталог семян»): «Культуры» — крупные карточки (картинка, рост и опыт,
 // «семя → продажа», ресурс; закрытые — силуэтом с уровнем, ближайшая названа), «Скоро» — что откроет следующий уровень,
-// «Обучение» — шесть подсказок с однократными наградами. Сажают у грядки поясом семян (ui/belt.ts).
-import { cropOpen, farmLevel, farmLevelInfo, growMs } from '../../../shared/farm.ts';
+// «Репутация» — источники и точные бонусы, «Обучение» — шесть подсказок с однократными наградами.
+import { cropOpen, farmLevel, farmLevelInfo, growMs, repLevel, resourceChance } from '../../../shared/farm.ts';
 import {
-  CROPS, FARM_LEVEL_NAMES, FARM_MAX_LEVEL, FARM_XP_TOTAL, TUTORIAL_COINS, TUTORIAL_STEPS, TUTORIAL_XP, BEES_BONUS, type CropDef,
+  BUFFS, CROPS, FARM_LEVEL_NAMES, FARM_MAX_LEVEL, FARM_XP_TOTAL, HELP_REP, HELP_REP_DAY_CAP, ORDER_TEMPLATES,
+  REP_FIRST_ENTRY, REP_LAST_DROP, REP_LEVELS, REP_PER_BOSS_PERCENT, TUTORIAL_COINS, TUTORIAL_STEPS, TUTORIAL_XP, type CropDef,
 } from '../../../shared/farmdata.ts';
 import { keyHtml } from '../../ui/kit/dom.ts';
-import { C, FarmWin, TUTORIAL_TEXT, big, fi, fmtMin, meter, resIconName, resName, ui } from './common.ts';
+import { farmIncome } from '../../../shared/farmeconomy.ts';
+import { C, FarmWin, TUTORIAL_TEXT, big, fi, fmtLeft, fmtMin, meter, resIconName, resName, ui } from './common.ts';
 import { levelOpens } from './levels.ts';
 import { UPGRADE_ICON, rewardIcon, rewardName } from './names.ts';
 import { priceNumber, seedPrices, tutorialRewards } from './price-model.ts';
@@ -19,18 +21,20 @@ export class SeedsWin extends FarmWin {
   protected draw(body: HTMLElement): void {
     const f = this.host.f;
     const level = farmLevel(f.xp);
-    if (!['crops', 'next', 'tut'].includes(this.tab)) this.tab = 'crops';
+    if (!['crops', 'next', 'rep', 'tut'].includes(this.tab)) this.tab = 'crops';
     const open = CROPS.filter((c) => cropOpen(c, level)).length;
     const done = f.tutorial < 0 ? 0 : Math.min(TUTORIAL_STEPS, f.tutorial);
     this.setTabs([
       { id: 'crops', icon: fi('radish'), label: 'Культуры', count: `${open} из ${CROPS.length}` },
       { id: 'next', icon: fi('strawberry'), label: 'Скоро' },
+      { id: 'rep', icon: fi('help-hands'), label: 'Репутация', count: String(f.rep) },
       { id: 'tut', icon: ui('scroll'), label: 'Обучение', count: `${done} из ${TUTORIAL_STEPS}` },
     ]);
     if (this.tab === 'next') this.drawNext(body);
+    else if (this.tab === 'rep') this.drawRep(body);
     else if (this.tab === 'tut') this.drawTutorial(body);
     else this.drawCrops(body);
-    this.setFoot(`<span class="k-note">Сажать — прямо у грядки: ${keyHtml('1', undefined, 'sm')}–${keyHtml('9', undefined, 'sm')} выбрать, ${keyHtml('E', undefined, 'sm')} посадить</span><button class="k-btn k-btn--ghost k-btn--sm" type="button" data-close>Закрыть</button>`);
+    this.setFoot(`<span class="k-note">У пустой грядки ${keyHtml('E', undefined, 'sm')} — открыть семена и выбрать мышью</span><button class="k-btn k-btn--ghost k-btn--sm" type="button" data-close>Закрыть</button>`);
     this.onClick('[data-close]', () => this.close());
   }
 
@@ -49,7 +53,8 @@ export class SeedsWin extends FarmWin {
     const gift = !f.firstPlanted.includes(c.id);
     const prices = seedPrices(f, c, this.host.now);
     this.live(`[data-seed-sale="${c.id}"]`, () => priceNumber(seedPrices(this.host.f, c, this.host.now).sale));
-    const chance = Math.round((c.chance + (f.built.bees ? BEES_BONUS : 0)) * 100);
+    this.live(`[data-seed-income="${c.id}"]`, () => String(Math.round(farmIncome(this.host.f, c, this.host.now, true).net)));
+    const chance = Math.round(resourceChance(f, c) * 100);
     const got = f.counters[`h:${c.id}`] ?? 0;
     return `
       <div class="k-cell farm-crop">
@@ -60,12 +65,45 @@ export class SeedsWin extends FarmWin {
         <div class="farm-crop-row"><span class="farm-price">Семя ${C()}${prices.seed}</span></div>
         <div class="farm-crop-row"><span class="farm-price">Гриб сейчас ${C()}<span data-seed-sale="${c.id}">${priceNumber(prices.sale)}</span></span></div>
         <div class="farm-crop-row k-dim">${fi(resIconName(c.res))}${resName(c.res)} ${chance} %</div>
+        <div class="farm-crop-row k-good">Ферма ≈<span data-seed-income="${c.id}">${Math.round(farmIncome(f, c, this.host.now, true).net)}</span> ${C()}/ч</div>
         ${got ? `<div class="farm-crop-own k-faint">собрано: ${got}</div>` : ''}
       </div>`;
   }
 
   private drawCrops(body: HTMLElement): void {
-    body.innerHTML = `<div class="farm-pane farm-crops">${CROPS.filter(c => cropOpen(c, farmLevel(this.host.f.xp))).map((c) => this.cropCard(c)).join('')}</div>`;
+    body.innerHTML = `<div class="farm-pane"><p class="farm-lead k-dim">Вся ферма · ${this.host.f.beds.length} грядок · чистыми после семян. Учтены твои улучшения, репутация и бонусы; полив сразу, сбор без простоя.</p><div class="farm-crops">${CROPS.filter(c => cropOpen(c, farmLevel(this.host.f.xp))).map((c) => this.cropCard(c)).join('')}</div></div>`;
+  }
+
+  private drawRep(body: HTMLElement): void {
+    const f = this.host.f, level = repLevel(f.rep);
+    const current = REP_LEVELS[level - 1], next = REP_LEVELS[level];
+    const slots = (lv: number) => REP_LEVELS.filter(r => r.vanSlot && r.level <= lv).length;
+    const orderRep = ORDER_TEMPLATES.filter(o => o.rep > 0).map(o => o.rep);
+    const rows = REP_LEVELS.map(r => `<tr${r.level === level ? ' class="is-own"' : ''}>
+      <td>${r.level}. ${r.name}${r.level === level ? ' · сейчас' : ''}</td><td class="k-r">${r.need}</td>
+      <td class="k-r">+${Math.round(r.bonus * 100)} %</td><td class="k-r">+${slots(r.level)}</td>
+      <td>${r.reward ? rewardName(r.reward) : '—'}</td></tr>`).join('');
+    body.innerHTML = `<div class="farm-pane farm-reputation">
+      <div class="k-cell farm-rep">${fi('help-hands', 'farm-rep-ic')}
+        <div class="farm-rep-main"><p class="k-eyebrow">${current.name} · ступень ${level}</p>
+          ${meter(next ? (f.rep - current.need) / (next.need - current.need) : 1, 'k-meter--lg', `${f.rep} репутации${next ? ` · до следующей ${next.need - f.rep}` : ' · высшая ступень'}`)}
+          <p class="farm-rep-next">Сейчас: +${Math.round(current.bonus * 100)} % к цене у Гриба и Фургона, +${slots(level)} ящика Фургона.</p>
+        </div></div>
+      <p class="k-eyebrow farm-h">За что дают репутацию</p>
+      <ul class="farm-rep-sources">
+        <li>Первый вход на ферму за день по Москве: +${REP_FIRST_ENTRY}.</li>
+        <li>Помощь соседу: +${HELP_REP}, до ${HELP_REP_DAY_CAP} за день.</li>
+        <li>Цветение Древа: +${REP_PER_BOSS_PERCENT} за каждый полный 1 % твоего вклада; «Последняя капля»: ещё +${REP_LAST_DROP}.</li>
+        <li>Отдельные заказы доски: +${Math.min(...orderRep)}–${Math.max(...orderRep)}, награда указана в заказе.</li>
+      </ul>
+      <div class="farm-rep-table"><table class="k-table"><thead><tr><th>Ступень</th><th class="k-r">Репутация</th><th class="k-r">Цена</th><th class="k-r">Ящики</th><th>Награда</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <p class="k-note">Бонус цены — итоговый, ступени не складываются. Дополнительные ящики доступны с 3-го уровня фермы. Цена единицы — до 150 монет.</p>
+      <p class="k-eyebrow farm-h">Временные бонусы Древа</p><div class="farm-rep-buffs" data-rep-buffs></div>
+    </div>`;
+    this.live('[data-rep-buffs]', () => {
+      const active = this.host.f.buffs.filter(b => b.until > this.host.now);
+      return active.length ? active.map(b => `<span class="k-pill k-pill--good">${fi(BUFFS[b.kind].icon)}${BUFFS[b.kind].name} · ещё ${fmtLeft(b.until - this.host.now)}</span>`).join('') : '<span class="k-dim">Сейчас нет. За вклад от 1 % в цветение — один бонус на 24 часа.</span>';
+    });
   }
 
   private drawNext(body: HTMLElement): void {

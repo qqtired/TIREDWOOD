@@ -16,7 +16,11 @@ const hook = registerHooks({ load(url, context, next) {
   return source.includes('import.meta.glob(') ? { ...loaded, source: source.replaceAll('import.meta.glob(', '((..._g: unknown[]) => ({}))(') } : loaded;
 } });
 let FarmPond: typeof import('../client/farm/pond.ts').FarmPond;
-try { FarmPond = (await import('../client/farm/pond.ts')).FarmPond; } finally { hook.deregister(); }
+let PlantWin: typeof import('../client/farm/ui/belt.ts').PlantWin;
+try {
+  FarmPond = (await import('../client/farm/pond.ts')).FarmPond;
+  PlantWin = (await import('../client/farm/ui/belt.ts')).PlantWin;
+} finally { hook.deregister(); }
 
 const NOW = Date.UTC(2026, 9, 12, 9);
 const offer = (item: string, n = 10, mult = 1.5, coins = 1500): VanOffer => ({ slot: 0, kind: 'expensive', item, n, mult, coins, xp: 20 });
@@ -24,14 +28,35 @@ const offer = (item: string, n = 10, mult = 1.5, coins = 1500): VanOffer => ({ s
 test('выбор семян показывает конечную текущую цену и первую бесплатную посадку', () => {
   const f = emptyFarm(NOW); f.rep = 3000; f.buffs = [{ kind: 'price', until: NOW + 1000 }];
   const c = cropById('golden-apple')!;
-  assert.deepEqual(seedPrices(f, c, NOW), { seed: 0, sale: 150 });
+  assert.deepEqual(seedPrices(f, c, NOW), { seed: 0, sale: 19.34 * 1.15 * 1.1 });
   f.firstPlanted.push(c.id);
   assert.equal(seedPrices(f, c, NOW).seed, c.seed);
 });
 
-test('ящик при конечном пределе150 не обещает ложную денежную прибавку', () => {
+test('открытая посадка обновляет истёкшие баффы по часам при том же балансе без перестройки карточек', () => {
+  const f = emptyFarm(NOW); f.xp = 21750; f.rep = 3000; f.built.compost = true;
+  f.buffs = [{ kind: 'price', until: NOW + 1000 }, { kind: 'grow', until: NOW + 1000 }];
+  const host = { f, now: NOW, tokens: 100 };
+  // Только DOM-граница: настоящие draw/live/tick работают с неизменными узлами подписей.
+  const grow = { innerHTML: '42 мин' }, sale = { innerHTML: '27,17' };
+  const nodes = new Map([['[data-plant-grow="mythic-mushroom"]', grow], ['[data-plant-sale="mythic-mushroom"]', sale]]);
+  let html = '', bodyWrites = 0;
+  const body = { scrollTop: 160, set innerHTML(value: string) { html = value; bodyWrites++; } };
+  const win = Object.assign(Object.create(PlantWin.prototype), {
+    host, dlg: { open: true }, body, foot: {}, bal: null, liveFns: [], pendingAt: 0, error: '',
+    win: { querySelectorAll: () => [], querySelector: (selector: string) => html.includes(selector.slice(1, -1)) ? nodes.get(selector) : null },
+  });
+  win.draw(body); win.tick();
+  assert.equal(grow.innerHTML, '42 мин'); assert.equal(sale.innerHTML, '27,17');
+  host.now += 1000;
+  win.tick();
+  assert.equal(grow.innerHTML, '47 мин'); assert.equal(sale.innerHTML, '24,7');
+  assert.equal(host.tokens, 100); assert.equal(bodyWrites, 1); assert.equal(body.scrollTop, 160);
+});
+
+test('ящик показывает текущую доплату к продаже у Гриба, не старую offer.coins', () => {
   const f = emptyFarm(NOW); f.rep = 3000; f.buffs = [{ kind: 'price', until: NOW + 1000 }];
-  assert.deepEqual(vanPayment(f, offer('golden-apple'), NOW), { unit: 150, coins: 1500, gribCoins: 1500, extra: 0 });
+  assert.deepEqual(vanPayment(f, offer('golden-apple'), NOW), { unit: 19.34 * 1.15 * 1.1 * 1.5, coins: 367, gribCoins: 244, extra: 123 });
 });
 
 test('цена ящика обновляется после баффа, а не остаётся прошлым offer.coins', () => {

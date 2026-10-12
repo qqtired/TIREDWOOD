@@ -31,12 +31,12 @@ export interface Prompt {
   whose?: { icon: string; text: string };
 }
 
-/** Пояс семян (пустая грядка) или подсказка */
-export function bedPrompt(f: FarmProgress, i: number, now: number, unlockLevel: number): Prompt | 'belt' {
+/** Подсказка для выбранной грядки. */
+export function bedPrompt(f: FarmProgress, i: number, now: number, unlockLevel: number): Prompt {
   const b = f.beds[i];
   if (!b) return { keys: [], text: `Грядка ${i + 1} откроется на ур. ${unlockLevel} фермы`, note: `сейчас ${farmLevel(f.xp)}` };
   const st = bedStage(b, now);
-  if (st === -1) return 'belt';
+  if (st === -1) return { keys: ['E'], text: 'Выбрать семена', note: 'посадить на грядку' };
   const c = cropById(b.crop);
   const name = c?.name ?? '';
   if (st === 3) {
@@ -82,7 +82,7 @@ export function troughPrompt(f: FarmProgress, canMax: number, now: number): Prom
 export function usePrompt(id: FarmObjectId, f: FarmProgress, now: number): Prompt | null {
   switch (id) {
     case 'grib': return { keys: ['E'], text: 'Дядюшка Гриб', note: 'продать урожай' };
-    case 'semechkin': return { keys: ['E'], text: 'Семечкин', note: 'семена и обучение' };
+    case 'semechkin': return { keys: ['E'], text: 'Семечкин', note: 'семена, репутация и обучение' };
     case 'cart': return { keys: ['E'], text: 'В город', note: 'на набережную' };
     case 'farmBoard': return { keys: ['E'], text: 'Доска фермы', note: 'соседи и участки' };
     case 'boss': return { keys: ['E'], text: 'Древо разлома', note: 'доска фермы: вклад и соседи' };

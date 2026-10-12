@@ -9,7 +9,7 @@ import type { Outfit } from './outfit.ts';
 export type FarmClientMsg =
   | { t: 'farm'; a: 'identity'; name: string; icon: string }
   | { t: 'farm'; a: 'sit'; seat: number }
-  /** Посадить культуру на грядки своего участка (Грабли — несколько сразу) */
+  /** Посадить культуру на одну грядку своего участка */
   | { t: 'farm'; a: 'plant'; beds: number[]; crop: string }
   /** Полить свои грядки (заряд за каждую) */
   | { t: 'farm'; a: 'water'; beds: number[] }

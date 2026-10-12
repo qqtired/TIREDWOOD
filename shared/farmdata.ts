@@ -1,5 +1,5 @@
-// Ферма: точные числа пакета 1 — docs/farm/pack1-balance.json и pack1-2026-10-11.md.
-// Исторические идентификаторы, стоимость улучшений и награды сохраняются.
+// Ферма: текущая экономика — docs/farm/review3.md; расчёт из этих данных — review3-balance.mjs.
+// Идентификаторы, накопленный прогресс и стоимость улучшений сохраняются.
 
 // ------------------------------------------------------------ общее
 
@@ -45,10 +45,10 @@ export const FARM_LEVEL_NAMES: readonly string[] = [
 ];
 /** Вещи за уровень (§3.2, каталог §12.2); индекс — уровень − 1. Титулы (ti:) — в FARM_DECOR. */
 export const FARM_LEVEL_REWARDS: readonly (readonly string[])[] = [
-  ['h:farmcap', 'u:workshirt', 'l:jeans', 'l:boots'],
+  ['h:farmcap', 'u:workshirt', 'l:jeans'],
   ['h:straw'],
   ['u:sprout'],
-  ['a:greengloves'],
+  [],
   ['u:plaid'],
   ['h:sunhat'],
   ['l:overalls'],
@@ -57,7 +57,7 @@ export const FARM_LEVEL_REWARDS: readonly (readonly string[])[] = [
   ['s:piglet'],
   ['h:goldstraw'],
   ['u:leafcape'],
-  ['u:stargardener', 'h:leafcrown', 'f:fireflies', 'ti:legend'],
+  ['u:stargardener', 'h:leafcrown'],
 ];
 
 // ------------------------------------------------------------ общий опыт игрока (§3.3)
@@ -95,25 +95,25 @@ export interface CropDef {
 }
 
 export const CROPS: readonly CropDef[] = [
-  { id: 'radish', name: 'Редис', product: 'Редис', level: 1, min: 2, xp: 5, res: 'root', chance: 0.3, seed: 1, sale: 6, van: 30, icon: 'radish' },
-  { id: 'wheat', name: 'Пшеница', product: 'Колос', level: 2, min: 15, xp: 35, res: 'fiber', chance: 0.4, seed: 2, sale: 40, van: 30, icon: 'wheat' },
-  { id: 'lettuce', name: 'Салат', product: 'Лист салата', level: 2, min: 3, xp: 6, res: 'fiber', chance: 0.1, seed: 1, sale: 9, van: 30, icon: 'lettuce' },
-  { id: 'onion', name: 'Лук', product: 'Луковица', level: 4, min: 3, xp: 8, res: 'root', chance: 0.3, seed: 1, sale: 10, van: 30, icon: 'onion' },
-  { id: 'pumpkin', name: 'Тыква', product: 'Тыква', level: 4, min: 20, xp: 50, res: 'grain', chance: 0.35, seed: 3, sale: 55, van: 30, icon: 'pumpkin' },
-  { id: 'carrot', name: 'Морковь', product: 'Морковь', level: 5, min: 4, xp: 10, res: 'root', chance: 0.35, seed: 1, sale: 11, van: 30, icon: 'carrot' },
-  { id: 'sunflower', name: 'Подсолнух', product: 'Семечки', level: 5, min: 25, xp: 65, res: 'grain', chance: 0.35, seed: 2, sale: 65, van: 30, icon: 'sunflower-seeds' },
-  { id: 'strawberry', name: 'Клубника', product: 'Ягода', level: 6, min: 30, xp: 80, res: 'fiber', chance: 0.35, seed: 3, sale: 80, van: 30, icon: 'strawberry' },
-  { id: 'giant-mushroom', name: 'Гриб-гигант', product: 'Шляпка гриба', level: 6, min: 45, xp: 130, res: 'spores', chance: 0.4, seed: 3, sale: 116, van: 30, icon: 'giant-mushroom' },
-  { id: 'dill', name: 'Укроп', product: 'Пучок укропа', level: 7, min: 5, xp: 12, res: 'grain', chance: 0.3, seed: 1, sale: 14, van: 30, icon: 'dill' },
-  { id: 'chili', name: 'Перец чили', product: 'Стручок', level: 8, min: 30, xp: 85, res: 'grain', chance: 0.35, seed: 4, sale: 85, van: 30, icon: 'chili' },
-  { id: 'crystal', name: 'Кристальный цветок', product: 'Кристалл', level: 8, min: 50, xp: 145, res: 'crystal-dust', chance: 0.4, seed: 4, sale: 129, van: 30, icon: 'crystal' },
-  { id: 'microgreens', name: 'Микро-зелень', product: 'Ростки', level: 9, min: 5, xp: 12, res: 'grain', chance: 0.35, seed: 2, sale: 16, van: 30, icon: 'microgreens' },
-  { id: 'lotus', name: 'Лунный лотос', product: 'Лепесток', level: 9, min: 55, xp: 165, res: 'crystal-dust', chance: 0.4, seed: 4, sale: 142, van: 30, icon: 'lotus' },
-  { id: 'life-tree', name: 'Древо жизни', product: 'Плод жизни', level: 10, min: 55, xp: 165, res: 'wood', chance: 0.4, seed: 4, sale: 144, van: 30, icon: 'life-fruit' },
-  { id: 'golden-apple', name: 'Золотое яблоко', product: 'Золотое яблоко', level: 10, min: 55, xp: 165, res: 'gold-leaf', chance: 0.4, seed: 4, sale: 145, van: 30, icon: 'golden-apple' },
-  { id: 'dragon-fruit', name: 'Драконий плод', product: 'Драконий плод', level: 11, min: 55, xp: 170, res: 'scale', chance: 0.35, seed: 4, sale: 146, van: 30, icon: 'dragon-fruit' },
-  { id: 'star-flower', name: 'Звёздный цветок', product: 'Звезда', level: 12, min: 55, xp: 175, res: 'star-dust', chance: 0.35, seed: 5, sale: 148, van: 30, icon: 'star' },
-  { id: 'mythic-mushroom', name: 'Мифический гриб', product: 'Мифическая шляпка', level: 13, min: 55, xp: 180, res: 'spores', chance: 0.4, seed: 6, sale: 150, van: 30, icon: 'myth-mushroom' },
+  { id: 'radish', name: 'Редис', product: 'Редис', level: 1, min: 3, xp: 5, res: 'root', chance: 0.3, seed: 1, sale: 1.41, van: 10, icon: 'radish' },
+  { id: 'wheat', name: 'Пшеница', product: 'Колос', level: 2, min: 15, xp: 35, res: 'fiber', chance: 0.4, seed: 2, sale: 5.18, van: 10, icon: 'wheat' },
+  { id: 'lettuce', name: 'Салат', product: 'Лист салата', level: 2, min: 3, xp: 6, res: 'fiber', chance: 0.1, seed: 1, sale: 1.43, van: 10, icon: 'lettuce' },
+  { id: 'onion', name: 'Лук', product: 'Луковица', level: 4, min: 3, xp: 8, res: 'root', chance: 0.3, seed: 1, sale: 1.49, van: 10, icon: 'onion' },
+  { id: 'pumpkin', name: 'Тыква', product: 'Тыква', level: 4, min: 20, xp: 50, res: 'grain', chance: 0.35, seed: 3, sale: 7.45, van: 10, icon: 'pumpkin' },
+  { id: 'carrot', name: 'Морковь', product: 'Морковь', level: 5, min: 4, xp: 10, res: 'root', chance: 0.35, seed: 1, sale: 1.8, van: 10, icon: 'carrot' },
+  { id: 'sunflower', name: 'Подсолнух', product: 'Семечки', level: 5, min: 25, xp: 65, res: 'grain', chance: 0.35, seed: 2, sale: 8.39, van: 10, icon: 'sunflower-seeds' },
+  { id: 'strawberry', name: 'Клубника', product: 'Ягода', level: 6, min: 30, xp: 80, res: 'fiber', chance: 0.35, seed: 3, sale: 10.6, van: 10, icon: 'strawberry' },
+  { id: 'giant-mushroom', name: 'Гриб-гигант', product: 'Шляпка гриба', level: 6, min: 45, xp: 130, res: 'spores', chance: 0.4, seed: 3, sale: 15.04, van: 10, icon: 'giant-mushroom' },
+  { id: 'dill', name: 'Укроп', product: 'Пучок укропа', level: 7, min: 5, xp: 12, res: 'grain', chance: 0.3, seed: 1, sale: 2.15, van: 10, icon: 'dill' },
+  { id: 'chili', name: 'Перец чили', product: 'Стручок', level: 8, min: 30, xp: 85, res: 'grain', chance: 0.35, seed: 4, sale: 11.53, van: 10, icon: 'chili' },
+  { id: 'crystal', name: 'Кристальный цветок', product: 'Кристалл', level: 8, min: 50, xp: 145, res: 'crystal-dust', chance: 0.4, seed: 4, sale: 17.53, van: 10, icon: 'crystal' },
+  { id: 'microgreens', name: 'Микро-зелень', product: 'Ростки', level: 9, min: 5, xp: 12, res: 'grain', chance: 0.35, seed: 2, sale: 2.88, van: 10, icon: 'microgreens' },
+  { id: 'lotus', name: 'Лунный лотос', product: 'Лепесток', level: 9, min: 55, xp: 165, res: 'crystal-dust', chance: 0.4, seed: 4, sale: 19.26, van: 10, icon: 'lotus' },
+  { id: 'life-tree', name: 'Древо жизни', product: 'Плод жизни', level: 10, min: 55, xp: 165, res: 'wood', chance: 0.4, seed: 4, sale: 19.3, van: 10, icon: 'life-fruit' },
+  { id: 'golden-apple', name: 'Золотое яблоко', product: 'Золотое яблоко', level: 10, min: 55, xp: 165, res: 'gold-leaf', chance: 0.4, seed: 4, sale: 19.34, van: 10, icon: 'golden-apple' },
+  { id: 'dragon-fruit', name: 'Драконий плод', product: 'Драконий плод', level: 11, min: 55, xp: 170, res: 'scale', chance: 0.35, seed: 4, sale: 19.37, van: 10, icon: 'dragon-fruit' },
+  { id: 'star-flower', name: 'Звёздный цветок', product: 'Звезда', level: 12, min: 55, xp: 175, res: 'star-dust', chance: 0.35, seed: 5, sale: 20.4, van: 10, icon: 'star' },
+  { id: 'mythic-mushroom', name: 'Мифический гриб', product: 'Мифическая шляпка', level: 13, min: 55, xp: 180, res: 'spores', chance: 0.4, seed: 6, sale: 21.48, van: 10, icon: 'myth-mushroom' },
 ];
 
 const CROP_BY_ID = new Map(CROPS.map((c) => [c.id, c]));
@@ -161,8 +161,10 @@ export function resourceById(id: unknown): ResourceDef | undefined {
 export const CAN_CHARGES: readonly number[] = [10, 20, 50];
 /** Сумка 1–4: мест под основной урожай и трюфели (§2, решение 14) */
 export const BAG_PLACES: readonly number[] = [20, 50, 100, 200];
-/** Грабли 1–3: одно действие на столько грядок (§2, решение 13) */
-export const RAKE_BEDS: readonly number[] = [1, 4, 10];
+/** Действия с грядками всегда по одной. Грабли больше не расширяют область действия. */
+export const RAKE_BEDS: readonly number[] = [1, 1, 1];
+/** Грабли 1–3: прибавка к вероятности вторичного ресурса в процентных пунктах, ступени не складываются. */
+export const RAKE_RESOURCE_BONUS: readonly number[] = [0, 0.10, 0.15];
 /** Лопатка 1–3: шанс двойного основного урожая (§6) */
 export const SHOVEL_DOUBLE: readonly number[] = [0, 0.15, 0.25];
 /** Пчёлы: +10 п.п. к шансу вторичного ресурса (§6) */
@@ -205,8 +207,8 @@ export const UPGRADES: readonly UpgradeDef[] = [
   { id: 'bed6', kind: 'bed', step: 8, name: 'Грядка 8', gives: 'ещё одна грядка', level: 10, coins: 0, res: { wood: 4, 'gold-leaf': 2 } },
   { id: 'bed7', kind: 'bed', step: 9, name: 'Грядка 9', gives: 'ещё одна грядка', level: 11, coins: 0, res: { scale: 3, spores: 3 } },
   { id: 'bed8', kind: 'bed', step: 10, name: 'Грядка 10', gives: 'ещё одна грядка', level: 12, coins: 0, res: { 'star-dust': 3, spores: 3 } },
-  { id: 'rake2', kind: 'rake', step: 2, name: 'Грабли 2', gives: 'до 4 грядок разом, «собрать и посадить то же»', level: 4, coins: 50, res: { fiber: 15, grain: 8, root: 3 } },
-  { id: 'rake3', kind: 'rake', step: 3, name: 'Грабли 3', gives: 'до 10 грядок — всё поле', level: 8, coins: 250, res: { fiber: 40, grain: 20, 'crystal-dust': 8 } },
+  { id: 'rake2', kind: 'rake', step: 2, name: 'Грабли 2', gives: '+10 п.п. к шансу вторичного ресурса', level: 4, coins: 50, res: { fiber: 15, grain: 8, root: 3 } },
+  { id: 'rake3', kind: 'rake', step: 3, name: 'Грабли 3', gives: '+15 п.п. к шансу вторичного ресурса', level: 8, coins: 250, res: { fiber: 40, grain: 20, 'crystal-dust': 8 } },
   { id: 'shovel2', kind: 'shovel', step: 2, name: 'Лопатка 2', gives: 'двойной урожай 15 %', level: 4, coins: 50, res: { root: 12, fiber: 6, grain: 5 } },
   { id: 'shovel3', kind: 'shovel', step: 3, name: 'Лопатка 3', gives: 'двойной урожай 25 %', level: 7, coins: 250, res: { root: 30, grain: 15, spores: 10 } },
   { id: 'can2', kind: 'can', step: 2, name: 'Лейка 2', gives: '20 зарядов', level: 8, coins: 60, res: { 'crystal-dust': 12, grain: 5, root: 4 } },
@@ -285,10 +287,12 @@ export const VAN_ASSORTMENT: readonly { level: number; crops: readonly string[] 
 export const VAN_FAST_MAX_MIN = 30;
 export const VAN_EXPENSIVE_LEVEL = 6;
 export const VAN_RECENT = 4;
-/** Количество: Q = max(1, min(30, ⌈30 / рост в часах⌉)), N = max(1, ⌊Q · u⌉), u ∈ [0,25; 0,6];
- *  для культур до 60 мин N ≤ грядки × ⌊55 / рост в мин⌋; всегда N ≤ ⌊0,8 × вместимость сумки⌋ */
-export const VAN_Q_MAX = 30;
-export const VAN_U: readonly [number, number] = [0.25, 0.6];
+/** Размер обычного ящика по уровню; затем предел по грядкам и вместимости сумки. */
+export const VAN_COUNTS_BY_LEVEL: readonly { level: number; min: number; max: number }[] = [
+  { level: 3, min: 3, max: 5 }, { level: 5, min: 4, max: 6 }, { level: 8, min: 5, max: 7 },
+  { level: 10, min: 6, max: 8 }, { level: 12, min: 7, max: 10 },
+];
+export const VAN_Q_MAX = 10;
 export const VAN_GROW_WINDOW_MIN = 55;
 export const VAN_BAG_SHARE = 0.8;
 /** Цена: M = ⌊N × продажа × m × (1 + репутация) × бафф⌉, m ∈ {1,3; 1,4; 1,5} поровну */
@@ -302,7 +306,7 @@ export const VAN_GOURMET_CHANCE = 0.10;
 export const VAN_GOURMET_N: readonly [number, number] = [1, 2];
 export const VAN_GOURMET_MULT = 1.5;
 
-/** Q из формулы v10; совпадает со столбцом «Фургон, шт» таблицы культур (проверяет тест) */
+/** Максимум по культуре; фактическое количество дополнительно ограничено уровнем игрока. */
 export function vanQ(c: CropDef): number {
   return Math.max(1, Math.min(VAN_Q_MAX, Math.ceil(30 / (c.min / 60))));
 }

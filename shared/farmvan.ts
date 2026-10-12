@@ -3,9 +3,9 @@
 // Числа — shared/farmdata.ts. Сдачу ящика проводит сервер (server/farm/van.ts).
 import { bagCap, farmLevel, repLevel, saleUnit, type FarmProgress } from './farm.ts';
 import {
-  CROPS, REP_LEVELS, TRUFFLE, TRUFFLE_PRICE, VAN_ASSORTMENT, VAN_BAG_SHARE, VAN_CYCLE_MS, VAN_EXPENSIVE_LEVEL,
+  CROPS, REP_LEVELS, TRUFFLE, TRUFFLE_PRICE, VAN_ASSORTMENT, VAN_BAG_SHARE, VAN_COUNTS_BY_LEVEL, VAN_CYCLE_MS, VAN_EXPENSIVE_LEVEL,
   VAN_FAST_MAX_MIN, VAN_GOURMET_CHANCE, VAN_GOURMET_LEVEL, VAN_GOURMET_MULT, VAN_GOURMET_N, VAN_GROW_WINDOW_MIN,
-  VAN_MAX_SLOTS, VAN_MULTS, VAN_RECENT, VAN_SLOTS_BY_LEVEL, VAN_U, VAN_XP_MIN, VAN_XP_SHARE, cropById, cropGroup, vanQ,
+  VAN_MAX_SLOTS, VAN_MULTS, VAN_RECENT, VAN_SLOTS_BY_LEVEL, VAN_XP_MIN, VAN_XP_SHARE, cropById, cropGroup, vanQ,
   type CropDef,
 } from './farmdata.ts';
 import { hash32, makeRng } from './math.ts';
@@ -90,12 +90,13 @@ export function vanOffers(f: FarmProgress, pid: number, cycle: number, now: numb
   const crops = vanCrops(level);
   const recent = new Set([...crops].sort((a, b) => a.level - b.level || CROPS.indexOf(a) - CROPS.indexOf(b)).slice(-VAN_RECENT).map((c) => c.id));
   const bagMax = Math.max(1, Math.floor(bagCap(f) * VAN_BAG_SHARE));
+  const quantity = VAN_COUNTS_BY_LEVEL.findLast((x) => level >= x.level) ?? VAN_COUNTS_BY_LEVEL[0];
   const used = new Set<string>();
   const out: VanOffer[] = [];
   for (let i = 0; i < slots; i++) {
     const r1 = rng();
     const r2 = rng();
-    const u = VAN_U[0] + rng() * (VAN_U[1] - VAN_U[0]);
+    const quantityRoll = rng();
     const mult = VAN_MULTS[Math.min(VAN_MULTS.length - 1, Math.floor(rng() * VAN_MULTS.length))];
     if (i === 2 && level >= VAN_GOURMET_LEVEL && r1 < VAN_GOURMET_CHANCE) {
       const n = VAN_GOURMET_N[0] + Math.floor(r2 * (VAN_GOURMET_N[1] - VAN_GOURMET_N[0] + 1));
@@ -110,7 +111,7 @@ export function vanOffers(f: FarmProgress, pid: number, cycle: number, now: numb
     const c = pick(list, (x) => (kind === 'season' && recent.has(x.id) ? 2 : 1), used, r2);
     if (!c) continue;
     used.add(c.id);
-    let n = Math.max(1, Math.round(vanQ(c) * u));
+    let n = Math.min(vanQ(c), quantity.min + Math.floor(quantityRoll * (quantity.max - quantity.min + 1)));
     if (c.min <= 60) n = Math.min(n, f.beds.length * Math.floor(VAN_GROW_WINDOW_MIN / c.min));
     n = Math.max(1, Math.min(n, bagMax));
     out.push({

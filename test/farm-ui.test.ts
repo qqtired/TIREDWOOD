@@ -3,10 +3,10 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { emptyFarm, farmLevel, type FarmProgress } from '../shared/farm.ts';
-import { CROPS, FARM_XP_TOTAL, RAKE_BEDS, WELL_SETS } from '../shared/farmdata.ts';
+import { CROPS, FARM_XP_TOTAL, WELL_SETS } from '../shared/farmdata.ts';
 import type { FarmBedView } from '../shared/farmnet.ts';
 import type { FarmBossView } from '../shared/farmsys.ts';
-import { BELT_SLOTS, WHEEL_GAP_MS, WHEEL_STEP, WheelAcc, accusative, beltCrops, beltStart, beltStep, plantCost, rakeTargets, wheelPixels } from '../client/farm/ui/belt-model.ts';
+import { accusative, beltCrops, plantCost } from '../client/farm/ui/belt-model.ts';
 import { clockHour, fmtLeft, fmtMin, mskHour, plural } from '../client/farm/ui/fmt.ts';
 import { bedPrompt, canHelpBed, helpPrompt, troughPrompt, usePrompt } from '../client/farm/ui/prompt-model.ts';
 import { PHASE_NAMES, bloomShare, contribLine, treeEvent, treeLine } from '../client/farm/ui/tree-model.ts';
@@ -26,50 +26,12 @@ test('farmAt: опыт ровно с начала уровня', () => {
   for (const l of [1, 2, 3, 6, 10]) assert.equal(farmLevel(farmAt(l).xp), l);
 });
 
-test('пояс: только открытые культуры, не больше девяти ячеек в окне', () => {
+test('посадка: сетка содержит все открытые культуры', () => {
   const list = beltCrops(1);
   assert.ok(list.length >= 1);
   assert.ok(list.every((c) => c.level <= 1), 'закрытые культуры не попадают в пояс');
   const all = beltCrops(99);
   assert.equal(all.length, CROPS.length);
-  assert.ok(all.length > BELT_SLOTS, 'культур больше девяти — окно едет');
-});
-
-test('пояс: окно из девяти ячеек всегда держит выбранную и не прыгает', () => {
-  assert.equal(beltStart(0, 4, 19), 0, 'выбор внутри окна — окно стоит');
-  assert.equal(beltStart(0, 9, 19), 1, 'вышли вправо — сдвиг ровно на шаг');
-  assert.equal(beltStart(5, 2, 19), 2, 'вышли влево');
-  assert.equal(beltStart(0, 18, 19), 10, 'в конце списка окно упирается в край');
-  assert.equal(beltStart(3, 0, 5), 0, 'культур меньше девяти — окно с нуля');
-});
-
-test('пояс: колесо идёт по кругу', () => {
-  assert.equal(beltStep(0, 1, 5), 1);
-  assert.equal(beltStep(4, 1, 5), 0);
-  assert.equal(beltStep(0, -1, 5), 4);
-  assert.equal(beltStep(0, 1, 0), 0);
-});
-
-test('пояс: колесо копит прокрутку — трекпад не крутит пояс, обычное колесо даёт шаг на щелчок', () => {
-  const w = new WheelAcc();
-  // обычная мышь: один щелчок ≈ 100 px — один шаг
-  assert.equal(w.push(100, 0), 1);
-  // трекпад: десятки мелких событий — шаг лишь когда накопилось WHEEL_STEP и прошла пауза WHEEL_GAP_MS
-  let steps = 0;
-  for (let t = 1000; t < 1000 + 16 * 60; t += 16) steps += Math.abs(w.push(12, t));
-  assert.ok(steps >= 1 && steps <= Math.ceil((16 * 60) / WHEEL_GAP_MS), 'за секунду инерции — единицы шагов, не десятки');
-  // смена направления сбрасывает накопленное
-  const v = new WheelAcc();
-  assert.equal(v.push(WHEEL_STEP - 10, 0), 0);
-  assert.equal(v.push(-30, 20), 0);
-  assert.equal(v.push(-40, 40), 0, 'копится заново в другую сторону: −30 −40 = −70');
-  assert.equal(v.push(-20, 60), -1);
-  // пауза забывает накопленное; строки Firefox считаются в пиксели
-  const u = new WheelAcc();
-  assert.equal(u.push(60, 0), 0);
-  assert.equal(u.push(60, 1000), 0, 'долгая пауза — копим заново');
-  assert.equal(wheelPixels(3, 1), 120);
-  assert.equal(wheelPixels(100), 100);
 });
 
 test('пояс: «Посадить тыкву», «Собрать шляпку гриба» — винительный падеж', () => {
@@ -83,15 +45,6 @@ test('пояс: «Посадить тыкву», «Собрать шляпку �
   assert.equal(accusative('Древо жизни'), 'древо жизни');
 });
 
-test('пояс: грабли берут выбранную и ближайшие пустые грядки, не больше запаса', () => {
-  const pos = [{ x: 0, z: 0 }, { x: 1, z: 0 }, { x: 2, z: 0 }, { x: 0, z: 1 }, { x: 5, z: 5 }];
-  assert.deepEqual(rakeTargets([false, false, false, false, false], 3, 0, pos), [0, 1, 3]);
-  assert.deepEqual(rakeTargets([false, true, false, false, false], 3, 0, pos), [0, 3, 2], 'занятую пропускаем');
-  assert.deepEqual(rakeTargets([false, false], 1, 0, pos), [0], 'без граблей — одна');
-  assert.deepEqual(rakeTargets([false], 3, 7, pos), [], 'нет такой грядки');
-  assert.ok(RAKE_BEDS.length >= 2);
-});
-
 test('пояс: цена — первая посадка новой культуры даром, для одной грядки', () => {
   assert.equal(plantCost(10, 1, true), 0);
   assert.equal(plantCost(10, 3, true), 20);
@@ -100,15 +53,12 @@ test('пояс: цена — первая посадка новой культу
 
 // ------------------------------------------------------------ подсказка E
 
-test('подсказка: закрытая грядка называет уровень, пустая отдаёт пояс', () => {
+test('подсказка: закрытая грядка называет уровень, пустая предлагает открыть семена', () => {
   const f = farmAt(1);
   const locked = bedPrompt(f, 3, NOW, 6);
-  assert.notEqual(locked, 'belt');
-  if (locked !== 'belt') {
-    assert.equal(locked.keys.length, 0, 'серая подсказка без клавиши');
-    assert.match(locked.text, /ур\. 6/);
-  }
-  assert.equal(bedPrompt(f, 0, NOW, 1), 'belt');
+  assert.equal(locked.keys.length, 0, 'серая подсказка без клавиши');
+  assert.match(locked.text, /ур\. 6/);
+  assert.deepEqual(bedPrompt(f, 0, NOW, 1), { keys: ['E'], text: 'Выбрать семена', note: 'посадить на грядку' });
 });
 
 test('подсказка: растёт без воды — «Полить» с «было → станет», без воды в лейке — серая', () => {
@@ -116,31 +66,28 @@ test('подсказка: растёт без воды — «Полить» с �
   f.beds[0] = { crop: 'radish', plantedAt: NOW, ripeAt: NOW + 10 * 60_000, watered: false, helpers: [] };
   f.water = 500;
   const p = bedPrompt(f, 0, NOW, 1);
-  assert.notEqual(p, 'belt');
-  if (p === 'belt') return;
   assert.deepEqual(p.keys, ['E']);
   assert.match(p.text, /^Полить редис/);
   assert.equal(p.strong, '10:00 → 8:00', 'полив срезает 20 % оставшегося');
   f.water = 0;
   const dry = bedPrompt(f, 0, NOW, 1);
-  assert.ok(dry !== 'belt' && dry.keys.length === 0);
+  assert.ok(dry.keys.length === 0);
   f.water = 500;
   f.beds[0].watered = true;
   const done = bedPrompt(f, 0, NOW, 1);
-  assert.ok(done !== 'belt' && done.keys.length === 0 && done.text === 'Полито');
+  assert.ok(done.keys.length === 0 && done.text === 'Полито');
 });
 
 test('подсказка: спелая — «Собрать» с опытом и сумкой, сумка полна — серая', () => {
   const f = farmAt(1);
   f.beds[0] = { crop: 'radish', plantedAt: NOW - 100_000, ripeAt: NOW - 1, watered: false, helpers: [] };
   const p = bedPrompt(f, 0, NOW, 1);
-  assert.ok(p !== 'belt');
   assert.deepEqual(p.keys, ['E']);
   assert.match(p.text, /^Собрать /);
   assert.ok(p.pills?.some((x) => /^\+\d+ опыта$/.test(x.text)));
   f.bag = { radish: 9999 };
   const full = bedPrompt(f, 0, NOW, 1);
-  assert.ok(full !== 'belt' && full.keys.length === 0 && full.text === 'Сумка полна');
+  assert.ok(full.keys.length === 0 && full.text === 'Сумка полна');
 });
 
 test('подсказка: корыто, соседская грядка, общие места', () => {
