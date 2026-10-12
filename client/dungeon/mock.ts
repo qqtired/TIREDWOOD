@@ -23,8 +23,8 @@ interface MEnemy extends VEnemy {
 
 interface Card { kind: 'weapon' | 'passive' | 'misc'; id: string }
 
-const SPEED: Record<MobKind, number> = { rat: 4.4, bat: 4.6, slime: 2, slimelet: 3, shroom: 2.2, beetle: 2.8, spitter: 2.6, larva: 5, barrel: 2.4, shaman: 2 };
-const HP: Record<MobKind, number> = { rat: 10, bat: 8, slime: 38, slimelet: 10, shroom: 85, beetle: 60, spitter: 34, larva: 24, barrel: 600, shaman: 450 };
+const SPEED: Record<MobKind, number> = { rat: 4.4, bat: 4.6, slime: 2, slimelet: 3, shroom: 2.2, beetle: 2.8, spitter: 2.6, larva: 5, barrel: 2.4, shaman: 2, hookclaw: 3.6, wickmole: 2.5, railhopper: 2.8, chainwarden: 2.15 };
+const HP: Record<MobKind, number> = { rat: 10, bat: 8, slime: 38, slimelet: 10, shroom: 85, beetle: 60, spitter: 34, larva: 24, barrel: 600, shaman: 450, hookclaw: 52, wickmole: 66, railhopper: 44, chainwarden: 720 };
 const WAVE_MOBS: MobKind[][] = [
   ['rat', 'rat', 'rat', 'slime'],
   ['rat', 'rat', 'bat', 'slime'],

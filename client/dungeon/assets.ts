@@ -14,6 +14,10 @@ const MOB_FILES = {
   larva: new URL('../assets/dungeon/larva.glb', import.meta.url).href,
   cooper: new URL('../assets/dungeon/cooper.glb', import.meta.url).href,
   shaman: new URL('../assets/dungeon/shaman.glb', import.meta.url).href,
+  hookclaw:new URL('../assets/dungeon/hookclaw.glb',import.meta.url).href,
+  wickmole:new URL('../assets/dungeon/wickmole.glb',import.meta.url).href,
+  railhopper:new URL('../assets/dungeon/railhopper.glb',import.meta.url).href,
+  chainwarden:new URL('../assets/dungeon/chainwarden.glb',import.meta.url).href,
 } as const;
 export type MobModel = keyof typeof MOB_FILES;
 
@@ -29,10 +33,12 @@ const KIT_FILES = [
 ];
 const HERO_FILE = new URL('../assets/dungeon/hero.glb', import.meta.url).href;
 const BOSS_FILE = new URL('../assets/dungeon/boss.glb', import.meta.url).href;
+const CAULDRON_FILE=new URL('../assets/dungeon/cauldronmaster.glb',import.meta.url).href;
 
 export interface DungeonAssets {
   hero: GLTF;
   boss: GLTF;
+  cauldron:GLTF;
   mobs: Record<MobModel, GLTF>;
   /** все пропы всех наборов по имени корневого узла (позиция сброшена) */
   kits: Map<string, THREE.Object3D>;
@@ -53,7 +59,7 @@ export function loadDungeonAssets(progress: (p: number) => void = () => {}): Pro
 
 async function load(progress: (p: number) => void): Promise<DungeonAssets> {
   const loader = new GLTFLoader();
-  const total = Object.keys(MOB_FILES).length + KIT_FILES.length + 2;
+  const total = Object.keys(MOB_FILES).length + KIT_FILES.length + 3;
   let done = 0;
   const one = async (url: string): Promise<GLTF> => {
     const g = await loader.loadAsync(url);
@@ -62,9 +68,10 @@ async function load(progress: (p: number) => void): Promise<DungeonAssets> {
     return g;
   };
   const mobKeys = Object.keys(MOB_FILES) as MobModel[];
-  const [hero, boss, mobList, kitList] = await Promise.all([
+  const [hero, boss, cauldron,mobList, kitList] = await Promise.all([
     one(HERO_FILE),
     one(BOSS_FILE),
+    one(CAULDRON_FILE),
     Promise.all(mobKeys.map((k) => one(MOB_FILES[k]))),
     Promise.all(KIT_FILES.map((u) => one(u))),
   ]);
@@ -82,7 +89,8 @@ async function load(progress: (p: number) => void): Promise<DungeonAssets> {
   }
   tameMetal(hero.scene);
   tameMetal(boss.scene);
-  return { hero, boss, mobs, kits, kitClips };
+  tameMetal(cauldron.scene);
+  return { hero, boss, cauldron,mobs, kits, kitClips };
 }
 
 /** Без карты окружения металл в three.js чернеет (README героя): снижаем металличность */

@@ -190,7 +190,8 @@ export function hurtMob(
   sim: DgSim, m: DgMob, dmg: number, src: string, fromX: number, fromZ: number, kb: number, stun: number, flags: number,
 ): number {
   if (m.die || m.under || dmg <= 0) return 0;
-  if (m.k === 'povidl' && m.st === 'roar') return 0;
+  const boss=m.k==='povidl'||m.k==='cauldronmaster';
+  if (boss && m.st === 'roar') return 0;
   let ox = wrapD(m.x - fromX);
   let oz = wrapD(m.z - fromZ);
   let d = Math.sqrt(ox * ox + oz * oz);
@@ -208,21 +209,23 @@ export function hurtMob(
     // удар пришёл спереди: направление «от врага к источнику» близко к взгляду
     if (sh && -(ox * m.dx + oz * m.dz) > SHIELD_COS) dmg *= sh.mul;
   }
-  if (m.vulT > sim.t) dmg *= m.k === 'povidl' ? 1.5 : vulnMul();
+  if (m.vulT > sim.t) dmg *= m.k === 'povidl' ? 1.5 : m.k==='cauldronmaster'?(sim.bosses.find(b=>b.id===m.id)?.phase===3?1.4:1.3):m.k==='chainwarden'?1.25:vulnMul();
   m.hp -= dmg;
   m.hitT = sim.t;
   sim.stats.dmg[src] = (sim.stats.dmg[src] || 0) + dmg;
   fx(sim, { k: 'hit', id: m.id, x: m.x, z: m.z, n: Math.round(dmg), big: src === 'q' ? 1 : 0, w: src });
-  if (kb > 0 && m.k !== 'povidl') {
+  if (kb > 0 && !boss) {
     const res = mobDef(m.k).knockbackResist || 0;
     const v = kb * (1 - res) * KB_V;
     m.kx += ox * v;
     m.kz += oz * v;
   }
-  if (stun > 0 && m.k !== 'povidl') {
+  if (stun > 0 && !boss) {
     const until = sim.t + stun;
     if (m.stunT < until) m.stunT = until;
+    if((m.k==='hookclaw'||m.k==='chainwarden')&&m.st==='wind'){m.attackAt=sim.t;m.attackKind='recover';m.attackStep=0;m.st='rest';for(const mk of sim.marks)if(mk.src===m.id)mk.t1=sim.t-1;}
   }
+  if(m.k==='cauldronmaster'&&src==='q'&&stun>0&&m.attackKind==='boil'&&m.attackAt!==undefined){const age=(sim.t-m.attackAt)/30;if(age>=D.cauldron.attacks.boil.impact-.6&&age<D.cauldron.attacks.boil.impact&&d<=m.r+1.5)m.attackStep=-1;}
   if (m.hp <= 0) killHook(sim, m, src);
   return dmg;
 }

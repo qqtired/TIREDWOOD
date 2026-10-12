@@ -4,8 +4,9 @@
 // (0 — смотрит на +Z, как модели в GLB).
 import type { DgStage } from '../../shared/dungeon/api.ts';
 import type { HudBuff, HudCards, HudChest, HudItem } from './hudtypes.ts';
+import type {MobKind as SharedMobKind} from '../../shared/dungeon/data.ts';
 
-export type MobKind = 'rat' | 'bat' | 'slime' | 'slimelet' | 'shroom' | 'beetle' | 'spitter' | 'larva' | 'barrel' | 'shaman';
+export type MobKind = Exclude<SharedMobKind,'povidl'|'cauldronmaster'>;
 
 /** Что делает враг: ходит, бьёт, особое (плевок, таран, каст, нырок), оглушён */
 export const ACT_WALK = 0;
@@ -29,6 +30,8 @@ export interface VEnemy {
   elite: boolean;
   /** озверение 0…3 (пережил конец волны); дробная часть — вспышка в момент озверения */
   rage?: number;
+  anim?: 'idle'|'walk'|'attack'|'windup'|'recover';
+  animAt?: number;
 }
 
 export interface VHero {
@@ -54,12 +57,14 @@ export interface VHero {
 export interface VProj {
   id: number;
   /** ember — уголёк, pick — кирка, spit — плевок, boss_spit, firefly — светляк, rock — сталактит (падает), charge — шашка на полу */
-  kind: 'ember' | 'pick' | 'spit' | 'firefly' | 'rock' | 'charge';
+  kind: 'ember' | 'pick' | 'spit' | 'firefly' | 'rock' | 'charge' | 'boulder' | 'spark_pulse' | 'enemy_charge' | 'rail';
   x: number;
   z: number;
   /** высота над полом (дуга плевка) */
   y: number;
   yaw: number;
+  evo?: boolean;
+  phase?: number;
 }
 
 /** Метка на полу до удара: круг, полоса, сектор; t01 — заполнение (1 — сейчас ударит) */
@@ -76,6 +81,8 @@ export interface VTele {
   t01: number;
   /** jam — сиреневая (плевки), red — опасно (таран, хвост), amber — своё (Q) */
   tone: 'jam' | 'red' | 'amber';
+  /** Безопасный центр кольцевой атаки, м. */
+  inner?: number;
 }
 
 export interface VPuddle {
@@ -124,7 +131,8 @@ export interface VBoss {
   hp: number;
   hpMax: number;
   /** что играть: idle, move, emerge, burrow, slam, spit, roar, death, under (под землёй) */
-  anim: 'idle' | 'move' | 'emerge' | 'burrow' | 'slam' | 'spit' | 'roar' | 'death' | 'under';
+  anim: 'idle' | 'move' | 'emerge' | 'burrow' | 'slam' | 'spit' | 'roar' | 'death' | 'under' | 'walk' | 'attack' | 'appear' | 'pour' | 'boil' | 'phase2' | 'phase3' | 'recover';
+  family?: 'povidl'|'cauldronmaster';
   /** с какого шага идёт anim */
   animAt: number;
   phase: number;
@@ -146,9 +154,12 @@ export type VFx =
   | { k: 'q'; x: number; z: number; r: number; full: boolean }
   | { k: 'hurt'; dmg: number }
   | { k: 'cone'; x: number; z: number; yaw: number; angle: number; range: number; evo: boolean }
-  | { k: 'chain'; pts: number[] }
+  | { k: 'chain'; pts: number[]; evo?: boolean; what?: 'spark' | 'charge' }
+  | { k: 'disarm'; x: number; z: number }
+  | { k: 'flow'; x: number; z: number; yaw: number; len: number; w: number; phase: number }
+  | { k: 'boil'; x: number; z: number; r: number; inner: number; phase: number }
   | { k: 'beam'; x: number; z: number; yaw: number; len: number; w: number }
-  | { k: 'boom'; x: number; z: number; r: number; kind: 'rock' | 'charge' | 'keg' | 'boss' | 'spit' }
+  | { k: 'boom'; x: number; z: number; r: number; kind: 'rock' | 'charge' | 'keg' | 'boss' | 'spit' | 'embers' | 'spark' | 'enemy_charge' | 'boulder' }
   | { k: 'shot'; w: 'ember' | 'pick' | 'spark' | 'stalactites' | 'charges' | 'fireflies' }
   | { k: 'elite'; kind: MobKind; name: string; x: number; z: number }
   | { k: 'wave'; wave: number; title: string; sub: string }
@@ -158,7 +169,7 @@ export type VFx =
   /** таймер волны кончился: n живых озверели (ступень level) */
   | { k: 'rage'; n: number; level: number }
   | { k: 'event'; title: string }
-  | { k: 'boss'; what: 'spawn' | 'roar' | 'burrow' | 'emerge' | 'slam' | 'spit' | 'phase' | 'death'; x: number; z: number }
+  | { k: 'boss'; what: 'spawn' | 'roar' | 'burrow' | 'emerge' | 'slam' | 'spit' | 'phase' | 'death'; x: number; z: number; id?:number }
   | { k: 'spawnFx'; x: number; z: number }
   | { k: 'use'; kind: BuildingKind; x: number; z: number }
   | { k: 'heal'; n: number }

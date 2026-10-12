@@ -66,6 +66,10 @@ void main() {
     float fill = step(d, vShape.y) * (0.28 + 0.25 * smoothstep(vShape.y - 0.15, vShape.y, d));
     float pulse = vShape.y > 0.92 ? 0.25 + 0.25 * sin(uTime * 40.0) : 0.0;
     a = (max(edge * 0.95, fill) + pulse * step(d, 1.0)) * step(d, 1.0);
+    if (vShape.z > 0.0) {
+      float innerEdge = 1.0 - smoothstep(0.0, 0.035, abs(d - vShape.z));
+      a = max(a * step(vShape.z, d), innerEdge * 0.95);
+    }
   } else if (t == 3.0) {
     // метка-полоса: v вдоль (0 — у начала), u поперёк
     float v = vUv.y * 0.5 + 0.5;

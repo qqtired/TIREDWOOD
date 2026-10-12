@@ -3,6 +3,7 @@ import { areaMul, dmgMul, fx, hasBuff, hurtMob, KB_DECAY, passiveLv, queryCircle
 import { D, passiveDef } from './data.ts';
 import { blocked, collide, inPit, T_JAM, T_PIT, T_SOLID, T_WATER, terrainAt } from './map.ts';
 import { hitProps } from './props.ts';
+import {disarmCharges} from './enemycharges.ts';
 import type { DgSim } from './types.ts';
 import { DT, ticks, wrapD, wrapP } from './util.ts';
 
@@ -189,6 +190,7 @@ function strikeQ(sim: DgSim): void {
   const n = queryCircle(sim, h.x, h.z, r);
   for (let i = 0; i < n; i++) hurtMob(sim, sim.mobs[Q[i]], dmg, 'q', h.x, h.z, kb, stun, 0);
   if (full) {
+    disarmCharges(sim,h.x,h.z,r);
     // гасит плевки
     for (const p of sim.puddles) {
       if (p.k !== 'spit' && p.k !== 'boss') continue;

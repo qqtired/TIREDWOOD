@@ -311,6 +311,7 @@ export class BuildingZones {
       case 'altar':
         return why === 'cool' ? warn(`Остывает — снова через ${secs(p.t1)} с`) : why ? warn('Сейчас не сработает') : no;
       case 'chest':
+        if (why === 'crowd') return warn('Сундук ждёт места для элиты — расчисти орду');
         if (why === 'busy') return warn(`Убей элиту — ${secs(p.t1)} с`);
         if (why === 'wave') return warn('Откроется во время волны');
         if (why === 'boss') return warn('Не на волне босса');

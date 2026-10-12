@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "date": "2026-10-10",
+  "date": "2026-10-12",
   "mode": "Подземелье",
   "notes": "Все числа режима «Подземелье». HP и урон врагов — база 1-й волны: на волнах 1–10 HP × waves[].hpMul (×1,15 за волну), урон × waves[].dmgMul (+6 % за волну); с 11-й — по endless. Время — секунды, расстояния — метры. Поле model у оружия и эволюций — только для tools/survivors/balance.mjs (t — среднее число задетых целей, boss — доля попаданий по боссу), в игре его нет. balanceSnapshot — вывод этой модели.",
   "hero": {
@@ -885,6 +885,83 @@
         "boss": 0.5,
         "orbit": true
       }
+    },
+    {
+      "id": "embers_evo",
+      "from": "embers",
+      "with": "cooldown",
+      "name": "Жаровой залп",
+      "icon": "",
+      "desc": "Крупные угольки: первое попадание каждого даёт малый взрыв",
+      "stats": {
+        "dmg": 22,
+        "n": 5,
+        "cd": 0.8,
+        "pierce": 2,
+        "speed": 14,
+        "splash": {
+          "dmg": 8,
+          "radius": 1.4
+        }
+      }
+    },
+    {
+      "id": "pickaxe_evo",
+      "from": "pickaxe",
+      "with": "speed",
+      "name": "Рудничный маховик",
+      "icon": "",
+      "desc": "Четыре трёхлопастных маховика режут линию туда и обратно, возврат сильнее отталкивает",
+      "stats": {
+        "dmg": 48,
+        "n": 4,
+        "cd": 1.7,
+        "range": 10,
+        "size": 1.6,
+        "returnKnockback": 1
+      }
+    },
+    {
+      "id": "spark_evo",
+      "from": "spark",
+      "with": "magnet",
+      "name": "Грозовая друза",
+      "icon": "",
+      "desc": "Две длинные цепи; на последней цели каждой через миг срабатывает кристальный импульс",
+      "stats": {
+        "dmg": 34,
+        "chains": 2,
+        "jumps": 7,
+        "cd": 1.1,
+        "jumpRange": 7,
+        "firstRange": 11,
+        "falloff": 0.08,
+        "pulse": {
+          "dmg": 12,
+          "radius": 1.5,
+          "warn": 0.35
+        }
+      }
+    },
+    {
+      "id": "charges_evo",
+      "from": "charges",
+      "with": "amount",
+      "name": "Пороховая связка",
+      "icon": "",
+      "desc": "Три связки пороха; взрыв зажигает взведённые соседние связки через 0.18 с",
+      "stats": {
+        "dmg": 86,
+        "n": 3,
+        "cd": 2,
+        "maxOnFloor": 8,
+        "radius": 3.2,
+        "arm": 0.5,
+        "fuse": 8,
+        "stun": 1,
+        "chainRadius": 4,
+        "chainDelay": 0.18
+      }
     }
   ],
   "evolutionRule": "Оружие на 7-м уровне + нужная пассивка любого уровня → ближайший сундук (элиты, проклятый, большой с босса) вместо барабана выдаёт эволюцию. Готовых несколько — одну (ту, что раньше стала готовой). Пассивка остаётся. Золотых карточек нет",
@@ -1212,6 +1289,97 @@
         "n": 3
       },
       "interrupt": 0.15
+    },
+    {
+      "id": "hookclaw",
+      "name": "Крюколап",
+      "short": "Крюк бьёт реальным концом: круг0.65 м перед телом, подготовка0.833 с",
+      "tier": "mob",
+      "hp": 52,
+      "speed": 3.6,
+      "dmg": 9,
+      "xp": 3,
+      "radius": 0.5,
+      "knockbackResist": 0.2,
+      "hook": {
+        "every": 4.2,
+        "impact": 0.8333333333333334,
+        "recover": 2.2333333333333334,
+        "radius": 0.65,
+        "dmg": 14,
+        "right": 0.13684,
+        "forward": 1.22417
+      }
+    },
+    {
+      "id": "wickmole",
+      "name": "Фитильщик",
+      "short": "Фитильщик",
+      "tier": "mob",
+      "hp": 66,
+      "speed": 2.5,
+      "dmg": 8,
+      "xp": 4,
+      "radius": 0.45,
+      "knockbackResist": 0.2,
+      "plant": {
+        "every": 6,
+        "impact": 1,
+        "recover": 2.5,
+        "fuse": 1.8,
+        "radius": 2.3,
+        "dmg": 20,
+        "right": 0.18,
+        "forward": 0.58
+      }
+    },
+    {
+      "id": "railhopper",
+      "name": "Рельсовый щелкун",
+      "short": "Рельсовый щелкун",
+      "tier": "mob",
+      "hp": 44,
+      "speed": 2.8,
+      "dmg": 7,
+      "xp": 3,
+      "radius": 0.45,
+      "knockbackResist": 0.2,
+      "rail": {
+        "every": 4.8,
+        "impact": 1,
+        "recover": 2.6,
+        "width": 0.8,
+        "length": 15,
+        "speed": 11,
+        "dmg": 16
+      }
+    },
+    {
+      "id": "chainwarden",
+      "name": "Цепной пристав",
+      "short": "Два удара реальным грузом цепи: перед телом и позади, подготовка1.25/2.75 с",
+      "tier": "elite",
+      "hp": 720,
+      "speed": 2.15,
+      "dmg": 18,
+      "xp": 40,
+      "radius": 0.72,
+      "knockbackResist": 0.75,
+      "swing": {
+        "every": 7,
+        "impact": 1.2666666666666666,
+        "impact2": 2.7666666666666666,
+        "recover": 5,
+        "radius": 0.216,
+        "dmg": 22,
+        "vuln": 1.25,
+        "interrupt": 0.12,
+        "right": -0.0266295,
+        "forward": 3.06,
+        "right2": 0.0266134,
+        "forward2": -3.063678,
+        "radius2": 0.216
+      }
     }
   ],
   "mobRules": {
@@ -1612,6 +1780,231 @@
           "mob": "povidl",
           "n": 1,
           "text": "Босс: Старый Повидл"
+        }
+      ]
+    },
+    {
+      "w": 16,
+      "dur": 70,
+      "hpMul": 7.923856257762723,
+      "dmgMul": 1.9,
+      "minAlive": 94,
+      "interval": 1,
+      "mobs": {
+        "rat": 425,
+        "slime": 16,
+        "shroom": 16,
+        "beetle": 23,
+        "spitter": 27,
+        "bat": 23,
+        "hookclaw": 28
+      },
+      "elites": {
+        "barrel": 1,
+        "shaman": 1
+      },
+      "events": [
+        {
+          "at": 4,
+          "type": "pack",
+          "mob": "hookclaw",
+          "n": 3,
+          "text": "Первые крюки с одного фланга, без второго нового вида"
+        },
+        {
+          "at": 10.5,
+          "type": "elite",
+          "mob": "barrel",
+          "n": 1,
+          "text": ""
+        },
+        {
+          "at": 24.5,
+          "type": "swarm",
+          "mob": "bat",
+          "n": 36,
+          "text": ""
+        },
+        {
+          "at": 31.5,
+          "type": "elite",
+          "mob": "shaman",
+          "n": 1,
+          "text": ""
+        },
+        {
+          "at": 55,
+          "type": "horde",
+          "mob": null,
+          "n": 0,
+          "text": "Последние 15 с: поток ×2, новый вид уже знаком"
+        }
+      ]
+    },
+    {
+      "w": 17,
+      "dur": 70,
+      "hpMul": 9.514790508626861,
+      "dmgMul": 1.96,
+      "minAlive": 98,
+      "interval": 1,
+      "mobs": {
+        "rat": 513,
+        "slime": 12,
+        "spitter": 21,
+        "beetle": 11,
+        "hookclaw": 14,
+        "wickmole": 20
+      },
+      "elites": {
+        "barrel": 1,
+        "shaman": 1
+      },
+      "events": [
+        {
+          "at": 5,
+          "type": "pack",
+          "mob": "wickmole",
+          "n": 2,
+          "text": "Первая постановка видна в стороне от героя"
+        },
+        {
+          "at": 10.5,
+          "type": "elite",
+          "mob": "shaman",
+          "n": 1,
+          "text": ""
+        },
+        {
+          "at": 31.5,
+          "type": "elite",
+          "mob": "barrel",
+          "n": 1,
+          "text": ""
+        },
+        {
+          "at": 45,
+          "type": "pack",
+          "mob": "hookclaw",
+          "n": 4,
+          "text": "Фланг на фоне сапёров; не выдавать кольцо и Орду"
+        }
+      ]
+    },
+    {
+      "w": 18,
+      "dur": 70,
+      "hpMul": 8.668822005978653,
+      "dmgMul": 2.02,
+      "minAlive": 102,
+      "interval": 1,
+      "mobs": {
+        "rat": 375,
+        "shroom": 16,
+        "spitter": 36,
+        "bat": 38,
+        "hookclaw": 24,
+        "wickmole": 19,
+        "railhopper": 26
+      },
+      "elites": {
+        "barrel": 1,
+        "shaman": 1,
+        "chainwarden": 1
+      },
+      "events": [
+        {
+          "at": 4,
+          "type": "pack",
+          "mob": "railhopper",
+          "n": 2,
+          "text": "Первые две линии из разных сторон, подготовка по очереди"
+        },
+        {
+          "at": 10.5,
+          "type": "elite",
+          "mob": "barrel",
+          "n": 1,
+          "text": ""
+        },
+        {
+          "at": 24.5,
+          "type": "swarm",
+          "mob": "bat",
+          "n": 40,
+          "text": ""
+        },
+        {
+          "at": 31,
+          "type": "elite",
+          "mob": "shaman",
+          "n": 1,
+          "text": ""
+        },
+        {
+          "at": 38.5,
+          "type": "ring",
+          "mob": "shroom",
+          "n": 20,
+          "text": "20 грибников вместо 40: новый стрелок уже делит внимание"
+        },
+        {
+          "at": 47,
+          "type": "elite",
+          "mob": "chainwarden",
+          "n": 1,
+          "text": "Первый Пристав после кольца, без Орды"
+        }
+      ]
+    },
+    {
+      "w": 19,
+      "dur": 70,
+      "hpMul": 8.089220534648685,
+      "dmgMul": 2.08,
+      "minAlive": 106,
+      "interval": 1,
+      "mobs": {
+        "rat": 369,
+        "beetle": 69,
+        "spitter": 41,
+        "hookclaw": 33,
+        "wickmole": 21,
+        "railhopper": 42
+      },
+      "elites": {
+        "barrel": 1,
+        "shaman": 1,
+        "chainwarden": 1
+      },
+      "events": [
+        {
+          "at": 10.5,
+          "type": "elite",
+          "mob": "shaman",
+          "n": 1,
+          "text": ""
+        },
+        {
+          "at": 27,
+          "type": "elite",
+          "mob": "barrel",
+          "n": 1,
+          "text": ""
+        },
+        {
+          "at": 44,
+          "type": "elite",
+          "mob": "chainwarden",
+          "n": 1,
+          "text": ""
+        },
+        {
+          "at": 55,
+          "type": "pressure",
+          "mob": null,
+          "n": 0,
+          "text": "Поднять частоту обычной очереди на 25% на 8 с; без нового набора атак"
         }
       ]
     }
@@ -2577,5 +2970,68 @@
       "date": "2026-10-10",
       "text": "Решения владельца: карточки сразу с паузой мира (levelUp), эволюция из сундука (evolutionRule, evolutionSource), пауза 60 с при обрыве (pause.disconnect, reconnectGrace), пол (terrain), рывок через провал (actives.dash.pitJump), камера и полоса спавна (camera, mobRules.spawnBand, spawnRing, spawnAheadShare), алтари 5/4 (interactables.altar.places/active), доп. постройки (interactables: lamppost, minecart, powderKegs, trampoline, forge; extrasChosen). Пересчитаны waves[].mobs и hpMul, endless.step11, balanceSnapshot"
     }
-  ]
+  ],
+  "expansion": {
+    "liveCaps": {
+      "hookclaw": 18,
+      "wickmole": 6,
+      "railhopper": 8,
+      "chainwarden": 1
+    },
+    "newTelegraphs": 2,
+    "enemyCharges": 6,
+    "firstWave": 16
+  },
+  "cauldron": {
+    "id": "cauldronmaster",
+    "name": "Казанщик Бурдюк",
+    "hp": 64000,
+    "contactDmg": 24,
+    "speed": 2.3,
+    "radius": 1.8,
+    "xp": 300,
+    "enrageAt": 180,
+    "endlessGrowth": 1.07,
+    "summonBudget": 12,
+    "summonEvery": 20,
+    "summonN": 4,
+    "transition": 1.5,
+    "attacks": {
+      "ladle": {
+        "impact": 1.3333333333333333,
+        "recover": 3.5,
+        "radius": 0.54,
+        "dmg": 24,
+        "right": -0.0363,
+        "forward": 1.9011
+      },
+      "ladle2": {
+        "impact": 1.3333333333333333,
+        "impact2": 2.8333333333333335,
+        "recover": 5.3,
+        "radius": 0.54,
+        "dmg": 24,
+        "right": -1.4671,
+        "forward": 1.2654,
+        "right2": 1.7061,
+        "forward2": 1.4824,
+        "radius2": 0.541
+      },
+      "pour": {
+        "impact": 1.2333333333333334,
+        "recover": 3.1333333333333333,
+        "width": 1.2,
+        "length": 14,
+        "radius": 1.8,
+        "dmg": 18
+      },
+      "boil": {
+        "impact": 1.5,
+        "recover": 3.5,
+        "inner": 4,
+        "radius": 8,
+        "dmg": 26
+      }
+    }
+  }
 }

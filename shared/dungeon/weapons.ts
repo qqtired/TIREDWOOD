@@ -1,10 +1,12 @@
-// «Подземелье»: 8 оружий и 4 эволюции. Оружие бьёт само: наведение по design-data (ближайший, густая толпа, по ходу).
+// «Подземелье»: 8 оружий и 8 эволюций. Оружие бьёт само: наведение по design-data (ближайший, густая толпа, по ходу).
 // Положения светляков и лучей Маяка считает orbPos/beamDir — клиент рисует ими же (с дробным шагом alpha).
 import {
-  amount, areaMul, cdMul, densest, dmgMul, fx, H_SHIELD, healHero, hurtMob, nearestMob, newId, queryCircle, Q,
+  amount, areaMul, cdMul, densest, dmgMul, fx, H_SHIELD, healHero, hurtMob, hurtHero, nearestMob, newId, queryCircle, Q,
 } from './core.ts';
 import { D, evoOf, weaponDef, type WeaponLevel } from './data.ts';
 import { hitProps, hitPropsLine } from './props.ts';
+import {disarmCharges,disarmChargesLine} from './enemycharges.ts';
+import {collide,T_SOLID} from './map.ts';
 import type { DgMark, DgSim, DgWeapon } from './types.ts';
 import { cosDeg, DT, rnd, rotate, ticks, wrapD, wrapP } from './util.ts';
 import { sinCos } from '../math.ts';
@@ -123,6 +125,7 @@ function cone(sim: DgSim, w: DgWeapon, s: WeaponLevel & Record<string, unknown>,
   const dmg = s.dmg * dmgMul(sim) * mul;
   const burn = typeof s.burn === 'number' ? s.burn : 0;
   const n = queryCircle(sim, h.x, h.z, range);
+  for(const c of sim.enemyCharges){const ox=wrapD(c.x-h.x),oz=wrapD(c.z-h.z),d=Math.sqrt(ox*ox+oz*oz);if(d<=range+.45&&(d<.45||(ox*dx+oz*dz)/d>=cosH-.45/d))c.end=-1;}
   for (let i = 0; i < n; i++) {
     const m = sim.mobs[Q[i]];
     const ox = wrapD(m.x - h.x);
@@ -180,7 +183,7 @@ function embers(sim: DgSim, w: DgWeapon): void {
     const sp = s.speed ?? 12;
     sim.shots.push({
       id: newId(sim), k: 'ember', x: h.x, z: h.z, vx: C.x * sp, vz: C.z * sp, dx: C.x, dz: C.z, v0: sp, t0: sim.t, ph: m.id, size: 0.35,
-      dmg: s.dmg * dmgMul(sim), pierce: s.pierce ?? 1, hit: [],
+      dmg: s.dmg * dmgMul(sim), pierce: s.pierce ?? 1, hit: [],evo:w.evo,
     });
   }
   w.cd = cdTicks(sim, s.cd ?? 1);
@@ -211,7 +214,7 @@ function pickaxe(sim: DgSim, w: DgWeapon): void {
     rotate(dx, dz, (k - (n - 1) / 2) * 0.35, C);
     sim.shots.push({
       id: newId(sim), k: 'pick', x: h.x, z: h.z, vx: C.x * v0, vz: C.z * v0, dx: C.x, dz: C.z, v0, t0: sim.t, ph: 0,
-      size: (s.size ?? 1) * areaMul(sim), dmg: s.dmg * dmgMul(sim), pierce: 99, hit: [],
+      size: (s.size ?? 1) * areaMul(sim), dmg: s.dmg * dmgMul(sim), pierce: 99, hit: [],evo:w.evo,
     });
   }
   w.cd = cdTicks(sim, s.cd ?? 2.2);
@@ -225,7 +228,9 @@ function stepShots(sim: DgSim): void {
     const s = shots[i];
     const age = sim.t - s.t0;
     let keep = true;
-    if (s.k === 'ember') {
+    if(s.k==='rail'){
+      const p=collide(s.x+s.vx*DT,s.z+s.vz*DT,s.size,T_SOLID);s.x=wrapP(p.x);s.z=wrapP(p.z);const dx=wrapD(h.x-s.x),dz=wrapD(h.z-s.z);if(p.hit||age>(s.maxAge??45))keep=false;else if(dx*dx+dz*dz<(s.size+.45)**2){hurtHero(sim,s.dmg,'railhopper');keep=false;}
+    }else if (s.k === 'ember') {
       // доворот к цели
       let tg = -1;
       for (let j = 0; j < sim.mobs.length; j++) {
@@ -252,6 +257,7 @@ function stepShots(sim: DgSim): void {
       }
       s.x = wrapP(s.x + s.vx * DT);
       s.z = wrapP(s.z + s.vz * DT);
+      disarmCharges(sim,s.x,s.z,s.size);
       const n = queryCircle(sim, s.x, s.z, s.size);
       for (let q = 0; q < n && keep; q++) {
         const m = sim.mobs[Q[q]];
@@ -259,6 +265,7 @@ function stepShots(sim: DgSim): void {
         s.hit.push(m.id);
         const before = m.hp;
         const dealt = hurtMob(sim, m, s.dmg, 'embers', s.x - s.vx * DT, s.z - s.vz * DT, 0.5, 0, H_SHIELD);
+        if(s.evo&&!s.splashDone){s.splashDone=1;const e=D.evolutions.find(e=>e.from==='embers')!.stats.splash!;ownMark(sim,'ember_splash',s.x,s.z,e.radius*areaMul(sim),0,e.dmg*dmgMul(sim),0);}
         s.pierce--;
         // щит жука: уголёк отскакивает
         if (m.k === 'beetle' && dealt < s.dmg * 0.5 && before > 0) s.pierce = 0;
@@ -287,11 +294,12 @@ function stepShots(sim: DgSim): void {
       s.x = wrapP(s.x + s.vx * DT);
       s.z = wrapP(s.z + s.vz * DT);
       const n = queryCircle(sim, s.x, s.z, 0.55 * s.size);
+      disarmCharges(sim,s.x,s.z,.55*s.size);
       for (let q = 0; q < n; q++) {
         const m = sim.mobs[Q[q]];
         if (s.hit.includes(m.id)) continue;
         s.hit.push(m.id);
-        hurtMob(sim, m, s.dmg, 'pickaxe', h.x, h.z, 0.6, 0, H_SHIELD);
+        hurtMob(sim, m, s.dmg, 'pickaxe', h.x, h.z, s.evo&&s.ph===1?1:0.6, 0, H_SHIELD);
       }
       hitProps(sim, s.x, s.z, 0.55 * s.size);
       if (age > 150) keep = false;
@@ -367,6 +375,7 @@ function fireflies(sim: DgSim, w: DgWeapon): void {
     const x = wrapP(C.x);
     const z = wrapP(C.z);
     const q = queryCircle(sim, x, z, 0.5);
+    disarmCharges(sim,x,z,.5);
     for (let j = 0; j < q; j++) {
       const m = sim.mobs[Q[j]];
       if (m.ffT > sim.t) continue;
@@ -390,22 +399,24 @@ function spark(sim: DgSim, w: DgWeapon): void {
   if (w.cd > 0) return;
   const s = st(w);
   const h = sim.hero;
-  const first = nearestMob(sim, h.x, h.z, 9);
+  const firstRange=typeof s.firstRange==='number'?s.firstRange:9;
+  const first = nearestMob(sim, h.x, h.z, firstRange);
   if (first < 0) return;
   const chains = s.chains ?? 1;
   const jumps = (s.jumps ?? 3) + 2 * amount(sim);
   const jr = (s.jumpRange ?? 5) * areaMul(sim);
-  const fall = weaponDef('spark').falloff ?? 0.1;
+  const fall = typeof s.falloff==='number'?s.falloff:weaponDef('spark').falloff ?? 0.1;
   const dmg0 = s.dmg * dmgMul(sim);
   chainHit.length = 0;
   for (let c = 0; c < chains; c++) {
-    let cur = c === 0 ? first : nearestMob(sim, h.x, h.z, 9, sim.mobs[first].id);
+    let cur = c === 0 ? first : nearestMob(sim, h.x, h.z, firstRange, sim.mobs[first].id);
     if (cur < 0) break;
     let px = h.x;
     let pz = h.z;
     const pts: number[] = [h.x, h.z];
     for (let j = 0; j < jumps && cur >= 0; j++) {
       const m = sim.mobs[cur];
+      const lx=wrapD(m.x-px),lz=wrapD(m.z-pz),ll=Math.sqrt(lx*lx+lz*lz)||1;disarmChargesLine(sim,px,pz,lx/ll,lz/ll,ll,.35);
       chainHit.push(m.id);
       pts.push(m.x, m.z);
       hurtMob(sim, m, dmg0 * (1 - fall * j), 'spark', px, pz, 0.2, 0, H_SHIELD);
@@ -427,7 +438,8 @@ function spark(sim: DgSim, w: DgWeapon): void {
       }
       cur = best;
     }
-    fx(sim, { k: 'chain', pts });
+    if(w.evo&&pts.length>2){const p=s.pulse as {dmg:number;radius:number;warn:number};ownMark(sim,'spark_pulse',px,pz,p.radius*areaMul(sim),ticks(p.warn),p.dmg*dmgMul(sim),0);}
+    fx(sim, { k: 'chain', pts,evo:w.evo });
   }
   w.cd = cdTicks(sim, s.cd ?? 1.5);
 }
@@ -485,7 +497,8 @@ function stalactites(sim: DgSim, w: DgWeapon): void {
 /** Удар своей метки (сталактит, глыба) */
 export function ownMarkHit(sim: DgSim, mk: DgMark): void {
   const n = queryCircle(sim, mk.x, mk.z, mk.r);
-  const src = mk.what === 'boulder' || mk.what === 'stal' ? 'stalactites' : mk.what;
+  const src = mk.what === 'boulder' || mk.what === 'stal' ? 'stalactites' : mk.what==='ember_splash'?'embers':mk.what==='spark_pulse'?'spark':mk.what;
+  disarmCharges(sim,mk.x,mk.z,mk.r);
   for (let i = 0; i < n; i++) hurtMob(sim, sim.mobs[Q[i]], mk.dmg, src, mk.x, mk.z, mk.kb, mk.stun, 0);
   hitProps(sim, mk.x, mk.z, mk.r);
   fx(sim, { k: 'boom', x: mk.x, z: mk.z, r: mk.r, what: mk.what });
@@ -504,6 +517,7 @@ function charges(sim: DgSim, w: DgWeapon): void {
     sim.traps.push({
       id: newId(sim), x: wrapP(h.x + ox), z: wrapP(h.z + oz), t0: sim.t, arm: sim.t + ticks(s.arm ?? 0.5),
       end: sim.t + ticks(s.fuse ?? 8), dmg: s.dmg * dmgMul(sim), r: (s.radius ?? 2.5) * areaMul(sim), stun: ticks(s.stun ?? 0),
+      evo:w.evo,chainR:typeof s.chainRadius==='number'?s.chainRadius*areaMul(sim):0,chainDelay:typeof s.chainDelay==='number'?ticks(s.chainDelay):0,
     });
   }
   w.cd = cdTicks(sim, s.cd ?? 2.5);
@@ -517,7 +531,9 @@ function stepTraps(sim: DgSim): void {
     let boom = sim.t >= t.end;
     if (!boom && sim.t >= t.arm) boom = queryCircle(sim, t.x, t.z, 0.6) > 0;
     if (boom) {
+      if(t.evo&&t.chainR)for(const o of traps){if(o===t||o.chained||sim.t<o.arm)continue;const dx=wrapD(o.x-t.x),dz=wrapD(o.z-t.z);if(dx*dx+dz*dz<t.chainR*t.chainR){o.chained=1;o.end=Math.min(o.end,sim.t+(t.chainDelay??5));fx(sim,{k:'chain',pts:[t.x,t.z,o.x,o.z],evo:1,what:'charge'});}}
       const n = queryCircle(sim, t.x, t.z, t.r);
+      disarmCharges(sim,t.x,t.z,t.r);
       for (let q = 0; q < n; q++) hurtMob(sim, sim.mobs[Q[q]], t.dmg, 'charges', t.x, t.z, 1.2, t.stun, 0);
       hitProps(sim, t.x, t.z, t.r);
       fx(sim, { k: 'boom', x: t.x, z: t.z, r: t.r, what: 'charge' });
@@ -542,6 +558,7 @@ export function beamDir(sim: DgSim, w: DgWeapon, b: number, alpha: number, out: 
 
 function beamHit(sim: DgSim, dx: number, dz: number, len: number, wd: number, dmg: number, rehit: number): void {
   const h = sim.hero;
+  disarmChargesLine(sim,h.x,h.z,dx,dz,len,wd);
   const n = queryCircle(sim, wrapP(h.x + (dx * len) / 2), wrapP(h.z + (dz * len) / 2), len / 2 + wd);
   for (let i = 0; i < n; i++) {
     const m = sim.mobs[Q[i]];

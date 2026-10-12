@@ -8,7 +8,8 @@ import { LEVEL_RAW } from './gen-level.ts';
 export type WeaponId = 'lantern' | 'embers' | 'pickaxe' | 'fireflies' | 'spark' | 'stalactites' | 'charges' | 'beam';
 export type PassiveId = 'might' | 'cooldown' | 'area' | 'amount' | 'maxhp' | 'armor' | 'speed' | 'magnet';
 export type MobKind =
-  | 'rat' | 'bat' | 'slime' | 'slimelet' | 'shroom' | 'beetle' | 'spitter' | 'larva' | 'barrel' | 'shaman' | 'povidl';
+  | 'rat' | 'bat' | 'slime' | 'slimelet' | 'shroom' | 'beetle' | 'spitter' | 'larva' | 'barrel' | 'shaman' | 'povidl'
+  | 'hookclaw' | 'wickmole' | 'railhopper' | 'chainwarden' | 'cauldronmaster';
 
 /** Уровень оружия: все поля необязательные — у каждого вида свои */
 export interface WeaponLevel {
@@ -27,6 +28,9 @@ export interface EvoDef {
     dmg: number; cd?: number; angle?: number; range?: number; cones?: number; burn?: number; n?: number; radius?: number;
     boulder?: { every: number; dmg: number; radius: number; warn: number; stun: number };
     beams?: number; period?: number; length?: number; width?: number; rings?: number[]; healEveryHits?: number;
+    pierce?: number; speed?: number; size?: number; jumps?: number; chains?: number; jumpRange?: number;
+    firstRange?: number; falloff?: number; returnKnockback?: number; maxOnFloor?: number; arm?: number; fuse?: number; stun?: number;
+    splash?: { dmg: number; radius: number }; pulse?: { dmg: number; radius: number; warn: number }; chainRadius?: number; chainDelay?: number;
   };
 }
 export interface PassiveDef {
@@ -43,8 +47,12 @@ export interface MobDef {
   heal?: { every: number; warn: number; radius: number; frac: number };
   summon?: { every: number; warn: number; mob: MobKind; n: number };
   interrupt?: number;
+  hook?: { every: number; impact: number; recover: number; radius: number; dmg: number; right: number; forward: number };
+  plant?: { every: number; impact: number; recover: number; fuse: number; radius: number; dmg: number; right: number; forward: number };
+  rail?: { every: number; impact: number; recover: number; width: number; length: number; speed: number; dmg: number };
+  swing?: { every: number; impact: number; impact2: number; recover: number; radius: number; dmg: number; vuln: number; interrupt: number; right: number; forward: number; right2: number; forward2: number; radius2: number };
 }
-export interface WaveEventDef { at: number; type: 'pack' | 'swarm' | 'ring' | 'elite' | 'horde' | 'boss'; mob: MobKind | null; n: number; text: string }
+export interface WaveEventDef { at: number; type: 'pack' | 'swarm' | 'ring' | 'elite' | 'horde' | 'boss' | 'pressure'; mob: MobKind | null; n: number; text: string }
 export interface WaveDef {
   w: number; dur: number; hpMul: number; dmgMul: number; minAlive: number; interval: number;
   mobs: Partial<Record<MobKind, number>>; elites: Partial<Record<MobKind, number>>; events: WaveEventDef[]; boss?: string;
@@ -92,6 +100,12 @@ export interface DesignData {
   endless: EndlessDef;
   interactables: Interactable[];
   terrain?: { jam?: { heroSlow: number }; water?: { slowAll: number } };
+  expansion: { liveCaps: Partial<Record<MobKind, number>>; newTelegraphs: number; enemyCharges: number; firstWave: number };
+  cauldron: {
+    id: 'cauldronmaster'; name: string; hp: number; contactDmg: number; speed: number; radius: number; xp: number;
+    enrageAt: number; endlessGrowth: number; summonBudget: number; summonEvery: number; summonN: number; transition: number;
+    attacks: Record<string, { impact: number; impact2?: number; recover: number; radius: number; dmg: number; angle?: number; width?: number; length?: number; inner?: number; right?: number; forward?: number; right2?: number; forward2?: number; radius2?: number }>;
+  };
 }
 
 export interface Circle { t: 'c'; x: number; z: number; r: number; kind: string }
@@ -139,6 +153,7 @@ mobById.set('povidl', {
   id: 'povidl', name: D.boss.name, short: 'Повидл', tier: 'boss', hp: D.boss.hp, speed: D.boss.speed, dmg: D.boss.contactDmg, xp: D.boss.xp,
   radius: 1.8, knockbackResist: 1,
 });
+mobById.set('cauldronmaster', {id:'cauldronmaster',name:D.cauldron.name,short:'Бурдюк',tier:'boss',hp:D.cauldron.hp,speed:D.cauldron.speed,dmg:D.cauldron.contactDmg,xp:D.cauldron.xp,radius:D.cauldron.radius,knockbackResist:1});
 const evoById = new Map<string, EvoDef>(D.evolutions.map((e) => [e.id, e]));
 
 export function weaponDef(id: string): WeaponDef {
@@ -179,7 +194,7 @@ export function interNum(id: string, key: string, def: number): number {
 }
 
 /** Порядок видов врагов — для счётчиков отряда (индексы массивов) */
-export const MOB_KINDS: MobKind[] = ['rat', 'bat', 'slime', 'slimelet', 'shroom', 'beetle', 'spitter', 'larva', 'barrel', 'shaman', 'povidl'];
+export const MOB_KINDS: MobKind[] = ['rat', 'bat', 'slime', 'slimelet', 'shroom', 'beetle', 'spitter', 'larva', 'barrel', 'shaman', 'povidl','hookclaw','wickmole','railhopper','chainwarden','cauldronmaster'];
 export function mobIndex(k: MobKind): number {
   return MOB_KINDS.indexOf(k);
 }

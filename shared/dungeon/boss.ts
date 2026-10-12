@@ -1,14 +1,15 @@
 // «Подземелье»: босс — Старый Повидл. 3 фазы (100–66–33 %), нырок с бугром и кругом вынырка, плевки, хвост,
 // обвал свода, призыв личинок; окно ×1,5 после вынырка; ярость с 180-й секунды. Варианты бесконечности:
-// 20 — Повидл II (+2 шамана, вынырок оставляет лужи), 30 — Близнецы (два ×0,75 по 50 % HP), 40 — Повидл III (+3 Бочара,
+// 20/60/100 — Казанщик; 30 — Близнецы (два ×0,75 по 50 % HP), 40 — Повидл III (+3 Бочара,
 // обвал с 1-й фазы), 50+ — круг заново (+25 % HP, +10 % скорости за круг).
 import { fx, hurtHero, makeMob, newId } from './core.ts';
-import { D, type BossAttack } from './data.ts';
+import { D, MOB_KINDS,type BossAttack } from './data.ts';
 import { cycleOf } from './director.ts';
-import { addMark, pushHero, roomForExtra, spawnMob } from './mobs.ts';
+import { addMark, pushHero, roomForExtra, aliveCount,spawnMob } from './mobs.ts';
 import { dropGem, dropItem } from './pickups.ts';
 import type { DgBoss, DgMob, DgSim } from './types.ts';
 import { DT, dirOf, powi, rnd, rotate, ticks, wrapD, wrapP } from './util.ts';
+import {spawnCauldron,stepCauldron} from './cauldron.ts';
 
 const B = D.boss;
 const V = { x: 0, z: 0 };
@@ -22,8 +23,8 @@ function attack(phase: number, id: string): BossAttack {
 }
 
 /** Появление босса(ов) на босс-волне */
-export function spawnBosses(sim: DgSim): void {
-  const n = sim.wave.n;
+export function spawnBosses(sim: DgSim,n=sim.wave.n,damageMul=sim.wave.dmgMul): void {
+  if(n%40===20){spawnCauldron(sim,n,damageMul);return;}
   const kind = (Math.floor(n / 10) - 1) % 4;
   const cyc = cycleOf(n);
   const hp = B.hp * powi(B.endlessGrowth, n - 10) * (1 + 0.25 * cyc);
@@ -31,10 +32,10 @@ export function spawnBosses(sim: DgSim): void {
   const h = sim.hero;
   for (let i = 0; i < count; i++) {
     dirOf(rnd(sim) * Math.PI * 2, V);
-    const m = makeMob(sim, 'povidl', h.x + V.x * 16, h.z + V.z * 16, 1, sim.wave.dmgMul, 0);
+    const m = makeMob(sim, 'povidl', h.x + V.x * 16, h.z + V.z * 16, 1, damageMul, 0);
     const scale = kind === 2 ? 0.75 : 1;
     m.hp = m.hpMax = Math.round(hp * (kind === 2 ? 0.5 : 1));
-    m.dmg = B.contactDmg * sim.wave.dmgMul;
+    m.dmg = B.contactDmg * damageMul;
     m.spd = B.speed * (1 + 0.1 * cyc);
     m.r = R * scale;
     m.elite = 1;
@@ -42,7 +43,7 @@ export function spawnBosses(sim: DgSim): void {
     m.st = 'under';
     const b: DgBoss = {
       id: m.id, phase: 1, kind, act: 'burrow', step: 1, actT: sim.t - (i === 1 ? -ticks(3) : 0), sumT: sim.t + ticks(8),
-      rot: 0, rage: 0, scale,
+      rot: 0, rage: 0, scale,family:'povidl',startedAt:sim.t,bornWave:n,
     };
     sim.bosses.push(b);
   }
@@ -51,9 +52,17 @@ export function spawnBosses(sim: DgSim): void {
 }
 
 function spawnHelper(sim: DgSim, k: 'shaman' | 'barrel', i: number): void {
+  if(!roomForExtra(sim)){sim.wave.pend[MOB_KINDS.indexOf(k)]++;sim.wave.total++;sim.wave.left++;return;}
   const h = sim.hero;
   dirOf(i * 2.1 + 0.5, V);
   spawnMob(sim, k, h.x + V.x * 20, h.z + V.z * 20, 0);
+}
+
+export function queueBoss(sim:DgSim):void {sim.pendingBossWaves.push({wave:sim.wave.n,at:sim.t,dmgMul:sim.wave.dmgMul});}
+export function stepBossQueue(sim:DgSim):void {
+ const q=sim.pendingBossWaves[0];if(!q)return;
+ const count=q.wave%40===30?2:1;if(aliveCount(sim)+count>D.mobRules.maxAlive)return;
+ const before=sim.bosses.length;spawnBosses(sim,q.wave,q.dmgMul);for(let i=before;i<sim.bosses.length;i++){sim.bosses[i].startedAt=q.at;if(sim.wave.n>q.wave)sim.bosses[i].rage=1;}sim.pendingBossWaves.shift();
 }
 
 function bossOf(sim: DgSim, m: DgMob): DgBoss | null {
@@ -92,6 +101,7 @@ function mark(sim: DgSim, m: DgMob, what: string, x: number, z: number, r: numbe
 }
 
 export function stepBoss(sim: DgSim, m: DgMob): void {
+  if(m.k==='cauldronmaster'){stepCauldron(sim,m);return;}
   const b = bossOf(sim, m);
   if (!b) return;
   const h = sim.hero;
@@ -102,7 +112,7 @@ export function stepBoss(sim: DgSim, m: DgMob): void {
   oz /= d;
   const el = sim.t - b.actT;
   const spd = m.spd * (b.phase === 3 ? (B.phases[2].speedMul ?? 1.3) : 1);
-  if (!b.rage && sim.t - sim.bossT0 >= ticks(B.enrageAt)) b.rage = 1;
+  if (!b.rage && sim.t - (b.startedAt??sim.bossT0) >= ticks(B.enrageAt)) b.rage = 1;
   if (m.touch > 0) m.touch--;
   // смена фазы
   const frac = m.hp / m.hpMax;
@@ -337,10 +347,11 @@ function burrow(sim: DgSim, m: DgMob, b: DgBoss, el: number, ox: number, oz: num
 /** Босс повержен: большой сундук, магнит, похлёбка, опыт; +1 переброс и +1 изгнание */
 export function bossDeath(sim: DgSim, m: DgMob): void {
   const idx = sim.bosses.findIndex((b) => b.id === m.id);
+  const dead=sim.bosses[idx];
   if (idx >= 0) sim.bosses.splice(idx, 1);
   // Близнецы: второй сразу в 3-й фазе
   for (const b of sim.bosses) {
-    if (b.phase < 3) {
+    if (dead?.family==='povidl'&&dead.kind===2&&b.family==='povidl'&&b.kind===2&&b.bornWave===dead.bornWave&&b.phase < 3) {
       const o = sim.mobs.find((x) => x.id === b.id);
       if (o) {
         b.phase = 2;
@@ -348,7 +359,7 @@ export function bossDeath(sim: DgSim, m: DgMob): void {
       }
     }
   }
-  if (sim.bosses.length > 0) {
+  if (sim.bosses.some(b=>b.bornWave===dead?.bornWave)) {
     dropGem(sim, m.x, m.z, B.xp / 2);
     return;
   }

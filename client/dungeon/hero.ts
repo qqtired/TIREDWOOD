@@ -3,6 +3,7 @@
 // фонарь героя (PointLight на кости фонаря, качается с ним). Неуязвимость — мигание видимостью меша (не прозрачностью:
 // смена прозрачности пересобрала бы шейдеры).
 import * as THREE from 'three';
+import { doubleLensLantern } from './weaponvisuals.ts';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import type { GLTF } from 'three/addons/loaders/GLTFLoader.js';
 
@@ -30,6 +31,7 @@ export class HeroView {
   private flashK = 0;
   private readonly lantern: THREE.Object3D | null;
   private readonly lp = new THREE.Vector3();
+  private readonly evolvedLantern = doubleLensLantern();
 
   constructor(gltf: GLTF) {
     this.model = SkeletonUtils.clone(gltf.scene);
@@ -59,6 +61,8 @@ export class HeroView {
     this.light = new THREE.PointLight(0xffc27a, this.baseIntensity, 19, 1.1);
     this.light.name = 'dg-lantern-light';
     this.lantern = this.model.getObjectByName('lantern') ?? null;
+    this.evolvedLantern.visible = false;
+    (this.lantern ?? this.model).add(this.evolvedLantern);
     this.root.add(this.light);
     this.light.position.set(0, LIGHT_Y, 0);
     this.mixer.addEventListener('finished', (e) => {
@@ -140,6 +144,10 @@ export class HeroView {
 
   flash(k: number): void {
     this.flashK = Math.max(this.flashK, k);
+  }
+
+  evolveLantern(on: boolean): void {
+    this.evolvedLantern.visible = on;
   }
 
   /** speed — м/с; charging — держат Q; blink — неуязвимость (мигает) */

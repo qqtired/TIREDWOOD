@@ -259,3 +259,18 @@ Style: polished hand-painted game item icons in the same look as warm storybook 
 Strictly: no text, no letters, no numbers, no runes that look like letters, no logos, no labels or captions under the icons, no frame around the sheet, no watermark, no signature.
 no text, no letters, no logos.
 ```
+
+## Dungeon expansion R2 — 2026-10-12
+
+Four new evolution icons generated using Codex CLI built-in image_gen; control model gpt-6.1-sol / xhigh. Raster generation model is not exposed. Original PNG bytes retained without edits. Prompt, receipt and generated source path are in /Users/tired/Desktop/tired.solutions/reports/tiredwood-dungeon-waves-16-20-2026-10-11/art/evolutions-v2/manifest.json.
+
+- evo-embers_evo.png — SHA256 cfdbb745839956841ad89e84c8355103781198e6b748912a07cb899eda2fef33; original /Users/tired/.codex/generated_images/01a12d6c-a947-7ee2-afd3-5355aee676a0/exec-39e4d9ea-0c9a-4c00-a62c-b9eab47c74a8.png
+- evo-pickaxe_evo.png — SHA256 6e3f1de102c6f9fe82d9150bb5492b4188219fc8e28a28ff6dbcc671fa2f1101; original /Users/tired/.codex/generated_images/01a12d6e-bcbb-7cc3-ae34-67e72ead1240/exec-bf68e063-76a4-4647-99d3-e325a5d80f76.png
+- evo-spark_evo.png — SHA256 868dfaf97841f02aa04b8bd68426f9b1347d1ef4322c86af24746a38742b73cc; original /Users/tired/.codex/generated_images/01a12d70-b200-7763-ad42-b5e87dece152/exec-442c2ee6-e1e0-444c-b426-447a80d11d7e.png
+- evo-charges_evo.png — SHA256 725fda21c7d9286b92666c47d482c0e36e41ac1c798325854fdceb7c495eaa24; original /Users/tired/.codex/generated_images/01a12d72-ae45-7b70-8a62-6918b37dd769/exec-7c532f84-ad28-4921-91e5-0f501ba5b227.png
+
+Runtime preparation: штатный docs/ui-redesign/icons-pipeline/post.mjs, 256×256 WebP quality0.82. Raw PNGs moved to /Users/tired/Desktop/tired.solutions/reports/tiredwood-dungeon-waves-16-20-2026-10-11/art/evolutions-v2/runtime-input-archive; original sources unchanged.
+- evo-embers_evo.webp — 16796 bytes; SHA256 3c2d96be7e899a2056593e2d3a5a6220dcbdd0eb09dbcb00257e5758bc1ad6ef
+- evo-pickaxe_evo.webp — 18338 bytes; SHA256 a9c5813f539d0dbca43cefb86d1ae67b3c3e78f3dc755fdb40e4d0825b2a8e2d
+- evo-spark_evo.webp — 18496 bytes; SHA256 72ede620521f40989fcb99f227c160f159b12ed7e88ce53c0af897813bbb97e7
+- evo-charges_evo.webp — 17948 bytes; SHA256 3e416bbf02c460d6b3361b7a80739ad1c26a90948e27416e2ef2ef17548e66e3

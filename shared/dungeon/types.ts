@@ -25,7 +25,7 @@ export type MobState =
   | 'rise' // круг вынырка пульсирует, сейчас вынырнет
   | 'stuck' // голова застряла после вынырка — окно ×1,5 урона
   | 'roar' // рёв перехода фазы — неуязвим
-  | 'tail'; // удар хвостом (сектор за спиной)
+  | 'tail' | 'attack'; // удар хвостом / новая атака после подготовки
 
 export interface DgMob {
   /** уникальный номер на весь забег */
@@ -93,6 +93,11 @@ export interface DgMob {
   bmT: number;
   /** проклятый сундук: id постройки, за которой пришла элита (−1 — нет) */
   curse: number;
+  /** Полный цикл новой атаки: клиент не перезапускает клип при impact/recover. */
+  attackAt?: number;
+  attackKind?: string;
+  attackStep?: number;
+  attackHp?: number;
 }
 
 export interface DgBuff {
@@ -180,7 +185,7 @@ export interface DgPassive {
 /** Снаряд героя: уголёк (летит в цель) или кирка (туда и обратно) */
 export interface DgShot {
   id: number;
-  k: 'ember' | 'pick';
+  k: 'ember' | 'pick' | 'rail';
   x: number;
   z: number;
   /** скорость, м/с — направление полёта */
@@ -201,6 +206,9 @@ export interface DgShot {
   pierce: number;
   /** кого уже задел (не бьёт дважды за проход) */
   hit: number[];
+  evo?: 0 | 1;
+  splashDone?: 0 | 1;
+  maxAge?: number;
 }
 
 /** Метка на полу: тревога до удара врага или тень своего удара (сталактит, глыба) */
@@ -237,6 +245,10 @@ export interface DgMark {
   pud: number;
   /** id врага-источника или −1 */
   src: number;
+  inner?: number;
+  /** Центр настоящей ударной части в локальных координатах тела; следует телу при отбросе. */
+  localRight?: number;
+  localForward?: number;
 }
 
 /** Лужа/облако на полу: плевок (−40 %), варенье Бочара, споры грибника (−35 %), лужа босса (урон) */
@@ -290,7 +302,13 @@ export interface DgTrap {
   dmg: number;
   r: number;
   stun: number;
+  evo?: 0 | 1;
+  chainR?: number;
+  chainDelay?: number;
+  chained?: 0 | 1;
 }
+
+export interface DgEnemyCharge { id:number; x:number; z:number; t0:number; end:number; dmg:number; r:number; src:number }
 
 /** Постройка карты */
 export interface DgProp {
@@ -314,9 +332,10 @@ export interface DgProp {
   /**
    * Почему сейчас не сработает (алтарь, проклятый сундук, кузня; у остальных всегда ''): '' — сработает, если постоять в круге;
    * 'wave' — только во время волны (вступление, передышка); 'boss' — не на босс-волне; 'busy' — проклятие уже идёт;
-   * 'cool' — остывает / рассыпался, до t1; 'xp' — кузне нужно полполосы опыта; 'out' — кузня погашена до волны v
+   * 'cool' — остывает / рассыпался, до t1; 'xp' — кузне нужно полполосы опыта; 'out' — кузня погашена до волны v;
+   * 'crowd' — завершённое удержание сундука ждёт места для элиты
    */
-  why: '' | 'wave' | 'boss' | 'busy' | 'cool' | 'xp' | 'out';
+  why: '' | 'wave' | 'boss' | 'busy' | 'cool' | 'xp' | 'out' | 'crowd';
   /** вагонетка: скорость по x, м/с; заряд фонаря 0…1 */
   vx: number;
 }
@@ -388,6 +407,10 @@ export interface DgBoss {
   rage: 0 | 1;
   /** масштаб модели (Близнецы 0,75) */
   scale: number;
+  family?: 'povidl' | 'cauldronmaster';
+  startedAt?: number;
+  summonLeft?: number;
+  bornWave?: number;
 }
 
 /** Волна */
@@ -423,6 +446,8 @@ export interface DgWave {
   old: number;
   /** волна кончилась зачисткой (передышка после «Зачистка!»): 1, по таймеру — 0 */
   swept: 0 | 1;
+  flow?: number;
+  flowUntil?: number;
 }
 
 /** События шага для эффектов и звука (очищаются в начале каждого шага) */
@@ -437,7 +462,10 @@ export type DgFx =
   | { k: 'qfull' } // заряд Q полный («дзынь»)
   | { k: 'cone'; x: number; z: number; dx: number; dz: number; r: number; a: number; evo: 0 | 1 } // вспышка Фонаря, a — угол, °
   | { k: 'beam'; x: number; z: number; dx: number; dz: number; len: number; w: number } // Маячный луч
-  | { k: 'chain'; pts: number[] } // Искра: x0,z0,x1,z1,… (от героя по целям)
+  | { k: 'chain'; pts: number[]; evo?: 0 | 1; what?: 'spark' | 'charge' } // Искра или фитиль между связками
+  | { k: 'disarm'; x: number; z: number } // Погашен вражеский заряд
+  | { k: 'flow'; x: number; z: number; dx: number; dz: number; len: number; w: number; phase: number }
+  | { k: 'boil'; x: number; z: number; r: number; inner: number; phase: number }
   | { k: 'boom'; x: number; z: number; r: number; what: string } // взрыв (шашка, сталактит, глыба, бочка, бочонок)
   | { k: 'atk'; id: number; what: string } // враг начал атаку (замах): spit, charge, heal, summon, burrow, tail, cavein
   | { k: 'wave'; n: number; what: 'start' | 'clear' } // волна началась / засчитана (таймер кончился или зачистка)
@@ -495,6 +523,8 @@ export interface DgSim {
   gems: DgGem[];
   items: DgItem[];
   traps: DgTrap[];
+  enemyCharges: DgEnemyCharge[];
+  pendingBossWaves: { wave:number; at:number; dmgMul:number }[];
   props: DgProp[];
   alerts: DgAlert[];
   wave: DgWave;

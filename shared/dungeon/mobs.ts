@@ -12,6 +12,7 @@ import { collide, T_PIT, T_SOLID, T_WATER, terrainAt } from './map.ts';
 import type { DgMob, DgSim } from './types.ts';
 import { DT, rnd, ticks, wrapD, wrapP } from './util.ts';
 import { sinCos } from '../math.ts';
+import {expansionAi,expansionKind,holdExpansionAttack} from './expansion.ts';
 
 /** Сколько шагов мёртвый лежит в списке (анимация смерти) */
 export const DIE_TICKS = 15;
@@ -30,7 +31,8 @@ let TURN_S = 0;
 
 /** Есть место для добавки сверх отряда (свита, слизнята, личинки): живых меньше 300 */
 export function roomForExtra(sim: DgSim, n = 1): boolean {
-  return aliveCount(sim) + n <= D.mobRules.maxAlive;
+  const waiting=sim.pendingBossWaves[0],reserved=waiting?(waiting.wave%40===30?2:1):0;
+  return aliveCount(sim) + n <= D.mobRules.maxAlive-reserved;
 }
 
 /** Живых (без умирающих) */
@@ -38,6 +40,12 @@ export function aliveCount(sim: DgSim): number {
   let n = 0;
   for (const m of sim.mobs) if (!m.die) n++;
   return n;
+}
+
+export function canSpawn(sim:DgSim,k:MobKind):boolean {
+ if(!roomForExtra(sim))return false;
+ const cap=D.expansion.liveCaps[k];if(cap===undefined)return true;
+ let n=0;for(const m of sim.mobs)if(!m.die&&m.k===k)n++;return n<cap;
 }
 
 export function spawnMob(sim: DgSim, k: MobKind, x: number, z: number, sq: 0 | 1, hpExtra = 1): DgMob {
@@ -48,6 +56,7 @@ export function spawnMob(sim: DgSim, k: MobKind, x: number, z: number, sq: 0 | 1
   if (def.charge) m.cd = ticks(def.charge.every * 0.6);
   if (def.heal) m.cd = ticks(def.heal.every * 0.5);
   if (def.summon) m.cd2 = ticks(def.summon.every * 0.7);
+  const ex=def.hook??def.plant??def.rail??def.swing;if(ex)m.cd=ticks(ex.every*(.5+rnd(sim)*.5));
   // смотрит на героя
   const dx = wrapD(sim.hero.x - m.x);
   const dz = wrapD(sim.hero.z - m.z);
@@ -85,7 +94,7 @@ export function stepMobs(sim: DgSim): void {
   for (let i = 0; i < mobs.length; i++) {
     const m = mobs[i];
     if (m.die) continue;
-    if (m.k === 'povidl') {
+    if (m.k === 'povidl'||m.k==='cauldronmaster') {
       stepBoss(sim, m);
       continue;
     }
@@ -113,6 +122,7 @@ export function stepMobs(sim: DgSim): void {
         continue;
       }
     } else if (frozen || m.stunT > sim.t) {
+      if(expansionKind(m.k))holdExpansionAttack(sim,m);
       // стоит (песочные часы, оглушение)
       if (m.st === 'dash' && m.k === 'barrel') setSt(sim, m, 'stun');
     } else {
@@ -126,6 +136,7 @@ export function stepMobs(sim: DgSim): void {
       }
       const far = m.elite && d > 30 ? 2 : 1;
       switch (m.k) {
+        case 'hookclaw':case 'wickmole':case 'railhopper':case 'chainwarden':expansionAi(sim,m,d,ox,oz);vx=m.vx;vz=m.vz;break;
         case 'bat': {
           const ds = (def.dashSpeed ?? 8) * rageMul(m);
           if (m.sw > sim.t) {
@@ -421,8 +432,8 @@ function shamanAi(sim: DgSim, m: DgMob, d: number, ox: number, oz: number): void
         if (o === m || o.die) continue;
         const ex = wrapD(o.x - m.x);
         const ez = wrapD(o.z - m.z);
-        // босса (Повидл II) — на 3 %
-        if (ex * ex + ez * ez < r2) o.hp = Math.min(o.hpMax, o.hp + o.hpMax * (o.k === 'povidl' ? 0.03 : heal.frac));
+        // Любого босса — на3%, остальных как прежде.
+        if (ex * ex + ez * ez < r2) o.hp = Math.min(o.hpMax, o.hp + o.hpMax * (o.k === 'povidl' || o.k === 'cauldronmaster' ? 0.03 : heal.frac));
       }
       setSt(sim, m, 'walk');
       m.cd = ticks(heal.every);
@@ -467,6 +478,7 @@ function shamanAi(sim: DgSim, m: DgMob, d: number, ox: number, oz: number): void
 
 /** Свита из бюджета волны: если в отряде есть невышедшие такого вида — берём их (они часть отряда) */
 export function summonFromBudget(sim: DgSim, k: MobKind, x: number, z: number): DgMob | null {
+  if(!canSpawn(sim,k))return null;
   const w = sim.wave;
   const ki = KIND_IDX[k];
   let sq: 0 | 1 = 0;
@@ -497,6 +509,14 @@ export function addPuddle(sim: DgSim, k: 'spit' | 'jam' | 'spore' | 'boss', x: n
   sim.puddles.push({ id: newId(sim), k, x: wrapP(x), z: wrapP(z), r, t0: sim.t, t1: sim.t + dur, slow, dps });
 }
 
+/** Физический удар крюка/груза/ковша: круг реальной ударной части, без скрытого большого сектора. */
+export function addContactMark(sim: DgSim, m: DgMob, what: string, right: number, forward: number, radius: number, dur: number, dmg: number, kb = 0): void {
+  addMark(sim, 'circle', what, m.x + m.ax * forward + m.az * right, m.z + m.az * forward - m.ax * right, radius, 0, 0, dur, dmg, kb, 0, m);
+  const mk = sim.marks[sim.marks.length - 1];
+  mk.localRight = right;
+  mk.localForward = forward;
+}
+
 /** Смерть врага: опыт, слизнята, споры, сундук элиты, счёт отряда */
 function onKill(sim: DgSim, m: DgMob, src: string): void {
   m.die = sim.t;
@@ -506,7 +526,8 @@ function onKill(sim: DgSim, m: DgMob, src: string): void {
   fx(sim, { k: 'die', id: m.id, mob: m.k, x: m.x, z: m.z });
   void src;
   const def = mobDef(m.k);
-  if (m.k === 'povidl') {
+  if(expansionKind(m.k)||m.k==='cauldronmaster')for(const mk of sim.marks)if(mk.src===m.id)mk.t1=sim.t-1;
+  if (m.k === 'povidl'||m.k==='cauldronmaster') {
     bossDeath(sim, m);
     return;
   }
@@ -516,6 +537,7 @@ function onKill(sim: DgSim, m: DgMob, src: string): void {
       const c = spawnMob(sim, def.splitInto.id, m.x + (j ? 0.4 : -0.4), m.z + (j ? -0.3 : 0.3), 0);
       c.kx = (j ? 1 : -1) * 2 * KB_V;
     }
+  }else if(def.splitInto){sim.wave.debt+=def.splitInto.n*mobDef(def.splitInto.id).hp*sim.wave.hpMul;
   }
   if (def.deathCloud) addPuddle(sim, 'spore', m.x, m.z, def.deathCloud.radius, ticks(def.deathCloud.time), def.deathCloud.slow, 0);
   if (m.elite) {

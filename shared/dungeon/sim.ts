@@ -4,7 +4,7 @@
 // пока не придёт pick. Сервер: для каждого события с ev.t === sim.t — applyEvent, затем step; если открыт выбор
 // (sim.choice/sim.chest) и событий на этот t больше нет — ждать следующего куска журнала.
 import type { DgEvent, DgResult } from './api.ts';
-import { buildGrid, hurtHero } from './core.ts';
+import { buildGrid, hurtHero, fx } from './core.ts';
 import { D, LV } from './data.ts';
 import { emptyWave, goNow, stepDirector } from './director.ts';
 import { stepHero } from './hero.ts';
@@ -15,6 +15,8 @@ import { enemyHitsKegs, initProps, scanProps, stepProps } from './props.ts';
 import type { DgMark, DgSim } from './types.ts';
 import { cosDeg, ticks, wrapD } from './util.ts';
 import { ownMarkHit, stepWeapons } from './weapons.ts';
+import {stepEnemyCharges} from './enemycharges.ts';
+import {syncPhysicalMarks} from './expansion.ts';
 import { hash32 } from '../math.ts';
 
 export type * from './types.ts';
@@ -52,6 +54,8 @@ export function createRun(seed: number): DgSim {
     gems: [],
     items: [],
     traps: [],
+    enemyCharges: [],
+    pendingBossWaves: [],
     props: [],
     alerts: [],
     wave: emptyWave(),
@@ -140,7 +144,9 @@ export function step(sim: DgSim): void {
   stepHero(sim);
   stepMobs(sim);
   buildGrid(sim);
+  syncPhysicalMarks(sim);
   stepWeapons(sim);
+  stepEnemyCharges(sim);
   stepMarks(sim);
   stepPuddles(sim);
   stepPickups(sim);
@@ -170,7 +176,7 @@ function heroIn(sim: DgSim, mk: DgMark): boolean {
   switch (mk.k) {
     case 'circle':
     case 'ring':
-      return ox * ox + oz * oz < (mk.r + R) * (mk.r + R);
+      return ox * ox + oz * oz < (mk.r + R) * (mk.r + R) && (!mk.inner||ox*ox+oz*oz>(mk.inner-R)**2);
     case 'lane': {
       const along = ox * mk.dx + oz * mk.dz;
       const perp = Math.abs(ox * mk.dz - oz * mk.dx);
@@ -207,6 +213,9 @@ function stepMarks(sim: DgSim): void {
     if (mk.t1 === sim.t) {
       if (mk.own) ownMarkHit(sim, mk);
       else {
+        const phase = sim.bosses.find(b => b.id === mk.src)?.phase ?? 1;
+        if (mk.what === 'cauldron_flow') fx(sim, { k: 'flow', x: mk.x, z: mk.z, dx: mk.dx, dz: mk.dz, len: mk.len, w: mk.w, phase });
+        if (mk.what === 'cauldron_boil') fx(sim, { k: 'boil', x: mk.x, z: mk.z, r: mk.r, inner: mk.inner ?? 0, phase });
         if (mk.dmg > 0 && heroIn(sim, mk)) {
           let by = mk.what;
           for (const m of sim.mobs) if (m.id === mk.src) by = m.k;
@@ -295,6 +304,15 @@ export function dgHash(sim: DgSim): number {
   mix(sim.wave.n);
   mix(sim.stats.kills);
   for (const w of sim.weapons) mix(w.lv * 2 + w.evo);
+  // Новый бой включает отложенные удары и фазы: одинаковая позиция ещё не означает одинаковое состояние.
+  for (const m of sim.mobs) if (m.attackAt !== undefined) { mix(m.id); mix(m.attackAt); mix(m.attackStep ?? 0); }
+  for (const b of sim.bosses) { mix(b.id); mix(b.phase); mix(b.actT); mix(b.step); mix(b.summonLeft ?? 0); }
+  for (const c of sim.enemyCharges) { mix(c.id); mix(q(c.x)); mix(q(c.z)); mix(c.end); }
+  for (const mk of sim.marks) { mix(mk.id); mix(mk.t1); mix(q(mk.dmg)); }
+  for (const tr of sim.traps) { mix(tr.id); mix(tr.end); mix(tr.chained ?? 0); }
+  for (const p of sim.pendingBossWaves) { mix(p.wave); mix(p.at); }
+  for (const p of sim.wave.pend) mix(p);
+  mix(q(sim.wave.debt));
   return h >>> 0;
 }
 

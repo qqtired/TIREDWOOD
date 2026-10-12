@@ -9,10 +9,11 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import type { GLTF } from 'three/addons/loaders/GLTFLoader.js';
 import type { DungeonAssets, MobModel } from './assets.ts';
 import type { MobKind } from './view.ts';
+import { D } from '../../shared/dungeon/data.ts';
 
 const FPS = 24;
 
-export type ClipKey = 'walk' | 'attack' | 'hit' | 'death' | 'special' | 'emerge';
+export type ClipKey = 'idle'|'windup'|'recover'|'walk' | 'attack' | 'hit' | 'death' | 'special' | 'emerge';
 
 interface ClipRows {
   start: number;
@@ -25,6 +26,7 @@ interface Baked {
   geo: THREE.BufferGeometry;
   tex: THREE.DataTexture;
   clips: Partial<Record<ClipKey, ClipRows>>;
+  atlas?: THREE.Texture;
 }
 
 /** Вид врага → модель и масштаб */
@@ -39,6 +41,7 @@ const KIND_MODEL: Record<MobKind, { model: MobModel; scale: number; cap: number 
   larva: { model: 'larva', scale: 1.15, cap: 90 },
   barrel: { model: 'cooper', scale: 1, cap: 8 },
   shaman: { model: 'shaman', scale: 1.05, cap: 8 },
+  hookclaw:{model:'hookclaw',scale:1,cap:80},wickmole:{model:'wickmole',scale:1,cap:32},railhopper:{model:'railhopper',scale:1,cap:40},chainwarden:{model:'chainwarden',scale:1,cap:8},
 };
 
 /** Имена клипов в GLB: <модель>_<действие> */
@@ -52,11 +55,16 @@ const CLIP_NAMES: Record<MobModel, Partial<Record<ClipKey, string>>> = {
   larva: { walk: 'larva_walk', attack: 'larva_attack', hit: 'larva_hit', death: 'larva_death', emerge: 'larva_emerge' },
   cooper: { walk: 'cooper_walk', attack: 'cooper_attack', hit: 'cooper_hit', death: 'cooper_death', special: 'cooper_charge' },
   shaman: { walk: 'shaman_walk', attack: 'shaman_attack', hit: 'shaman_hit', death: 'shaman_death', special: 'shaman_cast' },
+  hookclaw:{idle:'hookclaw_idle',walk:'hookclaw_walk',windup:'hookclaw_windup',attack:'hookclaw_attack',recover:'hookclaw_recover',hit:'hookclaw_hit',death:'hookclaw_death'},
+  wickmole:{idle:'wickmole_idle',walk:'wickmole_walk',windup:'wickmole_windup',attack:'wickmole_attack',recover:'wickmole_recover',hit:'wickmole_hit',death:'wickmole_death'},
+  railhopper:{idle:'railhopper_idle',walk:'railhopper_walk',windup:'railhopper_windup',attack:'railhopper_attack',recover:'railhopper_recover',hit:'railhopper_hit',death:'railhopper_death'},
+  chainwarden:{idle:'chainwarden_idle',walk:'chainwarden_walk',windup:'chainwarden_windup',attack:'chainwarden_attack',recover:'chainwarden_recover',hit:'chainwarden_hit',death:'chainwarden_death'},
 };
 
 /** Скорость, при которой цикл ходьбы не скользит (м/с) — для темпа шага */
 export const WALK_REF: Record<MobKind, number> = {
   rat: 3.6, bat: 4.5, slime: 1.8, slimelet: 2.6, shroom: 1.9, beetle: 2.4, spitter: 2.2, larva: 4.2, barrel: 2.2, shaman: 1.8,
+  hookclaw:3.6,wickmole:2.5,railhopper:2.8,chainwarden:2.15,
 };
 
 /** Длительность клипа (с) — для того, кто держит трупы */
@@ -78,6 +86,7 @@ function bake(gltf: GLTF, model: MobModel): Baked {
 
   // геометрия: каждая часть — в системе своего сустава, номер части в вершине
   const geos: THREE.BufferGeometry[] = [];
+  let atlas: THREE.Texture | undefined;
   const rel = new THREE.Matrix4();
   root.traverse((o) => {
     const mesh = o as THREE.Mesh;
@@ -88,10 +97,17 @@ function bake(gltf: GLTF, model: MobModel): Baked {
     const joint = joints[ji];
     rel.copy(joint.matrixWorld).invert().multiply(mesh.matrixWorld);
     const g = mesh.geometry.clone();
-    for (const name of Object.keys(g.attributes)) if (name !== 'position' && name !== 'normal') g.deleteAttribute(name);
+    for (const name of Object.keys(g.attributes)) if (name !== 'position' && name !== 'normal' && name !== 'uv') g.deleteAttribute(name);
     g.applyMatrix4(rel);
     const mat = mesh.material as THREE.MeshStandardMaterial;
     const n = g.attributes.position.count;
+    // Один нейтральный atlas у новых моделей. Неокрашенные им части (глаза, повидло) обходят map.
+    if (mat.map) {
+      if (atlas && atlas !== mat.map) throw new Error(`Dungeon ${model}: expected one shared basecolor atlas`);
+      atlas = mat.map;
+    }
+    if (!g.hasAttribute('uv')) g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(n * 2), 2));
+    const atlasUse = new Float32Array(n).fill(mat.map ? 1 : 0);
     const col = new Float32Array(n * 3);
     const emi = new Float32Array(n * 3);
     const rough = new Float32Array(n);
@@ -112,6 +128,7 @@ function bake(gltf: GLTF, model: MobModel): Baked {
     g.setAttribute('aEmi', new THREE.BufferAttribute(emi, 3));
     g.setAttribute('aRough', new THREE.BufferAttribute(rough, 1));
     g.setAttribute('aPart', new THREE.BufferAttribute(part, 1));
+    g.setAttribute('aAtlasUse', new THREE.BufferAttribute(atlasUse, 1));
     geos.push(g.index ? g : g);
   });
   const indexed = geos.every((g) => g.index);
@@ -130,7 +147,7 @@ function bake(gltf: GLTF, model: MobModel): Baked {
   let rows = 0;
   for (const [key, clip] of order) {
     const frames = Math.max(1, Math.round(clip.duration * FPS)) + 1;
-    clips[key] = { start: rows, frames, loop: key === 'walk', duration: clip.duration };
+    clips[key] = { start: rows, frames, loop: key === 'walk' || key === 'idle', duration: clip.duration };
     rows += frames;
   }
   rows = Math.max(1, rows);
@@ -161,7 +178,7 @@ function bake(gltf: GLTF, model: MobModel): Baked {
   tex.minFilter = THREE.NearestFilter;
   tex.magFilter = THREE.NearestFilter;
   tex.needsUpdate = true;
-  return { geo, tex, clips };
+  return { geo, tex, clips, atlas };
 }
 
 const VERT_HEAD = /* glsl */ `
@@ -209,25 +226,31 @@ const RAGE_FRAG = /* glsl */ `
   totalEmissiveRadiance += dgRed * (0.05 * dgLv * dgLv / 3.0 + 0.13 * dgPulse) + vec3(1.0, 0.3, 0.45) * dgRf * 0.9;
 `;
 
-function mobMaterial(tex: THREE.DataTexture): THREE.MeshStandardMaterial {
-  const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.7, metalness: 0 });
+function mobMaterial(tex: THREE.DataTexture, atlas?: THREE.Texture): THREE.MeshStandardMaterial {
+  const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.7, metalness: 0, map: atlas ?? null });
   mat.onBeforeCompile = (sh) => {
     sh.uniforms.uPose = { value: tex };
     sh.uniforms.uTime = uTime;
-    sh.vertexShader = VERT_HEAD + sh.vertexShader
+    sh.vertexShader = (atlas ? 'attribute float aAtlasUse; varying float vAtlasUse;\n' : '') + VERT_HEAD + sh.vertexShader
       .replace('#include <beginnormal_vertex>', `
         int dgPart = int(aPart + 0.5);
         mat4 dgM = dgPose(int(aAnim.x + 0.5), dgPart) * (1.0 - aAnim.z) + dgPose(int(aAnim.y + 0.5), dgPart) * aAnim.z;
         vec3 objectNormal = mat3(dgM) * normal;
         vEmi = aEmi; vRough = aRough; vFlash = aAnim.w; vRage = aRage;
       `)
-      .replace('#include <begin_vertex>', 'vec3 transformed = (dgM * vec4(position, 1.0)).xyz;');
+      .replace('#include <begin_vertex>', 'vec3 transformed = (dgM * vec4(position, 1.0)).xyz;' + (atlas ? '\n vAtlasUse = aAtlasUse;' : ''));
     sh.fragmentShader = 'uniform float uTime;\nvarying vec3 vEmi;\nvarying float vRough;\nvarying float vFlash;\nvarying float vRage;\n' + sh.fragmentShader
       .replace('#include <color_fragment>', '#include <color_fragment>\n diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.5, 0.05, 0.14), 0.2 * floor(vRage + 0.001));\n diffuseColor.rgb = mix(diffuseColor.rgb, vec3(1.0, 0.97, 0.92), vFlash);')
       .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\n roughnessFactor = vRough;')
       .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n totalEmissiveRadiance += vEmi + diffuseColor.rgb * 0.22 + vec3(0.9, 0.85, 0.8) * vFlash;\n' + RIM_FRAG + RAGE_FRAG);
+    if (atlas) sh.fragmentShader = 'varying float vAtlasUse;\n' + sh.fragmentShader.replace('#include <map_fragment>', `
+      #ifdef USE_MAP
+        vec4 sampledDiffuseColor = texture2D(map, vMapUv);
+        diffuseColor *= mix(vec4(1.0), sampledDiffuseColor, vAtlasUse);
+      #endif
+    `);
   };
-  mat.customProgramCacheKey = () => 'dg-mob-vat';
+  mat.customProgramCacheKey = () => atlas ? 'dg-mob-vat-atlas' : 'dg-mob-vat';
   return mat;
 }
 
@@ -265,7 +288,8 @@ export class MobRenderer {
       }
       // слизнята рисуются тем же мешем, что слизни (меньше)
       if (spec.cap === 0) continue;
-      const cap = spec.cap + (kind === 'slime' ? 120 : 0);
+      // Накопившиеся прежние враги могут занять все300 мест одним видом. Видимых живых рисуем перед трупами.
+      const cap = Math.max(D.mobRules.maxAlive, spec.cap + (kind === 'slime' ? 120 : 0));
       const geo = baked.geo.clone();
       const anim = new THREE.InstancedBufferAttribute(new Float32Array(cap * 4), 4);
       anim.setUsage(THREE.DynamicDrawUsage);
@@ -273,7 +297,7 @@ export class MobRenderer {
       const rage = new THREE.InstancedBufferAttribute(new Float32Array(cap), 1);
       rage.setUsage(THREE.DynamicDrawUsage);
       geo.setAttribute('aRage', rage);
-      const mesh = new THREE.InstancedMesh(geo, mobMaterial(baked.tex), cap);
+      const mesh = new THREE.InstancedMesh(geo, mobMaterial(baked.tex, baked.atlas), cap);
       mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
       mesh.frustumCulled = false;
       mesh.count = 0;
@@ -291,6 +315,10 @@ export class MobRenderer {
     return this.target(kind)?.baked.clips[key]?.duration ?? 1;
   }
 
+  capacity(kind: MobKind): number {
+    return this.target(kind)?.cap ?? 0;
+  }
+
   has(kind: MobKind, key: ClipKey): boolean {
     return !!this.target(kind)?.baked.clips[key];
   }
@@ -305,9 +333,9 @@ export class MobRenderer {
    * попадании); flash 0…1 — белая вспышка; s — масштаб сверх обычного (элиты из сундука, рождение); rage — озверение
    * (уровень 0…3, дробная часть — вспышка озверения).
    */
-  push(kind: MobKind, x: number, y: number, z: number, yaw: number, key: ClipKey, t: number, flash: number, s = 1, over: ClipKey | null = null, overT = 0, overW = 0, rage = 0): void {
+  push(kind: MobKind, x: number, y: number, z: number, yaw: number, key: ClipKey, t: number, flash: number, s = 1, over: ClipKey | null = null, overT = 0, overW = 0, rage = 0): boolean {
     const km = this.target(kind);
-    if (!km || km.n >= km.cap) return;
+    if (!km || km.n >= km.cap) return false;
     const i = km.n++;
     const scale = (kind === 'slimelet' ? KIND_MODEL.slimelet.scale : km.scale) * s;
     tmpP.set(x, y, z);
@@ -338,6 +366,7 @@ export class MobRenderer {
     arr[i * 4 + 2] = f;
     arr[i * 4 + 3] = flash;
     (km.rage.array as Float32Array)[i] = rage;
+    return true;
   }
 
   end(): void {

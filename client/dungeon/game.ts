@@ -20,7 +20,8 @@ import { Journal } from './journal.ts';
 import { MobRenderer, WALK_REF, type ClipKey } from './mobs.ts';
 import { DungeonSfx } from './sfx.ts';
 import type { RunSource } from './source.ts';
-import { ACT_ATTACK, ACT_LOOP, ACT_SPECIAL, ACT_STUN, type BuildingKind, type DgView, type MobKind, type VBuilding, type VFx } from './view.ts';
+import { ACT_ATTACK, ACT_LOOP, ACT_SPECIAL, ACT_STUN, type BuildingKind, type DgView, type MobKind, type VBoss, type VBuilding, type VFx } from './view.ts';
+import { beaconEmitter, chargeBundleGeo, crystalGeo, emberClusterGeo, flywheelGeo, rockClusterGeo, wingedFireflyGeo } from './weaponvisuals.ts';
 import { BTN_BACK, BTN_FORWARD, BTN_LEFT, BTN_RIGHT } from '../../shared/sim.ts';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
@@ -45,6 +46,7 @@ const NUM_MERGE = 0.22;
 /** Видно от камеры по x и z (для отсечения), м */
 const VIEW_X = 30;
 const VIEW_Z = 24;
+const OWN_MODEL_SCALE = new Set<MobKind>(['barrel', 'shaman', 'hookclaw', 'wickmole', 'railhopper', 'chainwarden']);
 
 export interface WorldLike {
   readonly root: THREE.Object3D;
@@ -78,6 +80,10 @@ export class DungeonGame {
   private readonly bossViews = new Map<number, BossView>();
   private readonly bossSpare: BossView[] = [];
   private readonly bossGltf: DungeonAssets['boss'];
+  private readonly cauldronGltf: DungeonAssets['cauldron'];
+  private readonly bossCorpses = new Map<number, { b: VBoss; t: number; dur: number }>();
+  private readonly beacon = beaconEmitter();
+  private readonly sparkFocus = new THREE.Mesh(crystalGeo(), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .5 }));
   /** Общая полоса здоровья: наибольшая сумма HP и число боссов за бой (знаменатель не прыгает, когда один пал) */
   private bossHpMax = 0;
   private bossCount = 0;
@@ -100,6 +106,7 @@ export class DungeonGame {
   private readonly flashAt = new Map<number, number>();
   private readonly hitAt = new Map<number, number>();
   private corpses: Corpse[] = [];
+  private liveRenderOverflow = 0;
   private acc = 0;
   private time = 0;
   /** время мира: стоит на паузе, в карточках и в сундуке (анимации врагов, частицы) */
@@ -162,7 +169,15 @@ export class DungeonGame {
     this.hero = new HeroView(assets.hero);
     s.add(this.hero.root);
     this.bossGltf = assets.boss;
+    this.cauldronGltf = assets.cauldron;
     this.bossSpare.push(this.makeBossView());
+    this.bossSpare.push(this.makeBossView('cauldronmaster'));
+    this.hero.root.add(this.beacon);
+    this.beacon.visible = false;
+    this.sparkFocus.position.set(.55, 1.2, -.1);
+    this.sparkFocus.scale.setScalar(.7);
+    this.hero.root.add(this.sparkFocus);
+    this.sparkFocus.visible = false;
     this.buildings = new BuildingRenderer(assets.kits);
     s.add(this.buildings.root);
     s.add(this.decN.mesh, this.decA.mesh, this.bbN.mesh, this.bbA.mesh);
@@ -179,9 +194,21 @@ export class DungeonGame {
     mk('ember', new THREE.IcosahedronGeometry(0.17, 0), new THREE.MeshBasicMaterial({ color: new THREE.Color(1.6, 0.75, 0.25) }));
     mk('firefly', new THREE.IcosahedronGeometry(0.12, 0), new THREE.MeshBasicMaterial({ color: new THREE.Color(1.3, 1.5, 0.5) }));
     mk('spit', new THREE.IcosahedronGeometry(0.26, 1), new THREE.MeshStandardMaterial({ color: 0x6b2a8c, roughness: 0.15, emissive: 0x3a0d55 }));
+    mk('spit_p2', new THREE.IcosahedronGeometry(.26, 1), new THREE.MeshStandardMaterial({ color: 0xaa3f70, roughness: .15, emissive: 0x3a1120 }), 20);
+    mk('spit_p3', new THREE.IcosahedronGeometry(.26, 1), new THREE.MeshStandardMaterial({ color: 0xe77e3e, roughness: .15, emissive: 0x442010 }), 20);
     mk('rock', new THREE.ConeGeometry(0.42, 1.5, 6).rotateX(Math.PI), new THREE.MeshStandardMaterial({ color: 0x8a7a6a, roughness: 0.9 }), 60);
     mk('charge', new THREE.CylinderGeometry(0.11, 0.11, 0.42, 8).rotateZ(Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0xc23a2b, roughness: 0.6, emissive: 0x2a0500 }), 60);
     mk('pick', pickaxeGeo(), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6 }), 40);
+    const evolved = (): THREE.MeshStandardMaterial => new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .6 });
+    mk('ember_evo', emberClusterGeo(), evolved());
+    mk('pick_evo', flywheelGeo(), evolved(), 40);
+    mk('charge_evo', chargeBundleGeo(), evolved(), 60);
+    mk('firefly_evo', wingedFireflyGeo(), evolved(), 40);
+    mk('rock_evo', rockClusterGeo(), evolved(), 60);
+    mk('boulder', new THREE.IcosahedronGeometry(.9, 0), new THREE.MeshStandardMaterial({ color: 0xa78c65, roughness: .9 }), 20);
+    mk('spark_pulse', crystalGeo(), evolved(), 20);
+    mk('enemy_charge', new THREE.CylinderGeometry(.25, .32, .24, 6), new THREE.MeshStandardMaterial({ color: 0x9e572f, roughness: .7, emissive: 0x381914 }), 12);
+    mk('rail', new THREE.BoxGeometry(.18, .18, .7), new THREE.MeshStandardMaterial({ color: 0xc7a475, roughness: .7 }), 16);
     this.gems = new THREE.InstancedMesh(new THREE.OctahedronGeometry(0.2, 0).scale(0.8, 1.25, 0.8), new THREE.MeshBasicMaterial({ color: 0xffffff }), 700);
     this.gems.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     this.gems.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(700 * 3), 3);
@@ -191,8 +218,8 @@ export class DungeonGame {
   }
 
   /** Прогрев шейдеров: всё видимое разом (на экране загрузки) */
-  private makeBossView(): BossView {
-    const bv = new BossView(this.bossGltf);
+  private makeBossView(family: 'povidl' | 'cauldronmaster' = 'povidl'): BossView {
+    const bv = new BossView(family === 'cauldronmaster' ? this.cauldronGltf : this.bossGltf, family);
     this.scene.add(bv.root);
     return bv;
   }
@@ -219,6 +246,7 @@ export class DungeonGame {
 
   async warm(): Promise<void> {
     this.mobs.warm(this.camX, this.camZ);
+    for (const b of this.bossSpare) { b.root.visible = true; b.root.position.set(this.camX, -50, this.camZ); }
     this.layoutCamera();
     try {
       await this.d.renderer.gl.compileAsync(this.scene, this.camera);
@@ -227,6 +255,7 @@ export class DungeonGame {
     }
     this.mobs.begin();
     this.mobs.end();
+    for (const b of this.bossSpare) b.root.visible = false;
   }
 
   // ---------------------------------------------------------------- забег
@@ -243,6 +272,7 @@ export class DungeonGame {
     this.hitAt.clear();
     this.numAcc.clear();
     this.corpses = [];
+    this.bossCorpses.clear();
     this.pool.clear();
     this.queue = [];
     this.lastMv = { x: 0, y: 0 };
@@ -401,7 +431,7 @@ export class DungeonGame {
       if (down && !e.repeat) this.push({ t: 0, k: 'use' });
       return true;
     }
-    if ((code === 'Enter' || code === 'NumpadEnter') && v?.stage === 'breather') {
+    if ((code === 'Enter' || code === 'NumpadEnter') && (v?.stage === 'breather' || v?.stage === 'intro')) {
       if (down && !e.repeat) this.go();
       return true;
     }
@@ -637,7 +667,7 @@ export class DungeonGame {
         this.flushNum(f.id, true);
         const prev = this.prev.get(f.id);
         const dur = this.mobs.duration(f.kind, 'death');
-        this.corpses.push({ kind: f.kind, x: f.x, z: f.z, yaw: prev?.yaw ?? 0, t: this.wtime, dur: Math.min(dur, 1.3), elite: f.elite });
+        this.corpses.push({ kind: f.kind, x: f.x, z: f.z, yaw: prev?.yaw ?? 0, t: this.wtime, dur, elite: f.elite });
         const big = f.elite ? 2.2 : f.kind === 'shroom' || f.kind === 'beetle' || f.kind === 'slime' ? 1.1 : 0.75;
         P.decal({ x: f.x, z: f.z, yaw: P.rnd() * 6, shape: D_SPLAT, r0: big * 0.5, r1: big, len: 0, p1: 0, p2: 0, r: 0.3, g: 0.08, b: 0.42, a: 0.85, max: 2.4, add: false });
         P.burst(f.x, 0.5, f.z, f.elite ? 18 : 6, 3.2, A_SOFT, 0.55, 0.2, 0.8, 0.55, 0.32, false, 9, 3);
@@ -698,10 +728,10 @@ export class DungeonGame {
       case 'cone':
         sfx.lantern(0, 0.7);
         P.decal({ x: f.x, z: f.z, yaw: f.yaw, shape: D_CONE, r0: f.range, r1: f.range * 1.05, len: 0, p1: 0, p2: f.angle, r: 1, g: 0.72, b: 0.32, a: 0.95, max: 0.22, add: true });
-        if (f.evo) P.decal({ x: f.x, z: f.z, yaw: f.yaw + Math.PI, shape: D_CONE, r0: f.range, r1: f.range * 1.05, len: 0, p1: 0, p2: f.angle, r: 1, g: 0.6, b: 0.25, a: 0.95, max: 0.22, add: true });
         break;
       case 'chain': {
-        sfx.spark(0, 0.8);
+        const fuse = f.what === 'charge', col = fuse ? [1, .65, .25] : [.7, .85, 1.3];
+        if (!fuse) sfx.spark(0, 0.8);
         const p = f.pts;
         for (let i = 0; i + 3 < p.length; i += 2) {
           const ax = p[i];
@@ -711,24 +741,39 @@ export class DungeonGame {
           const n = Math.max(3, Math.ceil(Math.hypot(dx, dz) * 3));
           for (let k = 0; k <= n; k++) {
             const j = (P.rnd() - 0.5) * 0.35;
-            P.spark(ax + dx * (k / n) + j, 1 + (P.rnd() - 0.5) * 0.3, az + dz * (k / n) - j, 0, 0, 0, 0.16, 0.42, A_SOFT, 0.7, 0.85, 1.3);
+            P.spark(ax + dx * (k / n) + j, (fuse ? .25 : 1) + (P.rnd() - 0.5) * .2, az + dz * (k / n) - j, 0, 0, 0, .16, f.evo ? .5 : .42, A_SOFT, col[0], col[1], col[2]);
           }
-          P.burst(ax + dx, 1, az + dz, 3, 3, A_SPARK, 0.7, 0.9, 1.3, 0.25, 0.3);
+          P.burst(ax + dx, fuse ? .25 : 1, az + dz, 3, 3, A_SPARK, col[0], col[1], col[2], .25, .3);
         }
         break;
       }
+      case 'disarm':
+        P.burst(f.x, .25, f.z, 5, 1, A_SOFT, .55, .48, .4, .5, .25, false, 1, 1);
+        break;
+      case 'flow': {
+        const col = f.phase === 3 ? [1, .5, .2] : [.7, .25, .5];
+        P.decal({ x: f.x, z: f.z, yaw: f.yaw, shape: D_BEAM, r0: f.w / 2, r1: f.w / 2, len: f.len, p1: 0, p2: 0, r: col[0], g: col[1], b: col[2], a: .9, max: .65, add: true });
+        sfx.splat(this.pan(f.x), .7);
+        break;
+      }
+      case 'boil':
+        P.decal({ x: f.x, z: f.z, yaw: 0, shape: D_RING, r0: f.inner, r1: f.r, len: 0, p1: .92, p2: .08, r: 1, g: .5, b: .2, a: .9, max: .5, add: true });
+        sfx.splat(this.pan(f.x), .8);
+        break;
       case 'beam':
         sfx.beam(0, 0.8);
         P.decal({ x: f.x, z: f.z, yaw: f.yaw, shape: D_BEAM, r0: f.w * 0.6, r1: f.w * 0.3, len: f.len, p1: 0, p2: 0, r: 1, g: 0.95, b: 0.75, a: 1, max: 0.35, add: true });
         break;
       case 'boom': {
         const k = f.kind;
-        if (k === 'rock') sfx.stalactite(this.pan(f.x), 0.8);
-        else if (k === 'charge') sfx.charge(this.pan(f.x));
+        if (k === 'rock' || k === 'boulder') sfx.stalactite(this.pan(f.x), 0.8);
+        else if (k === 'charge' || k === 'enemy_charge') sfx.charge(this.pan(f.x));
         else if (k === 'keg') { sfx.keg(); this.shake = Math.max(this.shake, 0.6); }
         else if (k === 'spit') sfx.splat(this.pan(f.x), 0.8);
+        else if (k === 'spark') sfx.spark(this.pan(f.x), .5);
+        else if (k === 'embers') sfx.ember(this.pan(f.x), .4);
         else { sfx.bossEmerge(); this.shake = Math.max(this.shake, 0.45); }
-        const col = k === 'spit' ? [0.7, 0.3, 1] : k === 'rock' ? [0.75, 0.65, 0.5] : [1, 0.6, 0.25];
+        const col = k === 'spit' ? [0.7, 0.3, 1] : k === 'rock' || k === 'boulder' ? [0.75, 0.65, 0.5] : k === 'spark' ? [.65, .8, 1.1] : [1, 0.6, 0.25];
         P.decal({ x: f.x, z: f.z, yaw: 0, shape: D_RING, r0: f.r * 0.3, r1: f.r, len: 0, p1: 0.85, p2: 0.14, r: col[0], g: col[1], b: col[2], a: 0.9, max: 0.3, add: true });
         P.burst(f.x, 0.3, f.z, k === 'spit' ? 8 : 14, f.r * 2.5, A_SOFT, col[0] * 0.8, col[1] * 0.8, col[2] * 0.8, 0.5, 0.35, false, 9, 2);
         break;
@@ -765,7 +810,16 @@ export class DungeonGame {
         if (f.what === 'emerge') { sfx.bossEmerge(); this.shake = Math.max(this.shake, 0.35); P.burst(f.x, 0.3, f.z, 30, 7, A_SOFT, 0.55, 0.45, 0.35, 0.8, 0.6, false, 8, 4); }
         if (f.what === 'slam') this.shake = Math.max(this.shake, 0.5);
         if (f.what === 'spit') sfx.spit(this.pan(f.x));
-        if (f.what === 'death') { sfx.bossRoar(); this.slowT = 0.6; this.slowK = 0.3; }
+        if (f.what === 'death') {
+          sfx.bossRoar(); this.slowT = 0.6; this.slowK = 0.3;
+          const b = v.bosses.find(b => b.id === f.id);
+          if (b) {
+            const g = b.family === 'cauldronmaster' ? this.cauldronGltf : this.bossGltf;
+            const base = b.family === 'cauldronmaster' ? 'cauldronmaster_death' : 'boss_death';
+            const clip = g.animations.find(c => c.name === `${base}_p${b.phase}`) ?? g.animations.find(c => c.name === base);
+            this.bossCorpses.set(b.id, { b: { ...b, anim: 'death' }, t: this.wtime, dur: clip?.duration ?? 1 });
+          }
+        }
         break;
       case 'spawnFx':
         P.burst(f.x, 0.2, f.z, 4, 1.5, A_SOFT, 0.4, 0.32, 0.26, 0.5, 0.4, false, 4, 1.5);
@@ -867,6 +921,7 @@ export class DungeonGame {
     if (v) {
       const tick = v.tick;
       // враги
+      this.liveRenderOverflow = 0;
       for (const e of v.enemies) {
         if (!near(e.x, e.z, 2)) continue;
         const p = this.prev.get(e.id);
@@ -893,7 +948,11 @@ export class DungeonGame {
         const hitT = hit !== undefined ? wt - hit : 9;
         let key: ClipKey = 'walk';
         let t = wt * Math.max(0.5, Math.min(2.2, spd / WALK_REF[e.kind])) + (e.id % 17) * 0.137;
-        if (e.act === ACT_SPECIAL) {
+        if (e.anim) {
+          key = e.anim;
+          if (e.anim !== 'walk' && e.anim !== 'idle') t = (tick - (e.animAt ?? e.actAt) + alpha) * DT;
+          else if (e.act === ACT_STUN) t = 0;
+        } else if (e.act === ACT_SPECIAL) {
           key = 'special';
           t = (tick - e.actAt + alpha) * DT;
         } else if (e.act === ACT_ATTACK || e.act === ACT_LOOP) {
@@ -901,9 +960,9 @@ export class DungeonGame {
           key = e.act === ACT_ATTACK ? 'attack' : 'special';
           t = ((tick - e.actAt + alpha) * DT) % Math.max(0.2, this.mobs.duration(e.kind, key));
         } else if (e.act === ACT_STUN) t = (e.id % 7) * 0.1;
-        const over: ClipKey | null = hitT < 0.33 ? 'hit' : null;
-        const s = (e.elite && e.kind !== 'barrel' && e.kind !== 'shaman' ? 1.35 : 1) * (0.2 + 0.8 * born);
-        this.mobs.push(e.kind, X(x), born < 1 ? -0.4 * (1 - born) : 0, Z(z), yaw, key, t, flash, s, over, hitT, over ? 0.65 * (1 - hitT / 0.33) : 0, e.rage ?? 0);
+        const over: ClipKey | null = hitT < 0.33 && (!e.anim || e.anim === 'walk' || e.anim === 'idle') ? 'hit' : null;
+        const s = (e.elite && !OWN_MODEL_SCALE.has(e.kind) ? 1.35 : 1) * (0.2 + 0.8 * born);
+        if (!this.mobs.push(e.kind, X(x), born < 1 ? -0.4 * (1 - born) : 0, Z(z), yaw, key, t, flash, s, over, hitT, over ? 0.65 * (1 - hitT / 0.33) : 0, e.rage ?? 0)) this.liveRenderOverflow++;
         const r = e.elite ? 1.3 : e.kind === 'rat' || e.kind === 'slimelet' || e.kind === 'larva' ? 0.42 : e.kind === 'bat' ? 0.38 : 0.62;
         this.decN.add(X(x), 0.02, Z(z), r * 1.7, r * 1.7, 0, D_SHADOW, 0, 0, 0.02, 0.01, 0.02, 0.85);
         // светящиеся глаза у края экрана (сиреневые точки) — элите ореол
@@ -913,7 +972,7 @@ export class DungeonGame {
       this.corpses = this.corpses.filter((c) => wt - c.t < c.dur);
       for (const c of this.corpses) {
         if (!near(c.x, c.z, 2)) continue;
-        this.mobs.push(c.kind, X(c.x), 0, Z(c.z), c.yaw, 'death', wt - c.t, 0, c.elite && c.kind !== 'barrel' && c.kind !== 'shaman' ? 1.35 : 1);
+        this.mobs.push(c.kind, X(c.x), 0, Z(c.z), c.yaw, 'death', wt - c.t, 0, c.elite && !OWN_MODEL_SCALE.has(c.kind) ? 1.35 : 1);
       }
       // герой
       const h = v.hero;
@@ -922,6 +981,10 @@ export class DungeonGame {
       if (this.ended) this.lanternK = Math.max(0, this.lanternK - dt * 0.6);
       if (h.qCharge >= 0 && !this.hero.isCharging) this.hero.chargeStart();
       this.hero.update(still ? 0 : dt, hx, hz, hyaw, still ? 0 : h.speed, h.qCharge >= 0, h.invuln, time, this.lanternK, h.y);
+      this.hero.evolveLantern(v.weapons.some(w => w.id === 'lantern_evo'));
+      this.beacon.visible = v.weapons.some(w => w.id === 'beam_evo');
+      this.sparkFocus.visible = v.weapons.some(w => w.id === 'spark_evo');
+      if (this.beacon.visible) this.beacon.rotation.y = (v.rays[0]?.yaw ?? 0) - this.hero.root.rotation.y;
       this.decN.add(hx, 0.02, hz, 0.95 / (1 + h.y * 0.3), 0.95 / (1 + h.y * 0.3), 0, D_SHADOW, 0, 0, 0.02, 0.01, 0.01, 0.85);
       // Маяк: два крутящихся луча из героя
       for (let i = 0; i < v.rays.length; i++) {
@@ -958,33 +1021,39 @@ export class DungeonGame {
       if (qReady && !this.lastQReady) this.d.sfx.qReady();
       this.lastQReady = qReady;
       // боссы (у Близнецов два): у каждого своя модель, интерполяция и нора
-      for (const b of v.bosses) {
+      for (const [id, c] of this.bossCorpses) if (wt - c.t >= c.dur) this.bossCorpses.delete(id);
+      const drawingBosses = [...v.bosses, ...[...this.bossCorpses.values()].filter(c => !v.bosses.some(b => b.id === c.b.id)).map(c => c.b)];
+      for (const b of drawingBosses) {
         let bv = this.bossViews.get(b.id);
         if (!bv) {
-          bv = this.bossSpare.pop() ?? this.makeBossView();
+          const family = b.family ?? 'povidl', spare = this.bossSpare.findIndex(v => v.family === family);
+          bv = spare >= 0 ? this.bossSpare.splice(spare, 1)[0] : this.makeBossView(family);
           this.bossViews.set(b.id, bv);
         }
         const pb = this.prevBosses.get(b.id) ?? b;
         const bx = X(pb.x + wrap(b.x - pb.x) * alpha);
         const bz = Z(pb.z + wrap(b.z - pb.z) * alpha);
-        bv.update(still ? 0 : dt, b, bx, bz, (tick - b.animAt + alpha) * DT);
+        const corpse = this.bossCorpses.get(b.id);
+        bv.update(still ? 0 : dt, b, bx, bz, corpse ? wt - corpse.t : (tick - b.animAt + alpha) * DT, this.camX, this.camZ);
         const k = b.scale;
         if (b.anim === 'under') {
           // бугор по полу: тёмное пятно, трещины и пыль
           this.decN.add(bx, 0.03, bz, 2.6 * k, 2.6 * k, time, D_SPLAT, 0, 0, 0.1, 0.07, 0.05, 0.7, 3.1);
           if (!still && this.pool.rnd() < 0.5) this.pool.burst(bx, 0.2, bz, 2, 2.5, A_SOFT, 0.45, 0.38, 0.3, 0.6, 0.5, false, 6, 1.8);
-        } else {
+        } else if (b.family !== 'cauldronmaster') {
           // нора: (0, 0, −4,6) модели
           const s = Math.sin(b.yaw);
           const c = Math.cos(b.yaw);
           this.decN.add(bx - s * 4.6 * k, 0.03, bz - c * 4.6 * k, 3 * k, 3.6 * k, b.yaw, D_SPLAT, 0, 0, 0.05, 0.03, 0.03, 0.9, 7.7);
           this.decA.add(bx, 0.06, bz, 7 * k, 7 * k, 0, D_SOFT, 1.8, 0, 0.5, 0.2, 0.75, 0.45);
+        } else {
+          this.decN.add(bx, .02, bz, 2.5, 2.5, 0, D_SHADOW, 0, 0, .02, .01, .02, .8);
         }
       }
       // боссов, которых уже нет в забеге, — прячем, модель в запас
-      if (this.bossViews.size > v.bosses.length) {
+      if (this.bossViews.size > drawingBosses.length) {
         for (const [id, bv] of this.bossViews) {
-          if (v.bosses.some((b) => b.id === id)) continue;
+          if (drawingBosses.some((b) => b.id === id)) continue;
           bv.update(dt, null, 0, 0, 0);
           this.bossViews.delete(id);
           this.bossSpare.push(bv);
@@ -1012,7 +1081,7 @@ export class DungeonGame {
         const col = t.tone === 'jam' ? [0.78, 0.45, 1] : t.tone === 'red' ? [1, 0.25, 0.2] : [1, 0.75, 0.3];
         const shape = t.shape === 'circle' ? D_TCIRCLE : t.shape === 'strip' ? D_TSTRIP : D_TSECTOR;
         const sx = t.shape === 'strip' ? t.w / 2 : t.r;
-        this.decN.add(X(t.x), 0.04, Z(t.z), sx, t.shape === 'strip' ? t.r : t.r, t.yaw, shape, t.t01, t.shape === 'sector' ? t.w : 0, col[0], col[1], col[2], 0.85);
+        this.decN.add(X(t.x), 0.04, Z(t.z), sx, t.r, t.yaw, shape, t.t01, t.shape === 'sector' ? t.w : t.inner ? t.inner / t.r : 0, col[0], col[1], col[2], 0.85);
       }
       for (const p of v.puddles) {
         if (!near(p.x, p.z, 6)) continue;
@@ -1030,7 +1099,8 @@ export class DungeonGame {
       const up = new THREE.Vector3(0, 1, 0);
       for (const pr of v.projectiles) {
         if (!near(pr.x, pr.z, 3)) continue;
-        const im = this.projMeshes.get(pr.kind);
+        const key = pr.phase && pr.phase > 1 ? `${pr.kind}_p${pr.phase}` : pr.evo ? `${pr.kind}_evo` : pr.kind;
+        const im = this.projMeshes.get(key) ?? this.projMeshes.get(pr.kind);
         if (!im || im.count >= im.instanceMatrix.count) continue;
         const p = this.prev.get(-1000000 - pr.id);
         const x = X(p ? p.x + wrap(pr.x - p.x) * alpha : pr.x);
@@ -1310,7 +1380,7 @@ export class DungeonGame {
   debugState(): Record<string, unknown> {
     const v = this.view;
     return {
-      dungeon: v ? { tick: v.tick, stage: v.stage, wave: v.wave, enemies: v.enemies.length, drawnMobs: this.mobs.drawn, hp: v.hero.hp, level: v.level, cards: !!v.cards, paused: this.paused, ended: this.ended, journal: this.journal.total, pending: this.journal.pending, seed: this.seed, steps: this.steps } : null,
+      dungeon: v ? { tick: v.tick, stage: v.stage, wave: v.wave, enemies: v.enemies.length, drawnMobs: this.mobs.drawn, missingVisibleLives: this.liveRenderOverflow, hp: v.hero.hp, level: v.level, cards: !!v.cards, paused: this.paused, ended: this.ended, journal: this.journal.total, pending: this.journal.pending, seed: this.seed, steps: this.steps } : null,
     };
   }
 

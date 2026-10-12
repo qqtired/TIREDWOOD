@@ -214,7 +214,7 @@ function kegBlast(sim: DgSim): void {
   const h = sim.hero;
   for (const m of sim.mobs) {
     if (m.die || m.under) continue;
-    const frac = m.k === 'povidl' ? 0.03 : m.elite ? 0.1 : 0.6;
+    const frac = m.k === 'povidl' || m.k === 'cauldronmaster' ? 0.03 : m.elite ? 0.1 : 0.6;
     hurtMob(sim, m, m.hpMax * frac, 'keg', h.x, h.z, 1, 0, 0);
   }
   fx(sim, { k: 'boom', x: h.x, z: h.z, r: 20, what: 'keg' });

@@ -222,7 +222,7 @@ function kegBoom(sim: DgSim, p: DgProp): void {
     const dx = wrapD(m.x - p.x);
     const dz = wrapD(m.z - p.z);
     if (dx * dx + dz * dz >= (KEG_R + m.r) * (KEG_R + m.r)) continue;
-    const f = m.k === 'povidl' ? KEG_BOSS : m.elite ? KEG_ELITE : KEG_COMMON;
+    const f = m.k === 'povidl' || m.k === 'cauldronmaster' ? KEG_BOSS : m.elite ? KEG_ELITE : KEG_COMMON;
     hurtMob(sim, m, m.hpMax * f, 'prop', p.x, p.z, 2, 0, 0);
   }
   // герою — один раз за пачку
@@ -260,8 +260,11 @@ export function stepProps(sim: DgSim): void {
     const p = sim.props.find((x) => x.id === h.useId);
     if (!p || !inRange(h, p, (USE_R[p.k] ?? 2.5) + 0.5)) h.useId = -1;
     else if (sim.t >= h.useT1) {
-      h.useId = -1;
-      finishUse(sim, p);
+      // Не запускаем45-секундное проклятие без самой элиты. Полный круг ждёт освобождения места.
+      if (p.k !== 'chest' || p.st !== 0 || sim.wave.stage !== 'wave' || roomForExtra(sim)) {
+        h.useId = -1;
+        finishUse(sim, p);
+      }
     }
   }
   let lampHeal = false;
@@ -339,7 +342,8 @@ function whyOf(sim: DgSim, p: DgProp): DgProp['why'] {
       if (p.st === 1) return 'busy';
       if (p.st === 2) return 'cool';
       if (st === 'boss') return 'boss';
-      return st === 'wave' ? '' : 'wave';
+      if (st !== 'wave') return 'wave';
+      return roomForExtra(sim) ? '' : 'crowd';
     case 'forge':
       if (p.st === 3) return 'out';
       return sim.hero.xp >= sim.hero.xpNext * FORGE_XP && sim.weapons.length > 0 ? '' : 'xp';
@@ -350,7 +354,8 @@ function whyOf(sim: DgSim, p: DgProp): DgProp['why'] {
 function usable(sim: DgSim, p: DgProp): boolean {
   if (p.k === 'cart') return true;
   if (p.k !== 'altar' && p.k !== 'chest' && p.k !== 'forge') return false;
-  return p.st === 0 && whyOf(sim, p) === '';
+  const why = whyOf(sim, p);
+  return p.st === 0 && (why === '' || (p.k === 'chest' && why === 'crowd'));
 }
 
 /**
@@ -454,6 +459,7 @@ function respawnBrazier(sim: DgSim, p: DgProp): void {
 
 // ---------- проклятый сундук ----------
 function startCurse(sim: DgSim, p: DgProp): void {
+  if (!roomForExtra(sim)) return;
   p.st = 1;
   p.t0 = sim.t;
   p.t1 = sim.t + ticks(CURSE_TIME);
@@ -554,7 +560,7 @@ function stepCart(sim: DgSim, p: DgProp): void {
   const half = CART_W / 2;
   const sgn = p.vx >= 0 ? 1 : -1;
   for (const m of sim.mobs) {
-    if (m.die || m.under || m.k === 'povidl' || m.bmT > sim.t) continue;
+    if (m.die || m.under || m.k === 'povidl' || m.k === 'cauldronmaster' || m.bmT > sim.t) continue;
     const ox = wrapD(m.x - p.x);
     const oz = wrapD(m.z - p.z);
     if (Math.abs(oz) > half + m.r || ox * sgn < -0.8 || ox * sgn > 1.4 + m.r) continue;

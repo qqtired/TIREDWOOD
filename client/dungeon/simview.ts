@@ -8,6 +8,8 @@ import {
   type DgBoss, type DgCard, type DgFx, type DgMob, type DgProp, type DgSim,
 } from '../../shared/dungeon/sim.ts';
 import { evoOf } from '../../shared/dungeon/data.ts';
+import { expansionKind } from '../../shared/dungeon/expansion.ts';
+import { areaMul } from '../../shared/dungeon/core.ts';
 import { BOSS_NAME, BUFFS, MISC, MOBS, PASSIVES, WEAPONS } from './data.ts';
 import type { HudBuff, HudCard, HudChest, HudItem } from './hudtypes.ts';
 import type { RunSource } from './source.ts';
@@ -32,6 +34,7 @@ const JUMP_H = 3.2;
 function killerName(by: string, bossName: string): string {
   if (!by) return '';
   if (by === 'povidl') return bossName;
+  if (by === 'cauldronmaster') return DG_DATA.cauldron.name;
   if (by in MOBS) return MOBS[by as MobKind].name;
   if (by === 'puddle') return 'Лужа повидла';
   if (by === 'keg' || by === 'barrel') return 'Пороховая бочка';
@@ -107,7 +110,7 @@ function cardView(sim: DgSim, c: DgCard): HudCard {
     let hint: string | undefined;
     if (e) {
       const has = sim.passives.some((p) => p.id === e.with);
-      hint = `Эволюция: 7-й ур. + «${PASSIVES[e.with]?.name ?? e.with}»${has ? ' ✓' : ''} → «${WEAPONS[e.id]?.name ?? e.name}»`;
+      hint = `Эволюция: 7-й ур. + «${PASSIVES[e.with]?.name ?? e.with}»${has ? ' ✓' : ''} + сундук → «${WEAPONS[e.id]?.name ?? e.name}»`;
     }
     const up = c.lv > 1 ? (nxt?.up as string | undefined) : undefined;
     return {
@@ -183,6 +186,11 @@ function mobAct(m: DgMob, sim: DgSim): number {
 /** Состояние червя → клип босса */
 function bossAnim(m: DgMob): VBoss['anim'] {
   if (m.die) return 'death';
+  if (m.k === 'cauldronmaster') {
+    const a = m.attackKind;
+    if (a === 'appear' || a === 'attack' || a === 'pour' || a === 'boil' || a === 'phase2' || a === 'phase3' || a === 'recover') return a;
+    return Math.abs(m.vx) + Math.abs(m.vz) > 0.3 ? 'walk' : 'idle';
+  }
   switch (m.st) {
     case 'under':
     case 'rise':
@@ -209,7 +217,7 @@ export class SimRun implements RunSource {
   private fx: VFx[] = [];
   private lastShot = 0;
   /** Каждый червь-босс (у Близнецов два): состояние, текущий клип и с какого шага он идёт, масштаб */
-  private readonly bossTrack = new Map<number, { st: string; anim: VBoss['anim']; at: number; scale: number }>();
+  private readonly bossTrack = new Map<number, { st: string; anim: VBoss['anim']; at: number; scale: number; phase: number }>();
   private bossSeen = false;
   /** шаг последнего озверения (вспышка на озверевших 0,4 с) */
   private rageAt = -100;
@@ -248,7 +256,7 @@ export class SimRun implements RunSource {
     for (const s of this.sim.shots) {
       if (s.id <= this.lastShot) continue;
       if (s.k === 'ember') ember = true;
-      else pick = true;
+      else if (s.k === 'pick') pick = true;
     }
     for (const s of this.sim.shots) this.lastShot = Math.max(this.lastShot, s.id);
     if (ember) this.fx.push({ k: 'shot', w: 'ember' });
@@ -306,6 +314,7 @@ export class SimRun implements RunSource {
 
   private bossName(): string {
     const b = this.sim.bosses[0];
+    if (b?.family === 'cauldronmaster') return DG_DATA.cauldron.name;
     return BOSS_NAMES[b ? b.kind : Math.max(0, (Math.floor(this.sim.wave.n / 10) - 1) % 4)] ?? BOSS_NAME;
   }
 
@@ -315,11 +324,11 @@ export class SimRun implements RunSource {
     const track = this.bossTrack;
     let n = 0;
     for (const m of this.sim.mobs) {
-      if (m.k !== 'povidl') continue;
+      if (m.k !== 'povidl' && m.k !== 'cauldronmaster') continue;
       n++;
       let s = track.get(m.id);
       if (!s) {
-        s = { st: '', anim: 'under', at: this.sim.t, scale: 1 };
+        s = { st: '', anim: 'under', at: this.sim.t, scale: 1, phase: 1 };
         track.set(m.id, s);
       }
       const anim = bossAnim(m);
@@ -328,7 +337,7 @@ export class SimRun implements RunSource {
         s.at = this.sim.t;
       }
       const b = this.bossOf(m.id);
-      if (b) s.scale = b.scale;
+      if (b) { s.scale = b.scale; s.phase = b.phase; }
       if (m.st === s.st) continue;
       const was = s.st;
       s.st = m.st;
@@ -362,12 +371,13 @@ export class SimRun implements RunSource {
     switch (f.k) {
       case 'hit': {
         const m = this.mob(f.id);
-        out.push({ k: 'hit', id: m?.k === 'povidl' ? -1 : f.id, boss: m?.k === 'povidl' ? f.id : undefined, x: f.x, z: f.z, dmg: f.n, big: f.big === 1 });
+        const boss = m?.k === 'povidl' || m?.k === 'cauldronmaster';
+        out.push({ k: 'hit', id: boss ? -1 : f.id, boss: boss ? f.id : undefined, x: f.x, z: f.z, dmg: f.n, big: f.big === 1 });
         break;
       }
       case 'die': {
-        if (f.mob === 'povidl') {
-          out.push({ k: 'boss', what: 'death', x: f.x, z: f.z });
+        if (f.mob === 'povidl' || f.mob === 'cauldronmaster') {
+          out.push({ k: 'boss', what: 'death', id: f.id, x: f.x, z: f.z });
           break;
         }
         const m = this.mob(f.id);
@@ -401,17 +411,26 @@ export class SimRun implements RunSource {
         out.push({ k: 'beam', x: f.x, z: f.z, yaw: Math.atan2(f.dx, f.dz), len: f.len, w: f.w });
         break;
       case 'chain':
-        out.push({ k: 'chain', pts: f.pts });
+        out.push({ k: 'chain', pts: f.pts, evo: f.evo === 1, what: f.what });
+        break;
+      case 'disarm':
+        out.push({ k: 'disarm', x: f.x, z: f.z });
+        break;
+      case 'flow':
+        out.push({ k: 'flow', x: f.x, z: f.z, yaw: Math.atan2(f.dx, f.dz), len: f.len, w: f.w, phase: f.phase });
+        break;
+      case 'boil':
+        out.push({ k: 'boil', x: f.x, z: f.z, r: f.r, inner: f.inner, phase: f.phase });
         break;
       case 'boom': {
         const w = f.what;
-        const kind = w === 'charge' ? 'charge' : w === 'keg' || w === 'barrel' ? 'keg' : w === 'stal' || w === 'boulder' ? 'rock' : 'rock';
+        const kind: Extract<VFx, { k: 'boom' }>['kind'] = w === 'charge' ? 'charge' : w === 'keg' || w === 'barrel' ? 'keg' : w === 'enemy_charge' ? 'enemy_charge' : w === 'ember_splash' ? 'embers' : w === 'spark_pulse' ? 'spark' : w === 'boulder' ? 'boulder' : w === 'spit' || w === 'bspit' ? 'spit' : 'rock';
         out.push({ k: 'boom', x: f.x, z: f.z, r: f.r, kind });
         break;
       }
       case 'atk': {
         const m = this.mob(f.id);
-        if (m) out.push({ k: 'atk', what: m.k === 'povidl' ? `boss_${f.what}` : f.what, x: m.x, z: m.z });
+        if (m) out.push({ k: 'atk', what: m.k === 'povidl' || m.k === 'cauldronmaster' ? `boss_${f.what}` : f.what, x: m.x, z: m.z });
         break;
       }
       case 'wave': {
@@ -468,6 +487,7 @@ export class SimRun implements RunSource {
   }
 
   private bossNameFor(n: number): string {
+    if (n % 40 === 20) return DG_DATA.cauldron.name;
     return BOSS_NAMES[Math.max(0, (Math.floor(n / 10) - 1) % 4)] ?? BOSS_NAME;
   }
 
@@ -482,12 +502,13 @@ export class SimRun implements RunSource {
     const enemies: VEnemy[] = [];
     const bosses: VBoss[] = [];
     for (const m of sim.mobs) {
-      if (m.k === 'povidl') {
+      if (m.k === 'povidl' || m.k === 'cauldronmaster') {
         const s = this.bossTrack.get(m.id);
         const anim = bossAnim(m);
         bosses.push({
           id: m.id, x: m.x, z: m.z, yaw: Math.atan2(m.dx, m.dz), hp: Math.max(0, m.hp), hpMax: m.hpMax,
-          anim, animAt: s && s.anim === anim ? s.at : t, phase: this.bossOf(m.id)?.phase ?? 1, name: bossName, scale: s?.scale ?? 1,
+          family: m.k, anim, animAt: m.k === 'cauldronmaster' && !m.die ? (m.attackAt ?? s?.at ?? t) : s && s.anim === anim ? s.at : t,
+          phase: this.bossOf(m.id)?.phase ?? s?.phase ?? 1, name: m.k === 'cauldronmaster' ? DG_DATA.cauldron.name : BOSS_NAMES[this.bossOf(m.id)?.kind ?? 0] ?? BOSS_NAME, scale: s?.scale ?? 1,
           rage: this.bossOf(m.id)?.rage === 1,
         });
         continue;
@@ -497,36 +518,43 @@ export class SimRun implements RunSource {
       enemies.push({
         id: m.id, kind: m.k as MobKind, x: m.x, z: m.z, yaw: Math.atan2(m.dx, m.dz), hp: m.hp, hpMax: m.hpMax,
         act, actAt: act === ACT_ATTACK ? t - (m.id % 9) : m.stT, elite: m.elite === 1,
+        anim: expansionKind(m.k) ? (m.attackKind === 'recover' ? 'recover' : m.attackKind === 'attack' ? 'attack' : Math.abs(m.vx) + Math.abs(m.vz) > 0.3 ? 'walk' : 'idle') : undefined,
+        animAt: expansionKind(m.k) ? m.attackAt ?? m.stT : undefined,
         rage: m.rage > 0 && t - this.rageAt < 12 ? m.rage + 0.9 * (1 - (t - this.rageAt) / 12) : m.rage,
       });
     }
     // снаряды: угольки, кирки, шашки, падающие сталактиты, плевки по дуге, светляки
     const projectiles: VProj[] = [];
     for (const s of sim.shots) {
-      if (s.k === 'ember') projectiles.push({ id: s.id, kind: 'ember', x: s.x, z: s.z, y: 1, yaw: Math.atan2(s.vx, s.vz) });
-      else projectiles.push({ id: s.id, kind: 'pick', x: s.x, z: s.z, y: 0.9, yaw: (t - s.t0) * 0.9 });
+      if (s.k === 'ember' || s.k === 'rail') projectiles.push({ id: s.id, kind: s.k, x: s.x, z: s.z, y: 1, yaw: Math.atan2(s.vx, s.vz), evo: s.evo === 1 });
+      else projectiles.push({ id: s.id, kind: 'pick', x: s.x, z: s.z, y: 0.9, yaw: (t - s.t0) * 0.9, evo: s.evo === 1 });
     }
-    for (const tr of sim.traps) projectiles.push({ id: tr.id, kind: 'charge', x: tr.x, z: tr.z, y: 0.12, yaw: tr.id * 1.3 });
+    for (const tr of sim.traps) projectiles.push({ id: tr.id, kind: 'charge', x: tr.x, z: tr.z, y: 0.12, yaw: tr.id * 1.3, evo: tr.evo === 1 });
     const teles: VTele[] = [];
     for (const mk of sim.marks) {
       const k01 = mk.t1 > mk.t0 ? Math.min(1, Math.max(0, (t - mk.t0) / (mk.t1 - mk.t0))) : 1;
       if (mk.own) {
         teles.push({ id: mk.id, shape: 'circle', x: mk.x, z: mk.z, r: mk.r, w: 0, yaw: 0, t01: k01, tone: 'amber' });
-        projectiles.push({ id: mk.id, kind: 'rock', x: mk.x, z: mk.z, y: 0.5 + 11 * (1 - k01) * (1 - k01), yaw: mk.id });
+        if (mk.what === 'stal' || mk.what === 'boulder') projectiles.push({ id: mk.id, kind: mk.what === 'boulder' ? 'boulder' : 'rock', x: mk.x, z: mk.z, y: 0.5 + 11 * (1 - k01) * (1 - k01), yaw: mk.id, evo: mk.what === 'stal' && sim.weapons.some(w => w.id === 'stalactites' && w.evo === 1) });
+        else if (mk.what === 'spark_pulse') projectiles.push({ id: mk.id, kind: 'spark_pulse', x: mk.x, z: mk.z, y: 0.4 + Math.sin(k01 * Math.PI) * 0.3, yaw: mk.id });
         continue;
       }
       if (mk.dmg <= 0 && mk.what === 'hole') continue;
-      const spit = mk.what === 'spit' || mk.what === 'bspit';
+      const spit = mk.what === 'spit' || mk.what === 'bspit' || mk.what === 'cauldron_pour';
       const tone: VTele['tone'] = spit || mk.what === 'heal' ? 'jam' : 'red';
       if (mk.k === 'lane') teles.push({ id: mk.id, shape: 'strip', x: mk.x, z: mk.z, r: mk.len, w: mk.w, yaw: Math.atan2(mk.dx, mk.dz), t01: k01, tone });
       else if (mk.k === 'sector') teles.push({ id: mk.id, shape: 'sector', x: mk.x, z: mk.z, r: mk.r, w: (Math.min(360, mk.w) * Math.PI) / 180, yaw: Math.atan2(mk.dx, mk.dz), t01: k01, tone });
-      else teles.push({ id: mk.id, shape: 'circle', x: mk.x, z: mk.z, r: mk.r, w: 0, yaw: 0, t01: k01, tone });
+      else teles.push({ id: mk.id, shape: 'circle', x: mk.x, z: mk.z, r: mk.r, w: 0, yaw: 0, t01: k01, tone, inner: mk.inner });
       if (spit && mk.src >= 0) {
         // плевок летит дугой от плевуна в центр метки
         const dx = wrap(mk.x - mk.fx);
         const dz = wrap(mk.z - mk.fz);
-        projectiles.push({ id: mk.id, kind: 'spit', x: mk.fx + dx * k01, z: mk.fz + dz * k01, y: 0.9 + 4 * k01 * (1 - k01) * (mk.what === 'bspit' ? 4 : 2.5), yaw: 0 });
+        projectiles.push({ id: mk.id, kind: 'spit', x: mk.fx + dx * k01, z: mk.fz + dz * k01, y: (mk.what === 'cauldron_pour' ? 2.5 * (1 - k01) : .9) + 4 * k01 * (1 - k01) * (mk.what === 'bspit' ? 4 : 2.5), yaw: 0, phase: mk.what === 'cauldron_pour' ? this.bossOf(mk.src)?.phase : undefined });
       }
+    }
+    for (const c of sim.enemyCharges) if (c.end >= t) {
+      projectiles.push({ id: c.id, kind: 'enemy_charge', x: c.x, z: c.z, y: 0.16, yaw: c.id });
+      teles.push({ id: c.id, shape: 'circle', x: c.x, z: c.z, r: c.r, w: 0, yaw: 0, t01: Math.min(1, (t - c.t0) / Math.max(1, c.end - c.t0)), tone: 'red' });
     }
     const P = { x: 0, z: 0 };
     let rays: DgView['rays'] = [];
@@ -535,7 +563,7 @@ export class SimRun implements RunSource {
         const n = orbCount(sim, wp);
         for (let i = 0; i < n; i++) {
           orbPos(sim, wp, i, 0, P);
-          projectiles.push({ id: 900000 + i, kind: 'firefly', x: P.x, z: P.z, y: 1.1, yaw: 0 });
+          projectiles.push({ id: 900000 + i, kind: 'firefly', x: P.x, z: P.z, y: 1.1, yaw: 0, evo: wp.evo === 1 });
         }
       } else if (wp.id === 'beam' && wp.evo) {
         const s = wstats(wp);
@@ -543,7 +571,7 @@ export class SimRun implements RunSource {
         rays = [];
         for (let b = 0; b < nb; b++) {
           beamDir(sim, wp, b, 0, P);
-          rays.push({ yaw: Math.atan2(P.x, P.z), len: (s.length as number | undefined) ?? 14, w: (s.width as number | undefined) ?? 1.2 });
+          rays.push({ yaw: Math.atan2(P.x, P.z), len: ((s.length as number | undefined) ?? 14) * areaMul(sim), w: ((s.width as number | undefined) ?? 1.2) * areaMul(sim) });
         }
       }
     }

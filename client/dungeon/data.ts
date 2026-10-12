@@ -21,6 +21,10 @@ export const WEAPONS: Record<string, ItemInfo> = {
   stalactites_evo: { name: 'Обвал', icon: '🪨', max: 1, text: 'Чаще и глыба на толпу' },
   beam_evo: { name: 'Маяк', icon: '🗼', max: 1, text: 'Два луча крутятся вокруг' },
   fireflies_evo: { name: 'Рой светляков', icon: '✨', max: 1, text: 'Два кольца, лечат' },
+  embers_evo:{name:'Жаровой залп',icon:'',max:1,text:'Крупные угольки, первое попадание даёт взрыв'},
+  pickaxe_evo:{name:'Рудничный маховик',icon:'',max:1,text:'Четыре маховика, возврат сильнее отталкивает'},
+  spark_evo:{name:'Грозовая друза',icon:'',max:1,text:'Две цепи и кристальные импульсы на концах'},
+  charges_evo:{name:'Пороховая связка',icon:'',max:1,text:'Связки зажигают взведённые соседние ловушки'},
 };
 
 export const PASSIVES: Record<string, ItemInfo> = {
@@ -50,6 +54,7 @@ export const MOBS: Record<MobKind, { name: string; icon: string }> = {
   larva: { name: 'Личинка', icon: '🐛' },
   barrel: { name: 'Бочар', icon: '🛢' },
   shaman: { name: 'Грибной шаман', icon: '🧙' },
+  hookclaw:{name:'Крюколап',icon:''},wickmole:{name:'Фитильщик',icon:''},railhopper:{name:'Рельсовый щелкун',icon:''},chainwarden:{name:'Цепной пристав',icon:''},
 };
 
 export const BUFFS: Record<string, { name: string; icon: string }> = {

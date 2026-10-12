@@ -1,10 +1,10 @@
 // «Подземелье»: директор волн — отряд по таблице (1–10), события (стая, налёт, кольцо, элита, Орда, босс),
 // бесконечные 11+ (смеси, рост, предел тел), конец волны и передышка. Враги рождаются в полосе за краем экрана.
-import { spawnBosses } from './boss.ts';
+import { queueBoss,stepBossQueue } from './boss.ts';
 import { fx, healHero, newId } from './core.ts';
 import { D, LV, MOB_KINDS, mobDef, type MobKind, type WaveDef } from './data.ts';
 import { blocked } from './map.ts';
-import { aliveCount, enrage, spawnMob } from './mobs.ts';
+import { aliveCount, canSpawn, enrage, spawnMob } from './mobs.ts';
 import { dropGem, vacuum, waveChest } from './pickups.ts';
 import { wavePropsReset } from './props.ts';
 import type { DgAlert, DgSim, DgWave } from './types.ts';
@@ -128,6 +128,7 @@ export function startWave(sim: DgSim, n: number): void {
   w.horde = 0;
   w.prog = 0;
   w.ev = [];
+  w.flow=1;w.flowUntil=0;
   w.pend = MOB_KINDS.map(() => 0);
   w.hpMul = hpMulOf(n);
   w.dmgMul = dmgMulOf(n);
@@ -183,7 +184,9 @@ function endlessSetup(sim: DgSim, n: number): number {
     mi = Math.floor(rnd(sim) * (E.mixes.length - 1));
     if (mi >= prev && prev >= 0) mi++;
   }
-  const mix = E.mixes[mi];
+  const originalMix = E.mixes[mi];
+  const pairs:MobKind[][]=[['hookclaw','wickmole'],['hookclaw','railhopper'],['wickmole','railhopper']];
+  const mix=n>20?{...originalMix,share:{...Object.fromEntries(Object.entries(originalMix.share).map(([k,v])=>[k,(v as number)*.6])),[pairs[mi%3][0]]:.2,[pairs[mi%3][1]]:.2}}:originalMix;
   w.mix = mix.id;
   const hpMul = w.hpMul;
   const budget = B9 * E.step11 * powi(E.countGrowth, n - 11);
@@ -223,13 +226,31 @@ function endlessSetup(sim: DgSim, n: number): number {
   // элиты: 1 + ⌊(w − 10)/4⌋; каждая 5-я — Бочар и Шаман вместе
   const ne = 1 + Math.floor((n - 10) / 4);
   for (let i = 0; i < ne; i++) {
-    const k = n % 5 === 0 ? (i % 2 === 0 ? 'barrel' : 'shaman') : (n + i) % 2 === 0 ? 'barrel' : 'shaman';
+    const k = n > 20 && n % 3 === 1 && i === 0 ? 'chainwarden' : n % 5 === 0 ? (i % 2 === 0 ? 'barrel' : 'shaman') : (n + i) % 2 === 0 ? 'barrel' : 'shaman';
     w.ev.push({ at: Math.round(T * (0.15 + (0.6 * i) / Math.max(1, ne))), type: 'elite', mob: k, n: 1, done: 0 });
     total += 1;
   }
   if (n % 5 === 0 && ne === 1) {
     w.ev.push({ at: Math.round(T * 0.2), type: 'elite', mob: 'shaman', n: 1, done: 0 });
     total += 1;
+  }
+  // Полный состав включает события. Очень поздние налёты не обходят cap700: сохраняем их HP в меньшем числе тел.
+  if (n > 20 && total > cap) {
+    const unit = (k: string): number => { const m = mobDef(k); return m.hp + (m.splitInto ? mobDef(m.splitInto.id).hp * m.splitInto.n : 0); };
+    const hp = (): number => {
+      let sum = 0;
+      for (let i = 0; i < w.pend.length; i++) if (w.pend[i]) sum += w.pend[i] * unit(MOB_KINDS[i]);
+      for (const e of w.ev) if (e.mob && e.n) sum += e.n * unit(e.mob);
+      return sum;
+    };
+    const planned = hp(); let fixed = 0;
+    for (const e of w.ev) if (e.type === 'elite') { e.n = Math.min(e.n, Math.max(0, cap - fixed)); fixed += e.n; }
+    const loose = pendTotal(w) + w.ev.reduce((sum, e) => sum + (e.type === 'elite' ? 0 : e.n), 0);
+    const room = cap - fixed, factor = loose > room ? loose / Math.max(1, room) : 1;
+    for (let i = 0; i < w.pend.length; i++) w.pend[i] = room ? Math.floor(w.pend[i] / factor) : 0;
+    for (const e of w.ev) if (e.type !== 'elite') e.n = room ? Math.floor(e.n / factor) : 0;
+    const retained = hp(); if (retained > 0) w.hpMul *= planned / retained;
+    total = pendTotal(w) + w.ev.reduce((sum, e) => sum + e.n, 0);
   }
   w.ev.sort((a, b) => a.at - b.at);
   return total;
@@ -262,6 +283,7 @@ const P = { x: 0, z: 0 };
 /** Выпустить одного из отряда в полосе рождения; не нашлось места — вернуть в очередь */
 function spawnOne(sim: DgSim, k: MobKind): boolean {
   const def = mobDef(k);
+  if(!canSpawn(sim,k)){sim.wave.pend[MOB_KINDS.indexOf(k)]++;return false;}
   if (!spawnPoint(sim, def.radius, !!def.flying, false, P)) {
     sim.wave.pend[MOB_KINDS.indexOf(k)]++;
     return false;
@@ -298,9 +320,11 @@ export function stepDirector(sim: DgSim): void {
   w.old = old;
   if (w.stage !== 'wave' && w.stage !== 'boss') return;
   const el = sim.t - w.t0;
+  if(w.flowUntil&&sim.t>=w.flowUntil){w.flow=1;w.flowUntil=0;}
   // события (с тревогой заранее)
   for (const e of w.ev) {
     if (e.done) continue;
+    if (e.type === 'elite' && e.n === 0) { e.done = 1; continue; }
     const pre = e.type === 'swarm' ? ticks(1.5) : e.type === 'ring' ? ticks(2) : e.type === 'pack' ? ticks(1) : 0;
     if (el === e.at - pre && pre > 0) preEvent(sim, e);
     if (el >= e.at) {
@@ -308,12 +332,13 @@ export function stepDirector(sim: DgSim): void {
       runEvent(sim, e);
     }
   }
+  stepBossQueue(sim);
   // поток отряда
   const alive = aliveCount(sim);
   const left = pendTotal(w);
   if (left > 0 && alive < MAX_ALIVE) {
     const T = (w.t1 - w.t0) * 0.85;
-    w.prog += (w.horde ? 2 : 1) / T;
+    w.prog += (w.horde ? 2 : w.flow??1) / T;
     const regTotal = w.spawned + left; // всё, что ещё выйдет обычным потоком, плюс вышедшие
     let want = Math.floor(Math.min(1, w.prog) * regTotal) - w.spawned;
     if (alive < w.minAlive * (w.horde ? 1.5 : 1)) want = Math.max(want, Math.min(4, w.minAlive - alive));
@@ -331,7 +356,7 @@ export function stepDirector(sim: DgSim): void {
     }
   }
   // босс повержен — фон босс-волны больше не идёт
-  if (w.boss && sim.bosses.length === 0 && el > 5) w.pend.fill(0);
+  if (w.boss && sim.bosses.length === 0 && sim.pendingBossWaves.length===0 && el > 5) w.pend.fill(0);
   // конец волны: зачистка (все живые перебиты, отряд и долг вышли) или таймер
   if (el >= ticks(3) && pendTotal(w) === 0 && w.debt < 1 && eventsDone(w) && aliveCount(sim) === 0) sweep(sim);
   else if (sim.t >= w.t1) timerEnd(sim);
@@ -414,6 +439,7 @@ function runEvent(sim: DgSim, e: DgWave['ev'][number]): void {
           w.pend[MOB_KINDS.indexOf(k)]++;
           continue;
         }
+        if(!canSpawn(sim,k)){w.pend[MOB_KINDS.indexOf(k)]++;continue;}
         const m = spawnMob(sim, k, x, z, 1);
         w.spawned++;
         if (e.type === 'swarm') {
@@ -429,6 +455,7 @@ function runEvent(sim: DgSim, e: DgWave['ev'][number]): void {
       let made = 0;
       for (const mk of sim.marks) {
         if (mk.what !== 'hole' || made >= e.n) continue;
+        if(!canSpawn(sim,k)){mk.t1=sim.t;continue;}
         spawnMob(sim, k, mk.x, mk.z, 1);
         w.spawned++;
         made++;
@@ -439,6 +466,7 @@ function runEvent(sim: DgSim, e: DgWave['ev'][number]): void {
     }
     case 'elite': {
       for (let i = 0; i < e.n; i++) {
+        if(!canSpawn(sim,k)){w.pend[MOB_KINDS.indexOf(k)]++;continue;}
         if (!spawnPoint(sim, mobDef(k).radius, false, true, P) && !spawnPoint(sim, mobDef(k).radius, false, false, P)) {
           P.x = wrapP(h.x + 20);
           P.z = h.z;
@@ -454,9 +482,10 @@ function runEvent(sim: DgSim, e: DgWave['ev'][number]): void {
       alert(sim, 'horde', h.x, h.z, '', (w.t1 > sim.t ? w.t1 - sim.t : ticks(15)));
       break;
     case 'boss':
-      spawnBosses(sim);
-      alert(sim, 'boss', h.x, h.z, 'povidl', ticks(3));
+      queueBoss(sim);
+      alert(sim, 'boss', h.x, h.z, sim.wave.n%40===20?'cauldronmaster':'povidl', ticks(3));
       break;
+    case 'pressure':w.flow=1.25;w.flowUntil=sim.t+ticks(8);alert(sim,'horde',h.x,h.z,'',ticks(8));break;
   }
 }
 
@@ -479,7 +508,7 @@ export function timerEnd(sim: DgSim): void {
   let top = 0;
   for (const m of sim.mobs) {
     if (m.die || m.st === 'flee') continue;
-    if (m.k === 'povidl') {
+    if (m.k === 'povidl'||m.k==='cauldronmaster') {
       for (const b of sim.bosses) if (b.id === m.id) b.rage = 1;
       continue;
     }

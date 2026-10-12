@@ -30,7 +30,7 @@ function levelUp(sim: DgSim): void {
   healHero(sim, F.heal);
   const r2 = F.pushRadius * F.pushRadius;
   for (const m of sim.mobs) {
-    if (m.die || m.under || m.k === 'povidl') continue;
+    if (m.die || m.under || m.k === 'povidl' || m.k === 'cauldronmaster') continue;
     const dx = wrapD(m.x - h.x);
     const dz = wrapD(m.z - h.z);
     const d2 = dx * dx + dz * dz;
