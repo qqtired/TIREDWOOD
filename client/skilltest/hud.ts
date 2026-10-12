@@ -321,7 +321,7 @@ export class SkillHud {
       mode: 'skill', eyebrow: MODE, title, sub, extra, reward,
       head: ['', 'Игрок', 'Время', 'Медаль'], rightFrom: 2, rows: list,
       note: 'Табличка закроется через 9 с', noteFrac: 1,
-      actions: [{ id: 'again', label: 'Ещё забег', key: 'E', tone: 'go' }, { id: 'leave', label: 'На набережную', key: 'Esc', tone: 'ghost' }],
+      actions: [{ id: 'again', label: 'Ещё подъём', key: 'E', tone: 'go' }, { id: 'leave', label: 'На набережную', key: 'Esc', tone: 'ghost' }],
     };
   }
 }

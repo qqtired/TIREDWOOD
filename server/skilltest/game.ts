@@ -4,12 +4,12 @@
 // после всех (или через 30 с после первого) — итоги (done), потом свободный подъём (none) и «Ещё забег» по E.
 // Кто вошёл посреди забега — лезет со своим временем: места нет, рекорд и медаль считаются.
 import { aquaClock } from '../../shared/aquadyn.ts';
-import { makeSkillMap } from '../../shared/skillmap.ts';
+import { makeSkillMap, makeLegacySkillMap, type SkillMap } from '../../shared/skillmap.ts';
 import { SkillDynamics, inBell, onCheckpoint } from '../../shared/skillphysics.ts';
 import {
-  SKILL_AFTER_FIRST_TICKS, SKILL_AGAIN_TICKS, SKILL_CAPACITY, SKILL_COURSE, SKILL_GATHER_TICKS, SKILL_REJOIN_TICKS, SKILL_RESULTS_TICKS,
+  SKILL_AFTER_FIRST_TICKS, SKILL_AGAIN_TICKS, SKILL_CAPACITY, SKILL_COURSE, SKILL_LEGACY_COURSE, SKILL_GATHER_TICKS, SKILL_REJOIN_TICKS, SKILL_RESULTS_TICKS,
   makeSkillProgress, skillClock, skillMedal, skillMs, type SkillFinish, type SkillPeer, type SkillPhase, type SkillProgress,
-  type SkillRaceView, type SkillRow, type SkillServerMsg,
+  type SkillRaceView, type SkillRow, type SkillServerMsg, type SkillCourse,
 } from '../../shared/skilltest.ts';
 import { makeEvents, makeInput, makeState, type Input, type PlayerState } from '../../shared/sim.ts';
 import type { Outfit } from '../../shared/outfit.ts';
@@ -50,9 +50,10 @@ export interface SkillRace {
 export type SkillReward = Omit<SkillFinish, 'place'>;
 
 export class SkillGame {
-  readonly map = makeSkillMap();
-  readonly world = new CollisionWorld(this.map);
-  readonly dynamics = new SkillDynamics(this.map, this.world);
+  readonly map: SkillMap;
+  readonly world: CollisionWorld;
+  readonly dynamics: SkillDynamics;
+  readonly course: SkillCourse;
   readonly players = new Map<number, SkillPlayer>();
   readonly race: SkillRace = { id: 0, phase: 'none', phaseEnd: 0, start: 0, firstAt: 0, racers: new Set(), rows: [] };
   private readonly saved = new Map<number, { progress: SkillProgress; until: number; leftTick: number; leftMs: number }>();
@@ -69,7 +70,13 @@ export class SkillGame {
   /** Строка в чат комнаты */
   onChat: (text: string) => void = () => {};
 
-  constructor(now: () => number = Date.now) { this.now = now; }
+  constructor(now: () => number = Date.now, course: SkillCourse = SKILL_COURSE) {
+    this.now = now;
+    this.course = course;
+    this.map = course === SKILL_LEGACY_COURSE ? makeLegacySkillMap() : makeSkillMap();
+    this.world = new CollisionWorld(this.map);
+    this.dynamics = new SkillDynamics(this.map, this.world);
+  }
 
   addHuman(info: { pid: number; level?: number; nick: string; outfit: Outfit; best?: number }, sink: SkillSink): SkillPlayer | null {
     if (this.players.size >= SKILL_CAPACITY || [...this.players.values()].some((p) => p.pid === info.pid)) return null;
@@ -89,7 +96,7 @@ export class SkillGame {
     const empty = this.players.size === 0;
     this.players.set(p.id, p);
     // Компания входит вместе: первый открывает сбор, вошедшие за время сбора стартуют вместе с ним.
-    if (!restore && (this.race.phase === 'pre' || (empty && this.race.phase === 'none'))) {
+    if (this.course === SKILL_LEGACY_COURSE && !restore && (this.race.phase === 'pre' || (empty && this.race.phase === 'none'))) {
       if (this.race.phase !== 'pre') this.openRace(SKILL_GATHER_TICKS);
       this.enlist(p);
     } else this.respawn(p, false);
@@ -121,6 +128,16 @@ export class SkillGame {
     p.lastUse = this.tick;
     p.lastAction = this.tick;
     const race = this.race;
+    // Высокая башня: новый заход принадлежит только нажавшему, друзья продолжают свой подъём.
+    if (this.course === SKILL_COURSE) {
+      if (id === 0 || id === 2) {
+        p.progress = makeSkillProgress(p.progress.run + 1);
+        this.dev.delete(p.pid);
+        this.respawn(p, false);
+      } else this.respawn(p, p.progress.startedAt !== null && p.progress.finishedAt === null);
+      this.send(p);
+      return;
+    }
     if (id === 2) {
       if (race.phase === 'none' || race.phase === 'done') {
         this.openRace(SKILL_AGAIN_TICKS);
@@ -159,7 +176,7 @@ export class SkillGame {
 
   /** Только для проверок (--dev): поставить в точку; подъём без наград. */
   devTeleport(p: SkillPlayer, x: number, y: number, z: number): void {
-    if (![x, y, z].every(Number.isFinite) || Math.abs(x) > 60 || Math.abs(z) > 60 || y < -5 || y > 80) return;
+    if (![x, y, z].every(Number.isFinite) || Math.abs(x) > 60 || Math.abs(z) > 60 || y < -5 || y > this.map.gallery.y + 15) return;
     this.dev.add(p.pid);
     this.race.racers.delete(p.pid);
     p.state = Object.assign(makeState(), { x, y, z });
@@ -224,13 +241,13 @@ export class SkillGame {
       if (s.x >= st.x0 && s.x <= st.x1 && s.z >= st.z0 && s.z <= st.z1) return;
       progress.startedAt = vt;
     }
-    for (let i = this.map.checkpoints.length - 1; i > progress.checkpoint; i--) {
+    for (let i = this.course === SKILL_COURSE ? Math.min(this.map.checkpoints.length - 1, progress.checkpoint + 1) : this.map.checkpoints.length - 1; i > progress.checkpoint; i--) {
       if (onCheckpoint(this.map, s, i)) {
         progress.checkpoint = i;
         break;
       }
     }
-    if (inBell(this.map, s)) this.finish(p, vt);
+    if ((this.course === SKILL_LEGACY_COURSE || progress.checkpoint === this.map.checkpoints.length - 1) && inBell(this.map, s)) this.finish(p, vt);
   }
 
   private finish(p: SkillPlayer, vt: number): void {
@@ -240,7 +257,7 @@ export class SkillGame {
     progress.finishedAt = (progress.startedAt ?? vt) + ticks;
     const racing = race.phase === 'run' && race.racers.has(p.pid);
     const place = racing ? race.rows.filter((r) => r.place > 0).length + 1 : 0;
-    if (racing) race.rows.push({ pid: p.pid, nick: p.nick, ticks, falls: progress.falls, place, medal: skillMedal(ticks) });
+    if (racing) race.rows.push({ pid: p.pid, nick: p.nick, ticks, falls: progress.falls, place, medal: skillMedal(ticks, this.course) });
     const first = place === 1;
     if (first) {
       race.firstAt = this.tick;
@@ -252,7 +269,7 @@ export class SkillGame {
     const reward = this.dev.has(p.pid) ? null : this.onFinish(p, ticks, progress.falls, place);
     const ms = skillMs(ticks);
     const card: SkillReward = reward ?? {
-      ticks, falls: progress.falls, medal: skillMedal(ticks), best: p.best > 0 ? Math.min(p.best, ms) : ms, newBest: p.best <= 0 || ms < p.best,
+      ticks, falls: progress.falls, medal: skillMedal(ticks, this.course), best: p.best > 0 ? Math.min(p.best, ms) : ms, newBest: p.best <= 0 || ms < p.best,
       tokens: 0, medalUp: false, clean: false, daily: false,
     };
     if (!this.dev.has(p.pid)) p.best = card.best;
@@ -356,7 +373,7 @@ export class SkillGame {
 
   send(p: SkillPlayer): void {
     p.sink.sendJson({
-      t: 'skill_state', course: SKILL_COURSE, tick: this.tick, id: p.id, ack: p.input.ack, state: { ...p.state }, reset: p.reset,
+      t: 'skill_state', course: this.course, tick: this.tick, id: p.id, ack: p.input.ack, state: { ...p.state }, reset: p.reset,
       progress: { ...p.progress }, peers: this.peers(), race: this.raceView(), best: p.best,
     });
   }

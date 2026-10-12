@@ -5,12 +5,12 @@
 // порывом, ступень трясётся и пылит перед обвалом.
 import * as THREE from 'three';
 import { PLAYER_HALF } from '../../shared/constants.ts';
-import { SKILL_TOWER, makeSkillMap, type SkillMover, type SkillPad, type SkillRect } from '../../shared/skillmap.ts';
-import { barAngle, discAngle, makeSackPose, moverAt, sackAt, stepHeldBy, type P3 } from '../../shared/skillphysics.ts';
+import { SKILL_TOWER, makeLegacySkillMap as makeSkillMap, type SkillMover, type SkillPad, type SkillRect } from '../../shared/skillmap.ts';
+import { barAngle, cloudHeldBy, discAngle, makeSackPose, moverAt, sackAt, stepHeldBy, type P3 } from '../../shared/skillphysics.ts';
 import {
   CLOUD_WARN, CRUMBLE_PERIOD, CRUMBLE_SPEED, cloudReform, cloudSolid, cloudState, crumbleFront, crumbleState, cyc, orbitAngle, ramState, windState, type RamPhase,
 } from '../../shared/skilltraps.ts';
-import { SKILL_SECTIONS } from '../../shared/skilltest.ts';
+import { SKILL_LEGACY_SECTIONS as SKILL_SECTIONS } from '../../shared/skilltest.ts';
 import { CollisionWorld } from '../../shared/world.ts';
 import { Gulls, fitShadow } from '../render/kit.ts';
 import type { Renderer } from '../render/renderer.ts';
@@ -1034,7 +1034,7 @@ export class SkillWorld {
         }
       }
       v.warn.value = warn;
-      v.mat.opacity = present * dim;
+      v.mat.opacity = present * dim * (me && cloudHeldBy(c, me.x, me.y, me.z) ? .18 : 1);
       v.rim.opacity = present;
       v.rim.color.setHex(CLOUD.rim).lerp(RIM_WARN, rim);
       v.shade.opacity = 0.5 * present;

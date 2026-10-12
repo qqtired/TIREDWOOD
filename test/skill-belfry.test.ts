@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { PLAYER_HALF, PLAYER_HEIGHT } from '../shared/constants.ts';
-import { SKILL_STEP_THICK, makeSkillMap, type SkillRect, type SkillSack } from '../shared/skillmap.ts';
+import { SKILL_STEP_THICK, makeLegacySkillMap as makeSkillMap, type SkillRect, type SkillSack } from '../shared/skillmap.ts';
 import { SkillDynamics, makeSackPose, moverAt, sackAt, stepHeldBy } from '../shared/skillphysics.ts';
 import { BTN_FORWARD, BTN_JUMP, copyState, makeEvents, makeInput, makeState, statesEqual } from '../shared/sim.ts';
 import { CRUMBLE_PERIOD, CRUMBLE_SAFE_S, crumbleState } from '../shared/skilltraps.ts';

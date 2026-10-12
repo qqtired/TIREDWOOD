@@ -1935,7 +1935,7 @@ export const P3: Plaza3Layout = {
       "max": [
         -97,
         30,
-        38
+        44
       ],
       "mat": "invisible",
       "color": 0
@@ -1946,12 +1946,12 @@ export const P3: Plaza3Layout = {
       "min": [
         -98,
         -6,
-        38
+        44
       ],
       "max": [
         -81,
         30,
-        39
+        45
       ],
       "mat": "invisible",
       "color": 0
@@ -1962,7 +1962,7 @@ export const P3: Plaza3Layout = {
       "min": [
         -81,
         -6,
-        39
+        45
       ],
       "max": [
         -80,

@@ -60,6 +60,8 @@ export interface SkillMover {
   phase: number;
   /** Подбрасывает (тележка-батут), м/с */
   bounce?: number;
+  /** Твёрдые борта корзины: координаты относительно середины верха настила. */
+  bodies?: Array<{ box: number; min: Vec3; max: Vec3 }>;
 }
 
 export interface SkillCloud {
@@ -84,6 +86,7 @@ export interface SkillDisc {
   r: number;
   /** Оборот, тики; угол растёт от +x к +z */
   period: number;
+  dir?: 1 | -1;
   boxes: number[];
 }
 
@@ -196,6 +199,7 @@ export interface SkillMap extends GameMap {
   clouds: SkillCloud[];
   steps: SkillStep[];
   disc: SkillDisc;
+  carousels?: Array<{ disc: SkillDisc; bar: SkillBar; bumpers: SkillBumper[] }>;
   sacks: SkillSack[];
   rams: SkillRam[];
   bar: SkillBar;
@@ -222,7 +226,10 @@ const SOUTH = Math.PI;
 
 export const SKILL_TOWER = { half: 6, top: 47, belfry: 4, gallery: 65 } as const;
 
-export function makeSkillMap(): SkillMap {
+export { makeCloudTowerMap as makeSkillMap } from './skilltower.ts';
+
+/** Предыдущие 65 м: сохранены для отката и проверок прежней геометрии. */
+export function makeLegacySkillMap(): SkillMap {
   const boxes: MapBox[] = [];
   const pads: SkillPad[] = [];
   const movers: SkillMover[] = [];

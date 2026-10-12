@@ -8,7 +8,7 @@
 // на площадке (ровно на её сдвиг от метки прошлого входа до этой); post даёт отскок батутам разной силы и толчки
 // (вертушка, мешки — не твёрдые: задел — полетел в воду) и снова убирает подвижные боксы далеко за карту. Поэтому
 // мяч, камера и тени их не видят, а у каждого игрока — своё время.
-import { AQUA_BAGS, AQUA_BAG_H, AQUA_BAG_R, AQUA_BOTTOM, AQUA_MOVERS, AQUA_NEAR_X, AQUA_PIECES, AQUA_SWEEPER, AQUA_WARN, type AquaBag, type AquaMover } from './aqua.ts';
+import { AQUA_BAGS, AQUA_BAG_H, AQUA_BAG_R, AQUA_BOTTOM, AQUA_MOVERS, AQUA_NEAR_X, AQUA_PIECES, AQUA_SWEEPER, AQUA_SWEEPERS, AQUA_WARN, type AquaBag, type AquaMover, type AquaSweeper } from './aqua.ts';
 import { PLAYER_HALF, PLAYER_HEIGHT } from './constants.ts';
 import { TAU, sinCos } from './math.ts';
 import { pushPlayer, type PlayerState, type StepEvents } from './sim.ts';
@@ -110,9 +110,8 @@ export function sinkWarn(m: AquaMover, t: number): number {
 }
 
 /** Угол перекладины вертушки в момент t, рад: 0 — вдоль +x, растёт от +x к +z. */
-export function sweepAngle(t: number): number {
-  const p = AQUA_SWEEPER.period;
-  return (cycle(t, 0, p) / p) * TAU;
+export function sweepAngle(t: number, sweeper: AquaSweeper = AQUA_SWEEPER): number {
+  return (cycle(t, sweeper.phase ?? 0, sweeper.period) / sweeper.period) * TAU;
 }
 
 /** Мешок в момент t. */
@@ -260,23 +259,24 @@ export class AquaDyn {
 
   private hazards(s: PlayerState, t: number): void {
     // вертушка: перекладина — отрезок через ось, труба радиуса r на высоте y0…y1 над площадкой
-    const sw = AQUA_SWEEPER;
-    const rx = s.x - sw.x;
-    const rz = s.z - sw.z;
-    const reach = sw.len + 2 * PLAYER_HALF;
-    if (rx * rx + rz * rz < reach * reach && s.y < sw.top + sw.y1 && s.y + PLAYER_HEIGHT > sw.top + sw.y0) {
-      sinCos(sweepAngle(t), sc);
-      const along = rx * sc.c + rz * sc.s;
-      const across = rz * sc.c - rx * sc.s;
-      // полуширина квадрата желейки поперёк перекладины
-      const half = PLAYER_HALF * (Math.abs(sc.c) + Math.abs(sc.s));
-      if (Math.abs(across) < half + sw.r && Math.abs(along) < sw.len + half) {
-        // туда, куда идёт перекладина в этом месте, и чуть от оси
-        const sg = along >= 0 ? 1 : -1;
-        const rl = Math.sqrt(rx * rx + rz * rz) || 1;
-        knock(s, -sc.s * sg + (0.45 * rx) / rl, sc.c * sg + (0.45 * rz) / rl);
-        this.knock = KNOCK_SWEEP;
-        return;
+    for (const sw of AQUA_SWEEPERS) {
+      const rx = s.x - sw.x;
+      const rz = s.z - sw.z;
+      const reach = sw.len + 2 * PLAYER_HALF;
+      if (rx * rx + rz * rz < reach * reach && s.y < sw.top + sw.y1 && s.y + PLAYER_HEIGHT > sw.top + sw.y0) {
+        sinCos(sweepAngle(t, sw), sc);
+        const along = rx * sc.c + rz * sc.s;
+        const across = rz * sc.c - rx * sc.s;
+        // полуширина квадрата желейки поперёк перекладины
+        const half = PLAYER_HALF * (Math.abs(sc.c) + Math.abs(sc.s));
+        if (Math.abs(across) < half + sw.r && Math.abs(along) < sw.len + half) {
+          // туда, куда идёт перекладина в этом месте, и чуть от оси
+          const sg = along >= 0 ? 1 : -1;
+          const rl = Math.sqrt(rx * rx + rz * rz) || 1;
+          knock(s, -sc.s * sg + (0.45 * rx) / rl, sc.c * sg + (0.45 * rz) / rl);
+          this.knock = KNOCK_SWEEP;
+          return;
+        }
       }
     }
     // мешки: вертикальный цилиндр (наклоном пренебрегаем), толкает туда, куда качается

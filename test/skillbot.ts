@@ -40,7 +40,7 @@ export class SkillBot {
       return out;
     }
     if ('disc' in to) { out.x = this.map.disc.cx; out.y = this.map.disc.top; out.z = this.map.disc.cz; return out; }
-    if ('bell' in to) { out.x = 0; out.y = 65; out.z = 0; return out; }
+    if ('bell' in to) { out.x = (this.map.bell.x0 + this.map.bell.x1) / 2; out.y = this.map.gallery.y; out.z = (this.map.bell.z0 + this.map.bell.z1) / 2; return out; }
     const r = to as SkillRect;
     out.x = (r.x0 + r.x1) / 2; out.y = r.y; out.z = (r.z0 + r.z1) / 2;
     return out;
@@ -80,24 +80,30 @@ export class SkillBot {
     s.grounded = 1;
     s.fireCd = 1e6;
     const inp = makeInput();
+    Object.assign(this.ev, makeEvents());
     const startY = s.y;
     let prev = NaN;
     let via = link.via;
+    let launch: [number, number] | null = null;
     for (let i = 0; i < maxTicks; i++) {
       const t = t0 + i;
       this.me.x = s.x; this.me.y = s.y; this.me.z = s.z;
       this.aim(link, t, p);
+      const targetY = p.y;
       if (via) {
         // сначала к грибу (пока не подбросит) или в поток (пока не поднимет выше цели), потом — к цели
         const done = link.how === 'bounce' ? this.ev.bounced : link.how === 'lift' ? s.y > p.y + 0.6 : Math.hypot(via[0] - s.x, via[1] - s.z) < 0.3;
         if (done) via = undefined;
         else { p.x = via[0]; p.z = via[1]; }
       }
+      // Высокий батут: сначала поднимаемся рядом с кромкой, затем правим на посадку; ранний уход под настил бьёт головой.
+      if (launch && s.vy > 0 && s.y < targetY - 1) { p.x = launch[0]; p.z = launch[1]; }
       inp.seq = i + 1;
       inp.viewTick = t;
       this.steer(s, p.x, p.z, inp);
       if (i === jump) inp.buttons |= BTN_JUMP;
       this.dyn.step(s, inp, prev, this.ev);
+      if (this.ev.bounced) launch = [s.x, s.z];
       prev = t;
       if (this.reached(link, s)) return i + 1;
       if (s.y < startY - 8 || !Number.isFinite(s.x + s.y + s.z)) return -1;
@@ -190,19 +196,23 @@ export class SkillRouteBot extends SkillBot {
     }
     for (let i = 0; i < wait; i++) if (!tick(0, 0, 0)) return -1;
     let via = link.via;
+    let launch: [number, number] | null = null;
     for (let i = 0; i < 420; i++) {
       this.me.x = s.x; this.me.y = s.y; this.me.z = s.z;
       this.aimAt(link, t, p);
+      const targetY = p.y;
       if (via) {
         const done = link.how === 'bounce' ? this.ev2.bounced : link.how === 'lift' ? s.y > p.y + 0.6 : Math.hypot(via[0] - s.x, via[1] - s.z) < 0.3;
         if (done) via = undefined;
         else { p.x = via[0]; p.z = via[1]; }
       }
+      if (launch && s.vy > 0 && s.y < targetY - 1) { p.x = launch[0]; p.z = launch[1]; }
       inp.seq++;
       inp.viewTick = t;
       this.steer(s, p.x, p.z, inp);
       if (i === jump) inp.buttons |= BTN_JUMP;
       this.dyn.step(s, inp, prev, this.ev2);
+      if (this.ev2.bounced) launch = [s.x, s.z];
       this.steps++;
       prev = t;
       t++;
@@ -227,24 +237,37 @@ export class SkillRouteBot extends SkillBot {
       return out;
     }
     if ('disc' in to) { out.x = this.map.disc.cx; out.y = this.map.disc.top; out.z = this.map.disc.cz; return out; }
-    if ('bell' in to) { out.x = 0; out.y = 65; out.z = 0; return out; }
+    if ('bell' in to) { out.x = (this.map.bell.x0 + this.map.bell.x1) / 2; out.y = this.map.gallery.y; out.z = (this.map.bell.z0 + this.map.bell.z1) / 2; return out; }
     const r = to as SkillRect;
     out.x = (r.x0 + r.x1) / 2; out.y = r.y; out.z = (r.z0 + r.z1) / 2;
     return out;
   }
 
   /** Пройти маршрут от состояния s в момент t. */
-  run(route: SkillLink[], s0: PlayerState, t0: number, maxWait = 720): { ok: boolean; end: number; legs: LegLog[]; failed: string } {
+  run(route: SkillLink[], s0: PlayerState, t0: number, maxWait = 720): { ok: boolean; end: number; legs: LegLog[]; failed: string; state: PlayerState } {
     const legs: LegLog[] = [];
+    let final = copyState(makeState(), s0);
     let failed = '';
     const solve = (k: number, s: PlayerState, t: number): number => {
-      if (k === route.length) return t;
+      if (k === route.length) { final = copyState(makeState(), s); return t; }
       if (this.steps > this.budget) return -1;
       const link = route[k];
       const jumps = link.how === 'jump' ? Array.from({ length: 30 }, (_, i) => i) : [-1, 0, 4, 8];
       let tries = 0;
-      for (let wait = 0; wait <= maxWait; wait += 4) {
+      const waits = Array.from({ length: Math.floor(maxWait / 4) + 1 }, (_, i) => i * 4);
+      if (link.from !== undefined && link.at) {
+        const source = this.map.movers[link.from];
+        const candidates = this.map.movers.filter(m => m.sec === source.sec && m.look === source.look);
+        let ride = source, nearest = Infinity;
+        for (const m of candidates) { const p = moverAt(m, t, { x: 0, y: 0, z: 0 }); const d = Math.abs(p.y - s.y) * 5 + Math.hypot(p.x - s.x, p.z - s.z); if (d < nearest) { nearest = d; ride = m; } }
+        const period = ride.kind === 'orbit' ? ride.period : ride.sched.rest + ride.sched.go + ride.sched.stay + ride.sched.back;
+        const phase = ride.kind === 'orbit' ? ride.phase : ride.sched.phase;
+        const timing = link.at.map(at => ((at + phase - t) % period + period) % period).filter(wait => wait <= maxWait);
+        waits.unshift(...timing);
+      }
+      for (const wait of waits) {
         for (const j of jumps) {
+          if (this.steps > this.budget) return -1;
           const st = copyState(makeState(), s);
           const end = this.leg(link, st, t, wait, j);
           if (end < 0) continue;
@@ -262,6 +285,6 @@ export class SkillRouteBot extends SkillBot {
       return -1;
     };
     const end = solve(0, copyState(makeState(), s0), t0);
-    return { ok: end >= 0, end, legs: legs.slice(0, route.length), failed };
+    return { ok: end >= 0, end, legs: legs.slice(0, route.length), failed, state: final };
   }
 }

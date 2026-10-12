@@ -1,4 +1,4 @@
-import { SKILL_CAPACITY, SKILL_COURSE, type SkillStatus } from '../../shared/skilltest.ts';
+import { SKILL_CAPACITY, type SkillCourse, type SkillStatus } from '../../shared/skilltest.ts';
 import type { ClientMsg } from '../../shared/messages.ts';
 import type { Outfit } from '../../shared/outfit.ts';
 import type { Input } from '../../shared/sim.ts';
@@ -9,6 +9,7 @@ import { SkillGame, type SkillPlayer, type SkillRace, type SkillReward } from '.
 const DEV = process.argv.includes('--dev');
 
 export interface SkillRoomHooks {
+  course?: SkillCourse;
   outfitOf(p: Profile): Outfit;
   afk?(c: Client): void;
   /** Позвонил в колокол: профиль и жетоны; null — без награды (гость) */
@@ -17,10 +18,11 @@ export interface SkillRoomHooks {
 
 export class SkillRoom implements Room {
   readonly kind = 'skill' as const;
-  readonly game = new SkillGame();
+  readonly game: SkillGame;
   private readonly hooks: SkillRoomHooks;
   private readonly clients = new Map<Client, SkillPlayer>();
   constructor(hooks: SkillRoomHooks) {
+    this.game = new SkillGame(Date.now, hooks.course);
     this.hooks = hooks;
     this.game.onAfk = (p) => { for (const [c, player] of this.clients) if (p === player) hooks.afk?.(c); };
     this.game.onFinish = (p, ticks, falls, place) => {
@@ -58,7 +60,7 @@ export class SkillRoom implements Room {
     if (!p) return;
     if (text === '/kill' || text === '/respawn') this.game.use(p, 1);
     // проверка участков в разработке: /cp 5 — на пятый флажок, /tp x y z — в точку (на боевом сервере команд нет)
-    const cp = DEV ? /^\/cp (\d)$/.exec(text) : null;
+    const cp = DEV ? /^\/cp (\d{1,2})$/.exec(text) : null;
     if (cp) this.game.devCheckpoint(p, Number(cp[1]));
     const tp = DEV ? /^\/tp (-?[\d.]+) (-?[\d.]+) (-?[\d.]+)$/.exec(text) : null;
     if (tp) this.game.devTeleport(p, Number(tp[1]), Number(tp[2]), Number(tp[3]));
@@ -66,7 +68,7 @@ export class SkillRoom implements Room {
   status(): SkillStatus {
     const race = this.game.race;
     const left = race.phase === 'pre' ? Math.max(0, Math.ceil((race.phaseEnd - this.game.tick) / 60)) : 0;
-    return { n: this.humans, max: SKILL_CAPACITY, names: [...this.clients.keys()].map((c) => c.nick), course: SKILL_COURSE, phase: race.phase, left };
+    return { n: this.humans, max: SKILL_CAPACITY, names: [...this.clients.keys()].map((c) => c.nick), course: this.game.course, phase: race.phase, left };
   }
   step(): void { for (const [c, p] of this.clients) if (c.profile) p.level = c.profile.level; this.game.step(); }
 }

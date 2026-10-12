@@ -9,8 +9,8 @@
 import { TICK_RATE, WATER_Y } from './constants.ts';
 import { pick } from './layout.ts';
 
-/** Версия полосы: новая полоса — новая доска рекордов (хранилище сбрасывает старую и личные лучшие) */
-export const AQUA_COURSE = 2;
+/** Версия полосы: результаты прошлой версии сохраняются в архиве хранилища. */
+export const AQUA_COURSE = pick(2, () => 3);
 
 export type AquaKind = 'pad' | 'deck' | 'step' | 'tower' | 'slide' | 'tramp' | 'beam' | 'disc' | 'pylon' | 'pillar' | 'finish';
 
@@ -67,6 +67,8 @@ export interface AquaSweeper {
   y1: number;
   /** Оборот, тиков */
   period: number;
+  /** Сдвиг расписания; вторая вертушка встречает игрока другим ритмом. */
+  phase?: number;
 }
 
 /** Мешок на верёвке: висит на раме над бревном (точка подвеса), качается поперёк бревна (вдоль z) */
@@ -102,7 +104,7 @@ export const AQUA_JETTY = { x0: -34.5, x1: -30, z0: 7.5, z1: 10.5 };
  * Неподвижные куски по пути. Прыжок с разбега — до 6 м и до 1,5 м вверх (с рывком — до 11 м), промежутки — 1,4–1,6 м;
  * на ступень 1,6 м — только со слабого батута, на башню 4 м — только с сильного, на верхнюю палубу 3,2 м — только лифтом.
  */
-export const AQUA_PIECES: readonly AquaPiece[] = [
+const AQUA_PIECES_V2: readonly AquaPiece[] = [
   // разминка: подушки зигзагом и лесенкой вверх
   { kind: 'pad', x0: -38.2, x1: -36.0, z0: 7.9, z1: 10.1, top: -0.45, color: YELLOW },
   { kind: 'pad', x0: -41.9, x1: -39.7, z0: 9.3, z1: 11.5, top: -0.15, color: ORANGE },
@@ -135,8 +137,19 @@ export const AQUA_PIECES: readonly AquaPiece[] = [
   { kind: 'finish', x0: -38.6, x1: -33.8, z0: 34.6, z1: 38.6, top: -0.2, color: BLUE },
 ];
 
+/** Принятая «Волна» 3: подкова в западной бухте. Высоты и силы любимых механизмов прежние. */
+export const AQUA_PIECES: readonly AquaPiece[] = pick(AQUA_PIECES_V2, () => {
+  const dz = [0, -2.4, -1.3, -2.5, -2.5, 3.6, 3.6, 3.6, 3.6, 3.6, 3.6, 3.6, 3.6, 3.6, 3.6, 3.6, 3.6, 3.6, 0, 0, -2.6, -2.6];
+  const pieces = AQUA_PIECES_V2.map((p, i) => ({ ...p, z0: p.z0 + dz[i], z1: p.z1 + dz[i] }));
+  // После верхней палубы — вторая вертушка, затем тумба на внутренней дуге к паромам.
+  pieces[18] = { kind: 'disc', x0: -66.2, x1: -60.2, z0: 30.4, z1: 36.4, top: 2, color: TEAL };
+  pieces[19] = { kind: 'pillar', x0: -59.9, x1: -58.3, z0: 32.2, z1: 33.8, top: 0.9, color: PINK };
+  pieces.push({ kind: 'pylon', x0: -63.65, x1: -62.75, z0: 32.95, z1: 33.85, top: 3.6, color: RED });
+  return pieces;
+});
+
 /** Подвижные площадки. Карта держит под каждую свой бокс (shared/maps/lobby.ts, aquaMovers) — в этом же порядке. */
-export const AQUA_MOVERS: readonly AquaMover[] = [
+const AQUA_MOVERS_V2: readonly AquaMover[] = [
   // паром: 1,1 с у причала, 3,4 с через воду, 1,1 с у другого причала, обратно
   { kind: 'ferry', x0: -51.9, x1: -49.5, z0: 7.8, z1: 10.2, top: -0.4, dx: -10, dy: 0, dz: 0, rest: 66, go: 204, stay: 66, back: 204, phase: 0, color: ORANGE },
   // тонущие подушки: 2,5 с наверху (последние 0,8 с мигают), 0,35 с тонет, 0,8 с под водой, 0,35 с всплывает;
@@ -153,31 +166,44 @@ export const AQUA_MOVERS: readonly AquaMover[] = [
   { kind: 'ferry', x0: -40.9, x1: -38.7, z0: 35.5, z1: 37.7, top: -0.2, dx: -7, dy: 0, dz: 0, rest: 60, go: 120, stay: 60, back: 120, phase: 0, color: PINK },
 ];
 
+export const AQUA_MOVERS: readonly AquaMover[] = pick(AQUA_MOVERS_V2, () => {
+  const dz = [-2.5, -2.5, -1.1, -0.9, 1.7, 3.6, -2.6, -2.6];
+  return AQUA_MOVERS_V2.map((m, i) => ({ ...m, z0: m.z0 + dz[i], z1: m.z1 + dz[i] }));
+});
+
 /** Тонущая подушка мигает столько тиков перед тем, как уйти под воду */
 export const AQUA_WARN = 48;
 
 /** Вертушка: оборот за 3,6 с, перекладина в обе стороны — каждое место накрывает раз в 1,8 с */
-export const AQUA_SWEEPER: AquaSweeper = { x: -91.6, z: 30.6, top: -0.3, len: 4.3, r: 0.22, y0: 0.2, y1: 0.64, period: 216 };
+export const AQUA_SWEEPERS: readonly AquaSweeper[] = pick(
+  [{ x: -91.6, z: 30.6, top: -0.3, len: 4.3, r: 0.22, y0: 0.2, y1: 0.64, period: 216, phase: 0 }],
+  () => [
+    { x: -91.6, z: 34.2, top: -0.3, len: 4.3, r: 0.22, y0: 0.2, y1: 0.64, period: 216, phase: 0 },
+    { x: -63.2, z: 33.4, top: 2, len: 4.3, r: 0.22, y0: 0.2, y1: 0.64, period: 216, phase: 54 },
+  ],
+);
+/** Первая вертушка: совместимость с прежними инструментами и проверками. */
+export const AQUA_SWEEPER = AQUA_SWEEPERS[0];
 
 /** Мешки над бревном: качание за 3 с, соседи — на треть качания позже */
 export const AQUA_BAGS: readonly AquaBag[] = [
   { x: -85.6, z: 36.6, py: 4.3, len: 3.3, amp: 0.95, period: 180, phase: 0 },
   { x: -82.2, z: 36.6, py: 4.3, len: 3.3, amp: 0.95, period: 180, phase: 60 },
   { x: -78.8, z: 36.6, py: 4.3, len: 3.3, amp: 0.95, period: 180, phase: 120 },
-];
+].map((b) => ({ ...b, z: b.z + pick(0, () => 3.6) }));
 /** Мешок: радиус и высота */
 export const AQUA_BAG_R = 0.38;
 export const AQUA_BAG_H = 1.3;
 
-export const AQUA_FINISH = AQUA_PIECES[AQUA_PIECES.length - 1];
+export const AQUA_FINISH = AQUA_PIECES.find((p) => p.kind === 'finish')!;
 /** Где встаёт упавший в воду: на мостике у старта, лицом к полосе (на запад) */
 export const AQUA_RESPAWN = { x: -32.6, z: 9, yaw: Math.PI / 2 };
 /** Арки «СТАРТ» (в конце мостика) и «ФИНИШ» (на финишной площадке), кольца над полосой (только для красоты: x, z, середина) */
 export const AQUA_START_X = -34.3;
 export const AQUA_FINISH_X = -38.0;
 export const AQUA_RINGS: ReadonlyArray<{ x: number; z: number; y: number }> = [
-  { x: -68.5, z: 8.65, y: 0.6 },
-  { x: -58.4, z: 36.8, y: 1.1 },
+  { x: -68.5, z: pick(8.65, () => 6.75), y: 0.6 },
+  { x: -58.4, z: pick(36.8, () => 33.8), y: 1.1 },
 ];
 /**
  * Доска «Рекорды полосы» на площади у мостика, лицом на восток. plaza3: у угла набережной встала балюстрада (x −30…−29,8,

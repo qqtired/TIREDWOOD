@@ -3,16 +3,16 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { Client } from '../server/hub.ts';
-import { SkillGame, type SkillPlayer } from '../server/skilltest/game.ts';
+import { SkillGame as CurrentSkillGame, type SkillPlayer } from '../server/skilltest/game.ts';
 import { SkillRoom } from '../server/skilltest/room.ts';
 import { DT } from '../shared/constants.ts';
 import { emptyStats } from '../shared/economy.ts';
 import { DEFAULT_OUTFIT } from '../shared/outfit.ts';
-import { makeSkillMap } from '../shared/skillmap.ts';
+import { makeLegacySkillMap as makeSkillMap } from '../shared/skillmap.ts';
 import { SKILL_KNOCK_RAM, SKILL_KNOCK_SACK, SKILL_KNOCK_TICKS, SKILL_WIND_GROUND, SkillDynamics, makeSackPose, sackAt } from '../shared/skillphysics.ts';
 import {
-  SKILL_AFTER_FIRST_TICKS, SKILL_AGAIN_TICKS, SKILL_CAPACITY, SKILL_COURSE, SKILL_GATHER_TICKS, SKILL_GOLD_TICKS, SKILL_REJOIN_TICKS,
-  SKILL_RESULTS_TICKS, SKILL_SECTIONS, SKILL_SILVER_TICKS, applySkillFinish, skillClock, skillMedal, skillTime, type SkillServerMsg,
+  SKILL_AFTER_FIRST_TICKS, SKILL_AGAIN_TICKS, SKILL_CAPACITY, SKILL_LEGACY_COURSE as SKILL_COURSE, SKILL_GATHER_TICKS, SKILL_LEGACY_GOLD_TICKS as SKILL_GOLD_TICKS, SKILL_REJOIN_TICKS,
+  SKILL_RESULTS_TICKS, SKILL_LEGACY_SECTIONS as SKILL_SECTIONS, SKILL_LEGACY_SILVER_TICKS as SKILL_SILVER_TICKS, applySkillFinish as applyCurrentSkillFinish, skillClock, skillMedal as currentSkillMedal, skillTime, type SkillServerMsg,
 } from '../shared/skilltest.ts';
 import { ramState, windState } from '../shared/skilltraps.ts';
 import { BTN_FORWARD, BTN_JUMP, copyState, makeEvents, makeInput, makeState, statesEqual } from '../shared/sim.ts';
@@ -24,6 +24,9 @@ const join = (game: SkillGame, pid: number, nick: string, box: Box = { msgs: [] 
 const steps = (game: SkillGame, n: number): void => { for (let i = 0; i < n; i++) game.step(); };
 const last = <T extends SkillServerMsg['t']>(box: Box, t: T): Extract<SkillServerMsg, { t: T }> | undefined =>
   box.msgs.filter((m): m is Extract<SkillServerMsg, { t: T }> => m.t === t).at(-1);
+class SkillGame extends CurrentSkillGame { constructor(now: () => number = Date.now) { super(now, SKILL_COURSE); } }
+const skillMedal = (ticks: number) => currentSkillMedal(ticks, SKILL_COURSE);
+const applySkillFinish = (stats: Parameters<typeof applyCurrentSkillFinish>[0], ticks: number, falls: number, day: number) => applyCurrentSkillFinish(stats, ticks, falls, day, SKILL_COURSE);
 /** Встать прямо в колокол: следующий шаг засчитает подъём. */
 const ring = (p: SkillPlayer): void => { Object.assign(p.state, { x: 0, y: 66.2, z: 0, vx: 0, vy: 0, vz: 0, grounded: 0 }); };
 const stand = (game: SkillGame, p: SkillPlayer, i: number): void => {
@@ -153,7 +156,7 @@ test('joining mid-race climbs on its own clock: record and medal count, no place
   assert.deepEqual(rewards, [0]);
   assert.equal(last(box, 'skill_finish')?.place, 0);
   // экран загрузки держит сбор: prestart — живой объект забега
-  const room = new SkillRoom({ outfitOf: () => DEFAULT_OUTFIT });
+  const room = new SkillRoom({ outfitOf: () => DEFAULT_OUTFIT, course: SKILL_COURSE });
   const client = { profile: { id: 9, nick: 'Loader', level: 1, stats: emptyStats() }, pid: 9, nick: 'Loader', sink: { sendJson() {} } } as unknown as Client;
   assert.equal(room.join(client), true);
   const pre = room.prestart!;

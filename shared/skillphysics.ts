@@ -8,7 +8,7 @@
 // полетел). Только +, −, ×, /, sqrt, остаток от деления и sinCos — бит в бит в любом браузере и в Node.
 import { DT, PLAYER_HALF, PLAYER_HEIGHT } from './constants.ts';
 import { TAU, sinCos } from './math.ts';
-import { SKILL_STEP_THICK, type SkillMap, type SkillMover, type SkillSack, type SkillStep } from './skillmap.ts';
+import { SKILL_STEP_THICK, type SkillCloud, type SkillDisc, type SkillMap, type SkillMover, type SkillSack, type SkillStep } from './skillmap.ts';
 import {
   CRUMBLE_PERIOD, cloudSolid, crumbleState, cyc, lineU, orbitOffset, ramState, spinAngle, swingPose, windState, type RamPhase, type SwingPose,
 } from './skilltraps.ts';
@@ -108,7 +108,7 @@ export function barAngle(map: SkillMap, t: number): number {
  * ступень скрыта, только пока выросла вокруг тела, поэтому нельзя застрять внутри. Картинка (client/skilltest/world.ts)
  * спрашивает то же, что и физика: что видно, то и держит.
  */
-const HOLD_NEAR = 0.25;
+const HOLD_NEAR = PLAYER_HALF;
 const HOLD_EPS = 0.02;
 const HOLD_ABOVE = 0.3;
 const HOLD_FRESH = 60;
@@ -119,6 +119,13 @@ export function stepHeldBy(st: SkillStep, x: number, y: number, z: number, t: nu
   const above = cyc(t, 0, CRUMBLE_PERIOD) < HOLD_FRESH ? HOLD_ABOVE : 0;
   if (y + PLAYER_HEIGHT + above <= r.y - SKILL_STEP_THICK + HOLD_EPS) return false;
   return x > r.x0 - HOLD_NEAR && x < r.x1 + HOLD_NEAR && z > r.z0 - HOLD_NEAR && z < r.z1 + HOLD_NEAR;
+}
+
+/** Облако собирается только вне всего объёма тела. Клиент рисует ту же временную нетвёрдость. */
+export function cloudHeldBy(c: SkillCloud, x: number, y: number, z: number): boolean {
+  const r = c.rect;
+  return y < r.y - HOLD_EPS && y + PLAYER_HEIGHT > r.y - .7 + HOLD_EPS
+    && x > r.x0 - PLAYER_HALF && x < r.x1 + PLAYER_HALF && z > r.z0 - PLAYER_HALF && z < r.z1 + PLAYER_HALF;
 }
 
 /** Ноги желейки (квадрат 0,84 м) хоть краем над прямоугольником. */
@@ -158,9 +165,11 @@ export class SkillDynamics {
   /** Сбор забега: входы с меткой раньше этой — без кнопок (смотреть можно, бежать — нет) */
   lockUntil = 0;
   private readonly map: SkillMap;
+  private readonly carousels: NonNullable<SkillMap['carousels']>;
   private readonly w: CollisionWorld;
   private readonly was: P3[];
   private readonly now: P3[];
+  private readonly support: number[][];
   private readonly bounce = new Map<number, number>();
   private readonly locked: Input = makeInput();
   private readonly sack = makeSackPose();
@@ -168,9 +177,11 @@ export class SkillDynamics {
 
   constructor(map: SkillMap, world: CollisionWorld) {
     this.map = map;
+    this.carousels = map.carousels ?? [{ disc: map.disc, bar: map.bar, bumpers: map.bumpers }];
     this.w = world;
     this.was = map.movers.map(() => ({ x: 0, y: 0, z: 0 }));
     this.now = map.movers.map(() => ({ x: 0, y: 0, z: 0 }));
+    this.support = map.movers.map(m => [m.box, ...(m.bodies ?? []).map(b => b.box)]);
     for (const p of map.pads) if (p.bounce !== undefined) this.bounce.set(p.box, p.bounce);
     for (const m of map.movers) if (m.bounce !== undefined) this.bounce.set(m.box, m.bounce);
     this.place(0);
@@ -197,6 +208,7 @@ export class SkillDynamics {
       const m = map.movers[i];
       const p = moverAt(m, t, this.now[i]);
       this.setBox(m.box, p.x - m.w / 2, p.y - m.h, p.z - m.d / 2, p.x + m.w / 2, p.y, p.z + m.d / 2);
+      for (const body of m.bodies ?? []) this.setBox(body.box, p.x + body.min[0], p.y + body.min[1], p.z + body.min[2], p.x + body.max[0], p.y + body.max[1], p.z + body.max[2]);
     }
     for (const c of map.clouds) {
       if (cloudSolid(c.phase, t)) this.setBox(c.box, c.rect.x0, c.rect.y - 0.7, c.rect.z0, c.rect.x1, c.rect.y, c.rect.z1);
@@ -215,6 +227,7 @@ export class SkillDynamics {
       const st = steps[i];
       if (stepHeldBy(st, s.x, s.y, s.z, t) && crumbleState(st.s, t) >= 0) this.park(st.box);
     }
+    for (const c of this.map.clouds) if (cloudSolid(c.phase, t) && cloudHeldBy(c, s.x, s.y, s.z)) this.park(c.box);
   }
 
   /** Перед шагом входа inp (prev — метка прошлого входа, NaN — неизвестна). Возвращает вход для шага. */
@@ -227,19 +240,21 @@ export class SkillDynamics {
     const old = Number.isFinite(prev) && t >= prev && t - prev <= RIDE_GAP ? prev : t;
     this.place(old);
     let ride = -1;
-    let onDisc = false;
+    let onDisc: SkillDisc | null = null;
     if (s.grounded === 1) {
       for (let i = 0; i < map.movers.length; i++) {
-        const b = map.movers[i].box;
-        if (Math.abs(s.y - w.maxY[b]) < RIDE_EPS && footOver(s, w.minX[b], w.maxX[b], w.minZ[b], w.maxZ[b])) {
+        const supported = this.support[i].find(b => Math.abs(s.y - w.maxY[b]) < RIDE_EPS && footOver(s, w.minX[b], w.maxX[b], w.minZ[b], w.maxZ[b]));
+        if (supported !== undefined) {
+          const b = supported;
           ride = i;
           if (s.x >= w.minX[b] && s.x <= w.maxX[b] && s.z >= w.minZ[b] && s.z <= w.maxZ[b]) break;
         }
       }
       if (ride < 0) {
-        for (const b of map.disc.boxes) {
+        for (const carousel of this.carousels) for (const b of carousel.disc.boxes) {
+          if (map.carousels && (s.x - carousel.disc.cx) ** 2 + (s.z - carousel.disc.cz) ** 2 > carousel.disc.r ** 2) continue;
           if (Math.abs(s.y - w.maxY[b]) < RIDE_EPS && footOver(s, w.minX[b], w.maxX[b], w.minZ[b], w.maxZ[b])) {
-            onDisc = true;
+            onDisc = carousel.disc;
             break;
           }
         }
@@ -258,10 +273,16 @@ export class SkillDynamics {
       const b = this.now[ride];
       pushPlayer(s, w, b.x - a.x, b.y - a.y, b.z - a.z);
     } else if (onDisc && t !== old) {
-      sinCos((TAU * (t - old)) / map.disc.period, sc);
-      const rx = s.x - map.disc.cx;
-      const rz = s.z - map.disc.cz;
-      pushPlayer(s, w, map.disc.cx + rx * sc.c - rz * sc.s - s.x, 0, map.disc.cz + rx * sc.s + rz * sc.c - s.z);
+      sinCos((onDisc.dir ?? 1) * (TAU * (t - old)) / onDisc.period, sc);
+      const rx = s.x - onDisc.cx;
+      const rz = s.z - onDisc.cz;
+      pushPlayer(s, w, onDisc.cx + rx * sc.c - rz * sc.s - s.x, 0, onDisc.cz + rx * sc.s + rz * sc.c - s.z);
+    }
+    // Подвижная опора — твёрдое тело и для того, кто не едет на ней: бок толкает, нижняя грань опускает.
+    // Раньше обновлялся только бокс: он мог вырасти внутри стоящего рядом игрока или пройти через голову.
+    for (let i = 0; i < map.movers.length; i++) if (i !== ride) {
+      this.pushContact(s, i);
+      for (const body of map.movers[i].bodies ?? []) this.pushContact(s, i, body);
     }
     // площадка поднялась под ноги (люлька догнала, корзина тронулась) — встаёт на неё
     for (let i = 0; i < map.movers.length; i++) {
@@ -281,6 +302,33 @@ export class SkillDynamics {
       return l;
     }
     return inp;
+  }
+
+  private pushContact(s: PlayerState, i: number, body?: { box: number; min: [number, number, number]; max: [number, number, number] }): void {
+    const source = this.map.movers[i], h = PLAYER_HALF;
+    const m = body ? { box: body.box, w: body.max[0] - body.min[0], h: body.max[1] - body.min[1], d: body.max[2] - body.min[2] } : source;
+    const offset = body ? { x: (body.min[0] + body.max[0]) / 2, y: body.max[1], z: (body.min[2] + body.max[2]) / 2 } : { x: 0, y: 0, z: 0 };
+    const a = { x: this.was[i].x + offset.x, y: this.was[i].y + offset.y, z: this.was[i].z + offset.z };
+    const b = { x: this.now[i].x + offset.x, y: this.now[i].y + offset.y, z: this.now[i].z + offset.z };
+    const x0 = b.x - m.w / 2, x1 = b.x + m.w / 2, y0 = b.y - m.h, y1 = b.y, z0 = b.z - m.d / 2, z1 = b.z + m.d / 2;
+    if (s.x + h <= x0 + EPS || s.x - h >= x1 - EPS || s.y + PLAYER_HEIGHT <= y0 + EPS || s.y >= y1 - EPS || s.z + h <= z0 + EPS || s.z - h >= z1 - EPS) return;
+    let dx = 0, dy = 0, dz = 0;
+    if (s.y >= a.y - RIDE_EPS) { dy = y1 - s.y; s.grounded = 1; if (s.vy < 0) s.vy = 0; }
+    else if (s.y + PLAYER_HEIGHT <= a.y - m.h + RIDE_EPS) { dy = y0 - PLAYER_HEIGHT - s.y; if (s.vy > 0) s.vy = 0; }
+    else if (s.x - h >= a.x + m.w / 2 - EPS) dx = x1 + h - s.x;
+    else if (s.x + h <= a.x - m.w / 2 + EPS) dx = x0 - h - s.x;
+    else if (s.z - h >= a.z + m.d / 2 - EPS) dz = z1 + h - s.z;
+    else if (s.z + h <= a.z - m.d / 2 + EPS) dz = z0 - h - s.z;
+    else {
+      // Возврат из спящей вкладки: старая метка неизвестна; кратчайший выход из пересечения.
+      const options = [x0 - h - s.x, x1 + h - s.x, z0 - h - s.z, z1 + h - s.z, y0 - PLAYER_HEIGHT - s.y, y1 - s.y];
+      let k = 0; for (let j = 1; j < options.length; j++) if (Math.abs(options[j]) < Math.abs(options[k])) k = j;
+      if (k < 2) dx = options[k]; else if (k < 4) dz = options[k]; else dy = options[k];
+    }
+    // Своя грань не блокирует выталкивание; остальные площадки и стены остаются твёрдыми.
+    this.park(m.box);
+    pushPlayer(s, this.w, dx, dy, dz);
+    this.setBox(m.box, x0, y0, z0, x1, y1, z1);
   }
 
   /** Ветер (кроме как за парусом) и восходящий поток. */
@@ -367,14 +415,15 @@ export class SkillDynamics {
       return;
     }
     // карусель: перекладина через ось (крутится навстречу диску) и столбики на диске
-    const d = map.disc;
+    for (const carousel of this.carousels) {
+    const d = carousel.disc;
     const rx = s.x - d.cx;
     const rz = s.z - d.cz;
     const r2 = rx * rx + rz * rz;
-    const bar = map.bar;
+    const bar = carousel.bar;
     const reach = bar.len + 2 * H;
     if (r2 < reach * reach && s.y < bar.y1 && s.y + PLAYER_HEIGHT > bar.y0) {
-      sinCos(barAngle(map, t), sc);
+      sinCos(bar.dir * spinAngle(bar.period, t), sc);
       const along = rx * sc.c + rz * sc.s;
       const across = rz * sc.c - rx * sc.s;
       const half = H * (Math.abs(sc.c) + Math.abs(sc.s));
@@ -388,8 +437,8 @@ export class SkillDynamics {
     }
     const far = d.r + 1.5;
     if (r2 < far * far && r2 > 16) {
-      const phi = discAngle(map, t);
-      for (const b of map.bumpers) {
+      const phi = (d.dir ?? 1) * spinAngle(d.period, t);
+      for (const b of carousel.bumpers) {
         if (s.y >= b.y1 || s.y + PLAYER_HEIGHT <= b.y0) continue;
         sinCos(b.a0 + phi, sc);
         const bx = d.cx + b.r0 * sc.c;
@@ -401,6 +450,7 @@ export class SkillDynamics {
         this.knock = SKILL_KNOCK_BUMPER;
         return;
       }
+    }
     }
   }
 
