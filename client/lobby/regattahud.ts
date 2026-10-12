@@ -79,7 +79,7 @@ export class RegattaHud {
     this.stand.root.dataset.mode = 'regatta';
     this.list = new ModeList(slots.tr, '', 'rg-list');
     this.speed = new ModeSpeed(slots.br);
-    this.keys = keysRow([['W', 'газ'], ['S', 'тормоз'], [['A', 'D'], 'руль'], ['Shift', 'занос'], ['R', 'к воротам']]);
+    this.keys = keysRow([['W', 'газ'], ['S', 'тормоз'], [['A', 'D'], 'руль'], ['Shift', 'снос'], ['R', 'к воротам']]);
     this.keys.classList.add('rg-keys');
     slots.bc.append(this.keys);
     this.count = new ModeCount(slots.c);

@@ -36,7 +36,7 @@ import { DG_LOST_MS } from '../shared/dungeon/api.ts';
 import { RateLimiter } from './ratelimit.ts';
 import { ReadyGate } from './readygate.ts';
 import type { Prestart } from '../shared/loading.ts';
-import { addFortRun, emptyStats, type Profile, type Store } from './store.ts';
+import { addFortRun, emptyStats, saveSkillRecord, selectProfileCourses, type Profile, type Store } from './store.ts';
 import type { TgFeed } from './tgfeed.ts';
 import { SessionLink, type LinkSocket } from './link.ts';
 import { VoiceRouter, type VoiceClient } from './voice.ts';
@@ -328,7 +328,7 @@ export class Hub {
     setIsle(this.isle);
     this.roulette = this.fish2 && (o.roulette ?? false);
     this.ratrace = o.ratrace ?? false;
-    this.skill = o.skill ? new SkillRoom({ outfitOf: (p) => this.outfitOf(p), afk: (c) => this.onPaintballAfk(c), result: (c, ticks, falls) => this.onSkillResult(c, ticks, falls) }) : null;
+    this.skill = o.skill ? new SkillRoom({ course: this.store.state.skillCourse, outfitOf: (p) => this.outfitOf(p), afk: (c) => this.onPaintballAfk(c), result: (c, ticks, falls) => this.onSkillResult(c, ticks, falls) }) : null;
     this.boatrace = !!o.boatrace;
     this.hide = o.hide ? new HideRoom({ outfitOf: p => this.outfitOf(p), finished: (pid,result) => this.onHideResult(pid,result), afk: c => this.onPaintballAfk(c) }) : null;
     this.farm = o.farm
@@ -786,6 +786,7 @@ export class Hub {
   sendMe(c: Client): void {
     const p = c.profile;
     if (!p) return;
+    selectProfileCourses(p, { aqua: this.store.state.aquaCourse, skill: this.store.state.skillCourse });
     this.profiles.refreshFishing(p);
     c.sink.sendJson({ t: 'me', pid: p.id, nick: p.nick, tokens: p.tokens, xp: p.xp, level: p.level, owned: p.owned, outfit: p.outfit, stats: p.stats, album: p.album, fishing: { ...p.fishing }, ...(this.gifts.enabled && !c.ephemeral ? { gifts: true } : {}), ...(this.isle ? { isle: true } : {}), build: this.build, lay: LAYOUT });
     if (this.fish2) c.sink.sendJson({ t: 'fishProgress', progress: { ...p.fishing }, now: this.now() });
@@ -921,7 +922,7 @@ export class Hub {
     if (!p || c?.ephemeral) return;
     p.stats.brRaces++;
     if (row.finished && row.pos === 1) p.stats.brWins++;
-    if (row.best > 0 && (!p.stats.brBestLapHarbor || row.best < p.stats.brBestLapHarbor)) p.stats.brBestLapHarbor = row.best;
+    if (row.best > 0 && (!p.stats.brBestLapCliffs || row.best < p.stats.brBestLapCliffs)) p.stats.brBestLapCliffs = row.best;
     if (row.reward > 0) this.profiles.credit(p, row.reward, 'mode');
     this.store.markDirty();
     if (c && c.profile === p) {
@@ -949,7 +950,10 @@ export class Hub {
   onSkillResult(c: Client, ticks: number, falls: number): SkillReward | null {
     const p = c.profile;
     if (!p || c.ephemeral) return null;
-    const r = applySkillFinish(p.stats, ticks, falls, mskDayNum(this.now()));
+    const course = this.store.state.skillCourse;
+    selectProfileCourses(p, { aqua: this.store.state.aquaCourse, skill: course });
+    const r = applySkillFinish(p.stats, ticks, falls, mskDayNum(this.now()), course);
+    saveSkillRecord(p, course);
     if (r.tokens > 0) this.profiles.credit(p, r.tokens, 'mode');
     this.store.markDirty(); this.tokens(c, p.tokens); this.sendMe(c); this.lobby.honorChanged();
     return r;

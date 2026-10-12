@@ -66,14 +66,12 @@ export class RgBot {
       const b = at(x1, z1).s;
       return { s0: Math.min(a, b) - m, s1: Math.max(a, b) + m, lo, hi };
     };
-    // лодки на якоре справа (у правого края) — держись левее; камень у F4 — правее (или левее, за флажками)
-    this.safe.push(span(72.5, 115, 67.5, 115, -5.5, 1));
-    this.safe.push(span(51.5, 114, 46.5, 114, -5.5, 1.8));
-    this.safe.push(span(61, 119.5, 59, 119.5, 2.6, 3.6, 3));
-    // риф после трамплина — правой стороной; узкий проход меж камней — посередине
-    this.safe.push(span(36, 99, 36, 86, 3.9, 6.5));
-    this.safe.push(span(35, 52, 35, 46, -1.8, 2));
-    this.ramp = span(32, 99, 32, 86, -4.5, -3.5);
+    // Все линии берутся из новой карты: бот не ищет камни старой маленькой бухты.
+    const r = course.ramp;
+    const rampX = (r.x0 + r.x1) / 2;
+    const lane = at(rampX, r.z1).lat;
+    this.ramp = span(rampX, r.z1 + 8, rampX, r.z0 - 8, lane - 0.7, lane + 0.7);
+    this.safe.push(span(rampX, r.z1 + 8, rampX, r.z0 - 8, -3, 0));
     for (const f of course.flags) {
       const p = at(f.x, f.z);
       const w = f.hw - 1;
@@ -99,7 +97,7 @@ export class RgBot {
     }
     gaps.push(...wanted);
     this.fill(this.line, gaps);
-    this.fill(this.rampLine, gaps.map(g => (g === this.safe[3] ? this.ramp : g)));
+    this.fill(this.rampLine, gaps.map(g => (g === this.safe[0] ? this.ramp : g)));
   }
 
   /**
@@ -195,7 +193,7 @@ export class RgBot {
     const speed = Math.hypot(s.vx, s.vz);
     // точка впереди по своей линии
     let i = s.seg;
-    let ahead = 3 + speed * 0.35;
+    let ahead = 3 + speed * 0.45;
     while (ahead > 0) {
       ahead -= tr.len[i];
       i = wrapSeg(tr, i + 1);

@@ -1,0 +1,17 @@
+{
+  "scope":"Only the rejected islet and Regatta preview illumination; main cliffs/marina/cameras and five accepted kits stay frozen",
+  "layers":[
+    {"id":"r53_islet_lower","bottomY":-0.40,"topY":0.55,"green":false,"footprint":[[47.55,30.8],[48.8,31.2],[49.25,32.1],[50.0,34.0],[50.1,36.5],[49.55,39.6],[48.8,41.0],[47.1,40.8],[46.65,38.5],[46.85,36.0],[46.6,33.8],[46.9,32.0]]},
+    {"id":"r53_islet_middle","bottomY":0.40,"topY":1.30,"green":false,"footprint":[[47.4,32.2],[48.75,32.3],[49.5,34.3],[49.45,37.9],[49.1,39.5],[47.4,39.6],[46.95,38.0],[47.0,35.5],[47.1,33.8]]},
+    {"id":"r53_islet_green","bottomY":1.15,"topY":2.11,"green":true,"footprint":[[46.98,34.5],[47.9,33.95],[49.22,34.4],[49.65,36.7],[49.2,38.0],[47.85,38.7],[47.05,37.5]]}
+  ],
+  "rocks":[
+    {"id":"r53_shore_rock_front","x":47.55,"z":32.0,"baseY":0.05,"rx":0.85,"rz":1.10,"height":2.40,"seed":1},
+    {"id":"r53_shore_rock_right","x":49.9,"z":36.0,"baseY":0.50,"rx":0.58,"rz":0.90,"height":2.40,"seed":3},
+    {"id":"r53_shore_rock_back","x":47.55,"z":39.9,"baseY":1.16,"rx":0.70,"rz":0.80,"height":2.04,"seed":5}
+  ],
+  "beacon":{"position":[48.3,2.13,36],"unchanged":true,"supportTopY":2.13,"supportRadius":1.04},
+  "camera":{"position":[30,3.1,12],"look":[52,3.6,30],"unchanged":true},
+  "palette":{"rockAlbedo":"#CDBDA2","greenAlbedo":"#3F7C5B","preserveOtherVertexColours":true},
+  "previewLighting":{"primarySource":"game-opus/client/lab/kit3d.ts:39","runtimeSun":"#FFE2B0","runtimeSunIntensity":3.0,"runtimeHemiSky":"#BCD9FF","runtimeHemiGround":"#E6C39A","runtimeHemiIntensity":1.35,"blenderWorldStrength":0.55,"cameraSkySeparateFromLighting":true,"photometricParity":false}
+}

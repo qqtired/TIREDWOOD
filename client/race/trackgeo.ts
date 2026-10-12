@@ -175,6 +175,7 @@ export class TrackGeo {
     this.buildChevrons();
     this.buildHairpinBoards();
     this.buildJumpSigns();
+    this.buildBrakingZones();
     const marks = staticMesh(buildGeo(this.marks), new THREE.MeshStandardMaterial({
       vertexColors: true, roughness: 0.75, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4,
     }), false);
@@ -633,6 +634,51 @@ export class TrackGeo {
     if (!g.idx.length) return;
     const map = hairpinSignTexture();
     this.c.scene.add(staticMesh(buildGeo(g), new THREE.MeshStandardMaterial({ map, emissiveMap: map, emissive: 0xffffff, emissiveIntensity: 0.25, roughness: 0.5 }), false));
+  }
+
+  /** Две отметки перед быстрым заходом в крутой поворот: сначала 50 м, затем 25 м. */
+  private buildBrakingZones(): void {
+    const tr = this.tr;
+    const boards = [parts(), parts()];
+    const white = new THREE.Color(0xf4f2ec);
+    const coral = new THREE.Color(0xb8503a);
+    for (let i = 0; i < tr.n; i++) {
+      if (tr.node[i] < 0 || tr.node[i] === tr.node[(i - 1 + tr.n) % tr.n] || Math.max(Math.abs(tr.curv[i]), Math.abs(tr.curv[(i + 1) % tr.n])) < 1 / 34) continue;
+      // Вторая половина шпильки уже видна: отметки нужны только перед разгонной прямой, не друг на друге.
+      let k = (i - 1 + tr.n) % tr.n;
+      let straight = 0;
+      while (straight < 55 && Math.abs(tr.curv[k]) < 0.008 && !tr.gap[k] && !this.c.layout.rampDeck[k]) {
+        straight += tr.len[k];
+        k = (k - 1 + tr.n) % tr.n;
+      }
+      if (straight < 53) continue;
+      for (const [b, dist] of [50, 25].entries()) {
+        k = i;
+        let back = 0;
+        while (back < dist) {
+          k = (k - 1 + tr.n) % tr.n;
+          back += tr.len[k];
+        }
+        const side = this.wall(k, -1) === WALL_NONE ? 1 : -1;
+        const [x, , z] = this.edge(k, side, this.out(k, side) + 1.3, 0);
+        const y = tr.h[k] + 1.65;
+        const grade = (tr.h[(k + 1) % tr.n] - tr.h[k]) / tr.len[k];
+        this.board(boards[b], x, y, z, -tr.tx[k], -tr.tz[k], 2.5, 1.25, false);
+        this.post(x, z, Math.min(tr.h[k], this.c.ground(x, z)), y + 0.6, 0.08);
+        // Короткие полосы у краёв сохраняют видимость машин и асфальта в центре.
+        for (const sd of [-1, 1]) {
+          const a = sd * (tr.hw[k] - 2.2);
+          const d = sd * (tr.hw[k] - 0.4);
+          const point = (lat: number, fw: number): V3 => [tr.px[k] - tr.tz[k] * lat + tr.tx[k] * fw, tr.h[k] + grade * fw + MARK_Y + 0.008, tr.pz[k] + tr.tx[k] * lat + tr.tz[k] * fw];
+          for (let q = 0; q < 3; q++) face(this.marks, point(a, -q * 2), point(d, -q * 2), point(d, -q * 2 + 0.65), point(a, -q * 2 + 0.65), [0, 1, 0], [0, 0, 1, 0, 1, 1, 0, 1], same(q === 0 ? coral : white));
+        }
+      }
+    }
+    boards.forEach((g, i) => {
+      if (!g.idx.length) return;
+      const map = tex.signTexture(`ТОРМОЗ · ${i === 0 ? 50 : 25}`, '#b8503a', '#fffaf0', 512, 256);
+      this.c.scene.add(staticMesh(buildGeo(g), new THREE.MeshStandardMaterial({ map, roughness: 0.75 }), false));
+    });
   }
 
   /** Щит: центр (x, y, z), смотрит по (nx, nz), размер w × h; flip — зеркально (стрелки в другую сторону) */

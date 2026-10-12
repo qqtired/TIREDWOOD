@@ -12,6 +12,7 @@ import {
   type RgDecoded, type RgEntry, type RgRecordRow, type RgView,
 } from '../../shared/regatta.ts';
 import { RG_HIT_BOAT, RG_HIT_BUOY, RG_HIT_ROPE, RG_MINI1, RG_MINI2, makeRgBoat } from '../../shared/regattaphysics.ts';
+import { makeRgWaterLoc, rgWaterAt } from '../../shared/regattacourse.ts';
 import type { Input } from '../../shared/sim.ts';
 import type { GatherStatus } from '../../shared/startzones.ts';
 import type { Sound } from '../audio.ts';
@@ -33,12 +34,13 @@ const ENGINE_ID = 9100;
 const NEAR_ENGINES = 3;
 /** Камера погони: за кормой, над водой, куда смотрит (вперёд по курсу) */
 const CAM_BACK = 6;
-const CAM_UP = 2.2;
+const CAM_UP = 2.8;
 const CAM_LOOK = 8;
 /** Табло на арке перерисовываем не чаще */
 const BOARD_EVERY = 0.25;
-const HELP = 'W — газ · S — тормоз · A/D — руль · Shift или Пробел — занос · R — к воротам';
-const TIP = 'Жёлтые флажки — ускорение! Проходи между ними';
+const HELP = 'W — газ · S — тормоз · A/D — руль · Shift — снос с контррулением · R — к воротам';
+const TIP = 'У маячка: снаружи держи газ; внутри тормози на входе — путь короче';
+const hudWater = makeRgWaterLoc();
 
 export interface RegattaDeps {
   scene: THREE.Scene;
@@ -207,6 +209,7 @@ export class RegattaClient {
   constructor(d: RegattaDeps) {
     this.d = d;
     this.course3d = new RegattaCourse3D(d.scene);
+    void this.course3d.ready.catch(() => d.toast?.('Берег регаты не загрузился. Обнови страницу перед стартом', 8000));
     this.wake = new BoatWake(d.scene);
     this.hud = new RegattaHud({ slots: d.ui.slots, top: d.ui.top, shell: d.shell });
     // кнопки итогов: клик — жест игрока, мышь сразу снова в игре
@@ -362,6 +365,7 @@ export class RegattaClient {
   private make(e: RgEntry, key: string): void {
     const human = !e.bot;
     const model = new BoatModel(this.d.scene, e.id, human ? e.slot : -100 - e.id, human, e.o, e.nick);
+    void model.ready.catch(() => this.d.toast?.('Катер не загрузился. Обнови страницу перед стартом', 8000));
     model.rider.setLevel(e.level);
     const g = this.course3d.course.grid[e.id % this.course3d.course.grid.length];
     const pose = makePose();
@@ -558,7 +562,7 @@ export class RegattaClient {
     out.steer = p.steer + (s.steer - p.steer) * a;
     let fl = 0;
     if (s.boost > 0) fl |= RG_FL_BOOST;
-    if (s.boost > 0 && s.boostTop > 22) fl |= RG_FL_FLAG;
+    if (s.boost > 0 && s.boostTop > 25) fl |= RG_FL_FLAG;
     if (s.drift > 0) fl |= RG_FL_DRIFT | (s.driftDir < 0 ? RG_FL_DRIFT_RIGHT : 0);
     if (s.done) fl |= RG_FL_DONE;
     if (s.air) fl |= RG_FL_AIR;
@@ -631,11 +635,12 @@ export class RegattaClient {
     } else {
       // курс камеры отстаёт от катера: в повороте виден борт, в заносе — сильнее
       const k = 1 - Math.exp(-dt * (drifting ? 2.6 : 4.5));
-      this.camHx += (p.hx - this.camHx) * k;
-      this.camHz += (p.hz - this.camHz) * k;
-      const l = Math.hypot(this.camHx, this.camHz) || 1;
-      this.camHx /= l;
-      this.camHz /= l;
+      // Угловое следование из выбранного nose-варианта ProductLab. Нормализация
+      // линейного вектора ломалась при почти противоположном курсе после сноса.
+      const angle = Math.atan2(this.camHz, this.camHx);
+      const delta = Math.atan2(this.camHx * p.hz - this.camHz * p.hx, this.camHx * p.hx + this.camHz * p.hz);
+      this.camHx = Math.cos(angle + delta * k);
+      this.camHz = Math.sin(angle + delta * k);
     }
     const back = CAM_BACK + p.speed * 0.05;
     _t.set(p.x - this.camHx * back, WATER_Y + CAM_UP + p.y * 0.7, p.z - this.camHz * back);
@@ -652,10 +657,10 @@ export class RegattaClient {
     const sh = this.shake;
     this.shake *= Math.exp(-dt * 7);
     this.kick *= Math.exp(-dt * 2.2);
-    const fov = fovBase + Math.min(12, p.speed * 0.55) + this.kick * 8;
+    const fov = Math.max(64, Math.min(72, fovBase)) + Math.min(10, p.speed * 0.5) + this.kick * 3;
     cam.up.set(0, 1, 0);
     lc.chase(cam, dt, this.cam.x + (Math.random() - 0.5) * sh, this.cam.y + (Math.random() - 0.5) * sh, this.cam.z + (Math.random() - 0.5) * sh,
-      p.x + this.camHx * CAM_LOOK, WATER_Y + 0.9 + p.y * 0.6, p.z + this.camHz * CAM_LOOK, fov);
+      p.x + this.camHx * CAM_LOOK, WATER_Y + 0.5 + p.y * 0.6, p.z + this.camHz * CAM_LOOK, fov);
     return true;
   }
 
@@ -761,10 +766,9 @@ export class RegattaClient {
     hud.setTip(early ? TIP : null);
     hud.setHelp(!TOUCH && (before || (v.phase === 'race' && s.lap === 1 && !s.done)) ? HELP : null);
     // «Не туда!»: нос против хода трассы на ходу больше секунды
-    const tr = this.course3d.course.track;
-    const seg = Math.max(0, Math.min(tr.n - 1, s.seg));
-    const along = s.hx * tr.tx[seg] + s.hz * tr.tz[seg];
-    const moving = s.vx * tr.tx[seg] + s.vz * tr.tz[seg];
+    const water = rgWaterAt(this.course3d.course, s.x, s.z, s.seg, hudWater);
+    const along = s.hx * water.tx + s.hz * water.tz;
+    const moving = s.vx * water.tx + s.vz * water.tz;
     if (v.phase === 'race' && !s.done && along < -0.4 && moving < -1) this.wrongT += dt;
     else this.wrongT = 0;
     hud.setWrong(this.wrongT > 1);
@@ -794,6 +798,7 @@ export class RegattaClient {
     const s = this.pred.state;
     return {
       phase: this.view.phase, start: this.view.start, stop: this.view.stop, boats: this.boats.size, racing: this.racing, myBoat: this.my?.id ?? -1,
+      landLoaded: this.course3d.landLoaded, textureLoaded: this.course3d.textureLoaded, camera: 'nose-lag', hulls: [...this.boats.values()].map(b => b.model.debug()),
       pred: { ready: this.pred.ready, corrections: this.pred.corrections, lap: s.lap, cp: s.cp, rt: s.rt, x: s.x, z: s.z, speed: Math.hypot(s.vx, s.vz), done: s.done, flags: s.flags },
       engines: [...this.engines], queue: this.queue, top: this.top.length, course: this.course3d.debug(), lastStep: this.lastStep,
     };

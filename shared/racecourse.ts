@@ -1,14 +1,13 @@
-// Трассы картинга: у каждой свой постоянный id — рекорды круга в профиле хранятся по нему. Если трасса меняется так,
-// что старые рекорды несравнимы, она получает новый id («Портовое кольцо» первой версии было 'port', «Литейный вираж» —
-// 'foundry'; их рекорды остаются в профилях как есть).
+// Постоянный id выбирает тему трассы. Новая геометрия V3 пишет в отдельные поля RACE_RECORD:
+// прежние рекорды port/foundry/harbor/hills сохраняются в профиле, их нельзя сравнивать с новым кругом.
 import { buildRing, type Ring } from './maps/ring.ts';
 import { buildHills } from './maps/hills.ts';
 
 export type RaceTrackId = 'harbor' | 'hills';
 export const DEFAULT_TRACK: RaceTrackId = 'harbor';
 export const RACE_TRACKS: ReadonlyArray<{ id: RaceTrackId; name: string; description: string }> = [
-  { id: 'harbor', name: 'Портовое кольцо', description: 'Причалы, прыжки через каналы и срезка через бухту' },
-  { id: 'hills', name: 'Солнечный серпантин', description: 'Серпантин на холм, гребень, река и фонтан' },
+  { id: 'harbor', name: 'Портовое кольцо', description: 'Большой порт: 1,85 км, каналы, бухта и грузовая змейка' },
+  { id: 'hills', name: 'Солнечный серпантин', description: 'Большой серпантин: три шпильки, гребень и прыжок через реку' },
 ];
 export function isRaceTrackId(id: unknown): id is RaceTrackId {
   return id === 'harbor' || id === 'hills';
@@ -30,9 +29,9 @@ export function nextRaceTrack(id: RaceTrackId): RaceTrackId {
 }
 
 /** Поле лучшего круга в статистике профиля для трассы */
-export const RACE_RECORD: Record<RaceTrackId, 'rcBestLapHarbor' | 'rcBestLapHills'> = {
-  harbor: 'rcBestLapHarbor',
-  hills: 'rcBestLapHills',
+export const RACE_RECORD: Record<RaceTrackId, 'rcBestLapHarborV3' | 'rcBestLapHillsV3'> = {
+  harbor: 'rcBestLapHarborV3',
+  hills: 'rcBestLapHillsV3',
 };
 
 export function buildRaceCourse(id: RaceTrackId = DEFAULT_TRACK): Ring {

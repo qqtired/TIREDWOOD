@@ -12,9 +12,9 @@ import {
   MSG_REGATTA, RG_GATHER_TICKS, RG_GRID_TICKS, RG_MIN_BOATS, RG_REMATCH_TICKS, RG_RESULTS_TICKS, decodeRegatta, encodeRegatta, regattaReward,
   withRegattaSelf, type RgDecoded,
 } from '../shared/regatta.ts';
-import { RG_LAPS, regattaCourse } from '../shared/regattacourse.ts';
-import { RG_KEYS, makeRgBoat, makeRgEvents, placeRgBoat, stepRgBoat } from '../shared/regattaphysics.ts';
-import { BTN_FORWARD, BTN_RELOAD, BTN_USE, makeInput, type Input } from '../shared/sim.ts';
+import { RG_LAPS, makeRgWaterLoc, regattaCourse, rgWaterAt, rgWorld } from '../shared/regattacourse.ts';
+import { RG_KEYS, makeRgBoat, makeRgEvents, placeRgBoat, rgProgress, stepRgBoat } from '../shared/regattaphysics.ts';
+import { BTN_BACK, BTN_DASH, BTN_FORWARD, BTN_LEFT, BTN_RIGHT, BTN_RELOAD, BTN_USE, makeInput, type Input } from '../shared/sim.ts';
 import { locateAny, makeLoc } from '../shared/track.ts';
 import { InputQueue } from '../server/inputs.ts';
 import { StepBudget } from '../server/lobby/regatta.ts';
@@ -25,9 +25,9 @@ import { allOf, lastOf, login, placeAt, setupHub, steps } from './kit.ts';
 
 const c = regattaCourse();
 
-test('трасса: коридор в бухте, в пределах снимка, вдали от баркаса, Семёна, отмели, аквапарка и «Ласточки»', () => {
+test('Белые скалы: большой круг в восточной бухте, вдали от рыбалки и пути «Ласточки»', () => {
   const tr = c.track;
-  assert.ok(tr.length > 430 && tr.length < 490, `круг ${tr.length.toFixed(0)} м`);
+  assert.ok(tr.length > 800 && tr.length < 850, `круг ${tr.length.toFixed(0)} м`);
   // Ласточка (по всему пути), баркас (−60, 85), лодка Семёна (мостки у маяка → баркас), отмель с крабами, аквапарк (x < −30)
   const las: Array<{ x: number; z: number }> = [];
   for (let t = 0; t <= BOAT_RIDE_TICKS; t += 10) las.push({ ...ridePose(t) });
@@ -37,7 +37,7 @@ test('трасса: коридор в бухте, в пределах снимк
   };
   for (let i = 0; i < tr.n; i++) {
     const x = tr.px[i], z = tr.pz[i], hw = tr.hw[i];
-    assert.ok(Math.abs(x) + hw < 128 && Math.abs(z) + hw < 128, `точка ${i} за пределами снимка`);
+    assert.ok(x - hw > 15 && x + hw < 270 && z + hw < 260, `точка ${i} вне восточной бухты`);
     assert.ok(z - hw > 23, `точка ${i}: коридор у причала (z ${z.toFixed(1)})`);
     assert.ok(Math.hypot(x + 60, z - 85) - hw > 60, `точка ${i}: близко к баркасу`);
     assert.ok(seg(x, z, -16, 38, -60, 85) - hw > 30, `точка ${i}: близко к пути лодки Семёна`);
@@ -52,7 +52,7 @@ test('трасса: коридор в бухте, в пределах снимк
       assert.ok(Math.hypot(tr.px[i] - tr.px[j], tr.pz[i] - tr.pz[j]) - tr.hw[i] - tr.hw[j] > 3, `части коридора ${i} и ${j} слиплись`);
     }
   }
-  assert.equal(c.gates.length, 6);
+  assert.equal(c.gates.length, 7);
   assert.equal(c.flags.length, 5);
 });
 
@@ -97,14 +97,14 @@ function drive(level: number, seed: number, slot: number) {
   return { s, t, flags, laps };
 }
 
-test('ботами любой силы трасса проходится: три круга, круг ~30–45 с, флажки берутся', () => {
+test('ботами любой силы трасса проходится: три круга, круг 35–60 с, флажки берутся', () => {
   for (const level of [0, 1, 2]) {
     for (const seed of [3, 11]) {
       const r = drive(level, seed, seed % 6);
       assert.equal(r.s.done, 1, `бот ${level}/${seed} не доехал`);
       assert.equal(r.laps, RG_LAPS);
-      assert.ok(r.t > 3 * 25 * 60 && r.t < 3 * 50 * 60, `бот ${level}: ${(r.t / 60).toFixed(0)} с`);
-      assert.ok(r.s.best > 25 * 60 && r.s.best < 48 * 60, `лучший круг ${(r.s.best / 60).toFixed(1)} с`);
+      assert.ok(r.t > 3 * 35 * 60 && r.t < 3 * 60 * 60, `бот ${level}: ${(r.t / 60).toFixed(0)} с`);
+      assert.ok(r.s.best > 35 * 60 && r.s.best < 58 * 60, `лучший круг ${(r.s.best / 60).toFixed(1)} с`);
       assert.ok(r.flags >= 1, 'флажки');
     }
   }
@@ -270,6 +270,91 @@ test('двоичное «где катера»: общая часть всем, 
   for (const k of RG_KEYS) assert.equal(out.state[k], s[k], k);
 });
 
+test('контрруление меняет сторону сноса без отпускания Shift', () => {
+  const s = makeRgBoat(), ev = makeRgEvents(); placeRgBoat(s, c, 0);
+  s.x = 110; s.z = 33; s.hx = 1; s.hz = 0; s.vx = 16; s.vz = 0; s.go = 1;
+  s.seg = locateAny(c.track, s.x, s.z, makeLoc()).seg;
+  for (let i = 0; i < 12; i++) stepRgBoat(s, { ...makeInput(), buttons: BTN_FORWARD | BTN_DASH | BTN_LEFT }, c, ev, true);
+  assert.ok(s.drift > 0 && s.driftDir === 1);
+  for (let i = 0; i < 14; i++) stepRgBoat(s, { ...makeInput(), buttons: BTN_FORWARD | BTN_DASH | BTN_RIGHT }, c, ev, true);
+  const hx = s.hx, hz = s.hz;
+  stepRgBoat(s, { ...makeInput(), buttons: BTN_FORWARD | BTN_DASH | BTN_RIGHT }, c, ev, true);
+  assert.ok(s.drift > 0 && s.driftDir === -1, 'снос не прерывается');
+  assert.ok(hx * s.hz - hz * s.hx > 0.01, 'нос уже поворачивает вправо');
+  assert.equal(s.respawns, 0);
+});
+
+test('Shift на прямой не заряжает бесплатное ускорение после короткого поворота', () => {
+  const s = makeRgBoat(), ev = makeRgEvents(); placeRgBoat(s, c, 0);
+  Object.assign(s, { x: 110, z: 33, hx: 1, hz: 0, vx: 18, vz: 0, go: 1, drift: 1, driftDir: 1 });
+  for (let i = 0; i < 100; i++) stepRgBoat(s, { ...makeInput(), buttons: BTN_FORWARD | BTN_DASH }, c, ev, true);
+  stepRgBoat(s, { ...makeInput(), buttons: BTN_FORWARD }, c, ev, true);
+  assert.equal(ev.mini, 0);
+});
+
+test('внутренняя протока — настоящая вода: короче, уже, общий порядок ворот и плавный прогресс', () => {
+  assert.ok(c.insideLength < (c.insideTo - c.insideFrom) * .75);
+  const middle = rgWorld(40.5, 36), loc = rgWaterAt(c, middle.x, middle.z, c.gates[4].seg, makeRgWaterLoc());
+  assert.ok(loc.inside && loc.distance < 1 && loc.hw === 7);
+  const s = makeRgBoat(); Object.assign(s, { ...middle, seg: loc.seg, cp: 4, lap: 1 });
+  assert.ok(rgProgress(s, c) > c.insideFrom && rgProgress(s, c) < c.insideTo);
+  let previous = -Infinity;
+  for (const [x, z] of c.inside) {
+    const l = rgWaterAt(c, x, z, c.gates[4].seg, makeRgWaterLoc());
+    assert.ok(l.distance < l.hw - 1, 'вся ось протоки разрешена физикой');
+    Object.assign(s, { x, z, seg: l.seg });
+    const progress = rgProgress(s, c);
+    assert.ok(progress + .1 >= previous, 'место не скачет на соседнюю часть петли');
+    previous = progress;
+  }
+  // Попытка оказаться у финиша без первых ворот не даёт высокое место.
+  Object.assign(s, { x: c.gates[5].x, z: c.gates[5].z, cp: 0, seg: c.gates[5].seg });
+  assert.ok(rgProgress(s, c) <= c.track.s[c.gates[1].seg]);
+});
+
+test('маячный срез проходится настоящим вводом без R и выигрывает время у широкой дуги', () => {
+  const g = c.gates[4], tr = c.track;
+  const path: Array<readonly [number, number]> = [];
+  for (let i = g.seg; i < tr.n && tr.s[i] < c.insideFrom; i++) path.push([tr.px[i], tr.pz[i]]);
+  path.push(...c.inside);
+  const exit = rgWorld(12, 60); path.push([exit.x, exit.z]);
+  const run = (inside: boolean) => {
+    const s = makeRgBoat(), ev = makeRgEvents(), bot = new RgBot(c, 2, makeRng(3));
+    Object.assign(s, { x: g.rx, z: g.rz, hx: g.tx, hz: g.tz, cp: 4, seg: g.seg, go: 1, vx: g.tx * 21, vz: g.tz * 21 });
+    let tick = 0;
+    for (; tick < 900 && s.cp < 5; tick++) {
+      let buttons = bot.input(s, tick, 0).buttons;
+      if (inside) {
+        let best = Infinity, index = 0;
+        for (let i = 0; i < path.length - 1; i++) {
+          const a = path[i], b = path[i + 1], dx = b[0] - a[0], dz = b[1] - a[1], ll = dx * dx + dz * dz;
+          if (!ll) continue;
+          const t = Math.max(0, Math.min(1, ((s.x - a[0]) * dx + (s.z - a[1]) * dz) / ll));
+          const d = Math.hypot(s.x - a[0] - dx * t, s.z - a[1] - dz * t);
+          if (d < best) { best = d; index = i; }
+        }
+        const speed = Math.hypot(s.vx, s.vz);
+        let distance = 0;
+        while (index < path.length - 1 && distance < 5 + speed * .3) {
+          distance += Math.hypot(path[index + 1][0] - path[index][0], path[index + 1][1] - path[index][1]); index++;
+        }
+        const dx = path[index][0] - s.x, dz = path[index][1] - s.z;
+        const error = Math.atan2(s.hz * dx - s.hx * dz, s.hx * dx + s.hz * dz), wanted = Math.max(-1, Math.min(1, error * 3.5));
+        buttons = wanted > s.steer + .04 ? BTN_LEFT : wanted < s.steer - .04 ? BTN_RIGHT : 0;
+        buttons |= speed > 21 ? BTN_BACK : BTN_FORWARD;
+        if (Math.abs(error) > .16 && speed > 9) buttons |= BTN_DASH;
+      }
+      stepRgBoat(s, { ...makeInput(), buttons }, c, ev, true);
+    }
+    assert.equal(s.cp, 5, 'обе линии проходят общие выходные ворота');
+    assert.equal(s.respawns, 0); assert.equal(s.hits, 0);
+    return tick;
+  };
+  const inside = run(true), outer = run(false);
+  assert.ok(inside < outer - 45, `срез ${inside / 60} с, внешняя линия ${outer / 60} с`);
+  assert.ok(inside > outer * .65, 'срез даёт выигрыш за мастерство, не обходит половину трассы');
+});
+
 // ------------------------------------------------------------ на сервере, целиком
 
 const seqOf = new WeakMap<Client, number>();
@@ -334,7 +419,7 @@ test('регата на набережной: круг сбора → катер
   assert.ok(mine.finished, 'доехал');
   assert.ok(mine.reward > 0);
   assert.equal(a.c.profile!.stats.brRaces, 1);
-  assert.ok(a.c.profile!.stats.brBestLapHarbor > 0, 'личный лучший круг новой трассы');
+  assert.ok(a.c.profile!.stats.brBestLapCliffs > 0, 'личный лучший круг новой трассы');
   assert.equal(a.c.profile!.stats.brBestLap, 0, 'старое поле не трогаем');
   assert.equal(a.c.profile!.tokens, before + mine.reward);
   assert.ok(hub.store.state.regatta.length >= 1, 'круг на доске бухты');

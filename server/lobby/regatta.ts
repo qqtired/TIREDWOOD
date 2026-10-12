@@ -18,7 +18,7 @@ import { RG_COURSE, RG_LAPS, regattaCourse } from '../../shared/regattacourse.ts
 import {
   collideRgBoats, makeRgBoat, makeRgEvents, placeRgBoat, rgProgress, stepRgBoat, type RgBoat, type RgEvents,
 } from '../../shared/regattaphysics.ts';
-import { BTN_FIRE, BTN_FORWARD, BTN_RELOAD, BTN_USE, type Input } from '../../shared/sim.ts';
+import { BTN_FIRE, BTN_RELOAD, BTN_USE, type Input } from '../../shared/sim.ts';
 import type { InputQueue } from '../inputs.ts';
 import { RG_BOT_NAMES, RgBot } from './regattabot.ts';
 import type { LobbyPlayer } from './room.ts';
@@ -127,6 +127,8 @@ interface Racer {
   /** Метка последнего входа (зажатая) */
   t: number;
   active: number;
+  /** Самая дальняя честно пройденная точка: кружение и повтор после R не оплачиваются. */
+  paidProgress: number;
   idle: number;
   /** Тик финиша на сервере (0 — нет) */
   finish: number;
@@ -219,7 +221,7 @@ export class Regatta {
   private racer(id: number, p: LobbyPlayer | null, bot: RgBot | null): Racer {
     return {
       id, p, pid: p?.client.pid ?? 0, nick: p?.client.nick ?? '', o: p ? this.host.outfit(p) : { ...DEFAULT_OUTFIT }, level: p ? this.host.level(p) : 1,
-      bot, botSeq: 0, s: makeRgBoat(), ev: makeRgEvents(), budget: new StepBudget(), t: 0, active: 0, idle: 0, finish: 0, place: id + 1, again: false,
+      bot, botSeq: 0, s: makeRgBoat(), ev: makeRgEvents(), budget: new StepBudget(), t: 0, active: 0, paidProgress: 0, idle: 0, finish: 0, place: id + 1, again: false,
       reset: this.round, rec: -1,
     };
   }
@@ -245,15 +247,17 @@ export class Regatta {
       // догадка сервера в паузе связи — тоже «стоит»
       r.idle = real && inp.buttons !== 0 ? 0 : r.idle + 1;
       if (real && this.phase === 'results' && (inp.buttons & ~before & BTN_USE) !== 0) this.vote(r);
-      this.after(r, inp);
+      this.after(r);
     });
   }
 
   /** После шага: на ходу ли, круг, финиш, рекорды. */
-  private after(r: Racer, inp: Input): void {
+  private after(r: Racer): void {
     const s = r.s;
     const ev = r.ev;
-    if (this.phase === 'race' && !s.done && (inp.buttons & BTN_FORWARD) !== 0 && Math.hypot(s.vx, s.vz) > 2) r.active++;
+    const progress = rgProgress(s, this.course);
+    if (this.phase === 'race' && !ev.respawn && progress > r.paidProgress && Math.hypot(s.vx, s.vz) > 2) r.active++;
+    if (progress > r.paidProgress) r.paidProgress = progress;
     if (ev.lapTicks > 0 && r.p) {
       const place = this.host.record(r.pid, r.nick, ev.lapTicks);
       if (place >= 0 && (r.rec < 0 || place < r.rec)) r.rec = place;
@@ -296,7 +300,7 @@ export class Regatta {
       if (!r.bot) continue;
       const inp = r.bot.input(r.s, ++r.botSeq, this.phase === 'grid' ? this.start - tick : 0);
       stepRgBoat(r.s, inp, this.course, r.ev, this.drive(tick), r.bot.topMul);
-      this.after(r, inp);
+      this.after(r);
     }
     for (let i = 0; i < this.racers.length; i++) {
       for (let j = i + 1; j < this.racers.length; j++) collideRgBoats(this.racers[i].s, this.racers[j].s);

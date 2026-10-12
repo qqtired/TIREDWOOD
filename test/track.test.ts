@@ -44,7 +44,7 @@ function gapStarts(t0: Track): number[] {
 
 test('кольцо замкнуто: отрезки до 2 м без изломов, длина круга, ширина и обочины меняются плавно', () => {
   for (const { id, tr: t0 } of TRACKS) {
-    assert.ok(t0.length > 1050 && t0.length < 1250, `${id}: круг ${t0.length} м`);
+    assert.ok(t0.length > 1800 && t0.length < 2050, `${id}: круг ${t0.length} м`);
     for (let i = 0; i < t0.n; i++) {
       assert.ok(t0.len[i] > 0.1 && t0.len[i] <= 2 + 1e-9, `${id}: отрезок ${i}: ${t0.len[i]} м`);
       const j = wrapSeg(t0, i + 1);
@@ -52,7 +52,7 @@ test('кольцо замкнуто: отрезки до 2 м без излом�
       assert.ok(t0.tx[i] * t0.tx[j] + t0.tz[i] * t0.tz[j] > 0.978, `${id}: излом в точке ${j}`);
       const e = at(t0, i, 1, 0);
       assert.ok(Math.abs(e.x - t0.px[j]) < 1e-9 && Math.abs(e.z - t0.pz[j]) < 1e-9, `${id}: разрыв после отрезка ${i}`);
-      assert.ok(t0.hw[i] >= 3.7 && t0.hw[i] <= 7.5 + 1e-9, `${id}: ширина в точке ${i}: ${t0.hw[i] * 2}`);
+      assert.ok(t0.hw[i] >= 4.5 && t0.hw[i] <= 9 + 1e-9, `${id}: ширина в точке ${i}: ${t0.hw[i] * 2}`);
       // ширина — не больше 0,1 м на метр пути, обочина — не больше 0,6
       assert.ok(Math.abs(t0.hw[j] - t0.hw[i]) <= 0.1 * t0.len[i] + 1e-9, `${id}: скачок ширины у отрезка ${i}`);
       for (const v of [t0.vl, t0.vr]) {
@@ -84,21 +84,21 @@ test('рельеф без ступенек: уклон до 26%, острые п
   assert.deepEqual(sharp, { harbor: 3, hills: 2 });
 });
 
-test('серпантин: три шпильки вверх по 3 м, гребень на 11,6 м, дальше спуск к реке; узкий мост', () => {
+test('серпантин: три шпильки вверх по 4,5 м, гребень на 17,2 м, дальше спуск к реке; узкий мост', () => {
   const t0 = hills;
   const hAt = (cp: number): number => t0.h[t0.cpSeg[cp]];
   // КТ 2–4 — на подъёмах между шпильками: каждая на 3 м выше; КТ 5 — наверху, на 9 м
-  for (let cp = 3; cp <= 4; cp++) assert.ok(Math.abs(hAt(cp) - hAt(cp - 1) - 3) < 0.6, `КТ ${cp}: ${hAt(cp)} после ${hAt(cp - 1)}`);
-  assert.ok(Math.abs(hAt(5) - 9) < 0.2, `КТ 5: ${hAt(5)}`);
+  for (let cp = 3; cp <= 4; cp++) assert.ok(Math.abs(hAt(cp) - hAt(cp - 1) - 4.5) < 0.6, `КТ ${cp}: ${hAt(cp)} после ${hAt(cp - 1)}`);
+  assert.ok(Math.abs(hAt(5) - 13.5) < 0.2, `КТ 5: ${hAt(5)}`);
   let top = 0;
   for (let i = 1; i < t0.n; i++) if (t0.h[i] > t0.h[top]) top = i;
-  assert.ok(Math.abs(t0.h[top] - 11.6) < 1e-9);
+  assert.ok(Math.abs(t0.h[top] - 17.2) < 1e-9);
   assert.equal(t0.leg[top], 9);
   // шпильки — радиус 7 м, по два узла на 90°
-  for (const node of [3, 4, 5, 6, 7, 8]) assert.equal(HILLS.nodes[node].r, 7);
+  for (const node of [3, 4, 5, 6, 7, 8]) assert.equal(HILLS.nodes[node].r, 12);
   let narrow = Infinity;
   for (let i = 0; i < t0.n; i++) if (t0.leg[i] === 12) narrow = Math.min(narrow, t0.hw[i] * 2);
-  assert.ok(Math.abs(narrow - 7.5) < 1e-9, `мост ${narrow} м`);
+  assert.ok(Math.abs(narrow - 9) < 1e-9, `мост ${narrow} м`);
   // фонтан — внутри своей дуги
   const f = hillsFountain();
   const arc = nodeArc(HILLS, HILLS_FOUNTAIN_NODE);
@@ -116,16 +116,16 @@ test('контрольные точки по ходу гонки: КТ 0 — л�
     for (let k = 0; k < t0.cpSeg.length; k++) assert.equal(t0.gap[t0.cpSeg[k]], 0, `${id}: КТ ${k} над каналом`);
   }
   // порт: старт на южной прямой курсом на восток; серпантин — на запад
-  assert.ok(Math.abs(tr.px[0] + 60) < 1e-9 && Math.abs(tr.pz[0] - 112) < 1e-9 && tr.tx[0] > 0.9999);
-  assert.ok(Math.abs(hills.pz[0] - 178) < 1e-9 && hills.tx[0] < -0.9999);
+  assert.ok(Math.abs(tr.px[0] + 107) < 1e-9 && Math.abs(tr.pz[0] - 175) < 1e-9 && tr.tx[0] > 0.9999);
+  assert.ok(Math.abs(hills.pz[0] - 205) < 1e-9 && hills.tx[0] < -0.9999);
 });
 
-test('кривизна: знак — влево +, вправо −; самые крутые дуги — r 7 м; на прямой — ноль', () => {
+test('кривизна: знак — влево +, вправо −; самые крутые дуги — r 12 м; на прямой — ноль', () => {
   const loc = makeLoc();
   // порт: восточный поворот на север (r 36, влево), шикана в бухте (r 7)
-  locateAny(tr, 135 - 36 + 36 * Math.cos(Math.PI / 4), 100.53 - 36 + 36 * Math.sin(Math.PI / 4), loc);
-  assert.ok(Math.abs(tr.curv[loc.seg] - 1 / 36) < 0.003, `восточный поворот ${tr.curv[loc.seg]}`);
-  locateAny(tr, -100, 112, loc);
+  locateAny(tr, 210 - 40 + 40 * Math.cos(Math.PI / 4), 133 - 40 + 40 * Math.sin(Math.PI / 4), loc);
+  assert.ok(Math.abs(tr.curv[loc.seg] - 1 / 40) < 0.003, `восточный поворот ${tr.curv[loc.seg]}`);
+  locateAny(tr, -145, 175, loc);
   assert.ok(Math.abs(tr.curv[loc.seg]) < 1e-9, 'прямая');
   for (const { id, tr: t0 } of TRACKS) {
     let lo = 0;
@@ -134,7 +134,7 @@ test('кривизна: знак — влево +, вправо −; самые 
       lo = Math.min(lo, t0.curv[i]);
       hi = Math.max(hi, t0.curv[i]);
     }
-    assert.ok(hi > 1 / 9 && lo < -1 / 7.5 && hi < 1 / 6.9 && lo > -1 / 6.9, `${id}: кривизна ${lo} … ${hi}`);
+    assert.ok(hi > 1 / 15 && lo < -1 / 13 && hi < 1 / 11.9 && lo > -1 / 11.9, `${id}: кривизна ${lo} … ${hi}`);
   }
 });
 
@@ -173,20 +173,20 @@ test('ящики: ряды по 3–4 поперёк дороги, на асфа
   }
 });
 
-test('порт: два трамплина через каналы по 14 м — на восточном (J1) и северном (J2) причалах', () => {
+test('порт: трамплины через 19 и 21 м воды — на восточном (J1) и северном (J2) причалах', () => {
   const starts = gapStarts(tr);
   assert.equal(starts.length, 2);
   const [j1, j2] = starts;
   assert.equal(tr.leg[j1], 3);
   assert.equal(tr.leg[j2], 8);
-  for (const [g0, up, height] of [
-    [j1, 10, 2.2],
-    [j2, 12, 2.4],
+  for (const [g0, up, height, gap] of [
+    [j1, 14, 2.7, 19],
+    [j2, 15, 3, 21],
   ]) {
     let gapLen = 0;
     let i = g0;
     for (; tr.gap[i]; i = wrapSeg(tr, i + 1)) gapLen += tr.len[i];
-    assert.ok(Math.abs(gapLen - 14) < 0.1, `провал ${gapLen} м`);
+    assert.ok(Math.abs(gapLen - gap) < 0.1, `провал ${gapLen} м`);
     assert.ok(Math.abs(tr.h[g0] - height) < 1e-9, `край трамплина на ${height} м`);
     assert.equal(tr.h[i], 0, 'приземление на ровную дорогу');
     let run = 0;
