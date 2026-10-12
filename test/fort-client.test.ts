@@ -32,14 +32,14 @@ test('HUD убирает убитого босса, даже если волна
   const noop = () => {};
   const pb = new Proxy({}, { get: () => noop });
   // новый интерфейс (client/fort/ui) — тоже без DOM: матч только отдаёт ему кадр и события
-  const ui = { frame: noop, onPhase: noop, onEvent: noop };
+  const ui = { frame: noop, onPhase: noop, onEvent: noop, prompt: {setRepair:noop} };
   const hud = new Proxy({ pb, ui, shopShown: false, endShown: false, setBoss: (hp: number) => { bossHealth = hp; } }, {
     get: (target, key) => Reflect.get(target, key) ?? noop,
   });
   const match = Object.assign(Object.create(FortMatch.prototype), {
     ready: true, myId: 1, clock: new ClockSync(FORT_MIN_DELAY), header: makeHeader(), selfSnap: makeState(),
     ents: [], tail: makeFortTail(), zlist: [], tracks: new Map(), seen: new Set(), roster: new Map(), rosterList: [], poses: new Map(), teamRows: [],
-    predictor: { state: makeState() }, alive: true, mapTimer: Infinity,
+    predictor: { state: makeState() }, alive: true, mapTimer: Infinity, repairEnd: 0,
     d: { hud, zombies: { push: noop }, world: { camera: new THREE.PerspectiveCamera(), renderer: { canvas: { clientHeight: 800 } } },
       settings: { showStats: false }, input: { isHeld: () => false, yaw: 0 }, net: {} },
     // арсенал — своя часть клиента (arsenalc.ts); здесь только то, что матч у него спрашивает

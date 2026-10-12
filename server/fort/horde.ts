@@ -38,6 +38,8 @@ import { stepBoat, stepHop, type SeaCtx } from './sea.ts';
 import { krakenArmor, stepKraken, stepTentacle, tentacleRage } from './kraken.ts';
 import { planCounts, type WavePlan } from './director.ts';
 import { FortNav, rectDist } from './nav.ts';
+import { Siege } from './siege.ts';
+import { BOAT_ANCHOR_FLAG, SIEGE_SLOT_RESERVE, Z_ROPECRAB, ZS_SIEGE_APPROACH, ZS_SIEGE_OPEN, ZS_SIEGE_ACTION, ZS_SIEGE_WINDUP, ZS_SIEGE_DEPLOY, Z_JAMPUMP, Z_MILLER } from '../../shared/fortsiege.ts';
 
 /** История для отката выстрелов: тиков (откат — до MAX_REWIND_TICKS) */
 export const ZHIST_TICKS = 32;
@@ -60,6 +62,8 @@ export interface HordeHost {
   /** Живые люди (обновляет хозяин перед шагом) */
   targets(): readonly HordeTarget[];
   hitPlayer(zid: number, pid: number, dmg: number): void;
+  /** Ограниченный толчок вдоль опоры, без сбрасывания через бруствер. */
+  pushPlayer?(pid: number, dx: number, dz: number): void;
   /** First solid obstacle on an attack segment. out is collision point (or endpoint); true means blocked. */
   traceAttack(ox: number, oy: number, oz: number, tx: number, ty: number, tz: number, out: { x: number; y: number; z: number }): boolean;
   /** Во сколько раз медленнее в этой точке (лужи варенья): 1 — как обычно */
@@ -126,6 +130,11 @@ export class Zombie {
   /** Кто последним попал (пузырь, лопнувший от краски, — его выстрел) */
   lastBy = 0;
   readonly damageBy = new Map<number, number>();
+  anchor = false;
+  siegeHits = 0;
+  siegeUsed = 0;
+  /** К какому живому трамплину/мостику подошёл (0 — обычный маршрут). */
+  siegeCarrier = 0;
 
   constructor(slot: number) {
     this.slot = slot;
@@ -141,6 +150,7 @@ interface Spawn {
   lane?: number;
   crew?: readonly number[];
   tiers?: readonly number[];
+  anchor?: boolean;
 }
 
 /** Шаг сетки расталкивания: не меньше двух самых больших радиусов */
@@ -161,6 +171,7 @@ const _attack = { x: 0, y: 0, z: 0 };
 export class Horde {
   readonly nav: FortNav;
   readonly zombies: Zombie[] = [];
+  readonly siege: Siege;
   private readonly host: HordeHost;
   private readonly rng: () => number;
   private readonly bossCtx: BossCtx;
@@ -189,6 +200,7 @@ export class Horde {
   private readonly barrelMul: number[] = [];
 
   constructor(nav: FortNav, host: HordeHost, rng: () => number) {
+    this.siege = new Siege(this, host);
     this.nav = nav;
     this.host = host;
     this.rng = rng;
@@ -215,11 +227,13 @@ export class Horde {
 
   /** Все вышли и все сбиты */
   get cleared(): boolean {
-    return this.pending === 0 && this.alive === 0;
+    return this.pending === 0 && this.alive === 0 && this.siege.pending === 0;
   }
 
   /** Убрать всех (новая игра) */
   clear(): void {
+    for (const z of this.zombies) if (z.alive) this.siege.death(z);
+    this.siege.clear();
     for (const z of this.zombies) z.alive = false;
     this.alive = 0;
     this.queue = [];
@@ -243,6 +257,7 @@ export class Horde {
    * (подкрепление, когда в волну входят новые).
    */
   startWave(plan: WavePlan, tick: number, replan: ((humans: number) => WavePlan) | null = null): void {
+    this.siege.clear();
     this.plan = plan;
     this.replan = replan;
     this.wave = plan.w;
@@ -252,7 +267,7 @@ export class Horde {
     this.haste = plan.event === EV_GOLD ? GOLD_HASTE : 1;
     const queue: Spawn[] = plan.spawns.map((s) => ({ at: tick + s.at, kind: s.kind, road: s.road, tier: s.tier }));
     if (plan.boss >= 0) queue.unshift({ at: tick + 30, kind: plan.boss, road: 1, tier: 0 });
-    for (const b of plan.boats) queue.push({ at: tick + b.at, kind: Z_BOAT, road: 1, tier: 0, lane: b.lane, crew: b.crew, tiers: b.tiers });
+    for (const b of plan.boats) queue.push({ at: tick + b.at, kind: Z_BOAT, road: 1, tier: 0, lane: b.lane, crew: b.crew, tiers: b.tiers, anchor: b.anchor });
     if (plan.kraken) queue.unshift({ at: tick + 30, kind: Z_KRAKEN, road: 1, tier: 0 });
     this.queue = queue.sort((a, b) => a.at - b.at);
     this.queueAt = 0;
@@ -363,6 +378,9 @@ export class Horde {
     z.tier = isBossKind(kind) ? 0 : Math.max(0, Math.min(2, tier | 0));
     z.crew = false;
     z.state = isBossKind(kind) ? ZS_BOSS_APPROACH : ZS_WALK;
+    if (kind >= Z_ROPECRAB && !isBossKind(kind)) z.state = ZS_SIEGE_APPROACH;
+    z.anchor = false;
+    z.siegeHits = z.siegeUsed = z.siegeCarrier = 0;
     z.alive = true;
     z.maxHp = this.hpFor(kind, z.tier, hpHumans);
     z.hp = z.maxHp;
@@ -409,8 +427,11 @@ export class Horde {
   damage(z: Zombie, dmg: number, by: number, head: boolean, hx: number, hy: number, hz: number, ox = hx, oz = hz): void {
     if (!z.alive) return;
     if (!(dmg > 0) || !Number.isFinite(dmg)) return;
+    if (head) this.siege.precision(z, by);
+    if (!z.alive) return;
+    dmg *= this.siege.cover(z, ox, oz);
     if (z.kind === Z_KRAKEN || z.kind === Z_TENTACLE) dmg *= krakenArmor(this, z);
-    else if (isBossKind(z.kind) && z.state !== ZS_BOSS_OPEN) dmg *= BOSS_ARMOR;
+    else if (isBossKind(z.kind) && z.state !== ZS_BOSS_OPEN && z.state !== ZS_SIEGE_OPEN) dmg *= BOSS_ARMOR;
     if (!(dmg > 0)) return;
     let mark = head ? 1 : 0;
     if (!head && z.kind === Z_ARMORED) {
@@ -448,7 +469,7 @@ export class Horde {
       if (d > r) continue;
       let amount = dmg;
       if (o.kind === Z_KRAKEN || o.kind === Z_TENTACLE) amount *= krakenArmor(this, o);
-      else if (isBossKind(o.kind) && o.state !== ZS_BOSS_OPEN) amount *= BOSS_ARMOR;
+      else if (isBossKind(o.kind) && o.state !== ZS_BOSS_OPEN && o.state !== ZS_SIEGE_OPEN) amount *= BOSS_ARMOR;
       if (!(amount > 0)) continue;
       this.hurt(o, amount, by, 0, o.x, o.y + k.hcy, o.z);
       hits++;
@@ -471,7 +492,7 @@ export class Horde {
       const k = ZK[o.kind];
       if (Math.hypot(o.x - x, o.z - z) > r + k.r) continue;
       let amount = o.maxHp * frac;
-      if (isBossKind(o.kind) && o.state !== ZS_BOSS_OPEN) amount *= BOSS_ARMOR;
+      if (isBossKind(o.kind) && o.state !== ZS_BOSS_OPEN && o.state !== ZS_SIEGE_OPEN) amount *= BOSS_ARMOR;
       this.hurt(o, amount, 0, 0, o.x, o.y + k.hcy, o.z);
       hits++;
     }
@@ -499,6 +520,7 @@ export class Horde {
   /** Сбит (by — кто; 0 — взрыв, сам, краскомёт без хозяина). Пузырь и бочка рвутся следом, очередью. */
   kill(z: Zombie, by: number): void {
     if (!z.alive) return;
+    this.siege.death(z);
     z.alive = false;
     z.hp = 0;
     this.alive--;
@@ -548,19 +570,21 @@ export class Horde {
     for (const k of s.crew ?? []) z.cargo.push(k);
     for (let i = 0; i < z.cargo.length; i++) z.cargoTier.push(s.tiers?.[i] ?? 0);
     z.stage = z.cargo.length;
+    z.anchor = s.anchor === true;
+    if (z.anchor) z.stage |= BOAT_ANCHOR_FLAG;
     this.cargo += z.cargo.length;
     return true;
   }
 
   /** Абордажник прыгает из лодки на берег (последний в списке). false — мест в орде нет, ждёт. */
-  unloadCrew(boat: Zombie): boolean {
+  unloadCrew(boat: Zombie, wall = false): boolean {
     const n = boat.cargo.length;
     if (!n) return false;
     const z = this.spawn(boat.cargo[n - 1], 1, this.hpHumans, boat.cargoTier[n - 1] ?? 0);
     if (!z) return false;
     boat.cargo.length = n - 1;
     boat.cargoTier.length = n - 1;
-    boat.stage = n - 1;
+    boat.stage = n - 1 | (boat.anchor ? BOAT_ANCHOR_FLAG : 0);
     this.cargo--;
     z.crew = true;
     z.climb = boat.x < 0 ? CLIMB_SEA_W : CLIMB_SEA_E;
@@ -576,6 +600,7 @@ export class Horde {
     z.y = z.fromY;
     z.z = z.fromZ;
     z.yaw = 0;
+    if (wall) this.siege.board(z, z.climb);
     return true;
   }
 
@@ -657,9 +682,20 @@ export class Horde {
 
   step(): void {
     const tick = this.host.tick;
+    this.siege.tick();
+    // Шесть мест внутри прежних 60 сохраняются для назначенных осадных ролей. Пришло их время — берём их
+    // перед обычной очередью, чтобы плотная старая орда не задерживала показанный контрход.
+    if (this.plan?.siege) for (let i = this.queueAt; i < this.queue.length && this.queue[i].at <= tick; i++) {
+      const s = this.queue[i];
+      if (s.kind < Z_ROPECRAB && !s.anchor) continue;
+      if (!(s.kind === Z_BOAT ? this.launchBoat(s) : this.spawn(s.kind, s.road, this.hpHumans, s.tier))) break;
+      this.queue.splice(i--, 1);
+    }
     // расписание волны
+    const waitingSiege = this.plan?.siege && this.queue.some((o, i) => i >= this.queueAt && (o.kind >= Z_ROPECRAB || o.anchor));
     while (this.queueAt < this.queue.length && this.queue[this.queueAt].at <= tick) {
       const s = this.queue[this.queueAt];
+      if (waitingSiege && this.alive >= FORT_MAX_ALIVE - SIEGE_SLOT_RESERVE) break;
       if (!(s.kind === Z_BOAT ? this.launchBoat(s) : this.spawn(s.kind, s.road, this.hpHumans, s.tier))) break; // мест нет — подождут
       this.queueAt++;
     }
@@ -668,6 +704,7 @@ export class Horde {
     for (const z of this.zombies) {
       if (!z.alive) continue;
       if (z.atkCd > 0) z.atkCd--;
+      if (this.siege.step(z)) continue;
       if (z.state === ZS_HOP) stepHop(z);
       else if (z.kind === Z_BOAT) stepBoat(this.seaCtx, z);
       else if (z.kind === Z_FLYER) this.stepFlyer(z);
@@ -911,7 +948,7 @@ export class Horde {
   }
 
   /** Ходок: цель (человек рядом, точка липучки, ворота, кристалл), удар или шаг по полю. */
-  private stepGround(z: Zombie, gateUp: boolean): void {
+  stepGround(z: Zombie, gateUp: boolean): void {
     const k = ZK[z.kind];
     const host = this.host;
     const inside = insideFort(z.x, z.z);
@@ -1246,6 +1283,7 @@ export class Horde {
         | (z.state === ZS_PLANT || (z.kind === Z_MEDIC && z.healT < 30) ? ZF_LIT : 0)
         | (isBossKind(z.kind) && raging(z) || tentacleRage(z) ? ZF_RAGE : 0);
       s.r = attackRadius(z.state);
+      if ([ZS_SIEGE_DEPLOY, ZS_SIEGE_WINDUP, ZS_SIEGE_ACTION].includes(z.state)) s.r = z.kind === Z_JAMPUMP ? 2 : z.kind === Z_MILLER ? 4 : 3;
       s.hp = z.hp / z.maxHp;
       s.x = z.x;
       s.y = z.y;

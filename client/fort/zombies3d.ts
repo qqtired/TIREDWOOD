@@ -23,6 +23,10 @@ import { Z_KRAKEN, Z_TENTACLE, ZS_TENT_REST, ZS_TENT_SLAM } from '../../shared/f
 import { TENT_WARN_TICKS, tentacleRoot } from '../../shared/fortkraken.ts';
 import { Kraken3D } from './kraken3d.ts';
 import { ALL_MOBS } from './mobs/index.ts';
+import { ApprovedMobRenderer } from './approved/renderer.ts';
+import { SiegePhaseClock, siegeElapsed, siegeSnapshotElapsed } from './approved/phase-clock.ts';
+import { BoardingAnchors } from './approved/anchors.ts';
+import { Z_ROPECRAB, BOAT_ANCHOR_FLAG, ZS_BOARD, ZS_SIEGE_APPROACH, ZS_SIEGE_OPEN, ZS_SIEGE_DEPLOY, ZS_SIEGE_ACTION } from '../../shared/fortsiege.ts';
 import { MOB_STRIDE, type MobAnim, type MobDef } from './mobs/kit.ts';
 import { MobRenderer, mobRoot, mobSeed } from './mobs/renderer.ts';
 
@@ -138,6 +142,7 @@ class Track {
   valid = false;
   /** Для моделей: путь шага 0…1, когда началось состояние, затухающее вздрагивание, высота прошлого кадра */
   gait = 0;
+  path = 0;
   lastSt = -1;
   stAt = 0;
   jolt = 0;
@@ -556,10 +561,18 @@ export class Zombies3D {
   private warm = 0;
   /** Новые модели врагов (client/fort/mobs): у кого есть модель — рисует она, у кого нет — желейка, как раньше */
   private readonly mobs: MobRenderer;
+  readonly approved: ApprovedMobRenderer;
+  private readonly anchors: BoardingAnchors;
+  private readonly siegePhases = new SiegePhaseClock();
+  private renderTick = 0;
+  phase(id:number,kind:number,state:number,startTick:number,endTick:number):void { this.siegePhases.remember({id,kind,state,startTick,endTick}); }
+  get modelsLoading(): boolean { return this.approved.loading; }
 
   constructor(scene: THREE.Scene, ground?: GroundQuery, models: readonly MobDef[] = ALL_MOBS) {
     this.ground = ground;
     this.mobs = new MobRenderer(scene, models);
+    this.approved = new ApprovedMobRenderer(scene);
+    this.anchors = new BoardingAnchors(scene);
     const bodyGeo = new THREE.LatheGeometry(bodyProfile(), 22);
     bodyGeo.computeVertexNormals();
     this.bodyGeometries = [new THREE.LatheGeometry(bodyProfile(), 12), new THREE.LatheGeometry(bodyProfile(), 16), bodyGeo];
@@ -634,6 +647,7 @@ export class Zombies3D {
     this.detailDistance = tier === 'low' ? 24 : tier === 'medium' ? 45 : Infinity;
     this.wingHz = tier === 'low' ? 20 : tier === 'medium' ? 30 : 60;
     this.mobs.setQuality(q, slow);
+    this.approved.setQuality(q);
   }
 
   /** Снимок: зомби по списку; кого нет — пропали (сбиты или ушли в начало дороги — тогда вернутся). */
@@ -646,7 +660,7 @@ export class Zombies3D {
       if (!tr) {
         tr = new Track(s.id);
         // новый посреди игры — вылезает из земли (кроме тех, кто уже был, когда мы вошли)
-        tr.born = this.warm >= 3 && s.kind !== Z_FLYER && s.kind !== Z_BOAT && s.state !== ZS_HOP && !isBossKind(s.kind) ? this.time : -1;
+        tr.born = this.warm >= 3 && s.kind !== Z_FLYER && s.kind !== Z_BOAT && s.state !== ZS_HOP && s.state !== ZS_BOARD && !isBossKind(s.kind) ? this.time : -1;
         this.tracks.set(s.id, tr);
       }
       tr.push(tick, s);
@@ -659,6 +673,7 @@ export class Zombies3D {
       const keep = this.dieSeconds(tr.kind);
       if (keep > 0 && (tr.dead ? this.time - tr.deadAt < keep : tr.seen === this.frame - 1)) continue;
       this.tracks.delete(id);
+      this.siegePhases.remove(id);
     }
   }
 
@@ -681,12 +696,12 @@ export class Zombies3D {
 
   /** Сколько сбитый ещё на экране: лодка тонет, моб с моделью доигрывает гибель, желейка пропадает сразу */
   private dieSeconds(kind: number): number {
-    return kind === Z_BOAT ? SINK_S : this.mobs.has(kind) ? DIE_S : 0;
+    return kind === Z_BOAT ? SINK_S : this.approved.has(kind) ? this.approved.duration(kind, 'death') : this.mobs.has(kind) ? DIE_S : 0;
   }
 
   /** Вид зомби по id (−1 — уже нет на экране) */
   kindOf(id: number): number {
-    return this.tracks.get(id)?.kind ?? -1;
+    return this.tracks.get(id)?.kind ?? this.siegePhases.kind(id) ?? -1;
   }
 
   /** Где зомби на экране (ноги) — для звуков и эффектов */
@@ -739,6 +754,9 @@ export class Zombies3D {
       this.hull, this.crewHeads, this.caps]) m.count = 0;
     this.kraken.clear();
     this.mobs.clear();
+    this.approved.clear();
+    this.anchors.clear();
+    this.siegePhases.clear();
   }
 
   /** Цели прицела — живые зомби на тике t (то же, к чему сервер откатит орду): x, y ног, z, тип. */
@@ -764,7 +782,9 @@ export class Zombies3D {
     const sway = time * 1.6 + tr.id;
     const y = r.y + Math.sin(sway) * 0.1 - sink * 2.4;
     // модель лодки (client/fort/mobs) качается, гребёт, высаживает экипаж (anim.stage) и тонет (anim.die) сама: корень — на воде
-    if (!this.mobs.add(Z_BOAT, tr.seed, mobRoot(_root, r.x, r.y, r.z, r.yaw), this.animOf(tr, r, time), tr.flash * 0.6)) {
+    const boatAnim = this.animOf(tr, r, time);
+    if (!tr.dead) this.anchors.add(r.x,r.y,r.z,r.tx,r.ty,r.tz,r.stage,r.st,boatAnim.stT);
+    if (!this.mobs.add(Z_BOAT, tr.seed, mobRoot(_root, r.x, r.y, r.z, r.yaw), boatAnim, tr.flash * 0.6)) {
       _e.set(Math.sin(time * 1.3 + tr.id) * 0.05 + sink * 0.7, r.yaw, Math.sin(time * 1.1 + tr.id * 2) * 0.06 + sink * 0.35);
       _q.setFromEuler(_e);
       _p.set(r.x, y, r.z);
@@ -803,7 +823,7 @@ export class Zombies3D {
   private drawMob(tr: Track, r: ZPose, time: number, rise: number, scale: number, gy: number, gxz: number): boolean {
     const kind = tr.kind;
     const def = this.mobs.variant(kind, tr.seed, r.flags);
-    if (!def) return false;
+    if (!def && !this.approved.has(kind)) return false;
     const k = ZK[kind] ?? ZK[0];
     const h = k.hcy + k.hry;
     mobRoot(_root, r.x, r.y - rise * h * 0.9, r.z, r.yaw, scale, rise * 0.5);
@@ -811,7 +831,7 @@ export class Zombies3D {
     // оттенок: босс открыт — бирюза, в ярости — красное мерцание, лекарь лечит — зелёный, экипаж в обычной модели — синий
     const boss = isBossKind(kind);
     let mix = 0;
-    if (boss && r.st === ZS_BOSS_OPEN) {
+    if (boss && (r.st === ZS_BOSS_OPEN || r.st === ZS_SIEGE_OPEN)) {
       _tint.set(0x6ce5e3);
       mix = 0.4;
     } else if (boss && (r.flags & ZF_RAGE)) {
@@ -820,13 +840,16 @@ export class Zombies3D {
     } else if (kind === Z_MEDIC && (r.flags & ZF_LIT)) {
       _tint.set(0x9cff9a);
       mix = 0.3 + 0.2 * Math.sin(time * 18);
-    } else if ((r.flags & ZF_CREW) && !def.when) {
+    } else if ((r.flags & ZF_CREW) && !def?.when) {
       _tint.set(0x5b9bd5);
       mix = 0.25;
     }
-    if (!this.mobs.add(kind, tr.seed, _root, this.animOf(tr, r, time), tr.flash * 0.85, mix > 0 ? _tint : null, mix)) return false;
+    const anim = this.animOf(tr, r, time);
+    if (kind === Z_ROPECRAB && !tr.dead && [ZS_SIEGE_DEPLOY,ZS_SIEGE_ACTION,ZS_SIEGE_OPEN].includes(r.st)) this.anchors.add(r.x,r.y,r.z+1,r.tx,r.ty,r.tz,BOAT_ANCHOR_FLAG,r.st,anim.stT);
+    const drawn = this.approved.has(kind) ? this.approved.add(kind, _root, anim, tr.flash * .85, mix > 0 ? _tint : null, mix, r) : this.mobs.add(kind, tr.seed, _root, anim, tr.flash * .85, mix > 0 ? _tint : null, mix);
+    if (!drawn) return false;
     const sc = SCALES[kind] ?? SCALES[0];
-    _m.multiplyMatrices(_root, _sq.makeScale(sc.sxz, def.height / BODY_H, sc.sxz));
+    _m.multiplyMatrices(_root, _sq.makeScale(sc.sxz, (def?.height ?? this.approved.height(kind)) / BODY_H, sc.sxz));
     return true;
   }
 
@@ -879,12 +902,19 @@ export class Zombies3D {
     tr.lastWind = r.wind;
     a.t = time - tr.firstAt;
     a.gait = tr.gait;
+    a.path = tr.path;
     a.speed = tr.back ? -tr.speed : tr.speed;
     a.st = r.st;
     // в атаке — секунды с последнего удара (счётчик atk из снимка): замах на каждый удар заново
     a.stT = r.st === ZS_ATTACK ? Math.min(time - tr.stAt, tr.atkT) : time - tr.stAt;
+    const fallback = siegeSnapshotElapsed(tr.kind,r.st,r.wind);
+    const phase = r.st >= ZS_SIEGE_APPROACH ? this.siegePhases.at(tr.id,r.st,this.renderTick) : null;
+    if (phase || fallback !== null) {
+      a.stT = phase ? siegeElapsed(phase,this.renderTick) : fallback!;
+      a.wind = phase?.endTick ? Math.max(0,phase.endTick-this.renderTick)/TICK_RATE : r.wind/TICK_RATE;
+    }
     a.hit = tr.jolt;
-    a.die = tr.dead ? Math.min(1, (time - tr.deadAt) / (tr.kind === Z_BOAT ? SINK_S : DIE_S)) : 0;
+    a.die = tr.dead ? Math.min(1, (time - tr.deadAt) / Math.max(.01, this.dieSeconds(tr.kind))) : 0;
     a.rage = (r.flags & ZF_RAGE) !== 0;
     a.flags = r.flags;
     a.stage = r.stage;
@@ -893,6 +923,7 @@ export class Zombies3D {
 
   update(t: number, dt: number, time: number, cam: THREE.Camera): void {
     this.time = time;
+    this.renderTick = t;
     const camPos = cam.position;
     _right.set(1, 0, 0).applyQuaternion(cam.quaternion);
     let n = 0;
@@ -914,6 +945,8 @@ export class Zombies3D {
     const counts = this.counts;
     counts.fill(0);
     this.mobs.begin();
+    this.approved.begin();
+    this.anchors.begin();
     for (const tr of this.tracks.values()) {
       const r = tr.r;
       // сбитый ещё на экране: лодка тонет, моб с моделью доигрывает гибель — уже не цель, без полоски и меток
@@ -932,7 +965,7 @@ export class Zombies3D {
       // шаг модели — по пройденному пути (и по стене вверх-вниз), MOB_STRIDE метров на цикл: ноги не скользят
       const climbed = Number.isNaN(tr.lastY) ? 0 : Math.abs(r.y - tr.lastY);
       tr.lastY = r.y;
-      if (moved < 1.5 && climbed < 1.5) tr.gait = (tr.gait + Math.hypot(moved, climbed) / MOB_STRIDE) % 1;
+      if (moved < 1.5 && climbed < 1.5) { const distance = Math.hypot(moved, climbed); tr.gait = (tr.gait + distance / MOB_STRIDE) % 1; tr.path += distance; }
       tr.flash = Math.max(0, tr.flash - dt * 7);
       tr.jolt = Math.max(0, tr.jolt - dt * 3.5);
       if (tr.kind === Z_BOAT) {
@@ -990,7 +1023,7 @@ export class Zombies3D {
         armR = 2.9;
         lean = 0.2;
       }
-      if (st === ZS_HOP) {
+      if (st === ZS_HOP || st === ZS_BOARD) {
         // прыжок из лодки на берег
         armL = armR = 2.6;
         lean = 0.22;
@@ -1266,5 +1299,7 @@ export class Zombies3D {
     if (this.barFill.instanceColor) this.barFill.instanceColor.needsUpdate = true;
     this.kraken.flush();
     this.mobs.end();
+    this.approved.end();
+    this.anchors.end();
   }
 }

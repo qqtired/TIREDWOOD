@@ -17,6 +17,7 @@ import { EventFx } from './eventfx.ts';
 
 export class FortScene implements Scene {
   readonly kind = 'fort' as const;
+  get modelsLoading(): boolean { return this.zombies.modelsLoading; }
   /**
    * Мышь нужна всегда, кроме открытой панели арсенала (лавка, ворота, кристалл, башня) и «свободного курсора» после Esc
    * у неё: Esc закрывает только панель, меню игры не встаёт; клик или любая клавиша возвращают мышь в игру. Окно итогов —
@@ -121,6 +122,7 @@ export class FortScene implements Scene {
   }
 
   debugState(): Record<string, unknown> | null {
-    return this.match?.debugState() ?? null;
+    const state = this.match?.debugState();
+    return state ? { ...state, approvedModels: this.zombies.approved.inspect() } : null;
   }
 }

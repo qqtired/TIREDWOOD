@@ -8,6 +8,7 @@ import {
   ZS_TENT_SLAM, ZS_THROW,
 } from './fort.ts';
 import { NEW_BOSS_TIMED } from './fortbosses.ts';
+import { SIEGE_TIMED } from './fortsiege.ts';
 
 /**
  * Ворота u16, кристалл u16, краскомёты u8, лужи u8, осталось u16, врагов u8, защитников u8, щит u16, откат щита u16,
@@ -43,6 +44,7 @@ for (const s of [ZS_FLY_WARN, ZS_FLY_DIVE, ZS_BOSS_GATE, ZS_BOSS_BOMB, ZS_BOSS_P
   ZS_CHARGE_WARN, ZS_CHARGE, ZS_STOMP, ZS_THROW, ZS_QUAKE, ZS_TENT_SLAM, ZS_TENT_REST, ZS_KRAKEN_DIVE, ZS_KRAKEN_SPIT, ZS_METEOR,
   ZS_BARREL]) TIMED[s] = 1;
 for (const s of NEW_BOSS_TIMED) TIMED[s] = 1;
+for (const s of SIEGE_TIMED) TIMED[s] = 1;
 
 export function isTimedState(state: number): boolean {
   return TIMED[state & 255] === 1;

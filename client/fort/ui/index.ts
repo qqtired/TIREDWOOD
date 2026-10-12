@@ -301,6 +301,7 @@ export class FortUi {
     this.prompt.setStation(null, 0, false, true);
     this.prompt.setLadder(null);
     this.prompt.setResume(false);
+    this.prompt.setRepair(0,0);
     this.gateWas = -1;
     this.pot = null;
     this.isDown = false;

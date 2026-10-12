@@ -18,7 +18,7 @@ import {
 } from '../../shared/fortwaves.ts';
 import { FM_EARLY } from '../../shared/fortnet.ts';
 import { namesLine, recView, wavesText, type FortRecIntro } from '../../shared/fortrecord.ts';
-import { planWave, type LastEvent, type WavePlan } from './director.ts';
+import { FEATURES, SIEGE_FEATURES, planWave, type LastEvent, type WavePlan } from './director.ts';
 import { FortLedger, settle, type FortRun, type SettleFinal } from './ledger.ts';
 import { BOAT_BOUNTY, GREN_BUY, waveBonus, type Loadout } from '../../shared/fortarsenal.ts';
 import { BTN_FT_GRENADE, BTN_FT_HEAVY, armFort, fortAfter, fortBefore, gunInHands, makeFortStep } from '../../shared/fortgun.ts';
@@ -109,6 +109,8 @@ export interface FortHumanInfo {
 }
 
 export interface FortHooks {
+  /** Новый одобренный пакет; по умолчанию только явный FORTRESS_SIEGE=1. */
+  siege?: boolean;
   /** Итог игры тому, кто дождался итогов: строка таблицы, жетоны (null — ни одной волны), победа, сколько волн отбито */
   result?(p: FortPlayer, row: FortResultRow, reward: FtReward | null, win: boolean, wave: number): void;
   /** Человек 90 с ничего не нажимал */
@@ -129,6 +131,7 @@ export interface FortHooks {
 let navCache: FortNav | null = null;
 
 export class FortGame implements HordeHost, EventHost {
+  readonly siegeEnabled: boolean;
   readonly map: FortMap;
   readonly world: CollisionWorld;
   readonly horde: Horde;
@@ -190,6 +193,7 @@ export class FortGame implements HordeHost, EventHost {
 
   constructor(hooks: FortHooks = {}) {
     this.hooks = hooks;
+    this.siegeEnabled = hooks.siege ?? process.env.FORTRESS_SIEGE === '1';
     this.map = buildFort();
     this.world = new CollisionWorld(this.map);
     navCache ??= new FortNav(this.map);
@@ -235,6 +239,8 @@ export class FortGame implements HordeHost, EventHost {
       ...(this.card ? { card: this.card } : {}), rec: this.recIntro(p) });
     this.spawn(p);
     this.sendSurrTo(p);
+    const activeSiege = [...this.waveEvents.replay(), ...this.horde.siege.replay(), ...this.arsenal.repairReplay()];
+    if (activeSiege.length) sink.sendJson({ t: 'fev', k: this.tick, e: activeSiege });
     if (this.phase === FT_WAVE && this.horde.raiseDefenders(this.players.size, this.tick)) {
       this.systemChat(`Орда усилена для ${this.horde.defenders} защитников · подкрепление через 3 с`);
     }
@@ -321,7 +327,7 @@ export class FortGame implements HordeHost, EventHost {
 
   /** План волны w для нынешнего числа защитников (директор: то же зерно — тот же план) */
   private planFor(w: number, humans = this.debugTeam || this.players.size): WavePlan {
-    return planWave(w, Math.max(1, humans), this.seed, this.lastEvent);
+    return planWave(w, Math.max(1, humans), this.seed, this.lastEvent, this.siegeEnabled ? SIEGE_FEATURES : FEATURES);
   }
 
   private startWave(): void {
@@ -329,7 +335,7 @@ export class FortGame implements HordeHost, EventHost {
     this.rallyUntil = this.rallyReady = 0;
     const w = this.wave;
     const last = this.lastEvent;
-    const plan = planWave(w, Math.max(1, this.debugTeam || this.players.size), this.seed, last);
+    const plan = planWave(w, Math.max(1, this.debugTeam || this.players.size), this.seed, last, this.siegeEnabled ? SIEGE_FEATURES : FEATURES);
     if (this.forceEvent !== EV_NONE) {
       plan.event = this.forceEvent;
       plan.card = { ...plan.card, event: this.forceEvent };
@@ -337,7 +343,7 @@ export class FortGame implements HordeHost, EventHost {
     }
     this.plan = plan;
     if (plan.event !== EV_NONE) this.lastEvent = { wave: w, kind: plan.event };
-    this.horde.startWave(plan, this.tick, (n) => planWave(w, n, this.seed, last));
+    this.horde.startWave(plan, this.tick, (n) => planWave(w, n, this.seed, last, this.siegeEnabled ? SIEGE_FEATURES : FEATURES));
     this.arsenal.onWaveStart();
     this.waveEvents.start(plan, this.tick);
     for (const p of this.players.values()) {
@@ -389,6 +395,9 @@ export class FortGame implements HordeHost, EventHost {
 
   private endWave(): void {
     this.waveEvents.stop();
+    if (this.horde.siege.failed) this.lastEvent = { ...this.lastEvent, siegeFailureWave: this.wave };
+    this.horde.siege.clear();
+    this.arsenal.cancelRepair();
     this.cleared = this.wave;
     const credited: FortPlayer[] = [];
     for (const p of this.players.values()) {
@@ -472,6 +481,8 @@ export class FortGame implements HordeHost, EventHost {
   private finish(win: boolean, surr = false): void {
     this.surr.cancel();
     this.waveEvents.stop();
+    this.horde.siege.clear();
+    this.arsenal.cancelRepair();
     this.card = null;
     this.plan = null;
     this.setPhase(FT_END, this.tick + END_TICKS);
@@ -598,7 +609,13 @@ export class FortGame implements HordeHost, EventHost {
     }
     // стволы крепости поверх общего шага: движение — stepPlayer, оружие и лестницы — shared/fortgun.ts
     const m = fortBefore(p.step, p.state, inp, p.load);
+    const oldX = p.state.x, oldZ = p.state.z;
     stepPlayer(p.state, m, this.world, true, p.seed, p.ev);
+    const slow = this.horde.siege.playerSlow(p.state.x, p.state.y, p.state.z);
+    if (slow < 1) {
+      p.state.x = oldX + (p.state.x - oldX) * slow;
+      p.state.z = oldZ + (p.state.z - oldZ) * slow;
+    }
     fortAfter(p.step, p.state, p.ev, true, p.seed);
     if (p.ev.fired) {
       p.firingUntil = this.tick + 8;
@@ -665,6 +682,22 @@ export class FortGame implements HordeHost, EventHost {
     p.hurtTick = this.tick;
     this.events.push(['phit', zid, pid, dmg]);
     if (p.hp <= 0.5) this.down(p, zid);
+  }
+
+  pushPlayer(pid: number, dx: number, dz: number): void {
+    const p = this.players.get(pid);
+    if (!p?.alive) return;
+    const s = p.state;
+    const length = Math.hypot(dx, dz);
+    if (!length) return;
+    const scale = Math.min(2, length) / length;
+    // Небольшие шаги проверяют и бруствер, и опору: ветер не сбрасывает через край.
+    for (let i = 0; i < 10; i++) {
+      const x = s.x + dx * scale / 10, z = s.z + dz * scale / 10;
+      if (this.world.overlaps(x - .38, s.y + .05, z - .38, x + .38, s.y + 1.7, z + .38)
+        || this.world.groundBelow(x, s.y + .2, z) < s.y - .4) break;
+      s.x = x; s.z = z;
+    }
   }
 
   traceAttack(ox: number, oy: number, oz: number, tx: number, ty: number, tz: number, out: { x: number; y: number; z: number }): boolean {

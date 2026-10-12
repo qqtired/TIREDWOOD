@@ -140,6 +140,7 @@ export class FortPrompt {
   private station: { text: string; price: number; can: boolean; afford: boolean } | null = null;
   private ladder: 'up' | 'down' | null = null;
   private resume = false;
+  private repair: { left: number; progress: number } | null = null;
   private key = '';
 
   constructor(slot: HTMLElement) {
@@ -171,15 +172,25 @@ export class FortPrompt {
     this.render();
   }
 
+  setRepair(left: number, progress: number): void {
+    this.repair = left > 0 ? {left:Math.ceil(left*10)/10,progress:Math.round(Math.max(0,Math.min(1,progress))*100)/100} : null;
+    this.render();
+  }
+
   private render(): void {
     const s = this.station;
-    const key = this.resume ? 'resume' : s ? `s|${s.text}|${s.price}|${s.can}|${s.afford}` : this.ladder ? `l|${this.ladder}` : '';
+    const repair = this.repair;
+    const key = this.resume ? 'resume' : repair ? `r|${repair.left}|${repair.progress}` : s ? `s|${s.text}|${s.price}|${s.can}|${s.afford}` : this.ladder ? `l|${this.ladder}` : '';
     if (key === this.key) return;
     this.key = key;
     this.root.hidden = key === '';
     this.root.classList.remove('k-prompt--off', 'is-tap');
     if (this.resume) {
       this.root.innerHTML = '<kbd class="k-key"><i class="k-mouse k-mouse--l" aria-label="ЛКМ"></i></kbd><span>Обратно в бой</span><span class="k-prompt-sep"></span><span class="k-prompt-note">или любая клавиша</span>';
+      return;
+    }
+    if (repair) {
+      this.root.innerHTML = `${fortImg('hammer','k-ic')}<span>Ремонт ${repair.left.toFixed(1)} с</span><span class="k-meter k-meter--good ft-repair-meter" style="--v:${repair.progress}"><i class="k-meter-fill"></i></span><span class="k-prompt-note">Движение и выстрел прервут работу</span>`;
       return;
     }
     if (s) {

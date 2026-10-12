@@ -203,3 +203,5 @@ button.ft-row:active { transform: translateY(1px); }
 @media (prefers-reduced-motion: reduce) {
   .ft-hp.is-hit, .ft-row.is-no, .ft-spot, .k-tile.ft-spot > .k-tile-face { animation: none !important; }
 }
+
+.ft-repair-meter{width:110px;min-width:80px}

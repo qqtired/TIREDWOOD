@@ -29,7 +29,8 @@ export const Z_PUMPKIN = 17;
 export const Z_WEAVER = 18;
 /** Леший — босс 42, 84, 126 … */
 export const Z_LESHY = 19;
-export const Z_KINDS = 20;
+export const Z_KINDS = 29;
+export { Z_ROPECRAB, Z_JAMPUMP, Z_CANOPY, Z_FOREMAN, Z_CRABCRANE, Z_MILLER, Z_SIEGE_TOWER, Z_BATTERY, Z_SPRING } from './fortsiege.ts';
 
 /** Боссы по кругу на 7-й, 14-й, 21-й … волне (директор — FEATURES.bosses, интерфейс — «дальше босс») */
 export const BOSS_CYCLE: readonly number[] = [Z_BOSS, Z_RAM, Z_GOLEM, Z_PUMPKIN, Z_WEAVER, Z_LESHY];
@@ -96,6 +97,15 @@ export const ZK: readonly ZombieKind[] = [
   { name: 'Король-Тыква', hp: 2200, speed: 2.0, gateDps: 0, crystalDps: 0, hit: 26, pts: 500, cost: 0, first: NEVER, flags: KF_BOSS, r: 2.1, hrx: 2.3, hry: 2.05, hcy: 2.05, headY: 3.1, color: 0xe8822e, icon: '🎃', hint: 'сеет тыквят и катится вдоль стены · прыгай, когда круг под тобой' },
   { name: 'Ткачиха', hp: 2200, speed: 2.4, gateDps: 0, crystalDps: 0, hit: 30, pts: 500, cost: 0, first: NEVER, flags: KF_BOSS, r: 2.0, hrx: 2.2, hry: 1.8, hcy: 1.9, headY: 2.4, color: 0x7a3f86, icon: '🕷', hint: 'висит на стене, плетёт паутину · рви паутину выстрелами' },
   { name: 'Леший', hp: 2200, speed: 1.8, gateDps: 0, crystalDps: 0, hit: 30, pts: 500, cost: 0, first: NEVER, flags: KF_BOSS, r: 1.8, hrx: 1.9, hry: 3.4, hcy: 3.4, headY: 4.3, color: 0x6f5a3c, icon: '🌳', hint: 'корни из-под земли, лечит армию · сбей колдовство залпом' },
+  { name: 'Канатник', hp: 90, speed: 2.6, gateDps: 5, crystalDps: 6, hit: 10, pts: 20, cost: 3, first: 12, flags: 0, r: 0.48, hrx: 0.65, hry: 0.8, hcy: 0.78, headY: 1.0, color: 0x7e2fa8, icon: '🪢', hint: 'ведёт соседей на стену · три попадания в стопор рвут канат' },
+  { name: 'Смоливщик', hp: 110, speed: 2, gateDps: 6, crystalDps: 8, hit: 12, pts: 22, cost: 4, first: 18, flags: 0, r: 0.5, hrx: 0.65, hry: 0.85, hcy: 0.8, headY: 1.0, color: 0x52206f, icon: '🫙', hint: 'плюёт смолой под ноги · уйди из метки или сбей сопло' },
+  { name: 'Зонтиковик', hp: 140, speed: 1.8, gateDps: 10, crystalDps: 10, hit: 12, pts: 26, cost: 4, first: 24, flags: 0, r: 0.6, hrx: 0.9, hry: 1.0, hcy: 1.0, headY: 1.45, color: 0x7e2fa8, icon: '☂', hint: 'прикрывает трёх соседей · попади в замок навеса или обойди сбоку' },
+  { name: 'Старшина осады', hp: 180, speed: 2, gateDps: 15, crystalDps: 14, hit: 12, pts: 35, cost: 6, first: 30, flags: 0, r: 0.6, hrx: 0.72, hry: 0.95, hcy: 0.92, headY: 1.2, color: 0x8a5a34, icon: '🔧', hint: 'взводит распорку · четыре попадания в замок срывают удар' },
+  { name: 'Краб-Кран', hp: 2200, speed: 2.6, gateDps: 0, crystalDps: 0, hit: 30, pts: 500, cost: 0, first: NEVER, flags: KF_BOSS, r: 2, hrx: 2.4, hry: 2.2, hcy: 2.1, headY: 2.7, color: 0x7e2fa8, icon: '🦀', hint: 'следи за дугой груза · три попадания в опору срывают мах' },
+  { name: 'Мельничиха', hp: 2200, speed: 1.9, gateDps: 0, crystalDps: 0, hit: 30, pts: 500, cost: 0, first: NEVER, flags: KF_BOSS, r: 2, hrx: 2.2, hry: 2.6, hcy: 2.3, headY: 2.8, color: 0x9a6239, icon: '🌬', hint: 'уходи из полосы ветра · три попадания в муфту заклинят колесо' },
+  { name: 'Осадная башня', hp: 650, speed: 1.7, gateDps: 0, crystalDps: 0, hit: 0, pts: 75, cost: 10, first: NEVER, flags: 0, r: 1.25, hrx: 1.5, hry: 2.4, hcy: 2.4, headY: 3.5, color: 0x8a5a34, icon: '🪜', hint: 'опускает мост на стену · четыре попадания в крепление обрушат его' },
+  { name: 'Полевая батарея', hp: 240, speed: 2.2, gateDps: 0, crystalDps: 0, hit: 0, pts: 45, cost: 7, first: NEVER, flags: 0, r: 0.9, hrx: 1.1, hry: 0.95, hcy: 0.85, headY: 1.05, color: 0x8a5a34, icon: '💥', hint: 'маленький расчёт разворачивает пушку · четыре попадания в замок срывают залп' },
+  { name: 'Гриб-пружинка', hp: 70, speed: 2.8, gateDps: 3, crystalDps: 4, hit: 8, pts: 18, cost: 3, first: 15, flags: 0, r: 0.38, hrx: 0.58, hry: 0.58, hcy: 0.52, headY: 0.65, color: 0xb06ad8, icon: '🍄', hint: 'подбрасывает соседей на стену · три попадания в шляпку сминают трамплин' },
 ];
 
 // ------------------------------------------------------------ умения (общие для сервера и меток на клиенте)

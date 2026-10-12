@@ -1,0 +1,976 @@
+{
+  "source": "approved Fortress expansion v2",
+  "models": [
+    {
+      "id": "jampump",
+      "name": "Смоливщик",
+      "version": "r2-06",
+      "triangles": 3950,
+      "height": 1.7496,
+      "width": 1.6462,
+      "clips": [
+        "jampump_idle",
+        "jampump_walk",
+        "jampump_windup",
+        "jampump_attack",
+        "jampump_recover",
+        "jampump_hit",
+        "jampump_death",
+        "jampump_open",
+        "jampump_pump",
+        "jampump_redirect_windup",
+        "jampump_redirect_attack"
+      ],
+      "clipTimings": [
+        {
+          "name": "jampump_idle",
+          "seconds": 2,
+          "runtimeDuration": 2.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 2.041667,
+          "channels": 108
+        },
+        {
+          "name": "jampump_walk",
+          "seconds": 1,
+          "runtimeDuration": 1.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 1.041667,
+          "channels": 108
+        },
+        {
+          "name": "jampump_windup",
+          "seconds": 1.833333,
+          "runtimeDuration": 1.875,
+          "inputStart": 0.041667,
+          "inputEnd": 1.875,
+          "channels": 108
+        },
+        {
+          "name": "jampump_attack",
+          "seconds": 0.833333,
+          "runtimeDuration": 0.875,
+          "inputStart": 0.041667,
+          "inputEnd": 0.875,
+          "channels": 108
+        },
+        {
+          "name": "jampump_recover",
+          "seconds": 1.833333,
+          "runtimeDuration": 1.875,
+          "inputStart": 0.041667,
+          "inputEnd": 1.875,
+          "channels": 108
+        },
+        {
+          "name": "jampump_hit",
+          "seconds": 0.583333,
+          "runtimeDuration": 0.625,
+          "inputStart": 0.041667,
+          "inputEnd": 0.625,
+          "channels": 108
+        },
+        {
+          "name": "jampump_death",
+          "seconds": 2.208333,
+          "runtimeDuration": 2.25,
+          "inputStart": 0.041667,
+          "inputEnd": 2.25,
+          "channels": 108
+        },
+        {
+          "name": "jampump_open",
+          "seconds": 2,
+          "runtimeDuration": 2.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 2.041667,
+          "channels": 108
+        },
+        {
+          "name": "jampump_pump",
+          "seconds": 1.833333,
+          "runtimeDuration": 1.875,
+          "inputStart": 0.041667,
+          "inputEnd": 1.875,
+          "channels": 108
+        },
+        {
+          "name": "jampump_redirect_windup",
+          "seconds": 3,
+          "runtimeDuration": 3.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 3.041667,
+          "channels": 108
+        },
+        {
+          "name": "jampump_redirect_attack",
+          "seconds": 6,
+          "runtimeDuration": 6.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 6.041667,
+          "channels": 108
+        }
+      ],
+      "rootMotionNode": "jampump",
+      "source": "models/glb/jampump-r2-06.glb",
+      "sha256": "819c21d515fc4be2d4a94c613ab6de30a7822da29493a6cf9484aaf923e29791"
+    },
+    {
+      "id": "foreman",
+      "name": "Старшина осады",
+      "version": "r2-06",
+      "triangles": 3970,
+      "height": 1.9647,
+      "width": 1.7418,
+      "clips": [
+        "foreman_idle",
+        "foreman_walk",
+        "foreman_windup",
+        "foreman_attack",
+        "foreman_recover",
+        "foreman_hit",
+        "foreman_death",
+        "foreman_open",
+        "foreman_device_set"
+      ],
+      "clipTimings": [
+        {
+          "name": "foreman_idle",
+          "seconds": 2,
+          "runtimeDuration": 2.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 2.041667,
+          "channels": 81
+        },
+        {
+          "name": "foreman_walk",
+          "seconds": 1,
+          "runtimeDuration": 1.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 1.041667,
+          "channels": 81
+        },
+        {
+          "name": "foreman_windup",
+          "seconds": 4,
+          "runtimeDuration": 4.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 4.041667,
+          "channels": 81
+        },
+        {
+          "name": "foreman_attack",
+          "seconds": 0.833333,
+          "runtimeDuration": 0.875,
+          "inputStart": 0.041667,
+          "inputEnd": 0.875,
+          "channels": 81
+        },
+        {
+          "name": "foreman_recover",
+          "seconds": 1.833333,
+          "runtimeDuration": 1.875,
+          "inputStart": 0.041667,
+          "inputEnd": 1.875,
+          "channels": 81
+        },
+        {
+          "name": "foreman_hit",
+          "seconds": 0.583333,
+          "runtimeDuration": 0.625,
+          "inputStart": 0.041667,
+          "inputEnd": 0.625,
+          "channels": 81
+        },
+        {
+          "name": "foreman_death",
+          "seconds": 3,
+          "runtimeDuration": 3.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 3.041667,
+          "channels": 81
+        },
+        {
+          "name": "foreman_open",
+          "seconds": 2,
+          "runtimeDuration": 2.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 2.041667,
+          "channels": 81
+        },
+        {
+          "name": "foreman_device_set",
+          "seconds": 4,
+          "runtimeDuration": 4.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 4.041667,
+          "channels": 81
+        }
+      ],
+      "rootMotionNode": "foreman",
+      "source": "models/glb/foreman-r2-06.glb",
+      "sha256": "7fdd7c654e15e7f55056e0e7c00d77191c11f812e9dfaeed9d5545b74660bc92"
+    },
+    {
+      "id": "crabcrane",
+      "name": "Краб-Кран",
+      "version": "r2-06",
+      "triangles": 6552,
+      "height": 3.4774,
+      "width": 6.3883,
+      "clips": [
+        "crabcrane_idle",
+        "crabcrane_walk",
+        "crabcrane_windup",
+        "crabcrane_attack",
+        "crabcrane_recover",
+        "crabcrane_hit",
+        "crabcrane_death",
+        "crabcrane_open",
+        "crabcrane_spawn",
+        "crabcrane_anchor_set",
+        "crabcrane_hook_windup",
+        "crabcrane_hook_swing",
+        "crabcrane_rage"
+      ],
+      "clipTimings": [
+        {
+          "name": "crabcrane_idle",
+          "seconds": 2,
+          "runtimeDuration": 2.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 2.041667,
+          "channels": 132
+        },
+        {
+          "name": "crabcrane_walk",
+          "seconds": 1,
+          "runtimeDuration": 1.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 1.041667,
+          "channels": 132
+        },
+        {
+          "name": "crabcrane_windup",
+          "seconds": 2.416667,
+          "runtimeDuration": 2.458333,
+          "inputStart": 0.041667,
+          "inputEnd": 2.458333,
+          "channels": 132
+        },
+        {
+          "name": "crabcrane_attack",
+          "seconds": 1,
+          "runtimeDuration": 1.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 1.041667,
+          "channels": 132
+        },
+        {
+          "name": "crabcrane_recover",
+          "seconds": 1.833333,
+          "runtimeDuration": 1.875,
+          "inputStart": 0.041667,
+          "inputEnd": 1.875,
+          "channels": 132
+        },
+        {
+          "name": "crabcrane_hit",
+          "seconds": 0.583333,
+          "runtimeDuration": 0.625,
+          "inputStart": 0.041667,
+          "inputEnd": 0.625,
+          "channels": 132
+        },
+        {
+          "name": "crabcrane_death",
+          "seconds": 4.5,
+          "runtimeDuration": 4.541667,
+          "inputStart": 0.041667,
+          "inputEnd": 4.541667,
+          "channels": 132
+        },
+        {
+          "name": "crabcrane_open",
+          "seconds": 3,
+          "runtimeDuration": 3.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 3.041667,
+          "channels": 132
+        },
+        {
+          "name": "crabcrane_spawn",
+          "seconds": 1.833333,
+          "runtimeDuration": 1.875,
+          "inputStart": 0.041667,
+          "inputEnd": 1.875,
+          "channels": 132
+        },
+        {
+          "name": "crabcrane_anchor_set",
+          "seconds": 2.416667,
+          "runtimeDuration": 2.458333,
+          "inputStart": 0.041667,
+          "inputEnd": 2.458333,
+          "channels": 132
+        },
+        {
+          "name": "crabcrane_hook_windup",
+          "seconds": 1.833333,
+          "runtimeDuration": 1.875,
+          "inputStart": 0.041667,
+          "inputEnd": 1.875,
+          "channels": 132
+        },
+        {
+          "name": "crabcrane_hook_swing",
+          "seconds": 1,
+          "runtimeDuration": 1.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 1.041667,
+          "channels": 132
+        },
+        {
+          "name": "crabcrane_rage",
+          "seconds": 2,
+          "runtimeDuration": 2.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 2.041667,
+          "channels": 132
+        }
+      ],
+      "rootMotionNode": "crabcrane",
+      "source": "models/glb/crabcrane-r2-06.glb",
+      "sha256": "553d4ad2279a93faf7650b034cb484953717e856655819217c26ae1844acdf94"
+    },
+    {
+      "id": "miller",
+      "name": "Мельничиха",
+      "version": "r2-06",
+      "triangles": 5286,
+      "height": 4.2017,
+      "width": 2.9712,
+      "clips": [
+        "miller_idle",
+        "miller_walk",
+        "miller_windup",
+        "miller_attack",
+        "miller_recover",
+        "miller_hit",
+        "miller_death",
+        "miller_open",
+        "miller_spawn",
+        "miller_crank",
+        "miller_gust",
+        "miller_jammed",
+        "miller_rage"
+      ],
+      "clipTimings": [
+        {
+          "name": "miller_idle",
+          "seconds": 2,
+          "runtimeDuration": 2.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 2.041667,
+          "channels": 93
+        },
+        {
+          "name": "miller_walk",
+          "seconds": 1,
+          "runtimeDuration": 1.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 1.041667,
+          "channels": 93
+        },
+        {
+          "name": "miller_windup",
+          "seconds": 2.416667,
+          "runtimeDuration": 2.458333,
+          "inputStart": 0.041667,
+          "inputEnd": 2.458333,
+          "channels": 93
+        },
+        {
+          "name": "miller_attack",
+          "seconds": 3,
+          "runtimeDuration": 3.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 3.041667,
+          "channels": 93
+        },
+        {
+          "name": "miller_recover",
+          "seconds": 1.833333,
+          "runtimeDuration": 1.875,
+          "inputStart": 0.041667,
+          "inputEnd": 1.875,
+          "channels": 93
+        },
+        {
+          "name": "miller_hit",
+          "seconds": 0.583333,
+          "runtimeDuration": 0.625,
+          "inputStart": 0.041667,
+          "inputEnd": 0.625,
+          "channels": 93
+        },
+        {
+          "name": "miller_death",
+          "seconds": 4,
+          "runtimeDuration": 4.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 4.041667,
+          "channels": 93
+        },
+        {
+          "name": "miller_open",
+          "seconds": 3,
+          "runtimeDuration": 3.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 3.041667,
+          "channels": 93
+        },
+        {
+          "name": "miller_spawn",
+          "seconds": 1.833333,
+          "runtimeDuration": 1.875,
+          "inputStart": 0.041667,
+          "inputEnd": 1.875,
+          "channels": 93
+        },
+        {
+          "name": "miller_crank",
+          "seconds": 2.416667,
+          "runtimeDuration": 2.458333,
+          "inputStart": 0.041667,
+          "inputEnd": 2.458333,
+          "channels": 93
+        },
+        {
+          "name": "miller_gust",
+          "seconds": 3,
+          "runtimeDuration": 3.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 3.041667,
+          "channels": 93
+        },
+        {
+          "name": "miller_jammed",
+          "seconds": 3,
+          "runtimeDuration": 3.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 3.041667,
+          "channels": 93
+        },
+        {
+          "name": "miller_rage",
+          "seconds": 2,
+          "runtimeDuration": 2.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 2.041667,
+          "channels": 93
+        }
+      ],
+      "rootMotionNode": "miller",
+      "source": "models/glb/miller-r2-06.glb",
+      "sha256": "572bd02f66b44077150f9150880f9c34b03a16efc227cfe470f03357537ceeb3"
+    },
+    {
+      "id": "ropecrab",
+      "name": "Канатник",
+      "version": "r2-07",
+      "triangles": 3922,
+      "height": 1.2327,
+      "width": 2.5667,
+      "clips": [
+        "ropecrab_idle",
+        "ropecrab_walk",
+        "ropecrab_windup",
+        "ropecrab_attack",
+        "ropecrab_recover",
+        "ropecrab_hit",
+        "ropecrab_death",
+        "ropecrab_open",
+        "ropecrab_route_attach"
+      ],
+      "clipTimings": [
+        {
+          "name": "ropecrab_idle",
+          "seconds": 2,
+          "runtimeDuration": 2.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 2.041667,
+          "channels": 132
+        },
+        {
+          "name": "ropecrab_walk",
+          "seconds": 1,
+          "runtimeDuration": 1.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 1.041667,
+          "channels": 132
+        },
+        {
+          "name": "ropecrab_windup",
+          "seconds": 4,
+          "runtimeDuration": 4.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 4.041667,
+          "channels": 132
+        },
+        {
+          "name": "ropecrab_attack",
+          "seconds": 0.833333,
+          "runtimeDuration": 0.875,
+          "inputStart": 0.041667,
+          "inputEnd": 0.875,
+          "channels": 132
+        },
+        {
+          "name": "ropecrab_recover",
+          "seconds": 1.833333,
+          "runtimeDuration": 1.875,
+          "inputStart": 0.041667,
+          "inputEnd": 1.875,
+          "channels": 132
+        },
+        {
+          "name": "ropecrab_hit",
+          "seconds": 0.583333,
+          "runtimeDuration": 0.625,
+          "inputStart": 0.041667,
+          "inputEnd": 0.625,
+          "channels": 132
+        },
+        {
+          "name": "ropecrab_death",
+          "seconds": 2.416667,
+          "runtimeDuration": 2.458333,
+          "inputStart": 0.041667,
+          "inputEnd": 2.458333,
+          "channels": 132
+        },
+        {
+          "name": "ropecrab_open",
+          "seconds": 2,
+          "runtimeDuration": 2.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 2.041667,
+          "channels": 132
+        },
+        {
+          "name": "ropecrab_route_attach",
+          "seconds": 4,
+          "runtimeDuration": 4.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 4.041667,
+          "channels": 132
+        }
+      ],
+      "rootMotionNode": "ropecrab",
+      "source": "models/glb/ropecrab-r2-07.glb",
+      "sha256": "8cad56396653cfa2b49aa9885cc6d42949a782be2927e0cd61ded48b36c712c0"
+    },
+    {
+      "id": "canopy",
+      "name": "Зонтиковик",
+      "version": "r2-07",
+      "triangles": 2860,
+      "height": 1.84,
+      "width": 2.224,
+      "clips": [
+        "canopy_idle",
+        "canopy_walk",
+        "canopy_windup",
+        "canopy_attack",
+        "canopy_recover",
+        "canopy_hit",
+        "canopy_death",
+        "canopy_open",
+        "canopy_canopy_break",
+        "canopy_cover_disabled"
+      ],
+      "clipTimings": [
+        {
+          "name": "canopy_idle",
+          "seconds": 2,
+          "runtimeDuration": 2.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 2.041667,
+          "channels": 57
+        },
+        {
+          "name": "canopy_walk",
+          "seconds": 1,
+          "runtimeDuration": 1.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 1.041667,
+          "channels": 57
+        },
+        {
+          "name": "canopy_windup",
+          "seconds": 1.833333,
+          "runtimeDuration": 1.875,
+          "inputStart": 0.041667,
+          "inputEnd": 1.875,
+          "channels": 57
+        },
+        {
+          "name": "canopy_attack",
+          "seconds": 0.833333,
+          "runtimeDuration": 0.875,
+          "inputStart": 0.041667,
+          "inputEnd": 0.875,
+          "channels": 57
+        },
+        {
+          "name": "canopy_recover",
+          "seconds": 1.833333,
+          "runtimeDuration": 1.875,
+          "inputStart": 0.041667,
+          "inputEnd": 1.875,
+          "channels": 57
+        },
+        {
+          "name": "canopy_hit",
+          "seconds": 0.583333,
+          "runtimeDuration": 0.625,
+          "inputStart": 0.041667,
+          "inputEnd": 0.625,
+          "channels": 57
+        },
+        {
+          "name": "canopy_death",
+          "seconds": 2.833333,
+          "runtimeDuration": 2.875,
+          "inputStart": 0.041667,
+          "inputEnd": 2.875,
+          "channels": 57
+        },
+        {
+          "name": "canopy_open",
+          "seconds": 2,
+          "runtimeDuration": 2.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 2.041667,
+          "channels": 57
+        },
+        {
+          "name": "canopy_canopy_break",
+          "seconds": 2.833333,
+          "runtimeDuration": 2.875,
+          "inputStart": 0.041667,
+          "inputEnd": 2.875,
+          "channels": 57
+        },
+        {
+          "name": "canopy_cover_disabled",
+          "seconds": 2,
+          "runtimeDuration": 2.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 2.041667,
+          "channels": 57
+        }
+      ],
+      "rootMotionNode": "canopy",
+      "source": "models/glb/canopy-r2-07.glb",
+      "sha256": "da211a74ffa180edc8ce5f532dd595015776ff8373456d7fa9bf1f2d522b986a"
+    },
+    {
+      "id": "spring",
+      "name": "Пружинные грибочки",
+      "version": "r3-01",
+      "glb": "models/glb/spring-r3-01.glb",
+      "blend": "models/blend/spring-r3-01.blend",
+      "render": "models/previews/spring-r3-01.png",
+      "source": "models/scripts/siege-r3-01.py",
+      "height": 0.9700000286102295,
+      "background": true,
+      "blender": "5.2.2 LTS",
+      "pid": 35625,
+      "sourceSHA256": "78e7dccceb6d9824900d675083dbcf54bd0de876165baaffff70de34c5c62819",
+      "helperSHA256": "3030e61f64ab2a9e4d768a5ee544a3e5d6ea0251133781451db195b9bd250008",
+      "triangles": 1888,
+      "materials": 3,
+      "meshPrimitives": 8,
+      "textures": 0,
+      "images": 0,
+      "clips": [
+        {
+          "name": "spring_idle",
+          "seconds": 2,
+          "runtimeDuration": 2.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 2.041667,
+          "channels": 24
+        },
+        {
+          "name": "spring_walk",
+          "seconds": 1.208333,
+          "runtimeDuration": 1.25,
+          "inputStart": 0.041667,
+          "inputEnd": 1.25,
+          "channels": 24
+        },
+        {
+          "name": "spring_deploy",
+          "seconds": 2.416667,
+          "runtimeDuration": 2.458333,
+          "inputStart": 0.041667,
+          "inputEnd": 2.458333,
+          "channels": 24
+        },
+        {
+          "name": "spring_windup",
+          "seconds": 2.416667,
+          "runtimeDuration": 2.458333,
+          "inputStart": 0.041667,
+          "inputEnd": 2.458333,
+          "channels": 24
+        },
+        {
+          "name": "spring_attack",
+          "seconds": 1.208333,
+          "runtimeDuration": 1.25,
+          "inputStart": 0.041667,
+          "inputEnd": 1.25,
+          "channels": 24
+        },
+        {
+          "name": "spring_open",
+          "seconds": 3,
+          "runtimeDuration": 3.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 3.041667,
+          "channels": 24
+        },
+        {
+          "name": "spring_hit",
+          "seconds": 0.583333,
+          "runtimeDuration": 0.625,
+          "inputStart": 0.041667,
+          "inputEnd": 0.625,
+          "channels": 24
+        },
+        {
+          "name": "spring_death",
+          "seconds": 2.416667,
+          "runtimeDuration": 2.458333,
+          "inputStart": 0.041667,
+          "inputEnd": 2.458333,
+          "channels": 24
+        },
+        {
+          "name": "spring_spent",
+          "seconds": 2,
+          "runtimeDuration": 2.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 2.041667,
+          "channels": 24
+        }
+      ],
+      "nodes": 15,
+      "bytes": 255052,
+      "sha256": "1f072abe625bb6acccaa00668ef744c18e7f0d10d617ad8c4f0867e78770eacc",
+      "binSHA256": "6bd01c0fae0180661446c65ae36e3bcb83b99d4a929f38715c1d3a72675c7cf5"
+    },
+    {
+      "id": "battery",
+      "name": "Полевая батарея",
+      "version": "r3-03",
+      "glb": "models/glb/battery-r3-03.glb",
+      "blend": "models/blend/battery-r3-03.blend",
+      "render": "models/previews/battery-r3-01.png",
+      "source": "models/scripts/siege-r3-03.py",
+      "height": 1.3480000495910645,
+      "background": true,
+      "blender": "5.2.2 LTS",
+      "pid": 56383,
+      "sourceSHA256": "f6b75f39eb0eebfb0ac2ee7e11cd2d3ce7b844b00fc329a2cfb07e7494017c92",
+      "helperSHA256": "3030e61f64ab2a9e4d768a5ee544a3e5d6ea0251133781451db195b9bd250008",
+      "triangles": 5732,
+      "materials": 5,
+      "meshPrimitives": 41,
+      "textures": 0,
+      "images": 0,
+      "clips": [
+        {
+          "name": "battery_idle",
+          "seconds": 2,
+          "runtimeDuration": 2.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 2.041667,
+          "channels": 63
+        },
+        {
+          "name": "battery_walk",
+          "seconds": 1,
+          "runtimeDuration": 1.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 1.041667,
+          "channels": 63
+        },
+        {
+          "name": "battery_deploy",
+          "seconds": 6,
+          "runtimeDuration": 6.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 6.041667,
+          "channels": 63
+        },
+        {
+          "name": "battery_windup",
+          "seconds": 2.416667,
+          "runtimeDuration": 2.458333,
+          "inputStart": 0.041667,
+          "inputEnd": 2.458333,
+          "channels": 63
+        },
+        {
+          "name": "battery_attack",
+          "seconds": 1.208333,
+          "runtimeDuration": 1.25,
+          "inputStart": 0.041667,
+          "inputEnd": 1.25,
+          "channels": 63
+        },
+        {
+          "name": "battery_open",
+          "seconds": 3,
+          "runtimeDuration": 3.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 3.041667,
+          "channels": 63
+        },
+        {
+          "name": "battery_hit",
+          "seconds": 0.583333,
+          "runtimeDuration": 0.625,
+          "inputStart": 0.041667,
+          "inputEnd": 0.625,
+          "channels": 63
+        },
+        {
+          "name": "battery_death",
+          "seconds": 3.625,
+          "runtimeDuration": 3.666667,
+          "inputStart": 0.041667,
+          "inputEnd": 3.666667,
+          "channels": 63
+        },
+        {
+          "name": "battery_spent",
+          "seconds": 2,
+          "runtimeDuration": 2.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 2.041667,
+          "channels": 63
+        }
+      ],
+      "nodes": 41,
+      "bytes": 785316,
+      "sha256": "7398250a54c34b0076d36c0ace9b56238076d4d3f85c7eac780d5c39ba07ebec",
+      "binSHA256": "b820b5513981254c7960ec6b0d5466285c6fcbe0abbee54cd2658b5ffa518951",
+      "renderNote": "Form unchanged; r3-03 changes cyclic wheel and crew motion only"
+    },
+    {
+      "id": "siegetower",
+      "name": "Осадная башня",
+      "version": "r3-03",
+      "glb": "models/glb/siegetower-r3-03.glb",
+      "blend": "models/blend/siegetower-r3-03.blend",
+      "render": "models/previews/siegetower-r3-02.png",
+      "source": "models/scripts/siege-r3-03.py",
+      "height": 5.440000057220459,
+      "background": true,
+      "blender": "5.2.2 LTS",
+      "pid": 56383,
+      "sourceSHA256": "f6b75f39eb0eebfb0ac2ee7e11cd2d3ce7b844b00fc329a2cfb07e7494017c92",
+      "helperSHA256": "3030e61f64ab2a9e4d768a5ee544a3e5d6ea0251133781451db195b9bd250008",
+      "triangles": 5312,
+      "materials": 5,
+      "meshPrimitives": 38,
+      "textures": 0,
+      "images": 0,
+      "clips": [
+        {
+          "name": "siegetower_idle",
+          "seconds": 2,
+          "runtimeDuration": 2.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 2.041667,
+          "channels": 60
+        },
+        {
+          "name": "siegetower_walk",
+          "seconds": 1,
+          "runtimeDuration": 1.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 1.041667,
+          "channels": 60
+        },
+        {
+          "name": "siegetower_deploy",
+          "seconds": 4,
+          "runtimeDuration": 4.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 4.041667,
+          "channels": 60
+        },
+        {
+          "name": "siegetower_windup",
+          "seconds": 2.416667,
+          "runtimeDuration": 2.458333,
+          "inputStart": 0.041667,
+          "inputEnd": 2.458333,
+          "channels": 60
+        },
+        {
+          "name": "siegetower_attack",
+          "seconds": 2.416667,
+          "runtimeDuration": 2.458333,
+          "inputStart": 0.041667,
+          "inputEnd": 2.458333,
+          "channels": 60
+        },
+        {
+          "name": "siegetower_open",
+          "seconds": 3,
+          "runtimeDuration": 3.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 3.041667,
+          "channels": 60
+        },
+        {
+          "name": "siegetower_hit",
+          "seconds": 0.583333,
+          "runtimeDuration": 0.625,
+          "inputStart": 0.041667,
+          "inputEnd": 0.625,
+          "channels": 60
+        },
+        {
+          "name": "siegetower_death",
+          "seconds": 3.625,
+          "runtimeDuration": 3.666667,
+          "inputStart": 0.041667,
+          "inputEnd": 3.666667,
+          "channels": 60
+        },
+        {
+          "name": "siegetower_spent",
+          "seconds": 2,
+          "runtimeDuration": 2.041667,
+          "inputStart": 0.041667,
+          "inputEnd": 2.041667,
+          "channels": 60
+        }
+      ],
+      "nodes": 39,
+      "bytes": 690460,
+      "sha256": "b07837ec98dd6fe7c1746d8f924a4406a76815dd42e89b488a364ee956a46722",
+      "binSHA256": "cc3534bc47a91496d49ed69e5d4404f6cd2dd4cf639f4f100804af0e5a12c550",
+      "renderNote": "Form unchanged; r3-03 changes cyclic wheel and crew motion only"
+    }
+  ]
+}

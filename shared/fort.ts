@@ -7,6 +7,7 @@ import { FORT_LAST_WAVE } from './fortwaves.ts';
 import type { ArsenalEvent, ArsenalRow } from './fortarsenal.ts';
 import type { FortRecView } from './fortrecord.ts';
 import type { Outfit } from './outfit.ts';
+import type { SiegeEvent } from './fortsiege.ts';
 
 export {
   Z_WALKER, Z_RUNNER, Z_BRUTE, Z_CLIMBER, Z_BLOATER, Z_FLYER, Z_BOSS, Z_SHIELD, Z_SPITTER, Z_SAPPER, Z_MEDIC, Z_ARMORED,
@@ -15,6 +16,7 @@ export {
 } from './fortkinds.ts';
 /** Новые боссы: Король-Тыква, Ткачиха, Леший (их числа — fortbosses.ts) */
 export { Z_PUMPKIN, Z_WEAVER, Z_LESHY } from './fortkinds.ts';
+export * from './fortsiege.ts';
 
 export const FORT_MAX_HUMANS = 6;
 /** Волн до победы — 300 (рекорды и так говорят, кто как далеко дошёл) */
@@ -178,6 +180,8 @@ export function defenderCount(humans: number): number {
  * в передышке («дальше»), клиент рисует фишки (client/fort/wavecard.ts).
  */
 export interface FortWaveCard {
+  /** Канал ремонта и новые осадные контрходы включены сервером. */
+  siege?: boolean;
   w: number;
   /** Короткое название волны */
   title: string;
@@ -284,6 +288,7 @@ export const FORT_TOP = 5;
 /** События тика крепости (компактные массивы); события арсенала — ArsenalEvent */
 export type FortEvent =
   | ArsenalEvent
+  | SiegeEvent
   // выстрел: кто, откуда, куда, чем кончился (0 — стена, 1 — зомби, 2 — в никуда), нормаль стены
   | ['shot', number, number, number, number, number, number, number, number, number, number, number]
   // попадание по зомби: кто, какой зомби, урон, куда (0 — тело, 1 — голова, 2 — в щит, 3 — в броню), где

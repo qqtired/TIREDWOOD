@@ -1,3 +1,4 @@
+import { Z_CRABCRANE, Z_MILLER } from '../../shared/fortsiege.ts';
 // Новые боссы «Крепости» на клиенте (fort-bosses): Король-Тыква, Ткачиха, Леший — тексты тревог и полоски босса,
 // вспышки их ударов ('blast'), что летит в 'throw', и паутина Ткачихи на поверхностях (живёт, пока не порвут или
 // не спадёт). match.ts и hud.ts зовут отсюда по одной строке; модели — client/fort/mobs/set-f.ts.
@@ -66,7 +67,9 @@ export function newBossWarnText(attack: number, near: boolean, tx: number, ty: n
 
 /** Ярость нового босса (null — не новый) */
 export function newBossRageText(kind: number): string | null {
-  return kind === Z_PUMPKIN ? '🎃 Король-Тыква в ярости · катится туда и обратно'
+  return kind === Z_CRABCRANE ? 'Краб-Кран в ярости · следи за опорами и грузом'
+    : kind === Z_MILLER ? 'Мельничиха в ярости · уходи с линии ветра'
+    : kind === Z_PUMPKIN ? '🎃 Король-Тыква в ярости · катится туда и обратно'
     : kind === Z_WEAVER ? '🕷 Ткачиха в ярости · лезет через стену к кристаллу!'
     : kind === Z_LESHY ? '🌳 Леший в ярости · корни бьют дважды, лесовиков больше'
     : null;

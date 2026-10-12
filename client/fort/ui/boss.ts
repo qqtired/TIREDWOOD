@@ -1,3 +1,4 @@
+import { ZS_SIEGE_APPROACH, ZS_SIEGE_DEPLOY, ZS_SIEGE_WINDUP, ZS_SIEGE_ACTION, ZS_SIEGE_OPEN } from '../../../shared/fortsiege.ts';
 // Полоса босса «Крепости» — плашкой события верх-центра (кит: .k-event, приоритет босса — выше плашки волны):
 // имя (и круг: II, III …) и «Ярость», «волна 7 · ещё 12 зомби», процент, полоса 16 со «следом» урона; окно уязвимости —
 // второй, бирюзовой полосой «Ядро открыто — огонь! 2,4 с»; ниже — одна строка «что делать» (красная — уйди с метки,
@@ -46,6 +47,11 @@ export interface BossView {
 /** Что босс делает сейчас (Барон, Таран, Валун — server/fort/bosses.ts) */
 export function bossAttackText(state: number): string {
   switch (state) {
+    case ZS_SIEGE_APPROACH: return 'Подходит — займите стену';
+    case ZS_SIEGE_DEPLOY: return 'Разворачивается — стреляйте в механизм';
+    case ZS_SIEGE_WINDUP: return 'Готовит удар — уйдите с метки или сорвите механизм';
+    case ZS_SIEGE_ACTION: return 'Атакует — прочь из опасной зоны';
+    case ZS_SIEGE_OPEN: return 'Механизм открыт — огонь!';
     case ZS_BOSS_APPROACH: return 'Подходит — займите стену';
     case ZS_BOSS_GATE: return 'Замах по воротам — уйдите с красной метки';
     case ZS_BOSS_BOMB: return 'Прицельный залп — уйдите с метки';
@@ -61,7 +67,7 @@ export function bossAttackText(state: number): string {
 }
 
 /** Опасные состояния: строка «что делать» краснеет */
-const DANGER = new Set([ZS_BOSS_GATE, ZS_BOSS_BOMB, ZS_BOSS_PULSE, ZS_CHARGE_WARN, ZS_CHARGE, ZS_STOMP, ZS_THROW, ZS_QUAKE]);
+const DANGER = new Set([ZS_SIEGE_WINDUP, ZS_SIEGE_ACTION, ZS_BOSS_GATE, ZS_BOSS_BOMB, ZS_BOSS_PULSE, ZS_CHARGE_WARN, ZS_CHARGE, ZS_STOMP, ZS_THROW, ZS_QUAKE]);
 const KEY = 'fort-boss';
 /** «След» урона стоит столько, потом догоняет полосу (доля в секунду) */
 const TRAIL_WAIT = 0.4;
@@ -119,7 +125,8 @@ export class BossBar {
     this.look = look;
     const pct = Math.max(0, Math.min(100, Math.ceil(frac * 100)));
     const rage = v.rage ?? v.stage >= 2;
-    const open = v.state === ZS_BOSS_OPEN;
+    const open = v.state === ZS_BOSS_OPEN || v.state === ZS_SIEGE_OPEN;
+    const mechanism = v.state === ZS_SIEGE_OPEN;
     const danger = v.danger ?? DANGER.has(v.state);
     const icon = `<span class="k-event-ic">${fortImg(sup ? 'kraken' : foeIcon(v.kind))}</span>`;
     const pill = sup ? '<span class="k-pill k-pill--special k-pill--sm">супер-босс</span>' : rage ? '<span class="k-pill k-pill--bad k-pill--sm">Ярость</span>' : '';
@@ -133,13 +140,13 @@ export class BossBar {
     const timed = open && v.wind > 0;
     if (timed) {
       const w = Math.max(0, Math.min(1, v.wind / (v.openTicks ?? BOSS_OPEN_TICKS)));
-      html += meter(w, 'k-meter--info ft-bar', w, `${sup ? 'Оглушён — огонь по голове!' : 'Ядро открыто — огонь!'} ${sec1(v.wind / TICK_RATE)} с`);
+      html += meter(w, 'k-meter--info ft-bar', w, `${sup ? 'Оглушён — огонь по голове!' : mechanism ? 'Механизм открыт — огонь!' : 'Ядро открыто — огонь!'} ${sec1(v.wind / TICK_RATE)} с`);
     }
     const parts = v.parts ?? [];
     if (parts.length) {
       html += `<div class="ft-parts">${parts.map((p) => `<div class="ft-part${p.frac <= 0 ? ' is-off' : ''}"><span>${escHtml(p.label.toLowerCase())}</span>${meter(Math.max(0, Math.min(1, p.frac)), /голов/i.test(p.label) ? 'k-meter--special' : 'k-meter--bad')}</div>`).join('')}</div>`;
     }
-    const doText = open && (timed || !v.status) ? `<b>Бей в ${sup ? 'голову' : 'ядро'}</b> — арбалет больнее всего` : `<b>${escHtml(v.status ?? bossAttackText(v.state))}</b>`;
+    const doText = open && (timed || !v.status) ? `<b>Бей в ${sup ? 'голову' : mechanism ? 'механизм' : 'ядро'}</b> — арбалет больнее всего` : `<b>${escHtml(v.status ?? bossAttackText(v.state))}</b>`;
     const doCls = open ? ' is-go' : danger ? ' is-danger' : '';
     html += `<div class="ft-do${doCls}">${fortImg(open ? 'crossbow' : 'warn')}<span>${doText}</span></div>`;
     this.top.event({ key: KEY, prio: PRIO.boss, tone: sup ? 'special' : 'danger', lamp: true, html });

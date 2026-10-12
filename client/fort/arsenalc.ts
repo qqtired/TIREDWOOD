@@ -65,6 +65,7 @@ export interface ArsenalDeps {
   input: InputDevice;
   net: Net;
   canvas: HTMLCanvasElement;
+  meteorRay?: (ox:number,oy:number,oz:number,dx:number,dy:number,dz:number,range:number)=>number|null;
 }
 
 /** Номер «стрелка» башни в событиях (250 + место) */
@@ -517,6 +518,8 @@ export class ArsenalClient {
         best = this.near.t;
         kind = 1;
       }
+      const meteor=this.d.meteorRay?.(ox,oy,oz,dx,dy,dz,best);
+      if(meteor!==undefined&&meteor!==null){best=meteor;kind=1;}
       const ex = ox + dx * best;
       const ey = oy + dy * best;
       const ez = oz + dz * best;
