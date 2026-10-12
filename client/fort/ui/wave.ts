@@ -8,11 +8,11 @@ import { cardChips, foldChips, romanTier } from '../wavecard.ts';
 import { el, num } from './dom.ts';
 import { fortImg } from './icons.ts';
 import { lastWave } from './schedule.ts';
-import { EVENT_TEXT, foeIcon, roadsText } from './text.ts';
+import { EVENT_TEXT, foeIcon } from './text.ts';
 
 const KEY = 'fort-wave';
-/** В бою — сколько видов врагов в ряду, остальные — «+N» */
-const FIGHT_KINDS = 6;
+/** Одна строка состава и в бою, и до волны; новые виды сохраняем, остальные — «+N». */
+const ROSTER_KINDS = 4;
 /** Тосты о новом враге, боссе и событии висят дольше обычных — их читают в передышке */
 const INTRO_MS = 7000;
 
@@ -23,10 +23,6 @@ export class WavePlate {
   readonly root: HTMLElement;
   private readonly top: TopCenter;
   private shown = false;
-  private phase = -1;
-  private wave = -1;
-  private total = 0;
-  private phaseTotal = 0;
   private card: FortWaveCard | null = null;
   private html = '';
   /** Кого уже представили за это посещение (новые враги, боссы) и какие волны уже объявлены */
@@ -46,12 +42,6 @@ export class WavePlate {
 
   /** endPlate — в итогах окно уже закрыли («Ещё раз»): плашка «Новая игра через N с» */
   update(phase: number, wave: number, leftS: number, enemies: number, endPlate = false): void {
-    if (phase !== this.phase || wave !== this.wave) {
-      this.phase = phase;
-      this.wave = wave;
-      this.total = 0;
-      this.phaseTotal = 0;
-    }
     const fight = phase === FT_WAVE;
     const calm = phase === FT_GATHER || phase === FT_BREAK;
     if (!fight && !calm) {
@@ -59,31 +49,24 @@ export class WavePlate {
       else this.hide();
       return;
     }
-    this.total = Math.max(this.total, enemies);
-    this.phaseTotal = Math.max(this.phaseTotal, leftS);
     const card = this.card;
     const n = Math.max(1, Math.min(lastWave(), calm ? wave + 1 : wave));
     const boss = !!card && card.boss >= 0;
     let html: string;
     if (fight) {
       const title = `Волна ${num(n)} <span class="ft-of">из ${lastWave()}</span>${card?.title ? ` · ${escHtml(card.title)}` : ''}`;
-      const chips = card ? this.chips(card, true) : '';
+      const chips = card ? this.chips(card) : '';
       const left = enemies > 0 ? num(enemies) : '0';
-      const v = this.total > 0 ? Math.round((enemies / this.total) * 100) / 100 : 0;
       html = `<div class="ft-phase-copy"><div class="ft-phase-title">${title}</div></div>`
-        + `<div class="ft-phase-clock"><small>врагов</small>${left}</div>`
-        + `${chips ? `<div class="ft-foes">${chips}</div>` : ''}${meterHtml(v, 'k-meter--thin k-meter--mode')}`;
+        + `<div class="ft-phase-clock ft-phase-left" title="Осталось врагов: ${left}">${fortImg('zombie', 'ft-left-ic')}${left}</div>`
+        + `${chips ? `<div class="ft-foes">${chips}</div>` : ''}`;
     } else {
       const s = Math.max(0, Math.ceil(leftS));
-      const what = phase === FT_GATHER ? 'Сбор' : 'Передышка';
-      const from = card ? roadsText(card.roads, card.boats) : '';
       const title = `Дальше: волна ${num(n)}${card?.title ? ` · ${escHtml(card.title)}` : ''}`;
-      const chips = card ? this.chips(card, false) : '';
-      const v = this.phaseTotal > 0 ? Math.round((Math.max(0, leftS) / this.phaseTotal) * 100) / 100 : 0;
-      html = `<div class="ft-phase-copy"><div class="ft-phase-title">${title}</div><div class="ft-phase-note">${what}${from ? ` · ${from}` : ''}</div></div>`
-        + `<div class="ft-phase-clock${leftS < 5.5 ? ' is-hurry' : ''}"><small>до волны</small>${fmtTime(s)}</div>`
-        + `${chips ? `<div class="ft-foes">${chips}</div>` : ''}`
-        + meterHtml(v, `k-meter--thin ${boss ? 'k-meter--bad' : 'k-meter--mode'}`);
+      const chips = card ? this.chips(card) : '';
+      html = `<div class="ft-phase-copy"><div class="ft-phase-title">${title}</div></div>`
+        + `<div class="ft-phase-clock${leftS < 5.5 ? ' is-hurry' : ''}">${fmtTime(s)}</div>`
+        + `${chips ? `<div class="ft-foes">${chips}</div>` : ''}`;
     }
     if (html === this.html && this.shown) return;
     this.html = html;
@@ -93,13 +76,13 @@ export class WavePlate {
     this.root.innerHTML = html;
   }
 
-  /** Ряд врагов картинками: в бою — новые и самые многочисленные (остальные — «+N»), в паузе — все; босс — первым */
-  private chips(card: FortWaveCard, fight: boolean): string {
+  /** Босс первым, все новые и крупнейшие группы; свёрнутые виды перечислены в title «+N». */
+  private chips(card: FortWaveCard): string {
     const list = cardChips(card);
-    const shown = fight ? foldChips(list, FIGHT_KINDS) : list;
+    const shown = foldChips(list, Math.max(ROSTER_KINDS, list.filter(c => c.cls === 'fresh').length));
     let out = '';
-    if (card.boss >= 0 && !fight) {
-      out += `<span class="ft-chip is-boss" title="${escHtml(ZK[card.boss]?.name ?? 'Босс')}">${fortImg(foeIcon(card.boss), 'ft-chip-ic')}${card.tier > 0 ? romanTier(card.tier + 1) : 'босс'}</span>`;
+    if (card.boss >= 0) {
+      out += `<span class="ft-chip is-boss" title="${escHtml(ZK[card.boss]?.name ?? 'Босс')}">${fortImg(foeIcon(card.boss), 'ft-chip-ic')}${card.tier > 0 ? romanTier(card.tier + 1) : ''}</span>`;
     }
     for (const c of shown) {
       if (c.cls === 'more') out += `<span class="ft-chip is-more" title="${escHtml(c.name)}">${c.label}</span>`;
@@ -143,8 +126,8 @@ export class WavePlate {
   /** Итоги закрыты, новая игра — сама через N с */
   private endPlate(leftS: number): void {
     const s = Math.max(0, Math.ceil(leftS));
-    const html = '<div class="ft-phase-copy"><div class="ft-phase-title">Новая игра</div>'
-      + `<div class="ft-phase-note">Сбор у колокола</div></div><div class="ft-phase-clock${s <= 5 ? ' is-hurry' : ''}"><small>до старта</small>${fmtTime(s)}</div>`;
+    const html = '<div class="ft-phase-copy"><div class="ft-phase-title">Новая игра</div></div>'
+      + `<div class="ft-phase-clock${s <= 5 ? ' is-hurry' : ''}">${fmtTime(s)}</div>`;
     if (html === this.html && this.shown) return;
     this.html = html;
     this.shown = true;
@@ -170,12 +153,7 @@ export class WavePlate {
   reset(): void {
     this.hide();
     this.newGame();
-    this.phase = -1;
     this.card = null;
   }
-}
-
-function meterHtml(v: number, cls: string): string {
-  return `<span class="k-meter ${cls}" style="--v:${v}"><i class="k-meter-ghost"></i><i class="k-meter-fill"></i></span>`;
 }
 

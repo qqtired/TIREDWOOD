@@ -12,7 +12,7 @@ class HpRow {
   private readonly pct: HTMLElement;
   private readonly bar: HTMLElement;
   private readonly pips: readonly HTMLElement[];
-  private readonly tierText: HTMLElement;
+  private readonly level: HTMLElement;
   private tier = -1;
   private last = '';
   private hitTimer = 0;
@@ -35,11 +35,11 @@ class HpRow {
     this.pct = el('b', 'ft-hp-pct', this.root);
     this.bar = el('span', `k-meter ${tone}`, this.root);
     this.bar.innerHTML = '<i class="k-meter-ghost"></i><i class="k-meter-fill"></i>';
-    const level = el('span', 'ft-hp-up', this.root);
-    const pips = el('span', 'ft-pips', level);
+    this.level = el('span', 'ft-hp-up', this.root);
+    this.level.setAttribute('role', 'img');
+    const pips = el('span', 'ft-pips', this.level);
     pips.setAttribute('aria-hidden', 'true');
     this.pips = Array.from({ length: maxTier }, () => el('i', '', pips));
-    this.tierText = el('span', 'ft-tier', level);
     this.setTier(0);
   }
 
@@ -48,9 +48,8 @@ class HpRow {
     if (tier === this.tier) return;
     this.tier = tier;
     for (const [i, pip] of this.pips.entries()) pip.classList.toggle('on', i < tier);
-    setText(this.tierText, `${tier}/${this.maxTier}`);
-    this.tierText.setAttribute('aria-label', `Прокачка: ${tier} из ${this.maxTier}`);
-    this.tierText.title = `Прокачка: ${tier} из ${this.maxTier}`;
+    this.level.setAttribute('aria-label', `Прокачка: ${tier} из ${this.maxTier}`);
+    this.level.title = `Прокачка: ${tier} из ${this.maxTier}`;
   }
 
   set(hp: number, max: number): void {

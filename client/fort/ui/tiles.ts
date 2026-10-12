@@ -83,7 +83,7 @@ export class FortTiles {
     }
     this.goldWas = g;
     const plus = now < this.plusUntil ? ` <b class="ft-plus">+${num(this.plus)}</b>` : '';
-    this.gold.setCap(`${num(g)}${plus}`, 'золото крепости');
+    this.gold.setCap(`${num(g)}${plus}`, '');
   }
 
   // ------------------------------------------------------------ команда
@@ -102,12 +102,12 @@ export class FortTiles {
     this.team.root.classList.toggle('k-tile--warn', meDown);
     if (calm) {
       const ready = rows.filter((r) => r.ready).length;
-      this.team.setCap(`${ready}/${rows.length}`, 'готовы');
+      this.team.setCap(`${ready}/${rows.length}`, '');
       this.team.root.title = `${ready} из ${rows.length} защитников готовы у колокола`;
     } else {
       const alive = rows.filter((r) => r.alive).length;
-      this.team.setCap(`${alive}/${rows.length}`, meDown ? 'ты встаёшь' : 'в бою');
-      this.team.root.title = `${alive} из ${rows.length} защитников в бою`;
+      this.team.setCap(`${alive}/${rows.length}`, '');
+      this.team.root.title = `${alive} из ${rows.length} защитников в бою${meDown ? ' · ты встаёшь' : ''}`;
     }
   }
 
@@ -156,11 +156,8 @@ export class FortTiles {
     if (key === this.recKey) return became;
     this.recKey = key;
     this.rec.root.classList.toggle('k-tile--own', ours || hot || tie);
-    if (ours) this.rec.setCap(num(rec), 'ваш рекорд');
-    else if (hot) this.rec.setCap(num(rec + 1), 'за рекорд');
-    else if (tie) this.rec.setCap(num(rec), 'повторили');
-    else this.rec.setCap(rec > 0 ? num(rec) : '—', 'рекорд');
-    this.rec.root.title = `Рекорд крепости: ${rec || 'ещё нет'} · твой: ${mine || 'ещё нет'}${hot ? ' · следующая победа побьёт рекорд' : ''}`;
+    this.rec.setCap(hot ? num(rec + 1) : rec > 0 ? num(rec) : '—', '');
+    this.rec.root.title = `Рекорд крепости: ${rec || 'ещё нет'} · твой: ${mine || 'ещё нет'}${hot ? ' · следующая победа побьёт рекорд' : ours ? ' · рекорд вашей команды' : tie ? ' · рекорд повторён' : ''}`;
     return became;
   }
 
