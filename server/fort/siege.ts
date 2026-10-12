@@ -369,7 +369,7 @@ export class Siege {
     z.anchor = false; z.stage &= ~S.BOAT_ANCHOR_FLAG;
     z.state = S.ZS_SIEGE_OPEN; z.t = S.SIEGE_OPEN_TICKS;
     this.clearWarning(z.id, true);
-    this.host.event(['zhit', by, z.id, 0, 2, z.toX, z.toY + .5, z.toZ]);
+    this.host.event(['zhit', by, z.id, 0, 4, z.toX, z.toY + .5, z.toZ]);
     this.progress(z);
     this.syncPhase(z);
   }

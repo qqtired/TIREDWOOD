@@ -790,8 +790,8 @@ export class FortMatch {
         case 'zhit': {
           const [, pid, zid, dmg, head, x, y, z] = e;
           zombies.hit(zid);
-          // 2 — в щит (щепки), 3 — в кастрюлю Чугунка (искры и звон)
-          if (head === 2) effects.burst(x, y, z, 0x9a6b42, 4, 2.5, 0, 0.5, 0, 0.035);
+          // 2 — в щит, 4 — оборванный канат (щепки без подсказки о щите); 3 — кастрюля Чугунка.
+          if (head === 2 || head === 4) effects.burst(x, y, z, 0x9a6b42, 4, 2.5, 0, 0.5, 0, 0.035);
           else if (head === 3) {
             effects.burst(x, y, z, 0xffe08a, 5, 4, 0, 0.6, 0, 0.025);
             if (this.time - this.clangAt > 0.08) {

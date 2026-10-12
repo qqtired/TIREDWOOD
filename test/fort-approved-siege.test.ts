@@ -211,7 +211,7 @@ test('mushroom throws existing walkers, and its death does not erase already air
 });
 
 test('anchor boat does not teleport cargo: four-second setup, visible arc, severing stops next wall boarding', () => {
-  const { g, step } = fixture();
+  const { g, step, events } = fixture();
   const boat = g.horde.spawn(Z_BOAT, 1)!;
   Object.assign(boat, { x: -12.5, y: -.4, z: 27.5, anchor: true, state: S.ZS_SIEGE_DEPLOY,
     t: S.SIEGE_DEPLOY_TICKS, toX: -12.5, toY: WALL_H, toZ: 12.3 });
@@ -225,6 +225,7 @@ test('anchor boat does not teleport cargo: four-second setup, visible arc, sever
   g.horde.siege.cutAnchor(boat, 1, 3);
   assert.equal(boat.anchor, false);
   assert.equal(boat.state, S.ZS_SIEGE_OPEN);
+  assert.ok(events.some((e) => e[0] === 'zhit' && e[2] === boat.id && e[4] === 4), 'cut rope has its own hit feedback, not the shield hint');
   assert.ok(passenger.alive, 'cutting rope cannot reverse a completed boarding');
 });
 

@@ -17,7 +17,7 @@ export class PlantWin extends FarmWin {
     this.bed = bed;
     this.pendingAt = 0;
     this.error = '';
-    this.setHead({ title: 'Что посадить?', eyebrow: `Ферма · грядка ${bed + 1}` });
+    this.setHead({ title: 'Посадка', eyebrow: `Ферма · грядка ${bed + 1}` });
     const count = CROPS.filter(c => cropOpen(c, farmLevel(this.host.f.xp))).length;
     this.win.classList.toggle('k-window--lg', count > 4);
     this.win.classList.toggle('k-window--sm', count === 1);
