@@ -52,6 +52,8 @@ export interface HudFrame {
   buffs: HudBuff[];
   weapons: HudItem[];
   passives: HudItem[];
+  /** Постоянная «Закалка» после заполнения сборки; не занимает слот бонуса. */
+  temper?: number;
   /** слоты (5 + 5): пустые рисуются тёмными ячейками */
   weaponSlots: number;
   passiveSlots: number;

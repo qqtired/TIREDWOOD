@@ -15,6 +15,7 @@ import './dungeon.css';
 import { PASSIVES, WEAPONS } from './data.ts';
 import { dgIcon, type DgIconKind } from './icons.ts';
 import { dgPrefs, onDgPrefs, setDgPref } from './prefs.ts';
+import { PAUSE_BUILDINGS, pauseBuild, type PauseSkill } from './pause-data.ts';
 import type {
   DungeonHudApi,
   HudActions,
@@ -259,6 +260,12 @@ export class DungeonHud implements DungeonHudApi {
   private readonly pauseLayer = el('div', 'dg-layer dg-pause-layer');
   private readonly resultsLayer = el('div', 'dg-layer dg-results-layer');
   private readonly pauseQuit: HTMLButtonElement;
+  private readonly pauseWeapons = el('div', 'dg-pause-skills');
+  private readonly pausePassives = el('div', 'dg-pause-skills');
+  private readonly pauseWeaponSlots = el('span', 'dg-pause-slots');
+  private readonly pausePassiveSlots = el('span', 'dg-pause-slots');
+  private readonly pauseTemper = el('div', 'dg-pause-temper');
+  private pauseFrame: HudFrame | null = null;
   private readonly sndAll: HTMLButtonElement;
   private readonly sndXp: HTMLButtonElement;
   private cardsData: HudCards | null = null;
@@ -377,8 +384,28 @@ export class DungeonHud implements DungeonHudApi {
     cardsFoot.append(this.rerollBtn, this.banBtn);
     this.cardsLayer.append(this.cardsHead, this.cardsRow, cardsFoot);
 
-    // пауза: продолжить, выйти, звук режима (сохраняется в этом браузере)
+    // Пауза: текущая сборка слева, памятка построек справа; прежняя тема и звук режима.
     const pauseWin = el('div', 'dg-window dg-pnl dg-pause');
+    const pauseHead = el('div', 'dg-pause-head');
+    const pauseClose = button('cream dg-pause-close', '×', '', () => this.act.resume());
+    pauseClose.setAttribute('aria-label', 'Продолжить игру');
+    pauseHead.append(el('h2', '', 'Пауза'), pauseClose);
+    const pauseGrid = el('div', 'dg-pause-grid');
+    const build = el('section', 'dg-pause-section');
+    const weaponHead = el('h3', 'dg-pause-subhead', 'Оружие');
+    const passiveHead = el('h3', 'dg-pause-subhead', 'Бонусы');
+    weaponHead.append(this.pauseWeaponSlots); passiveHead.append(this.pausePassiveSlots);
+    build.append(el('h3', 'dg-pause-title', 'Твоя сборка'), weaponHead, this.pauseWeapons, passiveHead, this.pausePassives, this.pauseTemper);
+    const guide = el('section', 'dg-pause-section dg-pause-guide');
+    guide.append(el('h3', 'dg-pause-title', 'Постройки'));
+    for (const entry of PAUSE_BUILDINGS) {
+      const row = el('div', 'dg-pause-building');
+      const info = el('div');
+      info.append(el('b', '', entry.name), el('p', '', entry.text));
+      row.append(ico('poi', entry.icon, '', 'dg-pause-building-ic'), info);
+      guide.append(row);
+    }
+    pauseGrid.append(build, guide);
     const pauseActs = el('div', 'dg-actions');
     this.pauseQuit = button('red', 'Выйти', '', () => this.act.quit());
     pauseActs.append(button('green', 'Продолжить', 'Esc', () => this.act.resume()), this.pauseQuit);
@@ -386,8 +413,9 @@ export class DungeonHud implements DungeonHudApi {
     this.sndXp = this.toggle('✨', 'Звук подбора опыта', () => setDgPref('xp', !dgPrefs().xp));
     const snd = el('div', 'dg-sound');
     snd.append(el('div', 'dg-sound-title', 'Звук'), this.sndAll, this.sndXp);
-    pauseWin.append(el('h2', '', 'Пауза'), pauseActs, snd);
+    pauseWin.append(pauseHead, pauseGrid, pauseActs, snd);
     this.pauseLayer.append(pauseWin);
+    this.pauseLayer.addEventListener('click', (event) => { if (event.target === this.pauseLayer) this.act.resume(); });
     this.syncPrefs();
     this.offPrefs = onDgPrefs(() => this.syncPrefs());
 
@@ -598,6 +626,7 @@ export class DungeonHud implements DungeonHudApi {
     this.text('kills', this.kills, String(f.kills));
     this.updateWeapons(f.weapons);
     this.updateItems('p', this.passiveRow, f.passives, f.passiveSlots);
+    this.pauseFrame = f;
 
     this.setRing(this.dash, f.dash01, f.dash01 >= 1 ? 'ready' : '', f.dash01 >= 1 ? 0 : f.dashLeft, '');
     for (const ring of [this.strike, this.qPad]) {
@@ -866,9 +895,35 @@ export class DungeonHud implements DungeonHudApi {
 
   // ------------------------------------------------------------------ пауза
 
+  private pauseSkill(row: PauseSkill, kind: 'weapon' | 'passive'): HTMLElement {
+    const cell = el('div', `dg-pause-skill ${row.state}`);
+    const copy = el('div', 'dg-pause-skill-copy');
+    const head = el('div', 'dg-pause-skill-head');
+    head.append(el('b', '', row.item.name), el('span', 'dg-pause-level', row.level));
+    copy.append(head, el('p', 'dg-pause-effect', row.description));
+    if (row.synergy) copy.append(el('p', 'dg-pause-recipe', row.synergy));
+    if (row.detail) copy.append(el('p', 'dg-pause-detail', row.detail));
+    cell.append(ico(itemKind(row.item, kind), row.item.id, row.item.icon, 'dg-pause-skill-ic'), copy);
+    return cell;
+  }
+
+  private updatePause(): void {
+    const frame = this.pauseFrame;
+    if (!frame) return;
+    const build = pauseBuild(frame);
+    this.pauseWeaponSlots.textContent = `${frame.weapons.length} / ${frame.weaponSlots} · можно ещё ${build.weaponFree}`;
+    this.pausePassiveSlots.textContent = `${frame.passives.length} / ${frame.passiveSlots} · можно ещё ${build.passiveFree}`;
+    this.pauseWeapons.replaceChildren(...build.weapons.map((row) => this.pauseSkill(row, 'weapon')));
+    this.pausePassives.replaceChildren(...build.passives.map((row) => this.pauseSkill(row, 'passive')));
+    if (!build.passives.length) this.pausePassives.append(el('p', 'dg-pause-empty', 'Бонусов пока нет — выбирай их при новом уровне.'));
+    this.pauseTemper.textContent = build.temper;
+    this.pauseTemper.hidden = !build.temper;
+  }
+
   pause(open: boolean, wavesDone: number): void {
     this.pauseLayer.classList.toggle('open', open);
     if (!open) return;
+    this.updatePause();
     this.syncPrefs();
     (this.pauseQuit.firstElementChild as HTMLElement).textContent =
       wavesDone > 0 ? `Выйти (засчитать ${wavesWord(wavesDone)})` : 'Выйти';

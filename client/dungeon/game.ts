@@ -90,6 +90,8 @@ export class DungeonGame {
   private readonly buildings: BuildingRenderer;
   private readonly decN = new FloorDecals(1600, false, 1);
   private readonly decA = new FloorDecals(500, true, 2);
+  /** Опасные зоны остаются на настоящем полу, но кузня/родник не скрывают их глубиной. */
+  private readonly threats = new FloorDecals(500, false, 4, false);
   private readonly bbN = new Billboards(500, false, false, 6);
   private readonly bbA = new Billboards(1400, true, true, 5);
   private readonly pool = new FxPool();
@@ -180,7 +182,7 @@ export class DungeonGame {
     this.sparkFocus.visible = false;
     this.buildings = new BuildingRenderer(assets.kits);
     s.add(this.buildings.root);
-    s.add(this.decN.mesh, this.decA.mesh, this.bbN.mesh, this.bbA.mesh);
+    s.add(this.decN.mesh, this.decA.mesh, this.threats.mesh, this.bbN.mesh, this.bbA.mesh);
     // снаряды: простые формы, по отрисовке на вид
     const mk = (key: string, g: THREE.BufferGeometry, m: THREE.Material, cap = 200): void => {
       const im = new THREE.InstancedMesh(g, m, cap);
@@ -913,6 +915,7 @@ export class DungeonGame {
 
     this.decN.begin(time);
     this.decA.begin(time);
+    this.threats.begin(time);
     this.bbN.begin(this.camera);
     this.bbA.begin(this.camera);
     this.mobs.begin();
@@ -1081,7 +1084,8 @@ export class DungeonGame {
         const col = t.tone === 'jam' ? [0.78, 0.45, 1] : t.tone === 'red' ? [1, 0.25, 0.2] : [1, 0.75, 0.3];
         const shape = t.shape === 'circle' ? D_TCIRCLE : t.shape === 'strip' ? D_TSTRIP : D_TSECTOR;
         const sx = t.shape === 'strip' ? t.w / 2 : t.r;
-        this.decN.add(X(t.x), 0.04, Z(t.z), sx, t.r, t.yaw, shape, t.t01, t.shape === 'sector' ? t.w : t.inner ? t.inner / t.r : 0, col[0], col[1], col[2], 0.85);
+        const target = t.tone === 'amber' ? this.decN : this.threats;
+        target.add(X(t.x), 0.04, Z(t.z), sx, t.r, t.yaw, shape, t.t01, t.shape === 'sector' ? t.w : t.inner ? t.inner / t.r : 0, col[0], col[1], col[2], 0.85);
       }
       for (const p of v.puddles) {
         if (!near(p.x, p.z, 6)) continue;
@@ -1177,6 +1181,7 @@ export class DungeonGame {
     this.buildings.end();
     this.decN.end();
     this.decA.end();
+    this.threats.end();
     this.bbN.end();
     this.bbA.end();
 
@@ -1211,6 +1216,7 @@ export class DungeonGame {
       buffs: v.buffs,
       weapons: v.weapons,
       passives: v.passives,
+      temper: v.temper,
       weaponSlots: 5,
       passiveSlots: 5,
       dash01: v.dash01,

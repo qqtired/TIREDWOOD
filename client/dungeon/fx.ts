@@ -154,7 +154,7 @@ export class FloorDecals {
 
   readonly cap: number;
 
-  constructor(cap: number, additive: boolean, renderOrder: number) {
+  constructor(cap: number, additive: boolean, renderOrder: number, depthTest = true) {
     this.cap = cap;
     this.additive = additive;
     const base = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
@@ -182,6 +182,7 @@ export class FloorDecals {
       fragmentShader: DECAL_FRAG,
       transparent: true,
       depthWrite: false,
+      depthTest,
       blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending,
       premultipliedAlpha: false,
     });
