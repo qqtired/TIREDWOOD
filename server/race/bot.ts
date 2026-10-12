@@ -5,7 +5,7 @@
 // Бонусы применяют по простым правилам, застряли — R. Срезки (через бухту, через реку, по песку) — только для людей.
 // Руль — кнопками, но «пропорционально»: каждый тик выбирают A, D или ничего — что ближе к нужному повороту руля.
 import { MV_GATE, gatePhase, MV_SPIN, NO_DECK, deckAt, makeCap, moverCap, type Mover, type Solid } from '../../shared/hazards.ts';
-import { ITEM_BUBBLE, ITEM_CLAP, ITEM_JAM, ITEM_PAINT, ITEM_TURBO, KART_R, type KartState } from '../../shared/kart.ts';
+import { ITEM_BUBBLE, ITEM_CLAP, ITEM_JAM, ITEM_PAINT, ITEM_TURBO, KART_R, KART_MAX_SPEED, KART_TURBO_SPEED, KART_TURN_RATE, type KartState } from '../../shared/kart.ts';
 import { makeRng } from '../../shared/math.ts';
 import { BTN_BACK, BTN_FIRE, BTN_FORWARD, BTN_JUMP, BTN_LEFT, BTN_RELOAD, BTN_RIGHT, type Input } from '../../shared/sim.ts';
 import { locate, locateAny, makeLoc, wrapSeg, type Track } from '../../shared/track.ts';
@@ -53,30 +53,30 @@ interface SkillParams {
 }
 
 const SKILLS: Record<KartSkill, SkillParams> = {
-  easy: { lat: 9.5, turn: 0.72, brake: 10, cut: 0.6, top: 19.5, look: 1.0, margin: -0.15, drift: 0, launch: [0, 110], trick: 0 },
-  normal: { lat: 12, turn: 0.82, brake: 14, cut: 0.85, top: 21, look: 2.0, margin: 0.45, drift: 0.5, launch: [20, 80], trick: 0.5 },
-  hard: { lat: 15, turn: 0.9, brake: 18, cut: 1, top: 22, look: 2.9, margin: 0.9, drift: 1, launch: [24, 58], trick: 1 },
+  easy: { lat: 12.5, turn: 0.72, brake: 14, cut: 0.6, top: 27, look: 1.5, margin: 0.2, drift: 0, launch: [0, 110], trick: 0 },
+  normal: { lat: 16, turn: 0.82, brake: 19, cut: 0.85, top: 29.5, look: 2.4, margin: 0.55, drift: 0.5, launch: [20, 80], trick: 0.5 },
+  hard: { lat: 20, turn: 0.9, brake: 24, cut: 1, top: 31, look: 3.2, margin: 0.9, drift: 1, launch: [24, 58], trick: 1 },
 };
 
 // числа физики карта (shared/kart.ts) — для расчёта скоростей в поворотах
 const STEER_STEP = 8 / 60;
-const TURN_RATE = 2.3;
+const TURN_RATE = KART_TURN_RATE;
 const TURN_FALL = 0.58;
 const TURN_MIN = 0.5;
 const TURN_FULL_AT = 5;
-const MAX_SPEED = 22;
+const MAX_SPEED = KART_MAX_SPEED;
 /** Занос: множитель поворота и руль внутрь (0,75 + 0,4) — на это бот рассчитывает с запасом */
 const DRIFT_TURN = 1.5 * 1.15;
 /** Путь в заносе шире, чем курс: боковое скольжение */
 const DRIFT_SLIP = 1.12;
 /** С ускорителем быстрее потолка бот не тормозит, если поворот позволяет */
-const BOOST_TOP = 30;
+const BOOST_TOP = KART_TURBO_SPEED;
 /** Занос начинается не медленнее и держится, пока поворот круче (1/м) */
 const DRIFT_MIN_SPEED = 11;
 const DRIFT_CURV = 1 / 34;
 /** Поворот под занос — не короче, м, и без заноса требует скорости не выше, м/с */
 const DRIFT_ZONE_LEN = 14;
-const DRIFT_ZONE_SPEED = 19;
+const DRIFT_ZONE_SPEED = 26;
 
 const STUCK_TICKS = 120;
 /** Цель руля — точка линии впереди на столько метров: база и на каждый м/с скорости */

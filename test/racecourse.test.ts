@@ -15,7 +15,7 @@ import { buildRing } from '../shared/maps/ring.ts';
 import { landHas } from '../shared/maps/ringland.ts';
 import { RACE_TRACKS, buildRaceCourse, isRaceTrackId, type RaceTrackId } from '../shared/racecourse.ts';
 import { locateAny, makeLoc, NO_GROUND, wrapSeg, type Track } from '../shared/track.ts';
-import { BTN_FIRE, BTN_RELOAD, makeInput } from '../shared/sim.ts';
+import { BTN_BACK, BTN_FIRE, BTN_FORWARD, BTN_RELOAD, makeInput } from '../shared/sim.ts';
 import { DEFAULT_OUTFIT } from '../shared/outfit.ts';
 import { fakeSink } from './kit.ts';
 
@@ -28,7 +28,8 @@ test('id трасс точные, по умолчанию — «Портовое
   for (const v of ['2', 2, {}, null, 'port', 'foundry', 'HARBOR', 'hills ']) assert.equal(isRaceTrackId(v), false);
   for (const id of IDS) {
     const tr = buildRaceCourse(id).track;
-    assert.ok(tr.length > 1000 && tr.length < 1300, `${id}: длина ${tr.length}`);
+    assert.ok(tr.length > 1650 && tr.length < 2050, `${id}: длина ${tr.length}`);
+    assert.ok(Math.max(...tr.hw) >= 8, `${id}: широкие секции для обгона`);
     assert.ok(tr.n < 65536 && tr.cpSeg.length < 256 && tr.crates.length <= 32);
     // позиции чужих картов — int16 по 1/128 м: всё в пределах ±255 м
     assert.ok([...tr.px, ...tr.pz].every((v) => Number.isFinite(v) && Math.abs(v) < 250), id);
@@ -200,6 +201,59 @@ test('боты easy, normal и hard проезжают три круга на о
   }
 });
 
+test('серпантин: срезка через реку требует разгона и ровной линии, КТ за рекой не пропускается', () => {
+  const tr = buildRaceCourse('hills').track;
+  for (const slow of [false, true]) {
+    const leg = tr.legs[10];
+    const k = makeKartState();
+    k.x = leg.x + leg.dx * 85;
+    k.z = leg.z + leg.dz * 85;
+    const lc = locateAny(tr, k.x, k.z, makeLoc());
+    Object.assign(k, { y: lc.ground, seg: lc.seg, hx: leg.dx, hz: leg.dz, vx: leg.dx * 31, vz: leg.dz * 31, cp: 7, lap: 1 });
+    if (slow) k.slowT = 500;
+    const ev = makeKartEvents();
+    const input = makeInput();
+    input.buttons = BTN_FORWARD;
+    let splash = false;
+    let landed = false;
+    for (let t = 0; t < 480 && !splash && k.cp === 7; t++) {
+      stepKart(k, input, tr, ev, true);
+      splash ||= ev.splash;
+      landed ||= ev.land > 0.5;
+    }
+    assert.equal(splash, slow, slow ? 'без разгона — вода' : 'ровный прыжок — на тот берег');
+    assert.equal(k.cp, slow ? 7 : 8, 'только следующая КТ, возврат сохраняет последнюю');
+    if (!slow) assert.ok(landed, 'прыжок закончился настоящим приземлением');
+  }
+});
+
+test('выбор скорости имеет значение: постоянный газ теряет время и чистоту круга на обеих трассах', () => {
+  const view: BotView = { racing: true, place: 1, karts: 1, ahead: Infinity, behind: Infinity, painted: false, gridLeft: 0, near: Infinity, bubble: false };
+  for (const id of IDS) {
+    const tr = buildRaceCourse(id).track;
+    const runs: Array<{ ticks: number; mistakes: number; lap: number }> = [];
+    for (const alwaysGas of [false, true]) {
+      const k = makeKartState();
+      const ev = makeKartEvents();
+      const input = makeInput();
+      const bot = new KartBot(tr, 'hard', 101);
+      placeOnGrid(k, tr, 0);
+      let ticks = 0;
+      let mistakes = 0;
+      for (; ticks < 9000 && k.lap < 2; ticks++) {
+        bot.update(k, view, ticks, input);
+        if (alwaysGas) input.buttons = (input.buttons & ~BTN_BACK) | BTN_FORWARD;
+        stepKart(k, input, tr, ev, true);
+        if (ev.wall > 0 || ev.hit > 0 || ev.splash) mistakes++;
+      }
+      runs.push({ ticks, mistakes, lap: k.lap });
+    }
+    assert.equal(runs[0].lap, 2, `${id}: чистый круг завершён`);
+    assert.ok(runs[1].ticks > runs[0].ticks + 120, `${id}: постоянный газ должен быть медленнее`);
+    assert.ok(runs[1].mistakes > runs[0].mistakes + 10, `${id}: торможение сохраняет линию`);
+  }
+});
+
 /** Гонка на прямой «Серпантина» (запад, x убывает): карт i — на 8 м впереди предыдущего */
 function setup(count = 2, roll = () => 0.5) {
   const race = new Race({}, { track: 'hills', seed: 9, minKarts: count, roll });
@@ -207,7 +261,7 @@ function setup(count = 2, roll = () => 0.5) {
   const karts = sinks.map((s, i) => race.addHuman({ pid: 500 + i, nick: `Kart ${i}`, outfit: DEFAULT_OUTFIT }, s)!);
   race.start();
   while (race.phase === RC_GRID) race.step();
-  karts.forEach((k, i) => put(race, k, 34 - 6 * i, 178));
+  karts.forEach((k, i) => put(race, k, 34 - 6 * i, 205));
   return { race, karts, sinks };
 }
 function put(race: Race, k: Kart, x: number, z: number) {
@@ -281,7 +335,7 @@ test('пузырь: принимает один хлопок и лопается
 test('хлопок: волна на 8 м во все стороны; мимо — дальние, высоко, призраки и доехавшие; снимает ускорение', () => {
   for (const reject of ['far', 'high', 'ghost', 'done']) {
     const { race, karts: [a, b] } = setup();
-    if (reject === 'far') put(race, b, a.state.x - 8.6, 178);
+    if (reject === 'far') put(race, b, a.state.x - 8.6, 205);
     if (reject === 'high') {
       b.state.y = a.state.y + 2;
       b.state.grounded = 0;
@@ -294,7 +348,7 @@ test('хлопок: волна на 8 м во все стороны; мимо �
   }
   // позади тоже достаёт
   const { race, karts: [a, b] } = setup();
-  put(race, b, a.state.x + 5, 178);
+  put(race, b, a.state.x + 5, 205);
   b.state.boostT = 40;
   b.state.boostLvl = 3;
   use(race, a, ITEM_CLAP);

@@ -1,0 +1,44 @@
+{
+  "stage": "R5 source layout; no final colliders or physics acceptance",
+  "units": "m",
+  "up": "+Y",
+  "front": "-Z",
+  "fullComponentDisplayOffset": [0, 0, -170],
+  "runtimeComponentPlacement": [0, -0.3, 0],
+  "water": {"mainWidth": 18, "insideWidth": 10, "mainClearance": 9.35, "insideClearance": 5.25, "insideRadius": 6, "safeRadius": 24},
+  "insideBranchControls": [[36,12],[41,15],[41,23],[40,48],[39,56],[36,60]],
+  "quayPockets": [
+    {"id":"r5_working_quay","footprint":[[-94,-51],[-78,-52],[-75.5,-46],[-75.5,-33],[-80,-31],[-94,-33]],"topY":0.72},
+    {"id":"r5_cafe_quay","footprint":[[-96,-32],[-79,-32],[-75.6,-27],[-75.6,-15],[-80,-11],[-96,-13]],"topY":0.74},
+    {"id":"r5_veranda_quay","footprint":[[-94,-11],[-77,-12],[-75.6,-3],[-76,13],[-82,16],[-96,11]],"topY":0.72},
+    {"id":"r5_club_quay","footprint":[[-96,10],[-81,10],[-77,16],[-78,29],[-85,33],[-98,26]],"topY":0.72}
+  ],
+  "buildings": [
+    {"id":"fishyard","asset":"pav_fishyard","position":[-83,0.74,-41],"yaw":-1.5707963267948966},
+    {"id":"cafe","asset":"pav_cafe","position":[-84,0.76,-23],"yaw":-1.5707963267948966},
+    {"id":"veranda","asset":"pav_cardveranda","position":[-81.7,0.74,1.5],"yaw":-1.5707963267948966},
+    {"id":"clubhouse","asset":"pav_billiards","position":[-86,0.74,22],"yaw":-1.5707963267948966},
+    {"id":"cabin_work","asset":"pav_cabins","position":[-94,2.20,-44],"yaw":-1.5707963267948966},
+    {"id":"cabin_cafe","asset":"pav_cabins","position":[-94,2.85,-26],"yaw":-0.07},
+    {"id":"cabin_lane","asset":"pav_cabins","position":[-94,2.85,-14],"yaw":0.08}
+  ],
+  "docks": [
+    {"id":"r5_finger_work","position":[-79,0.74,-43],"width":7,"depth":3.2},
+    {"id":"r5_finger_cafe","position":[-79,0.74,-21],"width":7,"depth":3.4},
+    {"id":"r5_finger_veranda","position":[-80,0.74,7],"width":9,"depth":3.6},
+    {"id":"r5_repair_dock","position":[-79.3,0.74,-48],"width":5.5,"depth":4.4}
+  ],
+  "anchors": {
+    "zone_marina":[-62,0,-23], "zone_cliffs":[46,0,-34], "zone_lighthouse":[48.3,0,36],
+    "inner_line":[40.5,0,36], "outer_line":[60,0,36], "fork_entry":[36,0,12], "fork_exit":[36,0,60],
+    "game_camera_marina":[-62,3.2,-5], "game_look_marina":[-76,1.8,-27],
+    "game_camera_cliffs":[72.9,3,-40.7], "game_look_cliffs":[49,0.6,-32],
+    "game_camera_lighthouse":[30,3.1,12], "game_look_lighthouse":[52,3.6,30]
+  },
+  "stagingBoats": {
+    "marina":{"position":[-62,-0.02,-12],"forward":[0,-1]},
+    "cliffs":{"position":[67.9,-0.02,-37.5],"forward":[-0.84,0.54]},
+    "lighthouse":{"position":[37,-0.02,12.8],"forward":[1,0]}
+  },
+  "bridge":{"position":[46,0,-34],"supports":[[46,0,-45.5],[46,0,-22.5]],"supportFootprint":[2.6,2.0],"openingWidth":21,"undersideY":12.775}
+}

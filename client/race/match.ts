@@ -6,7 +6,7 @@ import { TICK_MS, TICK_RATE, WATER_Y } from '../../shared/constants.ts';
 import type { RcReward } from '../../shared/economy.ts';
 import {
   BOOST_TURBO, ITEM_BUBBLE, ITEM_CLAP, ITEM_HINTS, ITEM_ICONS, ITEM_NAMES, ITEM_NONE, ITEM_TURBO, RC_GRID, RC_LAPS, RC_MAX_TICKS,
-  RC_RACE, RC_RESULTS, RC_RESULTS_TICKS, makeKartState, sparkLevel, type KartEvents,
+  RC_RACE, RC_RESULTS, RC_RESULTS_TICKS, KART_MAX_SPEED, makeKartState, sparkLevel, type KartEvents,
 } from '../../shared/kart.ts';
 import {
   KE_BOOST, KE_DRIFT, KE_GROUND, KE_ON, KE_PAINT, KM_BUBBLE, decodeKartSnapshot, kartFlags, kartMisc, kartYaw, makeKartHeader,
@@ -48,13 +48,13 @@ const MIN_DELAY = 2.6;
 /** Камера погони: позади, выше, смотрит вперёд (м); не дальше стольких метров за краем дороги */
 const CAM_BACK = 6.2;
 const CAM_UP = 2.4;
-const CAM_AHEAD = 4;
+const CAM_AHEAD = 4.5;
 const CAM_MARGIN = 1;
 /** Камера не ниже стольких метров над землёй и дорогой под собой (склоны серпантина, гребень) */
 const CAM_CLEAR = 1.15;
-/** Поле зрения по вертикали: 70 на месте → 78 на полной скорости, +6 в турбо */
+/** Поле зрения по вертикали: 70 на месте → 82 на полной скорости, +6 в турбо */
 const FOV_MIN = 70;
-const FOV_SPEED = 8;
+const FOV_SPEED = 12;
 const FOV_TURBO = 6;
 /** После финиша камера облетает карт — до стольких радиан */
 const ORBIT_MAX = 2.4;
@@ -259,7 +259,7 @@ export class RaceMatch {
         this.ready = true;
         this.setPhase(m.phase, m.phaseEnd);
         this.setRoster(m.karts);
-        this.d.hud.banner(`🏁 ${this.d.world.track.name} <small>${RC_LAPS} круга</small>`, 2600);
+        this.d.hud.banner(`🏁 ${this.d.world.track.name} <small>${(this.d.world.track.length / 1000).toFixed(2).replace('.', ',')} км · ${RC_LAPS} круга</small>`, 2600);
         break;
       case 'rroster':
         this.setRoster(m.karts);
@@ -818,13 +818,15 @@ export class RaceMatch {
     const s = this.predictor.state;
     const p = this.myPose;
     const speed = Math.hypot(s.vx, s.vz);
+    const pace = Math.min(1, speed / KART_MAX_SPEED);
+    const cameraUp = CAM_UP + pace * 0.45;
     const slip = s.vx * s.hx + s.vz * s.hz > 3 ? clamp(wrapAngle(Math.atan2(-s.vx, -s.vz) - p.yaw), -CAM_SLIP, CAM_SLIP) : 0;
     if (!this.camInit) {
       this.camInit = true;
       this.camYaw = p.yaw + slip;
       this.camVel = 0;
       this.camSlip = slip;
-      this.camY = p.y + CAM_UP;
+      this.camY = p.y + cameraUp;
       this.look = 0;
     }
     this.camSlip = damp(this.camSlip, slip, CAM_SLIP_RATE, dt);
@@ -834,7 +836,7 @@ export class RaceMatch {
     this.camYaw += this.camVel * dt;
     const lag = wrapAngle(target - this.camYaw);
     if (lag > CAM_LAG || lag < -CAM_LAG) this.camYaw += (lag - clamp(lag, -CAM_LAG, CAM_LAG)) * (1 - Math.exp(-CAM_CATCH * dt));
-    this.camY = Math.abs(p.y + CAM_UP - this.camY) > 6 ? p.y + CAM_UP : damp(this.camY, p.y + CAM_UP, 8, dt);
+    this.camY = Math.abs(p.y + cameraUp - this.camY) > 6 ? p.y + cameraUp : damp(this.camY, p.y + cameraUp, 8, dt);
 
     // мышью — оглядеться; взгляд держится, пока мышь двигают, и ещё секунду, потом плавно за карт
     const dm = wrapAngle(input.yaw - this.mouseYaw);
@@ -847,8 +849,10 @@ export class RaceMatch {
     const yaw = this.camYaw + this.look + this.orbit;
     const hx = -Math.sin(yaw);
     const hz = -Math.cos(yaw);
-    let cx = p.x - hx * CAM_BACK;
-    let cz = p.z - hz * CAM_BACK;
+    const back = CAM_BACK + pace * 1.1;
+    const ahead = CAM_AHEAD + pace * 3;
+    let cx = p.x - hx * back;
+    let cz = p.z - hz * back;
     locate(tr, cx, cz, s.seg, this.camLoc);
     const lim = this.camLoc.hw + CAM_MARGIN;
     const lat = this.camLoc.lat;
@@ -870,10 +874,10 @@ export class RaceMatch {
     const floor = world.camFloor(cx, cz, this.floorLoc) + CAM_CLEAR;
     this.camFloorY = this.camFloorY === -Infinity || Math.abs(floor - this.camFloorY) > 8 ? floor : damp(this.camFloorY, floor, 10, dt);
     cam.position.set(cx + ox, Math.max(this.camY, this.camFloorY) + oy, cz);
-    cam.lookAt(p.x + hx * CAM_AHEAD + ox * 0.5, p.y + 0.8 + oy * 0.5, p.z + hz * CAM_AHEAD);
+    cam.lookAt(p.x + hx * ahead + ox * 0.5, p.y + 0.8 + oy * 0.5, p.z + hz * ahead);
 
     const lvl = s.boostT > 0 ? s.boostLvl : 0;
-    const fov = FOV_MIN + Math.min(1, speed / 26) * FOV_SPEED + (lvl === BOOST_TURBO ? FOV_TURBO : lvl > 0 ? (FOV_TURBO * (1 + lvl)) / 8 : 0) + this.fovKick;
+    const fov = FOV_MIN + pace * FOV_SPEED + (lvl === BOOST_TURBO ? FOV_TURBO : lvl > 0 ? (FOV_TURBO * (1 + lvl)) / 8 : 0) + this.fovKick;
     this.curFov = damp(this.curFov, fov, 6, dt);
     const f = narrowFov(this.curFov, cam.aspect);
     if (Math.abs(cam.fov - f) > 0.01) {

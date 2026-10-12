@@ -75,15 +75,15 @@ function soloLaps(skills: KartSkill[], maxTicks: number): { karts: KartState[]; 
   return { karts, laps, hits, spins };
 }
 
-test('четыре бота (normal) одни на трассе: три круга за 4 минуты (с помехами), без падений в воду', () => {
-  const { karts, laps, hits, spins } = soloLaps(['normal', 'normal', 'normal', 'normal'], 4 * 60 * 60);
+test('четыре бота (normal) одни на трассе: три круга за 4,5 минуты (с помехами), без падений в воду', () => {
+  const { karts, laps, hits, spins } = soloLaps(['normal', 'normal', 'normal', 'normal'], 4.5 * 60 * 60);
   karts.forEach((k, i) => {
     assert.equal(k.done, 1, `бот ${i} не доехал`);
     assert.equal(spins[i], 0, `бот ${i}: попал под движущуюся помеху ${spins[i]} раз`);
     assert.ok(hits[i] <= 12, `бот ${i}: ${hits[i]} тиков с ударами о бочки и блоки за три круга`);
     assert.equal(laps[i].length, RC_LAPS, `бот ${i}: кругов ${laps[i].length}`);
-    for (const s of laps[i]) assert.ok(s > 55 && s < 75, `бот ${i}: круг ${s} с`);
-    assert.ok(laps[i].reduce((a, b) => a + b, 0) < 225, `бот ${i}: три круга дольше 225 с`);
+    for (const s of laps[i]) assert.ok(s > 70 && s < 90, `бот ${i}: круг ${s} с`);
+    assert.ok(laps[i].reduce((a, b) => a + b, 0) < 270, `бот ${i}: три круга дольше 270 с`);
   });
 });
 
@@ -250,8 +250,8 @@ test('человек на автопилоте финиширует первым
   const { row, reward } = log.results[0];
   assert.equal(row.place, 1);
   assert.deepEqual(reward, { total: 55, finish: 15, place: 40, pos: 1 });
-  assert.ok(row.time > 150_000 && row.time < 200_000, `время ${row.time}`);
-  assert.ok(row.best > 50_000 && row.best < 66_000, `лучший круг ${row.best}`);
+  assert.ok(row.time > 210_000 && row.time < 260_000, `время ${row.time}`);
+  assert.ok(row.best > 65_000 && row.best < 85_000, `лучший круг ${row.best}`);
   assert.equal(row.tokens, 55);
   assert.ok(s.msgs.some((m) => m.t === 'raceReward' && m.total === 55));
   assert.ok(events(s).some((e) => e[0] === 'finish' && e[1] === k.id && e[2] === 1));

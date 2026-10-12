@@ -11,6 +11,7 @@ import { E_ALIVE, E_GROUNDED } from '../../shared/protocol.ts';
 import { regattaCourse, type RgCourse, type RgGate } from '../../shared/regattacourse.ts';
 import { Avatar, type AvatarPose } from '../render/avatar.ts';
 import { glowSprite, makeBoat, mergeColored, paint } from '../render/kit.ts';
+import { regattaLand } from './regattaland.ts';
 
 /** Поплавки на канате — через столько метров */
 const FLOAT_STEP = 2.2;
@@ -91,7 +92,7 @@ function numberSprite(n: number): THREE.SpriteMaterial {
 }
 
 /** Края коридора: точки левого и правого каната (по нормали к среднему направлению соседних отрезков). */
-function edgeLines(c: RgCourse): [number[], number[]] {
+function edgeLines(c: RgCourse): number[][] {
   const tr = c.track;
   const left: number[] = [];
   const right: number[] = [];
@@ -107,7 +108,40 @@ function edgeLines(c: RgCourse): [number[], number[]] {
     right.push(tr.px[i] - dz * hw, tr.pz[i] + dx * hw);
     left.push(tr.px[i] + dz * hw, tr.pz[i] - dx * hw);
   }
-  return [left, right];
+  // Break ropes where the real inner waterway joins the main course. A visible
+  // rope across an allowed shortcut falsely tells players it is forbidden.
+  const paths: number[][] = [];
+  const distance = (x: number, z: number, points: ReadonlyArray<readonly [number, number]>) => {
+    let best = Infinity;
+    for (let i = 1; i < points.length; i++) {
+      const a = points[i - 1], b = points[i], dx = b[0] - a[0], dz = b[1] - a[1];
+      const t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (z - a[1]) * dz) / (dx * dx + dz * dz)));
+      best = Math.min(best, Math.hypot(x - a[0] - dx * t, z - a[1] - dz * t));
+    }
+    return best;
+  };
+  const split = (line: number[], allowed: (x: number, z: number) => boolean) => {
+    let path: number[] = [];
+    for (let i = 0; i < line.length; i += 2) {
+      const x = line[i], z = line[i + 1];
+      if (allowed(x, z)) path.push(x, z);
+      else { if (path.length >= 4) paths.push(path); path = []; }
+    }
+    if (path.length >= 4) paths.push(path);
+  };
+  for (const line of [left, right]) split([...line, line[0], line[1]], (x, z) => distance(x, z, c.inside) > 7.35);
+  const main = Array.from(tr.px, (x, i) => [x, tr.pz[i]] as const);
+  main.push(main[0]);
+  for (const side of [-1, 1]) {
+    const line: number[] = [];
+    for (let i = 0; i < c.inside.length; i++) {
+      const p = c.inside[i], a = c.inside[Math.max(0, i - 1)], b = c.inside[Math.min(c.inside.length - 1, i + 1)];
+      const dx = b[0] - a[0], dz = b[1] - a[1], l = Math.hypot(dx, dz);
+      line.push(p[0] - dz / l * 7 * side, p[1] + dx / l * 7 * side);
+    }
+    split(line, (x, z) => distance(x, z, main) > tr.half + 0.35);
+  }
+  return paths;
 }
 
 /** Лента каната по замкнутой ломаной */
@@ -118,8 +152,8 @@ function ropeGeometry(lines: number[][], width: number): THREE.BufferGeometry {
     const n = line.length / 2;
     const base = pos.length / 3;
     for (let i = 0; i < n; i++) {
-      const a = (i + n - 1) % n;
-      const b = (i + 1) % n;
+      const a = Math.max(0, i - 1);
+      const b = Math.min(n - 1, i + 1);
       let dx = line[b * 2] - line[a * 2];
       let dz = line[b * 2 + 1] - line[a * 2 + 1];
       const l = Math.hypot(dx, dz) || 1;
@@ -129,7 +163,7 @@ function ropeGeometry(lines: number[][], width: number): THREE.BufferGeometry {
       const z = line[i * 2 + 1];
       pos.push(x - dz * width, ROPE_Y, z + dx * width, x + dz * width, ROPE_Y, z - dx * width);
     }
-    for (let i = 0; i < n; i++) {
+    for (let i = 0; i < n - 1; i++) {
       const a = base + i * 2;
       const b = base + ((i + 1) % n) * 2;
       idx.push(a, b, a + 1, a + 1, b, b + 1);
@@ -197,6 +231,9 @@ interface Pennant {
 export class RegattaCourse3D {
   readonly root = new THREE.Group();
   readonly course: RgCourse = regattaCourse();
+  readonly ready: Promise<void>;
+  landLoaded = false;
+  textureLoaded = false;
   private readonly strips: THREE.Mesh[] = [];
   private readonly stripMat: THREE.MeshBasicMaterial;
   private readonly marker: THREE.Mesh;
@@ -224,16 +261,16 @@ export class RegattaCourse3D {
     const c = this.course;
     const rnd = makeRng(4242);
     // --- канаты и поплавки
-    const [left, right] = edgeLines(c);
+    const edges = edgeLines(c);
     const ropeMat = new THREE.MeshStandardMaterial({ color: 0xf3ead6, roughness: 0.8 });
-    const rope = new THREE.Mesh(ropeGeometry([left, right], 0.04), ropeMat);
+    const rope = new THREE.Mesh(ropeGeometry(edges, 0.04), ropeMat);
     rope.name = 'regatta-rope';
     this.root.add(rope);
     const spots: number[] = [];
-    for (const line of [left, right]) {
+    for (const line of edges) {
       const n = line.length / 2;
       let carry = 0;
-      for (let i = 0; i < n; i++) {
+      for (let i = 0; i < n - 1; i++) {
         const b = (i + 1) % n;
         const ax = line[i * 2];
         const az = line[i * 2 + 1];
@@ -387,6 +424,7 @@ export class RegattaCourse3D {
     this.starter.addTo(scene);
     this.setBoard({ title: 'ПОРТОВАЯ РЕГАТА', phase: '', rows: [], foot: '' });
     scene.add(this.root);
+    this.ready = regattaLand(this.root).then(({ textured }) => { this.landLoaded = true; this.textureLoaded = textured; });
   }
 
   /** Арка над линией старта: пилоны на понтонах, балка, табло (спереди — места, сзади — название), клетка на воде. */

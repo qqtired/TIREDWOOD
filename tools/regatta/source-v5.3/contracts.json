@@ -1,0 +1,336 @@
+{
+  "units": "metres",
+  "up": "+Y",
+  "front": "-Z",
+  "status": "Approved component contracts, V2 source prepared; actual export/review pending",
+  "kits": {
+    "regatta-course": {
+      "components": [
+        "race_gate",
+        "course_buoy",
+        "coastal_landmark",
+        "harbor_pier",
+        "regatta_full_course"
+      ],
+      "race_gate": {
+        "clearWidth": 12,
+        "height": 3.5,
+        "origin": "water centre",
+        "anchors": {
+          "gate_left": [
+            -6,
+            0,
+            0
+          ],
+          "gate_right": [
+            6,
+            0,
+            0
+          ],
+          "checkpoint": [
+            0,
+            0,
+            0
+          ]
+        }
+      }
+    },
+    "tower-course": {
+      "components": [
+        "tower_platform",
+        "tower_rails",
+        "trap_arm",
+        "checkpoint_bell",
+        "tower_slice",
+        "tower_full_overview"
+      ],
+      "tower_platform": {
+        "width": 3.2,
+        "depth": 3.2,
+        "thickness": 0.25,
+        "origin": "deck centre/top",
+        "anchors": {
+          "deck_top": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "slice": [
+        {
+          "id": 0,
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "w": 4,
+          "d": 4
+        },
+        {
+          "id": 1,
+          "x": 4,
+          "y": 1.2,
+          "z": 0,
+          "w": 3.2,
+          "d": 3.2
+        },
+        {
+          "id": 2,
+          "x": 4,
+          "y": 2.4,
+          "z": -4,
+          "w": 3.2,
+          "d": 3.2
+        },
+        {
+          "id": 3,
+          "x": 0,
+          "y": 3.6,
+          "z": -4,
+          "w": 3.2,
+          "d": 3.2
+        },
+        {
+          "id": 4,
+          "x": 0,
+          "y": 4.8,
+          "z": -8,
+          "w": 4,
+          "d": 3.2
+        }
+      ],
+      "fullOverview": "185m, 6 belts, 18 sectors; overview separately named and never presented as played"
+    },
+    "aqua-kit": {
+      "components": [
+        "aqua_ferry",
+        "aqua_sink",
+        "aqua_sweeper",
+        "aqua_pendulum",
+        "aqua_trampoline",
+        "aqua_lift",
+        "aqua_sweeper_disc",
+        "aqua_lift_frame",
+        "aqua_full_course",
+        "aqua_slide"
+      ],
+      "origin": "platform deck top",
+      "timings": {
+        "sweeperPeriod": 3.6,
+        "sinkPeriod": 4,
+        "sinkWarning": 0.8,
+        "bounce": 12
+      },
+      "note": "GLB demonstration clips are sampled at 24fps; the demo's existing procedural timing remains authoritative.",
+      "aqua_sweeper": {
+        "origin": "bar rotation pivot; no disc",
+        "runtimeY": 0.3
+      },
+      "aqua_sweeper_disc": {
+        "radius": 3,
+        "deckTop": 0,
+        "runtimeY": -0.3
+      },
+      "aqua_slide": {
+        "origin": "floor under entry",
+        "entry": [
+          0,
+          4,
+          0
+        ],
+        "exit": [
+          0,
+          -0.4,
+          15
+        ],
+        "width": 3.1,
+        "thickness": 0.23
+      }
+    },
+    "social-picnic": {
+      "components": [
+        "carry_tray",
+        "party_cake",
+        "candles"
+      ],
+      "carry_tray": {
+        "size": [
+          1.8,
+          0.12,
+          0.9
+        ],
+        "origin": "tray centre",
+        "anchors": {
+          "handle_front_left": [
+            -0.7,
+            0.14,
+            -0.42
+          ],
+          "handle_front_right": [
+            0.7,
+            0.14,
+            -0.42
+          ],
+          "handle_rear_left": [
+            -0.7,
+            0.14,
+            0.42
+          ],
+          "handle_rear_right": [
+            0.7,
+            0.14,
+            0.42
+          ]
+        }
+      },
+      "party_cake": {
+        "diameter": 0.55,
+        "height": 0.7,
+        "origin": "cake base"
+      }
+    },
+    "social-theatre": {
+      "components": [
+        "theatre_stage",
+        "curtain_left",
+        "curtain_right",
+        "umbrella",
+        "crown",
+        "bell",
+        "bell_clapper",
+        "ukulele",
+        "drum",
+        "drum_membrane",
+        "whistle"
+      ],
+      "theatre_stage": {
+        "size": [
+          4.5,
+          3.2,
+          2.2
+        ],
+        "origin": "floor centre"
+      },
+      "curtains": "children of theatre_stage; pivots at outer top",
+      "umbrella": {
+        "diameter": 0.8,
+        "height": 1,
+        "origin": "handle base"
+      },
+      "crown": {
+        "diameter": 0.42,
+        "height": 0.24
+      },
+      "bell": {
+        "diameter": 0.23,
+        "height": 0.3
+      },
+      "ukulele": {
+        "width": 0.22,
+        "height": 0.55,
+        "origin": "grip"
+      },
+      "drum": {
+        "diameter": 0.4,
+        "height": 0.2,
+        "origin": "base"
+      },
+      "whistle": {
+        "length": 0.15
+      }
+    },
+    "social-beach": {
+      "components": [
+        "chalk_gate",
+        "chalk_hurdle",
+        "kite_body",
+        "kite_tail1",
+        "kite_tail2",
+        "kite_tail3",
+        "kite_tail4",
+        "spool",
+        "sand_foundation",
+        "sand_arch",
+        "sand_turret",
+        "sand_brace",
+        "shovel",
+        "shell"
+      ],
+      "chalk_gate": {
+        "size": [
+          1.2,
+          1.5,
+          0.15
+        ],
+        "origin": "base"
+      },
+      "chalk_hurdle": {
+        "size": [
+          1.3,
+          0.55,
+          0.3
+        ],
+        "origin": "base"
+      },
+      "kite_body": {
+        "size": [
+          0.9,
+          1.1,
+          0.04
+        ],
+        "origin": "centre"
+      },
+      "kite_tail": {
+        "size": [
+          0.18,
+          0.16,
+          0.04
+        ],
+        "origin": "centre"
+      },
+      "spool": {
+        "size": [
+          0.2,
+          0.15,
+          0.15
+        ],
+        "origin": "centre"
+      },
+      "sand_foundation": {
+        "size": [
+          1.15,
+          0.45,
+          1
+        ],
+        "origin": "base"
+      },
+      "sand_arch": {
+        "size": [
+          0.85,
+          0.65,
+          0.7
+        ],
+        "origin": "base"
+      },
+      "sand_turret": {
+        "diameter": 0.55,
+        "height": 0.9,
+        "origin": "base"
+      },
+      "sand_brace": {
+        "size": [
+          1.2,
+          0.5,
+          0.1
+        ],
+        "origin": "base"
+      },
+      "shovel": {
+        "length": 0.45
+      },
+      "shell": {
+        "width": 0.15
+      }
+    }
+  }
+}

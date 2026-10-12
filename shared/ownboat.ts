@@ -15,6 +15,7 @@ import { pick } from './layout.ts';
 import { PORT } from './plaza3/port.ts';
 import { RAT_DECK } from './ratrace.ts';
 import { A, xfP } from './plaza3/xf.ts';
+import { resolveRegattaBanks } from './regattabanks.ts';
 
 const DT = 1 / TICK_RATE;
 
@@ -379,6 +380,7 @@ export function stepOwnBoat(s: ObState, inp: Readonly<Input>, anchor = false): b
     s.steer += (want - s.steer) * STEER_RATE;
   }
   if (s.ph === OB_SEA || s.ph === OB_DROP) {
+    const previous = { x: s.x, z: s.z, yaw: s.yaw };
     const sp = Math.abs(s.v);
     const rate = TURN_STILL + (kind.turn - TURN_STILL) * Math.min(1, sp / kind.speed);
     // задним ходом руль работает наоборот, как у настоящей лодки
@@ -388,6 +390,7 @@ export function stepOwnBoat(s: ObState, inp: Readonly<Input>, anchor = false): b
     s.x += -Math.sin(s.yaw) * s.v * DT;
     s.z += -Math.cos(s.yaw) * s.v * DT;
     collide(s, kind);
+    resolveRegattaBanks(s, previous, kind);
   }
   return left;
 }

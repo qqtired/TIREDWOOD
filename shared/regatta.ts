@@ -4,6 +4,7 @@
 import { TICK_RATE } from './constants.ts';
 import type { Outfit } from './outfit.ts';
 import { RG_KEYS, type RgBoat } from './regattaphysics.ts';
+import { RG_COURSE, RG_LAPS } from './regattacourse.ts';
 import type { GatherStatus } from './startzones.ts';
 
 export { RG_COURSE, RG_LAPS } from './regattacourse.ts';
@@ -88,7 +89,7 @@ export type RegattaServerMsg =
 export type RegattaClientMsg = { t: 'rg'; a: 'quit' };
 
 export function emptyRgView(): RgView {
-  return { phase: 'idle', end: 0, start: 0, stop: 0, laps: 3, course: 'harbor-v1', boats: [], rows: [], again: [], rematch: 0 };
+  return { phase: 'idle', end: 0, start: 0, stop: 0, laps: RG_LAPS, course: RG_COURSE, boats: [], rows: [], again: [], rematch: 0 };
 }
 
 /** Награда за заезд: за время на ходу (если хоть 20 с) и за место (только финишировавшим). */
@@ -146,7 +147,7 @@ export const RG_SELF_BYTES = SELF_HEAD + RG_KEYS.length * 8;
 export function rgFlags(s: RgBoat): number {
   let f = 0;
   if (s.boost > 0) f |= RG_FL_BOOST;
-  if (s.boost > 0 && s.boostTop > 22) f |= RG_FL_FLAG;
+  if (s.boost > 0 && s.boostTop > 25) f |= RG_FL_FLAG;
   if (s.drift > 0) f |= RG_FL_DRIFT;
   if (s.drift > 0 && s.driftDir < 0) f |= RG_FL_DRIFT_RIGHT;
   if (s.ghost > 0) f |= RG_FL_GHOST;

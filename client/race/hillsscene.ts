@@ -19,9 +19,10 @@ import { arrowSignTexture, bannerTexture, grassTexture, rippleTexture, roofTextu
 import type { EdgeLayout } from './trackgeo.ts';
 
 /** Река: русло между x0 и x1 с севера до пруда; пруд — круг */
-const RIVER_X0 = 52.6;
-const RIVER_X1 = 61.4;
-const POND = { x: 57, z: -35, r: 16 };
+const RIVER_X0 = 48;
+const RIVER_X1 = 66;
+const POND = { x: 57, z: -87, r: 22 };
+const BEACH_Z = 214;
 /** Берег: на стольких метрах от воды земля спускается к ней */
 const BANK = 2.6;
 const RIVER_BED = WATER_Y - 1.1;
@@ -44,12 +45,12 @@ const smooth01 = (t: number): number => {
 
 /** Природный рельеф без дороги: холм серпантина, горы на севере и западе, холмы на востоке, пляж и море на юге */
 export function naturalHeight(x: number, z: number): number {
-  const dx = x + 45;
-  const dz = z - 50;
-  let h = 12.5 * Math.exp(-(dx * dx + dz * dz) / (2 * 78 * 78));
-  h += 24 * smooth01((-95 - x) / 120);
-  h += 30 * smooth01((-112 - z) / 130);
-  h += 14 * smooth01((x - 205) / 120);
+  const dx = x + 100;
+  const dz = z - 15;
+  let h = 18 * Math.exp(-(dx * dx + dz * dz) / (2 * 105 * 105));
+  h += 24 * smooth01((-200 - x) / 120);
+  h += 30 * smooth01((-202 - z) / 130);
+  h += 14 * smooth01((x - 245) / 120);
   // волны: у деревни и фонтана — тише
   const calm = 1 - 0.75 * smooth01((x - 85) / 30) * smooth01((z + 110) / 20);
   h += (1.7 * Math.sin(x * 0.045 + 1.3) * Math.sin(z * 0.038 + 0.7) + 0.8 * Math.sin(x * 0.11 + z * 0.07 + 2.1)) * calm;
@@ -57,11 +58,11 @@ export function naturalHeight(x: number, z: number): number {
   const rx = x - (RIVER_X0 + RIVER_X1) / 2;
   h -= 5 * Math.exp(-(rx * rx) / (2 * 16 * 16)) * smooth01((-25 - z) / 40);
   // пляж и море
-  if (z > 184) {
-    const beach = 0.7 - (z - 184) * 0.085;
-    const k = smooth01((z - 184) / 10);
+  if (z > BEACH_Z) {
+    const beach = 0.7 - (z - BEACH_Z) * 0.085;
+    const k = smooth01((z - BEACH_Z) / 10);
     h = h * (1 - k) + Math.min(h, beach) * k;
-    if (z > 196) h = Math.min(h, beach);
+    if (z > BEACH_Z + 12) h = Math.min(h, beach);
   }
   return h;
 }
@@ -307,12 +308,12 @@ export class HillsScene {
     const colors = [0xf2efe6, 0x2f5f8f, 0xc9a03a, 0x8f3b2f, 0x3f7f6a];
     for (let k = 0; k < 7; k++) {
       const x = b.x0 + 40 + rng() * (b.x1 - b.x0 - 80);
-      const z = 232 + rng() * 70;
+      const z = BEACH_Z + 48 + rng() * 70;
       this.c.deco.push({ kind: 'boat', x, z, yaw: rng() * Math.PI * 2, color: colors[k % colors.length] });
     }
-    for (let k = 0; k < 6; k++) this.c.deco.push({ kind: 'buoy', x: b.x0 + 60 + k * ((b.x1 - b.x0 - 120) / 5), z: 222, color: k % 2 ? 0xc0392b : 0xf2efe6 });
+    for (let k = 0; k < 6; k++) this.c.deco.push({ kind: 'buoy', x: b.x0 + 60 + k * ((b.x1 - b.x0 - 120) / 5), z: BEACH_Z + 38, color: k % 2 ? 0xc0392b : 0xf2efe6 });
     const lx = b.x1 + 30;
-    const lz = 236;
+    const lz = BEACH_Z + 52;
     const out = this.c.solid;
     out.push(place(paint(new THREE.CylinderGeometry(7, 9, 4, 9), 0x9a948a), lx, WATER_Y + 1, lz));
     out.push(place(paint(new THREE.CylinderGeometry(1.6, 2.1, 12, 16), 0xf6f3ec), lx, WATER_Y + 9, lz));
@@ -383,7 +384,7 @@ export class HillsScene {
         const wi = waterInside(x, z);
         let s = 0;
         if (wi > -BANK - 1.5) s = Math.max(s, smooth01((wi + BANK + 1.5) / 1.5));
-        if (z > 182) s = Math.max(s, smooth01((z - 186) / 5) * smooth01((2.2 - h) / 1.2));
+        if (z > BEACH_Z - 2) s = Math.max(s, smooth01((z - BEACH_Z - 2) / 5) * smooth01((2.2 - h) / 1.2));
         if (h < WATER_Y + 0.3) s = 1;
         if (inVineyard(x, z)) s = Math.max(s, 0.42);
         sand[k] = s;
@@ -926,7 +927,7 @@ export class HillsScene {
       for (let z = b.z0; z < b.z1; z += dense) {
         const x1 = x + rng() * dense;
         const z1 = z + rng() * dense;
-        if (z1 > 184) continue;
+        if (z1 > BEACH_Z) continue;
         if (rng() > 0.45) continue;
         add(x1, z1, true);
       }
@@ -938,7 +939,7 @@ export class HillsScene {
         if (x > b.x0 - 4 && x < b.x1 + 4 && z > b.z0 - 4 && z < b.z1 + 4) continue;
         const x1 = x + rng() * far;
         const z1 = z + rng() * far;
-        if (z1 > 186) continue;
+        if (z1 > BEACH_Z + 2) continue;
         add(x1, z1, false);
       }
     }
@@ -992,8 +993,8 @@ export class HillsScene {
 
 /** Виноградник: два участка у спуска с гребня */
 const VINEYARD = [
-  { x0: -30, z0: -88, x1: 24, z1: -14 },
-  { x0: -112, z0: -78, x1: -74, z1: -12 },
+  { x0: -128, z0: -151, x1: -55, z1: -35 },
+  { x0: -218, z0: -144, x1: -181, z1: -31 },
 ];
 
 function inVineyard(x: number, z: number): boolean {

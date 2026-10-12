@@ -6,16 +6,16 @@
 // чисто приводнился — мини-ускорение, боком — −20 %. Столкновения катеров — collideRgBoats (только на сервере).
 import { DT } from './constants.ts';
 import { sinCos } from './math.ts';
-import { RG_LAPS, type RgCourse } from './regattacourse.ts';
+import { RG_LAPS, makeRgWaterLoc, rgWaterAt, type RgCourse } from './regattacourse.ts';
 import { BTN_BACK, BTN_DASH, BTN_FORWARD, BTN_JUMP, BTN_LEFT, BTN_RELOAD, BTN_RIGHT, type Input } from './sim.ts';
-import { locate, locateAny, makeLoc, type TrackLoc } from './track.ts';
+import { locateAny, makeLoc } from './track.ts';
 
 /** Потолок скорости без ускорения и задним ходом, м/с */
-export const RG_TOP = 17;
+export const RG_TOP = 21;
 export const RG_REVERSE = 4;
-/** Ускорения: флажки (до 25 м/с), мини-ускорение после заноса, чистого приводнения и удачного старта (до 20 м/с) */
-export const RG_FLAG_TOP = 25;
-export const RG_MINI_TOP = 20;
+/** Ускорения: флажки (до 29 м/с), мини-ускорение после сноса, чистого приводнения и удачного старта (до 24 м/с) */
+export const RG_FLAG_TOP = 29;
+export const RG_MINI_TOP = 24;
 export const RG_FLAG_TICKS = 90;
 /** Корпус — два круга: у носа и у кормы (от середины по курсу), радиус */
 export const RG_BOW = 1.25;
@@ -24,7 +24,7 @@ export const RG_R = 0.95;
 export const RG_RESPAWN_COOL = 180;
 export const RG_GHOST = 90;
 
-const ACCEL = 12;
+const ACCEL = 14;
 const BRAKE = 14;
 const REV_ACCEL = 5;
 /** Без газа: вода тормозит (постоянная часть и квадратичная) */
@@ -34,18 +34,17 @@ const QUAD = 0.012;
 const OVER = 6;
 const BOOST_ACCEL = 30;
 /** Руль: рад/с на ходу; ниже PLOW м/с нос «пашет» воду — руль слабее (у стоянки — PLOW_MIN) */
-const TURN = 1.3;
+const TURN = 1.45;
 const PLOW = 7;
-const PLOW_MIN = 0.35;
-const STEER_RATE = 0.1;
+const PLOW_MIN = 0.6;
+const STEER_RATE = 11 / 60;
 /** Сколько бокового скольжения гасится за тик: обычно и в заносе */
 const GRIP = 0.12;
 const DRIFT_GRIP = 0.06;
 /** Занос: с какой скорости начинается и до какой держится; поворот в нём; потеря скорости за тик (−3 %/с) */
 const DRIFT_MIN = 8;
 const DRIFT_KEEP = 5;
-const DRIFT_BASE = 1;
-const DRIFT_STEER = 0.45;
+const DRIFT_TURN = 1.95;
 const DRIFT_LOSS = 0.0005;
 /** Мини-ускорение: занос дольше 0,7 с — на 0,5 с, дольше 1,4 с — на 0,9 с */
 export const RG_MINI1 = 42;
@@ -62,9 +61,9 @@ const COAST_STOP = 0.985;
 /** Удары: сильнее HIT_MIN м/с — потеря скорости; о камень — ещё и мотор молчит 0,3 с */
 const HIT_MIN = 1.5;
 const CRASH_STALL = 18;
-const ROPE_E = 0.3;
+const ROPE_E = 0.12;
 const ROPE_HIT = 1.2;
-const ROPE_KEEP = 0.85;
+const ROPE_KEEP = 0.96;
 /** Дальше за канатом — значит, что-то пошло не так: к воротам */
 const LOST = 4;
 /** Трамплин: подъём по скорости, падение, руль в воздухе; приводнение «чисто» — нос по ходу в пределах 15° */
@@ -176,7 +175,8 @@ function resetEvents(ev: RgEvents): void {
 
 const sc = { s: 0, c: 0 };
 const _loc = makeLoc();
-const _hull = makeLoc();
+const _water = makeRgWaterLoc();
+const _hull = makeRgWaterLoc();
 
 /** Катер на место решётки: всё с нуля, круг 1, носом по ходу. */
 export function placeRgBoat(s: RgBoat, c: RgCourse, slot: number): void {
@@ -198,10 +198,10 @@ function boost(s: RgBoat, ticks: number, top: number): void {
 export function respawnRgBoat(s: RgBoat, c: RgCourse): void {
   const g = c.gates[s.cp];
   const first = s.cp === 0 && s.lap === 1;
-  s.x = first ? g.x - g.tx * 20 : g.rx;
-  s.z = first ? g.z - g.tz * 20 : g.rz;
-  s.hx = g.tx;
-  s.hz = g.tz;
+  s.x = first ? c.grid[4].x : g.rx;
+  s.z = first ? c.grid[4].z : g.rz;
+  s.hx = first ? c.grid[4].hx : g.tx;
+  s.hz = first ? c.grid[4].hz : g.tz;
   s.vx = s.vz = s.vy = s.y = 0;
   s.steer = 0;
   s.air = s.ramp = 0;
@@ -285,7 +285,7 @@ export function stepRgBoat(s: RgBoat, inp: Input, c: RgCourse, ev: RgEvents, dri
   const oz = s.z;
   if (s.air) {
     air(s, c, ev);
-    crossings(s, c, ox, oz, ev);
+    if (!ev.respawn) crossings(s, c, ox, oz, ev);
     return;
   }
   let fwd = s.vx * s.hx + s.vz * s.hz;
@@ -293,14 +293,26 @@ export function stepRgBoat(s: RgBoat, inp: Input, c: RgCourse, ev: RgEvents, dri
   const driftBtn = (b & (BTN_DASH | BTN_JUMP)) !== 0;
   if (s.drift > 0) {
     if (!driftBtn || fwd < DRIFT_KEEP) endDrift(s, ev);
-    else s.drift++;
+    else {
+      const sideways = -s.vx * s.hz + s.vz * s.hx;
+      // Countersteer can straighten the boat while Shift stays held. Charge
+      // only a real powered slide; holding Shift down a straight grants no turbo.
+      if (Math.abs(s.steer) > 0.25 && Math.abs(sideways) > 1.5) s.drift++;
+      else s.drift = s.drift > 1 ? s.drift - 1 : 1;
+    }
   } else if (driftBtn && target !== 0 && fwd >= DRIFT_MIN && s.stall === 0) {
     s.drift = 1;
     s.driftDir = target;
     ev.drift = true;
   }
   let rate: number;
-  if (s.drift > 0) rate = TURN * (DRIFT_BASE * s.driftDir + DRIFT_STEER * s.steer);
+  if (s.drift > 0) {
+    // Accepted ProductLab countersteer: D reverses an A slide without releasing Shift.
+    // driftDir only describes the visible wake; it never locks the steering sign.
+    rate = DRIFT_TURN * s.steer;
+    if (s.steer > 0.08) s.driftDir = 1;
+    else if (s.steer < -0.08) s.driftDir = -1;
+  }
   else {
     const a = fwd < 0 ? -fwd : fwd;
     const plow = a < PLOW ? PLOW_MIN + ((1 - PLOW_MIN) * a) / PLOW : 1;
@@ -350,6 +362,7 @@ export function stepRgBoat(s: RgBoat, inp: Input, c: RgCourse, ev: RgEvents, dri
   s.z += s.vz * DT;
   ramp(s, c, oz, fwd, ev);
   if (!s.air) collide(s, c, ev, ox, oz);
+  if (ev.respawn) return;
   if (!Number.isFinite(s.x + s.z + s.vx + s.vz)) {
     respawnRgBoat(s, c);
     ev.respawn = true;
@@ -462,10 +475,11 @@ function collide(s: RgBoat, c: RgCourse, ev: RgEvents, ox: number, oz: number): 
       s.vz -= (1 + e) * vn * nz;
       const hit = -vn;
       if (hit <= HIT_MIN) continue;
-      const keep = buoy ? 0.7 : 0.5;
+      // A grazing contact sheds little speed; a square impact still matters.
+      const keep = hit < 4 ? 0.96 : buoy ? 0.8 : 0.58;
       s.vx *= keep;
       s.vz *= keep;
-      if (!buoy) {
+      if (!buoy && hit >= 4) {
         s.stall = s.stall > CRASH_STALL ? s.stall : CRASH_STALL;
         s.hits++;
       }
@@ -475,22 +489,21 @@ function collide(s: RgBoat, c: RgCourse, ev: RgEvents, ox: number, oz: number): 
       }
     }
   }
-  const tr = c.track;
-  const at = locate(tr, s.x, s.z, s.seg, _loc);
+  const at = rgWaterAt(c, s.x, s.z, s.seg, _water);
   s.seg = at.seg;
-  if ((at.lat > 0 ? at.lat : -at.lat) > at.hw + LOST) {
+  if (at.distance > at.hw + LOST) {
     respawnRgBoat(s, c);
     ev.respawn = true;
     return;
   }
   for (let k = -1; k <= 1; k += 2) {
-    const l: TrackLoc = locate(tr, s.x + s.hx * RG_BOW * k, s.z + s.hz * RG_BOW * k, s.seg, _hull);
+    const l = rgWaterAt(c, s.x + s.hx * RG_BOW * k, s.z + s.hz * RG_BOW * k, s.seg, _hull);
     const over = (l.lat > 0 ? l.lat : -l.lat) - (l.hw - RG_R);
     if (over <= 0) continue;
     const sg = l.lat > 0 ? 1 : -1;
     // наружу — вправо по ходу (−tz, tx) со знаком стороны
-    const nx = -tr.tz[l.seg] * sg;
-    const nz = tr.tx[l.seg] * sg;
+    const nx = -l.tz * sg;
+    const nz = l.tx * sg;
     s.x -= nx * over;
     s.z -= nz * over;
     const vn = s.vx * nx + s.vz * nz;
@@ -605,8 +618,11 @@ export function collideRgBoats(a: RgBoat, b: RgBoat): number {
 export function rgProgress(s: RgBoat, c: RgCourse): number {
   const tr = c.track;
   const base = tr.s[tr.cpSeg[s.cp]];
-  let d = tr.s[s.seg] - base;
+  const water = rgWaterAt(c, s.x, s.z, s.seg, _water);
+  let d = water.progress - base;
   if (d > tr.length / 2) d -= tr.length;
   else if (d <= -tr.length / 2) d += tr.length;
-  return (s.lap - 1) * tr.length + base + d;
+  const next = s.cp + 1 < c.gates.length ? tr.s[tr.cpSeg[s.cp + 1]] : tr.length;
+  // Skipping a checkpoint cannot grant rank/progression credit further down the course.
+  return (s.lap - 1) * tr.length + Math.min(next, base + d);
 }

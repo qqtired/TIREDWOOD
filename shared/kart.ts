@@ -82,32 +82,35 @@ export const RT_MAX = 65535;
 
 /** Мини-турбо 1–3: столько тиков рывка */
 const MT_BOOST = [0, 36, 66, 96];
-const MAX_SPEED = 22;
+export const KART_MAX_SPEED = 31;
+const MAX_SPEED = KART_MAX_SPEED;
 /** Потолок скорости по уровню ускорения: без него, мини-турбо 1–3, турбо */
-const BOOST_SPEED = [MAX_SPEED, 25.5, 27, 28.5, 30];
+export const KART_TURBO_SPEED = 41;
+const BOOST_SPEED = [MAX_SPEED, 34.5, 36.5, 38.5, KART_TURBO_SPEED];
 const SLOW_SPEED = 11;
 const REVERSE_SPEED = 6;
-const ACCEL = 14;
-/** Разгон слабеет к потолку: 14 · (1 − 0,55 · v / потолок) */
+const ACCEL = 20;
+/** Разгон слабеет к потолку: 20 · (1 − 0,55 · v / потолок) */
 const ACCEL_FALL = 0.55;
 const OVER_DECEL = 12;
 /** Ускорение под турбо и мини-турбо (и без газа) */
-const BOOST_ACCEL = 24;
-const BRAKE = 30;
+const BOOST_ACCEL = 34;
+const BRAKE = 38;
 const REVERSE_ACCEL = 9;
 const COAST = 4;
 /** Доля боковой скорости, которая гасится за тик: сцепление и занос */
 const GRIP = 0.25;
 const DRIFT_GRIP = 0.06;
 const STEER_RATE = 8;
-const TURN_RATE = 2.3;
-/** На полной скорости руль поворачивает слабее: × (1 − 0,58) — без заноса радиус ~23 м на 22 м/с */
+export const KART_TURN_RATE = 2.3;
+const TURN_RATE = KART_TURN_RATE;
+/** На полной скорости руль поворачивает слабее: радиус ~32 м на 31 м/с; шпильки требуют торможения. */
 const TURN_FALL = 0.58;
 /** На месте руль поворачивает с такой долей силы: карт развернётся, даже стоя носом в стену */
 const TURN_MIN = 0.5;
 /** Полная сила руля — с такой скорости, м/с */
 const TURN_FULL_AT = 5;
-/** Занос поворачивает сильнее: внутрь — радиус ~14 м на полной скорости, наружу — ~40 м */
+/** Занос поворачивает сильнее: внутрь — радиус ~19 м на полной скорости, наружу — ~60 м */
 const DRIFT_TURN = 1.5;
 const DRIFT_START = 9;
 const DRIFT_KEEP = 7;

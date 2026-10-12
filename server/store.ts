@@ -22,6 +22,12 @@ import { parseDgTop, parseDgWeek, type DgWeekTable } from './dungeon/records.ts'
 export { emptyStats };
 export type { Stats };
 
+export const LEGACY_SKILL_COURSE = 'sky-tower-v1';
+export const TOWER_SKILL_COURSE = 'cloud-tower-185-v2';
+export type SkillRecordCourse = typeof LEGACY_SKILL_COURSE | typeof TOWER_SKILL_COURSE;
+export interface SkillCourseRecord { best: number; medal: number; clean: number; day: number; runs: number }
+export interface RecordCourses { aqua: number; regatta: string; skill: SkillRecordCourse }
+
 export interface Profile {
   id: number;
   nick: string;
@@ -49,6 +55,10 @@ export interface Profile {
   /** День последнего ежедневного бонуса по Москве, 'ГГГГ-ММ-ДД' */
   daily: string;
   stats: Stats;
+  /** Личные времена всех версий аквапарка, мс; aqBest — проекция активного курса. */
+  aquaBests?: Record<string, number>;
+  /** Полные рекорды курсов каланчи. Общий skRuns и оплаченный skDay не обнуляются при смене курса. */
+  skillRecords?: Record<string, SkillCourseRecord>;
   /** До какого времени (мс) на голове колпак дурака и на плечах погоны; 0 — нет */
   foolUntil: number;
   epUntil: number;
@@ -71,16 +81,18 @@ export interface State {
   /** Доска «Рекорды полосы» аквапарка: лучшие AQUA_TOP, у каждого — только свой лучший */
   aqua: AquaRecord[];
   /**
-   * Для какой полосы эта доска и личные лучшие (AQUA_COURSE). Полоса новая — при загрузке доска пустеет, а лучшее время
-   * в профилях сбрасывается: старые времена с новыми несравнимы (сколько раз прошёл — остаётся)
+   * Активная полоса. Перед её сменой доска и личные лучшие сохраняются в архив курса.
    */
   aquaCourse: number;
+  aquaArchive: Record<string, AquaRecord[]>;
   /**
    * «Портовая регата»: пять лучших кругов бухты (мс; у каждого — только свой лучший) и для какой трассы (RG_COURSE).
    * Трасса новая — доска пустеет (личные лучшие круги — у каждой трассы своё поле в статистике).
    */
   regatta: AquaRecord[];
   regattaCourse: string;
+  regattaArchive: Record<string, AquaRecord[]>;
+  skillCourse: SkillRecordCourse;
   /** Пять отдельных крупнейших уловов календарного дня по Москве; не личные рекорды игроков. */
   fishPodium: { day: string; catches: FishPodiumCatch[] };
   /** Сроки общих событий, абсолютные миллисекунды; переживают перезапуск. */
@@ -104,6 +116,8 @@ export interface State {
 }
 
 export interface StoreOptions {
+  /** Явные цели полезны для проверки миграции/отката на копии, без изменения окружения процесса. */
+  recordCourses?: Partial<RecordCourses>;
   saveDelayMs?: number;
   now?: () => number;
   log?: (s: string) => void;
@@ -119,8 +133,15 @@ export class StoreWriteError extends Error {
 const FILE = 'state.json';
 const BACKUP_RE = /^state-\d{4}-\d{2}-\d{2}\.json$/;
 
-function emptyState(): State {
-  return { v: 1, nextId: 1, jackpot: POOL_MIN, lastJackpot: null, respects: 0, aqua: [], aquaCourse: AQUA_COURSE, regatta: [], regattaCourse: RG_COURSE, fishPodium: { day: '', catches: [] }, lobbyEvents: { stormAt: 0, piratesAt: 0, endedAt: 0, lockUntil: 0 }, profiles: [] };
+function currentRecordCourses(overrides: Partial<RecordCourses> = {}): RecordCourses {
+  return { aqua: overrides.aqua ?? AQUA_COURSE, regatta: overrides.regatta ?? RG_COURSE,
+    skill: overrides.skill ?? (process.env.SKILL_TOWER2 === '1' ? TOWER_SKILL_COURSE : LEGACY_SKILL_COURSE) };
+}
+
+function emptyState(courses = currentRecordCourses()): State {
+  return { v: 1, nextId: 1, jackpot: POOL_MIN, lastJackpot: null, respects: 0, aqua: [], aquaCourse: courses.aqua,
+    aquaArchive: {}, regatta: [], regattaCourse: courses.regatta, regattaArchive: {}, skillCourse: courses.skill,
+    fishPodium: { day: '', catches: [] }, lobbyEvents: { stormAt: 0, piratesAt: 0, endedAt: 0, lockUntil: 0 }, profiles: [] };
 }
 
 function num(v: unknown, fallback = 0): number {
@@ -129,6 +150,125 @@ function num(v: unknown, fallback = 0): number {
 
 function strings(v: unknown): string[] {
   return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
+}
+
+function courseId(v: unknown): string | null {
+  return typeof v === 'string' && /^[a-z0-9][a-z0-9_.-]{0,79}$/.test(v)
+    && v !== 'constructor' && v !== 'prototype' ? v : null;
+}
+
+function aquaId(v: string): boolean { return /^[1-9]\d{0,7}$/.test(v); }
+function better(a: number | undefined, b: number): number {
+  return a && a > 0 ? b > 0 ? Math.min(a, b) : a : Math.max(0, b);
+}
+
+function parseBests(raw: unknown): Record<string, number> {
+  const out: Record<string, number> = {};
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return out;
+  for (const [id, value] of Object.entries(raw)) if (aquaId(id) && num(value) > 0) out[id] = num(value);
+  return out;
+}
+
+function cleanSkill(raw: unknown): SkillCourseRecord | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const r = raw as Record<string, unknown>;
+  return { best: Math.max(0, num(r.best)), medal: Math.max(0, Math.min(3, Math.floor(num(r.medal)))),
+    clean: num(r.clean) > 0 ? 1 : 0, day: Math.max(0, Math.floor(num(r.day))), runs: Math.max(0, Math.floor(num(r.runs))) };
+}
+
+function mergeSkill(a: SkillCourseRecord | undefined, raw: SkillCourseRecord): SkillCourseRecord {
+  const b = cleanSkill(raw)!;
+  return { best: better(a?.best, b.best), medal: Math.max(a?.medal ?? 0, b.medal), clean: Math.max(a?.clean ?? 0, b.clean),
+    day: Math.max(a?.day ?? 0, b.day), runs: Math.max(a?.runs ?? 0, b.runs) };
+}
+
+function parseSkillRecords(raw: unknown): Record<string, SkillCourseRecord> {
+  const out: Record<string, SkillCourseRecord> = {};
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return out;
+  for (const [key, value] of Object.entries(raw)) {
+    const id = courseId(key), record = cleanSkill(value);
+    if (id && record) out[id] = record;
+  }
+  return out;
+}
+
+/** Архив хранит всех ранее сохранённых участников курса; лимит доски применяется только к active top. */
+function mergeRecordRows(a: readonly AquaRecord[], raw: unknown): AquaRecord[] {
+  const records = new Map<number, AquaRecord>(a.map((r) => [r.pid, { ...r }]));
+  if (Array.isArray(raw)) for (const value of raw) {
+    if (!value || typeof value !== 'object') continue;
+    const r = value as Record<string, unknown>;
+    if (!Number.isSafeInteger(r.pid) || num(r.pid) <= 0 || typeof r.nick !== 'string' || !r.nick || num(r.ms) <= 0) continue;
+    const next = { pid: num(r.pid), nick: r.nick, ms: num(r.ms), at: Math.max(0, num(r.at)) };
+    const previous = records.get(next.pid);
+    if (!previous || next.ms < previous.ms || next.ms === previous.ms && next.at < previous.at) records.set(next.pid, next);
+  }
+  return [...records.values()].sort((a, b) => a.ms - b.ms || a.at - b.at || a.pid - b.pid);
+}
+
+function parseRecordArchive(raw: unknown, aqua = false): Record<string, AquaRecord[]> {
+  const out: Record<string, AquaRecord[]> = {};
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return out;
+  for (const [id, rows] of Object.entries(raw)) if ((aqua ? aquaId(id) : courseId(id)) && Array.isArray(rows)) out[id] = mergeRecordRows([], rows);
+  return out;
+}
+
+function archiveTop(archive: Record<string, AquaRecord[]>, course: string, raw: unknown): void {
+  const rows = mergeRecordRows(archive[course] ?? [], raw);
+  if (rows.length || Object.hasOwn(archive, course)) archive[course] = rows;
+}
+
+/** Только числовые проекции: существующий stats wire остаётся достаточным для карточек текущего и прежних курсов. */
+function projectCourseRecords(p: Profile, aqua: number, skill: SkillRecordCourse): void {
+  const s = p.stats, a = p.aquaBests ?? {}, k = p.skillRecords ?? {};
+  s.aqCourse = aqua;
+  s.aqBestCourse1 = a['1'] ?? 0; s.aqBestCourse2 = a['2'] ?? 0; s.aqBestCourse3 = a['3'] ?? 0;
+  s.skCourse = skill === TOWER_SKILL_COURSE ? 2 : 1;
+  const old = k[LEGACY_SKILL_COURSE], tower = k[TOWER_SKILL_COURSE];
+  s.skBestLegacy = old?.best ?? 0; s.skMedalLegacy = old?.medal ?? 0; s.skCleanLegacy = old?.clean ?? 0;
+  s.skDayLegacy = old?.day ?? 0; s.skRunsLegacy = old?.runs ?? 0;
+  s.skBestTower185 = tower?.best ?? 0; s.skMedalTower185 = tower?.medal ?? 0; s.skCleanTower185 = tower?.clean ?? 0;
+  s.skDayTower185 = tower?.day ?? 0; s.skRunsTower185 = tower?.runs ?? 0;
+}
+
+function captureSkill(p: Profile, course: string, finished = false): void {
+  const records = p.skillRecords ?? (p.skillRecords = {});
+  const prior = records[course];
+  const elsewhere = Object.entries(records).reduce((sum, [id, r]) => sum + (id === course ? 0 : r.runs), 0);
+  records[course] = mergeSkill(records[course], { best: p.stats.skBest, medal: p.stats.skMedal, clean: p.stats.skClean,
+    // skDay — общий оплаченный день. Дату конкретного курса обновляет только его финиш или первая миграция.
+    day: finished || !prior || !p.stats.skCourse ? p.stats.skDay : prior.day,
+    runs: Math.max(0, p.stats.skRuns - elsewhere) });
+}
+
+/** Сначала сохранить исходный активный курс, затем выбрать цель. Можно вызывать повторно, в том числе при входе. */
+export function selectProfileCourses(p: Profile, courses: Pick<RecordCourses, 'aqua' | 'skill'>,
+  fromAqua = p.stats.aqCourse || courses.aqua,
+  fromSkill: string = p.stats.skCourse === 1 ? LEGACY_SKILL_COURSE : p.stats.skCourse === 2 ? TOWER_SKILL_COURSE : courses.skill): void {
+  const bests = p.aquaBests ?? (p.aquaBests = {});
+  if (p.stats.aqBest > 0) bests[String(fromAqua)] = better(bests[String(fromAqua)], p.stats.aqBest);
+  p.stats.aqBest = bests[String(courses.aqua)] ?? 0;
+  captureSkill(p, fromSkill);
+  const records = p.skillRecords!;
+  const record = records[courses.skill] ?? (records[courses.skill] = { best: 0, medal: 0, clean: 0, day: 0, runs: 0 });
+  const paidDay = Math.max(p.stats.skDay, ...Object.values(records).map((r) => r.day));
+  p.stats.skBest = record.best; p.stats.skMedal = record.medal; p.stats.skClean = record.clean;
+  // Суточная награда общая для режима: смена курса не даёт её второй раз в тот же день.
+  p.stats.skDay = paidDay;
+  projectCourseRecords(p, courses.aqua, courses.skill);
+}
+
+/** После штатного applySkillFinish: сохранить именно текущий курс, не смешивая времена разных высот. */
+export function saveSkillRecord(p: Profile, course: SkillRecordCourse): void {
+  captureSkill(p, course, true);
+  projectCourseRecords(p, p.stats.aqCourse || AQUA_COURSE, course);
+}
+
+/** После финиша аквапарка: aqRuns считает вызывающий код, здесь только best и его проекции. */
+export function saveAquaRecord(p: Profile, course: number): void {
+  const records = p.aquaBests ?? (p.aquaBests = {});
+  if (p.stats.aqBest > 0) records[String(course)] = better(records[String(course)], p.stats.aqBest);
+  projectCourseRecords(p, course, p.stats.skCourse === 2 ? TOWER_SKILL_COURSE : LEGACY_SKILL_COURSE);
 }
 
 function normalizeBlackjackEscrow(raw: unknown): Profile['blackjackEscrow'] {
@@ -151,6 +291,15 @@ export function normalizeProfile(raw: unknown): Profile | null {
     for (const k of Object.keys(stats) as Array<keyof Stats>) stats[k] = Math.max(0, num(s[k]));
   }
   const album = sanitizeAlbum(r.album);
+  const aquaBests = parseBests(r.aquaBests);
+  for (const [id, value] of [['1', stats.aqBestCourse1], ['2', stats.aqBestCourse2], ['3', stats.aqBestCourse3]] as const) {
+    if (value > 0) aquaBests[id] = better(aquaBests[id], value);
+  }
+  const skillRecords = parseSkillRecords(r.skillRecords);
+  for (const [id, value] of [[LEGACY_SKILL_COURSE, { best: stats.skBestLegacy, medal: stats.skMedalLegacy, clean: stats.skCleanLegacy, day: stats.skDayLegacy, runs: stats.skRunsLegacy }],
+    [TOWER_SKILL_COURSE, { best: stats.skBestTower185, medal: stats.skMedalTower185, clean: stats.skCleanTower185, day: stats.skDayTower185, runs: stats.skRunsTower185 }]] as const) {
+    if (value.best || value.medal || value.clean || value.runs) skillRecords[id] = mergeSkill(skillRecords[id], value);
+  }
   // Старый максимум хранится в альбоме; сундуки, хлам и старая золотая рыбка сюда не входят.
   for (const sp of COLLECTION) stats.fsMaxGrams = Math.max(stats.fsMaxGrams, album[FISH[sp].id]?.[0] ?? 0);
   const fishing = normalizeFishProgress(r.fishing);
@@ -175,6 +324,8 @@ export function normalizeProfile(raw: unknown): Profile | null {
     outfit: r.outfit ? sanitizeOutfit(r.outfit, owned) : { ...DEFAULT_OUTFIT },
     daily: typeof r.daily === 'string' ? r.daily : '',
     stats,
+    aquaBests,
+    skillRecords,
     foolUntil: num(r.foolUntil),
     epUntil: num(r.epUntil),
     album,
@@ -183,7 +334,7 @@ export function normalizeProfile(raw: unknown): Profile | null {
   };
 }
 
-function parseState(text: string): State {
+function parseState(text: string, courses: RecordCourses): State {
   const raw = JSON.parse(text) as Record<string, unknown>;
   if (!raw || raw.v !== 1 || !Array.isArray(raw.profiles)) throw new Error('не то содержимое');
   const profiles: Profile[] = [];
@@ -194,19 +345,27 @@ function parseState(text: string): State {
   let nextId = Math.max(1, Math.floor(num(raw.nextId, 1)));
   for (const p of profiles) if (p.id >= nextId) nextId = p.id + 1;
   const lj = raw.lastJackpot as Record<string, unknown> | null | undefined;
-  // полоса аквапарка сменилась — доска и личные лучшие с чистого листа
-  const sameCourse = num(raw.aquaCourse, 1) === AQUA_COURSE;
-  if (!sameCourse) for (const p of profiles) p.stats.aqBest = 0;
+  const oldAqua = Number.isSafeInteger(raw.aquaCourse) && num(raw.aquaCourse) > 0 ? num(raw.aquaCourse) : 1;
+  const oldRegatta = courseId(raw.regattaCourse) ?? 'legacy-unknown';
+  const oldSkill = courseId(raw.skillCourse) ?? LEGACY_SKILL_COURSE;
+  const aquaArchive = parseRecordArchive(raw.aquaArchive, true);
+  const regattaArchive = parseRecordArchive(raw.regattaArchive);
+  archiveTop(aquaArchive, String(oldAqua), raw.aqua);
+  archiveTop(regattaArchive, oldRegatta, raw.regatta);
+  for (const p of profiles) selectProfileCourses(p, courses, oldAqua, oldSkill);
   return {
     v: 1,
     nextId,
     jackpot: Math.max(POOL_MIN, num(raw.jackpot, POOL_MIN)),
     lastJackpot: lj && typeof lj.nick === 'string' ? { nick: lj.nick, win: num(lj.win), at: num(lj.at) } : null,
     respects: Math.max(0, Math.floor(num(raw.respects))),
-    aqua: sameCourse ? parseAqua(raw.aqua) : [],
-    aquaCourse: AQUA_COURSE,
-    regatta: raw.regattaCourse === RG_COURSE ? parseAqua(raw.regatta) : [],
-    regattaCourse: RG_COURSE,
+    aqua: parseAqua(aquaArchive[String(courses.aqua)]),
+    aquaCourse: courses.aqua,
+    aquaArchive,
+    regatta: parseAqua(regattaArchive[courses.regatta]),
+    regattaCourse: courses.regatta,
+    regattaArchive,
+    skillCourse: courses.skill,
     fishPodium: parseFishPodium(raw.fishPodium),
     lobbyEvents: parseLobbyEvents(raw.lobbyEvents),
     // необязательное: старые сохранения без рекордов крепости читаются как есть (поле появится с первым забегом)
@@ -302,7 +461,8 @@ function parseAqua(v: unknown): AquaRecord[] {
 
 export class Store {
   readonly dir: string;
-  state: State = emptyState();
+  state: State;
+  private readonly recordCourses: RecordCourses;
   private readonly saveDelayMs: number;
   private readonly now: () => number;
   private readonly log: (s: string) => void;
@@ -319,6 +479,8 @@ export class Store {
 
   constructor(dir: string, opts: StoreOptions = {}) {
     this.dir = dir;
+    this.recordCourses = currentRecordCourses(opts.recordCourses);
+    this.state = emptyState(this.recordCourses);
     this.saveDelayMs = opts.saveDelayMs ?? 1000;
     this.now = opts.now ?? Date.now;
     this.log = opts.log ?? ((s) => console.log(s));
@@ -351,7 +513,7 @@ export class Store {
       }
       if (!missing) {
         try {
-          this.state = parseState(readFileSync(file, 'utf8'));
+          this.state = parseState(readFileSync(file, 'utf8'), this.recordCourses);
           this.loadFailed = false;
           return;
         } catch {
@@ -364,14 +526,14 @@ export class Store {
       const entries = new Set(readdirSync(this.dir));
       const remnant = entries.has(`${FILE}.tmp`) || [...entries].some((name) => name.startsWith(`${FILE}.corrupt-`));
       if (missing && copies.length === 0 && !remnant) {
-        this.state = emptyState();
+        this.state = emptyState(this.recordCourses);
         this.loadFailed = false;
         return;
       }
       for (const name of copies) {
         let recovered: State;
         try {
-          recovered = parseState(readFileSync(path.join(this.backupDir, name), 'utf8'));
+          recovered = parseState(readFileSync(path.join(this.backupDir, name), 'utf8'), this.recordCourses);
         } catch {
           continue;
         }
@@ -424,6 +586,11 @@ export class Store {
     if (!this.dirty) return;
     let text: string;
     try {
+      // Каноническая запись уже содержит архивы текущего top и проекции новых профилей.
+      // Тогда восстановление той же копии не вносит ещё одну миграцию в только что записанный снимок.
+      archiveTop(this.state.aquaArchive, String(this.state.aquaCourse), this.state.aqua);
+      archiveTop(this.state.regattaArchive, this.state.regattaCourse, this.state.regatta);
+      for (const p of this.state.profiles) selectProfileCourses(p, { aqua: this.state.aquaCourse, skill: this.state.skillCourse });
       text = JSON.stringify(this.state);
       const file = path.join(this.dir, FILE);
       writeAtomic(file, text);

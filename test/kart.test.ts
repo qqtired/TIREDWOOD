@@ -75,19 +75,19 @@ function autopilot(k: KartState): number {
   let b = side > 0.04 * dist ? BTN_LEFT : side < -0.04 * dist ? BTN_RIGHT : 0;
   let c = 0;
   for (let m = 0, i = loc.seg; m < 30; m += tr.len[i], i = wrapSeg(tr, i + 1)) c = Math.max(c, Math.abs(tr.curv[i]));
-  let vmax = 22;
-  while (vmax > 4 && vmax * c > 0.85 * 2.3 * (0.5 + 0.5 * Math.min(1, vmax / 5)) * (1 - 0.36 * Math.min(1, vmax / 22))) vmax -= 0.25;
+  let vmax = 31;
+  while (vmax > 4 && vmax * c > 0.85 * 2.3 * (0.5 + 0.5 * Math.min(1, vmax / 5)) * (1 - 0.58 * Math.min(1, vmax / 31))) vmax -= 0.25;
   const v = speed(k);
   if (v > vmax + 1) b |= BTN_BACK;
   else if (v < vmax) b |= BTN_FORWARD;
   return b;
 }
 
-test('газ по прямой: за 4 с — от 20 до 22 м/с, по ровной дороге', () => {
+test('газ по прямой: за 4 с — 31 м/с, по ровной дороге', () => {
   const k = makeKartState();
   placeOnGrid(k, tr, 0);
   for (let i = 0; i < 240; i++) step(k, BTN_FORWARD);
-  assert.ok(speed(k) >= 20 && speed(k) <= 22, `скорость ${speed(k)}`);
+  assert.ok(speed(k) >= 30.9 && speed(k) <= 31, `скорость ${speed(k)}`);
   assert.equal(k.y, 0);
   assert.equal(k.grounded, 1);
   assert.ok(Math.abs(k.z - tr.grid[0].z) < 1e-9, 'ехал прямо');
@@ -140,24 +140,23 @@ test('стены держат: газ и руль вправо 10 с — кар�
   for (let i = 0; i < 600; i++) {
     if (step(k, BTN_FORWARD | BTN_RIGHT).wall > 0) hits++;
     locate(tr, k.x, k.z, k.seg, loc);
-    const lim = loc.hw - KART_R;
-    if (Math.abs(loc.lat) > loc.hw + 1) continue;
-    if (!tr.openR[loc.seg]) assert.ok(loc.lat <= lim + 1e-9, `тик ${i}: lat ${loc.lat}`);
-    if (!tr.openL[loc.seg]) assert.ok(loc.lat >= -lim - 1e-9, `тик ${i}: lat ${loc.lat}`);
+    if (Math.abs(loc.lat) > loc.hw + Math.max(loc.vl, loc.vr) + 1) continue;
+    if (!tr.openR[loc.seg]) assert.ok(loc.lat <= loc.hw + loc.vr - KART_R + 1e-9, `тик ${i}: lat ${loc.lat}`);
+    if (!tr.openL[loc.seg]) assert.ok(loc.lat >= -loc.hw - loc.vl + KART_R - 1e-9, `тик ${i}: lat ${loc.lat}`);
   }
   assert.ok(hits > 10, `ударов о стену ${hits}`);
 });
 
-test('руль: на полной скорости радиус 20–26 м (без заноса крутой поворот не взять), в заносе — круче; стоя — разворачивается, задним ходом — наоборот', () => {
-  const k = placeAt(wrapSeg(tr, tr.cpSeg[0] + 5), 22, 0, -4);
+test('руль: на полной скорости радиус 29–35 м (шпилька требует тормоза), в заносе — круче; стоя — разворачивается, задним ходом — наоборот', () => {
+  const k = placeAt(wrapSeg(tr, tr.cpSeg[0] + 5), 31, 0, -4);
   k.steer = 1;
   const h0 = [k.hx, k.hz];
   for (let i = 0; i < 12; i++) step(k, BTN_FORWARD | BTN_LEFT);
   const turned = Math.acos(h0[0] * k.hx + h0[1] * k.hz);
   const r = Math.hypot(k.vx, k.vz) / (turned / 0.2);
-  assert.ok(r > 20 && r < 26, `радиус ${r.toFixed(1)} м`);
+  assert.ok(r > 29 && r < 35, `радиус ${r.toFixed(1)} м`);
   // занос влево на той же скорости: нос поворачивает заметно быстрее
-  const d = placeAt(wrapSeg(tr, tr.cpSeg[0] + 5), 20, 0, -4);
+  const d = placeAt(wrapSeg(tr, tr.cpSeg[0] + 5), 31, 0, -4);
   d.steer = 1;
   d.drift = 1;
   const d0 = [d.hx, d.hz];
@@ -231,10 +230,10 @@ const jumps = ((): Array<{ seg: number; cp: number }> => {
   return out;
 })();
 
-test('трамплины: на 22 м/с перелетают оба канала, на 11 м/с (варенье) падают и возвращаются на КТ перед ними', () => {
+test('трамплины: на 31 м/с перелетают оба канала, на 11 м/с (варенье) падают и возвращаются на КТ перед ними', () => {
   assert.equal(jumps.length, 2);
   for (const { seg, cp } of jumps) {
-    const fast = placeAt(seg - 8, 22, cp);
+    const fast = placeAt(seg - 8, 31, cp);
     let landed = 0;
     for (let i = 0; i < 240 && !landed; i++) {
       const e = step(fast, BTN_FORWARD);
@@ -291,7 +290,7 @@ test('три круга автопилотом: КТ по порядку, кру
   const laps: number[] = [];
   let last = 0;
   let t = 0;
-  for (; t < 60 * 60 * 3 && !k.done; t++) {
+  for (; t < 60 * 60 * 5 && !k.done; t++) {
     const e = step(k, autopilot(k));
     assert.ok(!e.splash, `упал в воду на тике ${t}`);
     if (e.cp) cps.push(k.cp);
@@ -304,8 +303,8 @@ test('три круга автопилотом: КТ по порядку, кру
   assert.equal(k.lap, 4);
   const lapCps = [...Array.from({ length: tr.cpSeg.length - 1 }, (_, i) => i + 1), 0];
   assert.deepEqual(cps, [0, ...lapCps, ...lapCps, ...lapCps]);
-  // круг ≈ 1100 м: без помех и ошибок осторожный автопилот (без заноса) едет его ~60 с
-  for (const s of laps.slice(1)) assert.ok(s > 50 && s < 72, `круг ${s} с`);
+  // 1,85 км: осторожный автопилот тормозит перед шпильками и проезжает круг без заноса.
+  for (const s of laps.slice(1)) assert.ok(s > 65 && s < 110, `круг ${s} с`);
   // после финиша катится и останавливается
   for (let i = 0; i < 300; i++) step(k, BTN_FORWARD | BTN_USE);
   assert.ok(Math.abs(speed(k)) < 1e-9);
@@ -341,7 +340,7 @@ test('задом через линию: круг не засчитывается
 });
 
 test('турбо: срабатывает по ЛКМ, пока крутится рулетка — нет', () => {
-  const k = placeAt(segAt(-100, 112), 0, LAST);
+  const k = placeAt(segAt(-145, 175), 0, LAST);
   for (let i = 0; i < 150; i++) step(k, BTN_FORWARD);
   assert.ok(speed(k) > 20.5, `разогнался до ${speed(k)}`);
   k.item = ITEM_TURBO;
@@ -371,7 +370,7 @@ function hop(k: KartState, buttons: number): number {
 }
 
 test('подскок: пробел — подскок; приземлился с рулём — занос в его сторону, без руля — нет', () => {
-  const k = placeAt(segAt(-100, 112), 15, LAST);
+  const k = placeAt(segAt(-145, 175), 15, LAST);
   const air = hop(k, BTN_FORWARD | BTN_RIGHT);
   assert.ok(air >= 10 && air <= 22, `в воздухе ${air} тиков`);
   assert.equal(k.drift, 0, 'занос в воздухе');
@@ -379,25 +378,25 @@ test('подскок: пробел — подскок; приземлился с
   assert.equal(k.drift, -1, 'занос вправо');
 
   // прямо: подскок без заноса; руль чуть позже (в окне) — занос; позже окна — уже нет
-  const s = placeAt(segAt(-100, 112), 15, LAST);
+  const s = placeAt(segAt(-145, 175), 15, LAST);
   hop(s, BTN_FORWARD);
   for (let i = 0; i < 4; i++) step(s, BTN_FORWARD | BTN_JUMP);
   assert.equal(s.drift, 0);
   for (let i = 0; i < 6 && s.drift === 0; i++) step(s, BTN_FORWARD | BTN_LEFT | BTN_JUMP);
   assert.equal(s.drift, 1, 'руль в окне — занос');
-  const late = placeAt(segAt(-100, 112), 15, LAST);
+  const late = placeAt(segAt(-145, 175), 15, LAST);
   hop(late, BTN_FORWARD);
   for (let i = 0; i < 20; i++) step(late, BTN_FORWARD | BTN_JUMP);
   for (let i = 0; i < 10; i++) step(late, BTN_FORWARD | BTN_LEFT | BTN_JUMP);
   assert.equal(late.drift, 0, 'занос после окна');
 
   // держал пробел с прошлого раза (не нажал заново) — ни подскока, ни заноса
-  const held = placeAt(segAt(-100, 112), 15, LAST);
+  const held = placeAt(segAt(-145, 175), 15, LAST);
   held.prevButtons = BTN_JUMP;
   for (let i = 0; i < 10; i++) assert.equal(step(held, BTN_FORWARD | BTN_LEFT | BTN_JUMP).hop, false);
   assert.equal(held.drift, 0);
   // медленно — подскок есть, заноса нет
-  const slow = placeAt(segAt(-100, 112), 5, LAST);
+  const slow = placeAt(segAt(-145, 175), 5, LAST);
   hop(slow, BTN_FORWARD | BTN_LEFT);
   for (let i = 0; i < 6; i++) step(slow, BTN_FORWARD | BTN_LEFT | BTN_JUMP);
   assert.equal(slow.drift, 0, 'занос на 5 м/с');
@@ -405,7 +404,7 @@ test('подскок: пробел — подскок; приземлился с
 
 test('занос: мини-турбо по времени, отпустил рано или без скорости — без турбо', () => {
   const mt = (driftT: number, v: number, buttons: number): KartState => {
-    const m = placeAt(segAt(-100, 112), v, LAST);
+    const m = placeAt(segAt(-145, 175), v, LAST);
     m.drift = 1;
     m.driftT = driftT;
     step(m, buttons);

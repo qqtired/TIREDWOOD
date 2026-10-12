@@ -52,6 +52,7 @@ import { WARDROBE_OFFSETS, wardrobePlace } from '../../shared/wardrobe.ts';
 import type { Client, Hub, Room } from '../hub.ts';
 import { InputQueue } from '../inputs.ts';
 import { AquaRuns } from './aqua.ts';
+import { saveAquaRecord } from '../store.ts';
 import { BoatRide } from './boat.ts';
 import { FerryRide, sanyaHome } from './ferry.ts';
 import { BlackjackHall } from './blackjack.ts';
@@ -275,7 +276,7 @@ export class LobbyRoom implements Room {
         if (place >= 0) this.broadcast({ t: 'rgTop', top: hub.regattaTop() });
         return place;
       },
-      bestLap: (p) => p.client.profile?.stats.brBestLapHarbor ?? 0,
+      bestLap: (p) => p.client.profile?.stats.brBestLapCliffs ?? 0,
       queue: (n) => this.boatQueue?.take(n) ?? [],
     }) : null;
     this.juke = eventOptions.jukebox ? new Jukebox() : null;
@@ -2110,6 +2111,7 @@ export class LobbyRoom implements Room {
     st.aqRuns++;
     if (mine) st.aqBest = ms;
     const state = this.hub.store.state;
+    saveAquaRecord(prof, state.aquaCourse);
     const was = state.aqua[0];
     const { top, place } = addRecord(state.aqua, { pid: prof.id, nick: c.nick, ms, at: this.now() });
     if (place >= 0) {

@@ -306,10 +306,10 @@ test('ускоритель: наезд — событие dash и турбо н�
     assert.equal(step(t, k).dash, false, 'повторное событие на том же ускорителе');
     top = Math.max(top, speed(k));
   }
-  assert.ok(top > 26 && top < 30.0001, `разгон до ${top}`);
+  assert.ok(top > 37 && top < 41.0001, `разгон до ${top}`);
   for (let i = 0; i < 120; i++) step(t, k);
   assert.equal(k.boostT, 0);
-  assert.ok(speed(k) <= 22.0001 && speed(k) > 20, `после турбо скорость ${speed(k)}`);
+  assert.ok(speed(k) <= 31.0001 && speed(k) > 29, `после турбо скорость ${speed(k)}`);
   // стоит на пластине без газа — одно событие, дальше сам разгоняется
   const s = kartAt(t, L, 60, 0, 0);
   let n = 0;
@@ -319,7 +319,7 @@ test('ускоритель: наезд — событие dash и турбо н�
   // мимо пластины — ничего
   const away = kartAt(t, L, 40, -4, 12);
   for (let i = 0; i < 60; i++) assert.equal(step(t, away).dash, false);
-  assert.ok(speed(away) <= 22.0001, 'без ускорителя потолок прежний');
+  assert.ok(speed(away) <= 31.0001, 'без ускорителя обычный потолок');
 });
 
 test('лужи: вода — боковая скорость гаснет медленнее (0,09), масло — почти не гаснет (0,02); событие slick 1 и 2', () => {
@@ -418,12 +418,12 @@ test('настил: высота по склону; на нём карт еде�
 test('срезка через бухту: прямо по настилу — ускоритель, прыжок через воду, посадка на дорогу и КТ 3; правее ускорителя — вода', () => {
   const pad = hz.pads[3];
   assert.ok(deckAt(hz, pad.x, pad.z) !== NO_DECK, 'ускоритель срезки на настиле');
-  // настил продолжает верх мыса на запад: ровный (x 106…90), дальше подъём на 2 м до x 76, за краем — бухта
-  assert.equal(deckAt(hz, 100, -62), 0);
-  assert.equal(deckAt(hz, 91, -62), 0);
-  assert.ok(Math.abs(deckAt(hz, 76.1, -62) - 2) < 0.05, 'край настила на 2 м');
-  assert.equal(deckAt(hz, 75.9, -62), NO_DECK, 'за краем — пусто');
-  assert.equal(deckAt(hz, 100, -62 - 5.5), NO_DECK, 'сбоку от настила — пусто');
+  // Настил продолжает верх мыса на запад: ровный до x145, затем подъём на 3,5 м до x133.
+  assert.equal(deckAt(hz, 154, -140), 0);
+  assert.equal(deckAt(hz, 146, -140), 0);
+  assert.ok(Math.abs(deckAt(hz, 133.1, -140) - 3.5) < 0.05, 'край настила на 3,5 м');
+  assert.equal(deckAt(hz, 132.9, -140), NO_DECK, 'за краем — пусто');
+  assert.equal(deckAt(hz, 154, -140 - 6.5), NO_DECK, 'сбоку от настила — пусто');
 
   const k = kartAt(tr, 4, 0, 0, 16);
   assert.equal(k.cp, 2);
@@ -448,7 +448,7 @@ test('срезка через бухту: прямо по настилу — у�
   const from = locateAny(tr, tr.legs[4].x, tr.legs[4].z, loc).seg;
   const via = tr.s[tr.cpSeg[3]] - tr.s[from];
   assert.ok(via > 190, `по дороге до КТ 3 ${via} м`);
-  assert.ok(t < ((via / 22) * 60) / 2, `по настилу КТ 3 за ${t} тиков, по дороге не быстрее ${Math.round((via / 22) * 60)}`);
+  assert.ok(t < ((via / 31) * 60) / 2, `по настилу КТ 3 за ${t} тиков, по дороге не быстрее ${Math.round((via / 31) * 60)}`);
 
   // правее ускорителя: без разгона мимо края настила — вода, возврат на КТ перед срезкой
   const w = kartAt(tr, 4, 0, 3, 22);

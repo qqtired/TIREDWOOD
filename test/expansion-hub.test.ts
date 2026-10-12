@@ -172,10 +172,29 @@ test('selected track is immutable after launch and reaches race hello/status', (
 test('race records stay separate per new track while legacy records remain intact', () => {
   const { hub } = setupHub(); const a = login(hub, 'TrackRecords');
   a.c.profile!.stats.rcBestLap = 47000; a.c.profile!.stats.rcBestLapFoundry = 61000;
+  a.c.profile!.stats.rcBestLapHarbor = 39000; a.c.profile!.stats.rcBestLapHills = 51000;
   const row = { id: 1, nick: a.c.nick, bot: false, place: 1, time: 100000, best: 45000, tokens: 0, track: 'harbor' as const };
   hub.onRaceResult(a.c, row, null);
   hub.onRaceResult(a.c, { ...row, best: 65000, track: 'hills' }, null);
   hub.onRaceResult(a.c, { ...row, best: 70000, track: 'hills' }, null);
-  assert.equal(a.c.profile!.stats.rcBestLapHarbor, 45000); assert.equal(a.c.profile!.stats.rcBestLapHills, 65000);
+  assert.equal(a.c.profile!.stats.rcBestLapHarborV3, 45000); assert.equal(a.c.profile!.stats.rcBestLapHillsV3, 65000);
+  assert.equal(a.c.profile!.stats.rcBestLapHarbor, 39000); assert.equal(a.c.profile!.stats.rcBestLapHills, 51000);
   assert.equal(a.c.profile!.stats.rcBestLap, 47000); assert.equal(a.c.profile!.stats.rcBestLapFoundry, 61000);
+});
+
+test('new regatta finish updates White Cliffs only and retains both older courses and lifetime counters', () => {
+  const { hub, store } = setupHub();
+  const a = login(hub, 'CliffRecords');
+  const p = a.c.profile!;
+  p.stats.brRaces = 18; p.stats.brWins = 2; p.stats.brBestLap = 3200; p.stats.brBestLapHarbor = 4300;
+  hub.onRegattaResult(p.id, { id: 1, pid: p.id, nick: p.nick, bot: false, pos: 1, finished: true,
+    ticks: 18000, best: 5580, reward: 0, left: false });
+  assert.equal(p.stats.brBestLapCliffs, 5580);
+  assert.equal(p.stats.brBestLapHarbor, 4300); assert.equal(p.stats.brBestLap, 3200);
+  assert.equal(p.stats.brRaces, 19); assert.equal(p.stats.brWins, 3);
+  assert.equal(lastOf(a.s, 'me')?.stats.brBestLapCliffs, 5580);
+  hub.regattaRecord(p.id, p.nick, 5580);
+  store.flush();
+  assert.equal(store.state.regattaCourse, 'white-cliffs-v2');
+  assert.equal(store.state.regattaArchive['white-cliffs-v2'][0].ms, 93000);
 });

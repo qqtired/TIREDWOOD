@@ -71,16 +71,26 @@ function dungeonWhat(p: ProfileFacts): string {
 
 /** «Рекорды по режимам»: лучший результат каждого режима, у трасс и курсов — по строке на каждую */
 export const RECORDS: readonly RecordLine[] = [
-  { icon: 'kart', mode: 'Картинг', course: 'Портовое кольцо', what: 'лучший круг', value: (s) => lap(s.rcBestLapHarbor) },
-  { icon: 'kart', mode: 'Картинг', course: 'Солнечный серпантин', what: 'лучший круг', value: (s) => lap(s.rcBestLapHills) },
+  { icon: 'kart', mode: 'Картинг', course: 'Портовое кольцо', what: 'лучший круг', value: (s) => lap(s.rcBestLapHarborV3) },
+  { icon: 'kart', mode: 'Картинг', course: 'Солнечный серпантин', what: 'лучший круг', value: (s) => lap(s.rcBestLapHillsV3) },
   // трассы до переделки: рекорды не пропадают, но показываем их только тем, у кого они есть
+  { icon: 'kart', mode: 'Картинг', course: 'Портовое кольцо (прежняя трасса)', what: 'лучший круг · архив', value: (s) => lap(s.rcBestLapHarbor), played: (s) => s.rcBestLapHarbor > 0 },
+  { icon: 'kart', mode: 'Картинг', course: 'Солнечный серпантин (прежняя трасса)', what: 'лучший круг · архив', value: (s) => lap(s.rcBestLapHills), played: (s) => s.rcBestLapHills > 0 },
   { icon: 'kart', mode: 'Картинг', course: 'Порт (старая трасса)', what: 'лучший круг', value: (s) => lap(s.rcBestLap), played: (s) => s.rcBestLap > 0 },
   { icon: 'kart', mode: 'Картинг', course: 'Литейный вираж (старая трасса)', what: 'лучший круг', value: (s) => lap(s.rcBestLapFoundry), played: (s) => s.rcBestLapFoundry > 0 },
   // круг катера сервер считает в тиках (60 в секунду)
-  { icon: 'regatta', mode: 'Портовая регата', what: 'лучший круг', value: (s) => lap((s.brBestLapHarbor * 1000) / 60) },
+  { icon: 'regatta', mode: 'Катера', course: 'Белые скалы', what: 'лучший круг', value: (s) => lap((s.brBestLapCliffs * 1000) / 60) },
+  { icon: 'regatta', mode: 'Катера', course: 'Портовая регата (прежняя трасса)', what: 'лучший круг · архив', value: (s) => lap((s.brBestLapHarbor * 1000) / 60), played: (s) => s.brBestLapHarbor > 0 },
   { icon: 'regatta', mode: 'Катера', course: 'Лазурная бухта (старая трасса)', what: 'лучший круг', value: (s) => lap((s.brBestLap * 1000) / 60), played: (s) => s.brBestLap > 0 },
-  { icon: 'slide', mode: 'Аквапарк', what: 'лучшее время', value: (s) => (s.aqBest > 0 ? fmtAquaTime(s.aqBest) : null) },
-  { icon: 'bell-cloud', mode: 'Выше облаков', course: 'Небесная каланча', what: 'лучшее время', value: (s) => lap(s.skBest) },
+  { icon: 'slide', mode: 'Аквапарк', course: 'Текущая полоса', what: 'лучшее время', whatOf: (p) => `Версия ${p.stats.aqCourse || 2} · лучшее время`, value: (s) => (s.aqBest > 0 ? fmtAquaTime(s.aqBest) : null) },
+  { icon: 'slide', mode: 'Аквапарк', course: 'Первая полоса (архив)', what: 'лучшее время', value: (s) => lap(s.aqBestCourse1), played: (s) => s.aqCourse !== 1 && s.aqBestCourse1 > 0 },
+  { icon: 'slide', mode: 'Аквапарк', course: 'Полоса 2 (архив)', what: 'лучшее время', value: (s) => lap(s.aqBestCourse2), played: (s) => s.aqCourse !== 2 && s.aqBestCourse2 > 0 },
+  { icon: 'slide', mode: 'Аквапарк', course: 'Полоса 3 (архив)', what: 'лучшее время', value: (s) => lap(s.aqBestCourse3), played: (s) => s.aqCourse !== 3 && s.aqBestCourse3 > 0 },
+  { icon: 'bell-cloud', mode: 'Выше облаков', course: 'Текущая каланча', what: 'лучшее время', whatOf: (p) => `${p.stats.skCourse === 2 ? 185 : 65} м · лучшее время`, value: (s) => lap(s.skBest) },
+  { icon: 'bell-cloud', mode: 'Выше облаков', course: 'Каланча 65 м (архив)', what: 'лучшее время', value: (s) => lap(s.skBestLegacy), played: (s) => s.skCourse !== 1 && s.skBestLegacy > 0,
+    whatOf: (p) => [medal(p.stats.skMedalLegacy), p.stats.skCleanLegacy ? 'без падений' : null, `${fmt.format(p.stats.skRunsLegacy)} подъёмов`].filter(Boolean).join(' · ') },
+  { icon: 'bell-cloud', mode: 'Выше облаков', course: 'Каланча 185 м (архив)', what: 'лучшее время', value: (s) => lap(s.skBestTower185), played: (s) => s.skCourse !== 2 && s.skBestTower185 > 0,
+    whatOf: (p) => [medal(p.stats.skMedalTower185), p.stats.skCleanTower185 ? 'без падений' : null, `${fmt.format(p.stats.skRunsTower185)} подъёмов`].filter(Boolean).join(' · ') },
   { icon: 'float', mode: 'Рыбалка', what: 'самая тяжёлая рыба', value: (s) => (s.fsMaxGrams > 0 ? fmtWeight(s.fsMaxGrams) : null) },
   { icon: 'roulette', mode: 'Автоматы', what: 'самый крупный выигрыш', value: (s) => (s.bestWin > 0 ? `${fmt.format(s.bestWin)} 🪙` : null) },
   // рекорд крепости — отбитые волны (последняя полностью отбитая): свой и всей крепости
@@ -93,7 +103,7 @@ export const RECORDS: readonly RecordLine[] = [
 export const MODE_STATS: readonly ModeStats[] = [
   { icon: 'paint', mode: 'Пейнтбол', rows: [['раундов', (s) => s.pbRounds], ['побед', (s) => s.pbWins], ['сбитых', (s) => s.pbKills], ['лучший игрок', (s) => s.pbMvp]] },
   { icon: 'kart', mode: 'Картинг', rows: [['заездов', (s) => s.rcRaces], ['побед', (s) => s.rcWins], ['подиумов', (s) => s.rcPodiums]] },
-  { icon: 'regatta', mode: 'Портовая регата', rows: [['заездов', (s) => s.brRaces], ['побед', (s) => s.brWins]] },
+  { icon: 'regatta', mode: 'Катера', rows: [['заездов за всё время', (s) => s.brRaces], ['побед', (s) => s.brWins]] },
   { icon: 'hide-box', mode: 'Прятки', rows: [['игр', (s) => s.hiGames], ['побед', (s) => s.hiWins], ['найдено', (s) => s.hiFound], ['пережито раундов', (s) => s.hiSurvived]] },
   { icon: 'cards', mode: 'Дурак', rows: [['партий', (s) => s.dkGames], ['в дураках', (s) => s.dkFools], ['вышел первым', (s) => s.dkFirst]] },
   { icon: 'roulette', mode: 'Автоматы', rows: [['вращений', (s) => s.spins], ['выиграно', (s) => `${fmt.format(s.slotWon)} 🪙`], ['джекпотов', (s) => s.jackpots]] },

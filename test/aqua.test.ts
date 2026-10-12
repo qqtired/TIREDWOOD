@@ -1037,7 +1037,7 @@ test('аквапарк: финиш — в профиль и на доску ре
   assert.deepEqual(again.state.aqua.map((r) => [r.nick, r.ms]), [['Акула', ms], ['Карасик', fb.ms]]);
 });
 
-test('аквапарк: новая полоса — новая доска: старые рекорды и личные лучшие сброшены, сколько раз проходил — осталось', () => {
+test('аквапарк: новая полоса — новая доска; старые рекорды уходят в архив, общий счёт сохраняется', () => {
   const { store, hub } = setupHub();
   const a = login(hub, 'Старожил');
   a.c.profile!.stats.aqBest = 31_000;
@@ -1062,12 +1062,20 @@ test('аквапарк: новая полоса — новая доска: ст�
     raw.aqua = [{ pid: a.c.pid, nick: 'Старожил', ms: 31_000, at: 1 }];
     if (old === undefined) delete raw.aquaCourse;
     else raw.aquaCourse = old;
-    for (const p of raw.profiles as Array<{ id: number; stats: { aqBest: number } }>) if (p.id === a.c.pid) p.stats.aqBest = 31_000;
+    // До архивной схемы этих полей не было. Иначе это уже новый файл с сохранённым рекордом целевого курса.
+    delete raw.aquaArchive;
+    for (const p of raw.profiles as Array<{ id: number; stats: Record<string, unknown>; aquaBests?: unknown }>) if (p.id === a.c.pid) {
+      p.stats.aqBest = 31_000;
+      delete p.aquaBests;
+      for (const key of ['aqCourse', 'aqBestCourse1', 'aqBestCourse2', 'aqBestCourse3']) delete p.stats[key];
+    }
     writeFileSync(file, JSON.stringify(raw));
     got = load();
     assert.deepEqual(got.state.aqua, [], 'доска новой полосы пустая');
     assert.equal(got.me.stats.aqBest, 0, 'личный лучший — с нуля');
     assert.equal(got.me.stats.aqRuns, 7, 'сколько раз проходил — осталось');
     assert.equal(got.state.aquaCourse, AQUA_COURSE);
+    assert.equal(got.state.aquaArchive[String(old ?? 1)][0].ms, 31_000, 'прежняя доска сохранена');
+    assert.equal(got.me.aquaBests?.[String(old ?? 1)], 31_000, 'прежний личный рекорд сохранён');
   }
 });

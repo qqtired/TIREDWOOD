@@ -64,6 +64,9 @@ export interface Stats {
   /** Лучший круг, мс: «Портовое кольцо» второй версии (id harbor) и «Солнечный серпантин» (id hills) */
   rcBestLapHarbor: number;
   rcBestLapHills: number;
+  /** Третьи версии трасс: прежние harbor/hills выше остаются архивом. */
+  rcBestLapHarborV3: number;
+  rcBestLapHillsV3: number;
   /** Рыбалка: вытащено (с хламом) и продано за жетоны */
   fsCaught: number;
   fsSold: number;
@@ -88,6 +91,11 @@ export interface Stats {
   /** Аквапарк: сколько раз прошёл полосу и лучшее время, мс (0 — не проходил) */
   aqRuns: number;
   aqBest: number;
+  /** Активный курс и проекции личного архива для существующего сообщения stats. */
+  aqCourse: number;
+  aqBestCourse1: number;
+  aqBestCourse2: number;
+  aqBestCourse3: number;
   /**
    * Автоматы для «Топа проигравших»: сколько поставил и сколько выиграл (с джекпотами) — только со 2 октября.
    * Раньше ставки не записывались, поэтому slotWon (выигрыши за всё время) с ними не сравнить.
@@ -115,6 +123,8 @@ export interface Stats {
   brBestLap: number;
   /** Лучший круг «Портовой регаты» (трасса harbor-v1), тики, 0 — не было. */
   brBestLapHarbor: number;
+  /** «Белые скалы» (white-cliffs-v2), тики. */
+  brBestLapCliffs: number;
   hiGames: number;
   hiWins: number;
   hiFound: number;
@@ -132,6 +142,18 @@ export interface Stats {
   skMedal: number;
   skClean: number;
   skDay: number;
+  /** 1 — прежняя каланча 65 м, 2 — каланча 185 м. skRuns остаётся общим за всё время. */
+  skCourse: number;
+  skBestLegacy: number;
+  skMedalLegacy: number;
+  skCleanLegacy: number;
+  skDayLegacy: number;
+  skRunsLegacy: number;
+  skBestTower185: number;
+  skMedalTower185: number;
+  skCleanTower185: number;
+  skDayTower185: number;
+  skRunsTower185: number;
   /**
    * «Подземелье» (shared/dungeon/api.ts): забегов, рекорд — отбито волн и игровое время до конца последней из них (мс),
    * сбито врагов и боссов за всё время
@@ -166,14 +188,17 @@ export interface Stats {
 export function emptyStats(): Stats {
   return {
     pbRounds: 0, pbWins: 0, pbKills: 0, pbMvp: 0, spins: 0, slotWon: 0, bestWin: 0, jackpots: 0, dkGames: 0, dkFools: 0, dkFirst: 0,
-    rcRaces: 0, rcWins: 0, rcPodiums: 0, rcBestLap: 0, rcBestLapFoundry: 0, rcBestLapHarbor: 0, rcBestLapHills: 0, fsCaught: 0, fsSold: 0,
-    aqRuns: 0, aqBest: 0, slotBet: 0, slotPaid: 0,
+    rcRaces: 0, rcWins: 0, rcPodiums: 0, rcBestLap: 0, rcBestLapFoundry: 0, rcBestLapHarbor: 0, rcBestLapHills: 0,
+    rcBestLapHarborV3: 0, rcBestLapHillsV3: 0, fsCaught: 0, fsSold: 0,
+    aqRuns: 0, aqBest: 0, aqCourse: 0, aqBestCourse1: 0, aqBestCourse2: 0, aqBestCourse3: 0, slotBet: 0, slotPaid: 0,
     fsFish: 0, fsGrams: 0, fsDay: 0, fsDayFish: 0, fsDayGrams: 0, fsChests: 0,
     fsCasts: 0, fsBites: 0, fsLost: 0, fsMaxGrams: 0, fsEarned: 0,
     ftGames: 0, ftWins: 0, ftBest: 0, ftKills: 0, fcFights: 0, fcWins: 0, fcKos: 0,
-    stStorms: 0, stLights: 0, prRaids: 0, prWins: 0, prKos: 0, brRaces: 0, brWins: 0, brBestLap: 0, brBestLapHarbor: 0, hiGames: 0, hiWins: 0, hiFound: 0, hiSurvived: 0,
+    stStorms: 0, stLights: 0, prRaids: 0, prWins: 0, prKos: 0, brRaces: 0, brWins: 0, brBestLap: 0, brBestLapHarbor: 0, brBestLapCliffs: 0, hiGames: 0, hiWins: 0, hiFound: 0, hiSurvived: 0,
     rlSpins: 0, rlStaked: 0, rlWon: 0,
     skRuns: 0, skBest: 0, skMedal: 0, skClean: 0, skDay: 0,
+    skCourse: 0, skBestLegacy: 0, skMedalLegacy: 0, skCleanLegacy: 0, skDayLegacy: 0, skRunsLegacy: 0,
+    skBestTower185: 0, skMedalTower185: 0, skCleanTower185: 0, skDayTower185: 0, skRunsTower185: 0,
     dgRuns: 0, dgBest: 0, dgBestMs: 0, dgKills: 0, dgBosses: 0,
     arBestTr: 0, arBestTi: 0, arBestCa: 0, arWkTr: 0, arWkTi: 0, arWkCa: 0, arWkBestTr: 0, arWkBestTi: 0, arWkBestCa: 0,
     arRunsTr: 0, arRunsTi: 0, arRunsCa: 0, arDay: 0, arDayCoins: 0, arRecMask: 0,
