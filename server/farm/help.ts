@@ -1,5 +1,5 @@
 // Ферма: помощь соседям на сервере (design-v11 §8.1, §18.5). Полить чужие грядки (в том числе спящего участка):
-// заряд лейки + очко помощи на грядку, −20 % оставшегося времени. Грабли работают и здесь — до 1/4/10 грядок одного
+// заряд лейки + очко помощи на грядку, −20 % оставшегося времени. За одно действие — одна грядка одного
 // участка. Все лимиты — shared/farmhelp.ts; здесь — проверка места и рассылка.
 import { cutRemaining, farmLevel } from '../../shared/farm.ts';
 import { BED_CLICK_RANGE, FARM_COUNTERS, FARM_PLOTS, HELP_MIN_LEVEL, HELP_RESET_MS, RAKE_BEDS, cropById } from '../../shared/farmdata.ts';

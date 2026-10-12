@@ -132,11 +132,10 @@ export class FarmScene implements Scene {
       wellInfo: () => { const now = this.now(); const w = wellView(this.farm, now); return { sets: w.sets, nextAt: w.nextAt, now }; },
     });
     this.pond = new FarmPond(d, this.world.scene, this.world.collision, this.me);
-    // колесо: у пустой грядки листает пояс семян, иначе — приближает камеру
+    // Колесо приближает камеру только когда мышь захвачена игрой.
     window.addEventListener('wheel', (e) => {
       if (!this.active || !d.input.locked || d.input.blocked) return;
-      if (this.hud.beltOn) this.hud.beltWheel(e);
-      else this.cam.zoomBy(e.deltaY);
+      this.cam.zoomBy(e.deltaY);
     }, { passive: true });
   }
 
@@ -286,6 +285,7 @@ export class FarmScene implements Scene {
         return;
       case 'fail':
         if (e.a === 'identity') this.hud.identityFailed();
+        if (e.a === 'plant' && this.hud.plantFailed(failText(e.why))) return;
         this.toast({ tone: 'warn', icon: 'ui:warn', title: (e.a === 'help' || e.a === 'van' || e.a === 'order' || e.a === 'cone' ? sysFailText(e.a, e.why) : null) ?? (e.a === 'sit' && e.why === 'busy' ? 'Место занято' : failText(e.why)) });
         return;
       case 'note':
@@ -342,16 +342,12 @@ export class FarmScene implements Scene {
     return b ? bedStage(b, this.now()) : null;
   }
 
-  private useBed(i: number, mouse = false): void {
+  private useBed(i: number): void {
     const st = this.bedState(i);
     const net = this.d.net;
     if (st === null) return;
     if (st === -1) {
-      // пояс семян: сажаем, только если он уже на экране у этой грядки (случайный клик жетоны не тратит);
-      // первое E показывает пояс, дальнюю грядку по ЛКМ — только подсказка, пояс там не появится
-      if (this.hud.beltAt(i)) this.hud.beltPlant();
-      else if (!mouse) { this.hud.showBelt(i); this.beltBed = i; }
-      else this.toast({ key: 'farm-near', icon: 'seeds', title: 'Подойди к грядке ближе', sub: 'Пояс семян появится внизу — выбери культуру и посади' });
+      this.hud.openPlant(i);
     } else if (st === 3) net.send({ t: 'farm', a: 'harvest', beds: [i] });
     else if (!this.farm.beds[i].watered) net.send({ t: 'farm', a: 'water', beds: [i] });
   }
@@ -374,7 +370,7 @@ export class FarmScene implements Scene {
     if (this.seat >= 0) { this.d.net.send({ t: 'farm', a: 'sit', seat: -1 }); return; }
     if (mouse) {
       const bed = this.aimBed();
-      if (bed >= 0) { this.target = { k: 'bed', i: bed }; this.useBed(bed, true); return; }
+      if (bed >= 0) { this.target = { k: 'bed', i: bed }; this.useBed(bed); return; }
     }
     const t = this.target;
     if (t?.k === 'bed') this.useBed(t.i);
@@ -452,35 +448,27 @@ export class FarmScene implements Scene {
     return best;
   }
 
-  /** Пояс семян сейчас показан у этой грядки (чтобы не перерисовывать его каждый кадр) */
-  private beltBed = -1;
-
-  /** Подсказка E (ui/prompt-model.ts) или пояс семян у пустой грядки */
+  /** Контекстная подсказка E; само окно посадки открывается только по действию. */
   private updateHint(): void {
     const hud = this.hud;
+    if (hud.plantBed >= 0) {
+      const bed = bedWorld(this.plot, hud.plantBed);
+      if (Math.hypot(this.pose.x - bed.x, this.pose.z - bed.z) > BED_CLICK_RANGE + .6) hud.close();
+    }
     const boss = FARM_LAYOUT.objects.find(o => o.id === 'boss')!;
     hud.setTreeNear(!this.modalOpen && Math.hypot(this.pose.x - boss.x, this.pose.z - boss.z) <= 7);
-    if (this.modalOpen) { hud.setPrompt(null); hud.hideBelt(); this.world.focusBed(-1, -1); return; }
-    if (this.seat >= 0) { hud.hideBelt(); hud.setPrompt({ keys: ['E'], text: 'Встать', note: 'или сделай шаг' }); this.world.focusBed(-1, -1); return; }
-    if (this.pond.blockActions) { hud.setPrompt(null); hud.hideBelt(); hud.setHelpNear(false); this.world.focusBed(-1, -1); return; }
-    if (this.pond.nearHint) { hud.hideBelt(); hud.setHelpNear(false); hud.setPrompt({ keys: ['E'], text: this.pond.nearHint }); this.world.focusBed(-1, -1); return; }
+    if (this.modalOpen) { hud.setPrompt(null); this.world.focusBed(-1, -1); return; }
+    if (this.seat >= 0) { hud.setPrompt({ keys: ['E'], text: 'Встать', note: 'или сделай шаг' }); this.world.focusBed(-1, -1); return; }
+    if (this.pond.blockActions) { hud.setPrompt(null); hud.setHelpNear(false); this.world.focusBed(-1, -1); return; }
+    if (this.pond.nearHint) { hud.setHelpNear(false); hud.setPrompt({ keys: ['E'], text: this.pond.nearHint }); this.world.focusBed(-1, -1); return; }
     const t = (this.target = this.findTarget());
     const now = this.now();
     this.world.focusBed(t?.k === 'bed' ? this.plot : t?.k === 'help' ? t.plot : -1, t?.k === 'bed' ? t.i : t?.k === 'help' ? t.bed : -1);
     hud.setHelpNear(t?.k === 'help');
     if (t?.k === 'bed') {
-      const p = bedPrompt(this.farm, t.i, now, FARM_BED_LOCAL[t.i].level);
-      if (p === 'belt') {
-        if (!hud.beltOn || this.beltBed !== t.i) { hud.showBelt(t.i); this.beltBed = t.i; }
-        return;
-      }
-      hud.hideBelt();
-      this.beltBed = -1;
-      hud.setPrompt(p);
+      hud.setPrompt(bedPrompt(this.farm, t.i, now, FARM_BED_LOCAL[t.i].level));
       return;
     }
-    hud.hideBelt();
-    this.beltBed = -1;
     if (!t) { hud.setPrompt(null); return; }
     if (t.k === 'seat') { hud.setPrompt(this.busySeats.has(t.id) ? { keys: [], text: 'Место занято' } : { keys: ['E'], text: 'Сесть' }); return; }
     if (t.k === 'jukebox') { hud.setPrompt({ keys: ['E'], text: 'Музыкальный автомат', note: 'поставить песню' }); return; }
@@ -577,11 +565,6 @@ export class FarmScene implements Scene {
     if (this.pond.blockActions) return false;
     if (down && this.juke.onKey(code, e)) return true;
     if (down && !e.repeat && this.hasSelf && this.hud.hotkey(code)) {
-      e.preventDefault();
-      return true;
-    }
-    // 1–9 и Q — пояс семян у пустой грядки
-    if (down && !e.repeat && this.hasSelf && !this.d.input.blocked && !this.hud.open && this.hud.beltKey(code)) {
       e.preventDefault();
       return true;
     }

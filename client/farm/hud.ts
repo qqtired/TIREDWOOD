@@ -1,11 +1,10 @@
 import { FarmLoot } from './ui/loot.ts';
 // Интерфейс фермы на ките 2.0 (lab/ui/screens/farm.js): HUD лежит в слотах кита — карточка фермы и обучение слева-сверху,
-// плитки справа-сверху (ui/bar.ts), пояс семян и подсказка E внизу по центру (ui/belt.ts, ui/prompt.ts); плашка Древа,
+// плитки справа-сверху (ui/bar.ts), окно посадки и подсказка E (ui/belt.ts, ui/prompt.ts); плашка Древа,
 // тосты и баннер уровня идут через верх-центр кита (ui.top) — своей разметки наверху нет. Окна — нативные <dialog> с
 // китовым .k-scrim (Семечкин, Гриб, «Заказы» с вкладками Фургон/доска, Хозяйство, доска фермы, новый уровень, итог Древа);
 // Esc, × и клик мимо закрывают. Решает сервер: окно только просит ({t:'farm', a:…}) через FarmHudActions.
-// Сцена (scene.ts) зовёт: setMe/refresh на каждый прогресс, object (E у предмета), showBelt/hideBelt и beltKey/beltWheel/beltPlant
-// (пояс семян вместо окна «Что посадить?»), setPrompt (подсказка E), onEvent(farmEv), onSys(сообщения B1), hotkey (H), close.
+// Сцена передаёт прогресс, открывает окна предметов и посадки; правила и цены — из shared.
 import { emptyFarm, type FarmProgress } from '../../shared/farm.ts';
 import type { FarmObjectId } from '../../shared/farmmap.ts';
 import type { FarmClientMsg, FarmEvent, FarmPlotView, FarmRosterRow } from '../../shared/farmnet.ts';
@@ -16,7 +15,7 @@ import './farm.css';
 import { FarmBar } from './ui/bar.ts';
 import { BoardWin } from './ui/board.ts';
 import { BossEndWin } from './ui/bossend.ts';
-import { SeedBelt } from './ui/belt.ts';
+import { PlantWin } from './ui/belt.ts';
 import { EstateWin } from './ui/estate.ts';
 import { FarmNotify } from './ui/notify.ts';
 import { GribWin } from './ui/grib.ts';
@@ -36,7 +35,7 @@ export interface FarmHudActions {
   sell(item: string, n: number): void;
   /** Окно закрылось (мышь — обратно игре) */
   closed(): void;
-  /** Любое намерение фермы — convert, upgrade, van, order, look, tutorial, claimPlot, pig, plant на несколько грядок, help */
+  /** Любое намерение фермы — convert, upgrade, van, order, look, tutorial, claimPlot, pig, plant, help */
   send?(m: FarmClientMsg): void;
   /** Живой баланс жетонов (иначе берём из последнего refresh) */
   tokens?(): number;
@@ -54,7 +53,7 @@ export class FarmHud {
   private readonly loot: FarmLoot;
   private readonly bar: FarmBar;
   private readonly prompt: FarmPrompt;
-  private readonly belt: SeedBelt;
+  private readonly plant: PlantWin;
   private readonly tree: FarmTree;
   private readonly act: FarmHudActions;
   private readonly notify: FarmNotify;
@@ -82,10 +81,6 @@ export class FarmHud {
     this.notify = new FarmNotify((t) => this.toast(t));
     this.bar = new FarmBar(slots, { openEstate: () => this.openEstate() });
     this.prompt = new FarmPrompt(slots);
-    this.belt = new SeedBelt(slots, {
-      send: (m) => act.send?.(m),
-      poor: () => this.toast({ key: 'farm-poor', tone: 'warn', icon: 'ui:token', title: 'Не хватает жетонов', sub: 'Выбери подешевле или продай урожай Грибу' }),
-    });
     this.tree = new FarmTree(top, {
       boss: () => this.bossView,
       now: () => this.now(),
@@ -113,6 +108,7 @@ export class FarmHud {
     };
     // окна — <dialog> в верхнем слое: родитель любой, кладём в body
     const body = document.body;
+    this.plant = new PlantWin(body, host, { id: 'plant', eyebrow: 'Ферма · посадка', title: 'Что посадить?', portrait: 'seeds', size: 'lg' });
     this.seeds = new SeedsWin(body, host, { id: 'seeds', eyebrow: 'Ферма · семена', title: 'Семечкин', line: '«Первая посадка новой культуры — от меня в подарок!»', portrait: 'seeds', size: 'lg' });
     this.grib = new GribWin(body, host, { id: 'grib', eyebrow: 'Ферма · скупка', title: 'Дядюшка Гриб', line: '«Всё возьму! У Фургона свои ящики и опыт»', portrait: 'giant-mushroom' });
     this.orders = new OrdersWin(body, host, { id: 'orders', eyebrow: 'Ферма · заказы', title: 'Заказы', portrait: 'van', size: 'lg' });
@@ -159,7 +155,6 @@ export class FarmHud {
     } else {
       this.level.reset();
       this.close(false);
-      this.belt.hide();
       // свои тосты и герои фермы не должны висеть над площадью (только с префиксом — чужие остаются)
       this.top.clearToasts('farm');
       this.top.clearHero('farm-level');
@@ -171,7 +166,6 @@ export class FarmHud {
     this.bar.update(this.f, this.plot, now);
     this.notify.check(this.f, now);
     this.tree.update();
-    this.belt.update(this.f, this.tokens(), now);
     this.cur?.tick();
   }
 
@@ -189,7 +183,6 @@ export class FarmHud {
     this.tokensSeen = tokens;
     this.bar.update(f, this.plot, now);
     this.notify.check(f, now);
-    this.belt.update(f, this.tokens(), now);
     this.cur?.refresh();
   }
 
@@ -208,45 +201,10 @@ export class FarmHud {
     this.bar.setHelpNear(v);
   }
 
-  // ------------------------------------------------------------ пояс семян
-
-  /** Пустая грядка bed под прицелом: показать пояс, подсказку E убрать */
-  showBelt(bed: number): void {
-    this.prompt.set(null);
-    this.belt.show(this.f, bed, this.tokens(), this.now());
-  }
-
-  hideBelt(): void {
-    this.belt.hide();
-  }
-
-  /** Пояс на экране: колесо мыши ему, а не камере */
-  get beltOn(): boolean {
-    return this.belt.active;
-  }
-
-  /** Пояс показан у грядки bed — посадка по E/ЛКМ разрешена только тогда */
-  beltAt(bed: number): boolean {
-    return this.belt.isAt(bed);
-  }
-
-  /** Клавиши пояса: 1–9 — ячейка, Q — грабли/по одной. true — съела */
-  beltKey(code: string): boolean {
-    if (!this.belt.active) return false;
-    const m = /^(?:Digit|Numpad)([1-9])$/.exec(code);
-    if (m) { this.belt.pick(Number(m[1]) - 1); return true; }
-    if (code === 'KeyQ') { this.belt.toggleRake(); return true; }
-    return false;
-  }
-
-  beltWheel(e: { deltaY: number; deltaMode?: number }): void {
-    this.belt.wheel(e);
-  }
-
-  /** E / ЛКМ у пустой грядки: посадить выбранное. false — нечего сажать */
-  beltPlant(): boolean {
-    return this.belt.plant();
-  }
+  /** E / ЛКМ у пустой грядки открывает сетку доступных семян. */
+  openPlant(bed: number): void { this.show(this.plant, () => this.plant.showBed(bed)); }
+  get plantBed(): number { return this.plant.targetBed; }
+  plantFailed(text: string): boolean { return this.plant.failed(text); }
 
   // ------------------------------------------------------------ окна
 
@@ -255,7 +213,6 @@ export class FarmHud {
     if (this.cur && this.cur !== win) this.cur.close(true);
     this.cur = win;
     this.prompt.set(null);
-    this.belt.hide();
     run();
     this.act.free?.();
   }

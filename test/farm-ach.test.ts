@@ -45,7 +45,7 @@ test('уровень: вещи v11, повтор → жетоны, событи�
   assert.equal(u5.name, 'Фермер');
   assert.deepEqual(u5.crops.map((c) => c.id), ['carrot', 'sunflower']);
   assert.deepEqual(u5.van, [1, 2]);
-  assert.deepEqual(levelUnlocks(13).items, ['u:stargardener', 'h:leafcrown', 'f:fireflies', 'ti:legend']);
+  assert.deepEqual(levelUnlocks(13).items, ['u:stargardener', 'h:leafcrown']);
 });
 
 test('достижения: по счётчику и с уровня, раз; убранство и вещи, жетоны; ступени репутации с косметикой', () => {

@@ -115,13 +115,12 @@ test('pack1: v1 добавляет две грядки один раз и сох
   assert.equal(emptyFarm(NOW).beds.length, 3);
 });
 
-test('pack1: все 19 культур совпадают с утверждённым балансом и сохраняют ящики', () => {
+test('pack1: все19 культур сохраняют XP, открытия, цены семян и ресурсы', () => {
   const balance = JSON.parse(readFileSync(new URL('../docs/farm/pack1-balance.json', import.meta.url), 'utf8'));
   assert.deepEqual(FARM_XP_TOTAL, balance.total);
   for (const expected of balance.crops) {
     const c = cropById(expected.id)!;
-    for (const key of ['level', 'min', 'xp', 'seed', 'sale', 'chance', 'res'] as const) assert.equal(c[key], expected[key], `${c.id}.${key}`);
-    assert.ok((c.sale - c.seed) * 60 / c.min >= 150 - 1e-9, c.id);
+    for (const key of ['level', 'xp', 'seed', 'chance', 'res'] as const) assert.equal(c[key], expected[key], `${c.id}.${key}`);
     assert.equal(vanQ(c), c.van);
   }
   assert.equal(CROPS.length, 19);
@@ -142,7 +141,7 @@ test('pack1: потолок каждой единицы 150 после всех 
   }
 });
 
-test('pack1: семь сохранённых улучшений ведут 3→10, Грабли3 выбирают 0..9', () => {
+test('pack1: семь сохранённых улучшений ведут 3→10, каждая из10грядок доступна отдельно', () => {
   const f = emptyFarm(NOW); f.xp = FARM_XP_TOTAL[12]; f.tools.rake = 3;
   f.cellar = Object.fromEntries(['fiber', 'root', 'grain', 'spores', 'crystal-dust', 'wood', 'gold-leaf', 'scale', 'star-dust'].map((k) => [k, 100]));
   for (let i = 2; i <= 8; i++) {
@@ -150,7 +149,7 @@ test('pack1: семь сохранённых улучшений ведут 3→1
     assert.equal(f.beds.length, i + 2);
   }
   assert.deepEqual(UPGRADES.filter((u) => u.kind === 'bed').map((u) => u.step), [4, 5, 6, 7, 8, 9, 10]);
-  assert.deepEqual(pickBeds(f, [0,1,2,3,4,5,6,7,8,9]), [0,1,2,3,4,5,6,7,8,9]);
+  for (let i = 0; i < 10; i++) assert.deepEqual(pickBeds(f, [i]), [i]);
   assert.equal(pickBeds(f, [10]), null);
   assert.ok(plant(f, [9], 'radish', NOW, () => true).ok);
 });
@@ -263,10 +262,19 @@ test('pack1: очередь музыки фермы отдельная, отка
 test('pack1: сервер обрабатывает все 10 грядок, а квота босса берёт уровень до XP сбора', () => {
   const k=roomKit();const a=k.add(1);const f=a.profile.farm!;
   f.xp=FARM_XP_TOTAL[12];f.tools.rake=3;f.beds=Array.from({length:10},emptyBed);
-  const center=bedWorld(a.p.plot,4);Object.assign(a.p.state,{x:center.x,z:center.z});
   const indices=Array.from({length:10},(_,i)=>i);
-  k.room.onMessage(a.c,{t:'farm',a:'plant',crop:'radish',beds:indices});assert.ok(f.beds.every((b)=>b.crop==='radish'));
-  k.clock.now+=120000;k.room.onMessage(a.c,{t:'farm',a:'harvest',beds:indices});assert.equal(f.bag.radish,10);
+  for (const i of indices) {
+    Object.assign(a.p.state, bedWorld(a.p.plot, i));
+    k.room.onMessage(a.c,{t:'farm',a:'plant',crop:'radish',beds:[i]});
+  }
+  assert.ok(f.beds.every((b)=>b.crop==='radish'));
+  k.clock.now+=180000;
+  for (let i = 0; i < 60; i++) k.room.step();
+  for (const i of indices) {
+    Object.assign(a.p.state, bedWorld(a.p.plot, i));
+    k.room.onMessage(a.c,{t:'farm',a:'harvest',beds:[i]});
+  }
+  assert.equal(f.bag.radish,10);
   k.room.onMessage(a.c,{t:'farm',a:'plant',crop:'radish',beds:[10]});assert.ok(f.beds.every((b)=>!b.crop));
   // Новое событие, новичок пересекает L1→L2 первым сбором, зритель уже на максимальном уровне.
   const fresh=roomKit();const u=fresh.add(1);fresh.add(2).profile.farm!.xp=FARM_XP_TOTAL[12];

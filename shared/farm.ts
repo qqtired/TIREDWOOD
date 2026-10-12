@@ -6,7 +6,7 @@ import { mskDay } from './economy.ts';
 import {
   BAG_PLACES, BEES_BONUS, BUFFS, CAN_CHARGES, COMPOST_GROW, CROPS, FARM_BEDS, FARM_COUNTERS,
   FARM_MAX_LEVEL, FARM_STAR_XP, FARM_XP_TOTAL, GENERAL_XP, GENERAL_XP_DAY_CAP, LONG_HARVEST_MIN, MORNING_HOURS,
-  NIGHT_HARVEST_MIN, PIG_EVERY_MS, PIG_STORE, RAKE_BEDS, REP_LEVELS, RESOURCES, SHOVEL_DOUBLE, TRUFFLE, TRUFFLE_PRICE,
+  NIGHT_HARVEST_MIN, PIG_EVERY_MS, PIG_STORE, RAKE_BEDS, RAKE_RESOURCE_BONUS, REP_LEVELS, RESOURCES, SHOVEL_DOUBLE, TRUFFLE, TRUFFLE_PRICE,
   TUTORIAL_COINS, TUTORIAL_STEPS, TUTORIAL_XP, WATER_CUT, WELL_REFILL_MS, WELL_SETS, cropById, cropGroup, resourceById,
   upgradeById, type CropDef, type FarmBuffKind, type ResourceId, type UpgradeDef,
 } from './farmdata.ts';
@@ -407,7 +407,7 @@ export function growMs(f: FarmProgress, c: CropDef, now: number): number {
 }
 
 /**
- * Посадить культуру на грядки (Грабли — до RAKE_BEDS штук за раз). Списывает жетоны через pay(сумма): сервер даёт
+ * Посадить культуру на выбранную грядку. Списывает жетоны через pay(сумма): сервер даёт
  * колбэк со списанием из профиля; false — не хватило. Вернёт посаженные грядки или причину отказа.
  */
 export function plant(
@@ -430,7 +430,7 @@ export function plant(
   return { ok: true, beds: free, paid };
 }
 
-/** Индексы грядок от клиента → проверенный список без повторов, не больше, чем берут Грабли */
+/** Индексы грядок от клиента → проверенный список: одно действие на одну грядку. */
 export function pickBeds(f: FarmProgress, beds: readonly unknown[]): number[] | null {
   if (!Array.isArray(beds) || beds.length === 0) return null;
   const out: number[] = [];
@@ -487,6 +487,11 @@ export interface HarvestResult {
   bagFull: boolean;
 }
 
+/** Вероятность вторичного ресурса: база + текущая ступень граблей + пчёлы. */
+export function resourceChance(f: FarmProgress, c: CropDef): number {
+  return Math.min(1, c.chance + (RAKE_RESOURCE_BONUS[f.tools.rake - 1] ?? 0) + (f.built.bees ? BEES_BONUS : 0));
+}
+
 /** Собрать спелые грядки. Сумка полна → растение остаётся спелым. Счётчики достижений обновляются здесь. */
 export function harvest(
   f: FarmProgress, beds: readonly number[], now: number, rng: () => number,
@@ -504,7 +509,7 @@ export function harvest(
     const b = f.beds[i];
     const c = cropById(b.crop)!;
     const n = rng() < SHOVEL_DOUBLE[f.tools.shovel - 1] && free >= 2 ? 2 : 1;
-    const res = rng() < c.chance + (f.built.bees ? BEES_BONUS : 0) ? c.res : null;
+    const res = rng() < resourceChance(f, c) ? c.res : null;
     const xp = Math.round(c.xp * xpMult);
     f.bag[c.id] = (f.bag[c.id] ?? 0) + n;
     if (res) f.cellar[res] = (f.cellar[res] ?? 0) + 1;

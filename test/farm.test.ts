@@ -35,23 +35,23 @@ test('рост лениво: стадии по времени, полив −20 
   const r = plant(f, [0], 'radish', T0, pay);
   assert.ok(r.ok);
   assert.equal(paid, 0, 'первый редис — подарок');
-  assert.equal(f.beds[0].ripeAt, T0 + 120_000);
+  assert.equal(f.beds[0].ripeAt, T0 + 180_000);
   assert.equal(bedStage(f.beds[0], T0), 0);
-  assert.equal(bedStage(f.beds[0], T0 + 50_000), 1);
-  assert.equal(bedStage(f.beds[0], T0 + 90_000), 2);
-  // полив: лейка пустая — нельзя; с зарядом — оставшиеся 100 с превращаются в 80 с, второй раз за цикл нельзя
+  assert.equal(bedStage(f.beds[0], T0 + 70_000), 1);
+  assert.equal(bedStage(f.beds[0], T0 + 130_000), 2);
+  // полив: лейка пустая — нельзя; с зарядом — оставшиеся160с превращаются в128с, второй раз за цикл нельзя
   assert.deepEqual(water(f, [0], T0 + 20_000), { ok: false, why: 'water' });
   f.water = 300;
   assert.ok(water(f, [0], T0 + 20_000).ok);
-  assert.equal(f.beds[0].ripeAt, T0 + 100_000);
+  assert.equal(f.beds[0].ripeAt, T0 + 148_000);
   assert.equal(f.water, 200);
   assert.deepEqual(water(f, [0], T0 + 30_000), { ok: false, why: 'watered' });
   // закрытая культура и чужие грядки — отказ
   assert.deepEqual(plant(f, [0], 'lettuce', T0, pay), { ok: false, why: 'level' });
   assert.deepEqual(plant(f, [3], 'radish', T0, pay), { ok: false, why: 'bed' });
   // спелое собирается: опыт, продукт в сумку, грядка пустеет
-  assert.deepEqual(harvest(f, [0], T0 + 99_000, () => 0.99), { ok: false, why: 'unripe' });
-  const h = harvest(f, [0], T0 + 100_000, () => 0.99);
+  assert.deepEqual(harvest(f, [0], T0 + 147_000, () => 0.99), { ok: false, why: 'unripe' });
+  const h = harvest(f, [0], T0 + 148_000, () => 0.99);
   assert.ok(h.ok);
   assert.deepEqual(h.r.items, [{ bed: 0, crop: 'radish', n: 1, res: null, xp: 5 }]);
   assert.equal(h.r.generalXp, 1);
@@ -87,17 +87,18 @@ test('продажа: после 700 цена сохраняется, дробь
   const f = emptyFarm(T0);
   f.bag = { radish: 1000, wheat: 50, truffle: 2 };
   const r1 = sell(f, 'radish', 350, T0);
-  assert.deepEqual(r1, { ok: true, coins: 2100, n: 350 });
-  assert.equal(f.sold.coins, 2100);
-  assert.deepEqual(sell(f, 'radish', 10, T0), { ok: true, coins: 60, n: 10 });
-  f.rep = 50; // +2 %: пшеница по 40,8; остаток не теряется
-  assert.deepEqual(sell(f, 'wheat', 1, T0), { ok: true, coins: 40, n: 1 });
-  assert.ok(Math.abs(f.sold.frac - 0.8) < 1e-9);
-  assert.deepEqual(sell(f, 'wheat', 1, T0), { ok: true, coins: 41, n: 1 });
+  assert.deepEqual(r1, { ok: true, coins: 493, n: 350 });
+  assert.equal(f.sold.coins, 493.5);
+  f.sold.coins = 800;
+  assert.deepEqual(sell(f, 'radish', 10, T0), { ok: true, coins: 14, n: 10 });
+  f.rep = 50; // +2 %: пшеница по5,2836; остаток предыдущих продаж0,6 сохраняется
+  assert.deepEqual(sell(f, 'wheat', 1, T0), { ok: true, coins: 5, n: 1 });
+  assert.ok(Math.abs(f.sold.frac - 0.8836) < 1e-9);
+  assert.deepEqual(sell(f, 'wheat', 1, T0), { ok: true, coins: 6, n: 1 });
   assert.deepEqual(sell(f, 'truffle', 2, T0), { ok: true, coins: 60, n: 2 });
   assert.equal(capPay(690, 110, 2 / 11), 110);
   f.rep = 0;
-  assert.deepEqual(sell(f, 'radish', 5, T0 + 86_400_000), { ok: true, coins: 30, n: 5 });
+  assert.deepEqual(sell(f, 'radish', 5, T0 + 86_400_000), { ok: true, coins: 7, n: 5 });
   assert.deepEqual(sell(f, 'pumpkin', 1, T0), { ok: false, why: 'item' });
   assert.deepEqual(sell(f, 'radish', 0, T0), { ok: false, why: 'count' });
 });
@@ -125,7 +126,7 @@ test('нормализация: битая ферма чинится, стары
   }, T0);
   assert.equal(f.xp, 0);
   assert.equal(f.beds[0].crop, null);
-  assert.equal(f.beds[1].ripeAt, 1000 + 120_000);
+  assert.equal(f.beds[1].ripeAt, 1000 + 180_000);
   assert.deepEqual(f.beds[1].helpers, [3, 4]);
   assert.deepEqual(f.tools, { rake: 1, can: 3, shovel: 1, bag: 1 });
   assert.equal(f.water, 0);
@@ -183,7 +184,7 @@ test('через хаб: калитка → редис → вырос → соб
   assert.equal(hub.farm!.stageOf(a.c, 0), 1);
   hub.onJson(a.c, { t: 'farm', a: 'harvest', beds: [0] });
   assert.equal(lastOf(a.s, 'farmEv')?.e[0].k, 'fail');
-  clock.now += 61_000;
+  clock.now += 121_000;
   steps(hub, 61);
   hub.onJson(a.c, { t: 'farm', a: 'harvest', beds: [0] });
   me = lastOf(a.s, 'farmMe')!.me;
@@ -195,9 +196,9 @@ test('через хаб: калитка → редис → вырос → соб
   const grib = farmUse('grib')!;
   Object.assign(fp.state, { x: grib.x, z: grib.z });
   hub.onJson(a.c, { t: 'farm', a: 'sell', item: 'radish', n: 1 });
-  assert.deepEqual(lastOf(a.s, 'farmEv')?.e[0], { k: 'sold', item: 'radish', n: 1, coins: 6 });
-  assert.equal(a.c.profile!.tokens, tokens0 + 6);
-  assert.equal(lastOf(a.s, 'tokens')?.n, tokens0 + 6);
+  assert.deepEqual(lastOf(a.s, 'farmEv')?.e[0], { k: 'sold', item: 'radish', n: 1, coins: 1 });
+  assert.equal(a.c.profile!.tokens, tokens0 + 1);
+  assert.equal(lastOf(a.s, 'tokens')?.n, tokens0 + 1);
   assert.equal(a.c.profile!.farm!.bag.radish, undefined);
   // клиенту не верим: чужая грядка, далеко, неизвестное действие
   hub.onJson(a.c, { t: 'farm', a: 'plant', beds: [0], crop: 'radish' });

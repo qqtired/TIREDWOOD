@@ -6,7 +6,7 @@
 import { FARM_IDENTITY_ICONS, farmLevel, repLevel, upgradeBlock, upgradeStep } from '../../../shared/farm.ts';
 import { achProgress } from '../../../shared/farmach.ts';
 import {
-  ACHIEVEMENTS, BAG_PLACES, CAN_CHARGES, FARM_DECOR, PIG_STORE, RAKE_BEDS, REP_LEVELS, RESOURCES, SHOVEL_DOUBLE, UPGRADES,
+  ACHIEVEMENTS, BAG_PLACES, CAN_CHARGES, FARM_DECOR, PIG_STORE, RAKE_RESOURCE_BONUS, REP_LEVELS, RESOURCES, SHOVEL_DOUBLE, UPGRADES,
   type FarmDecorKind, type UpgradeDef, type UpgradeKind,
 } from '../../../shared/farmdata.ts';
 import { C, FarmWin, big, esc, fi, fmtLeft, meter, pigView, plural, resIconName, resName, ui } from './common.ts';
@@ -80,7 +80,7 @@ export class EstateWin extends FarmWin {
     const pct = (a: number): string => `двойной урожай ${Math.round(a * 100)} %`;
     switch (u.kind) {
       case 'bed': return { now: `${f.beds.length} ${plural(f.beds.length, 'грядка', 'грядки', 'грядок')}`, gives: `${u.step} ${plural(u.step, 'грядка', 'грядки', 'грядок')}` };
-      case 'rake': return { now: `${RAKE_BEDS[t.rake - 1]} ${plural(RAKE_BEDS[t.rake - 1], 'грядка', 'грядки', 'грядок')} разом`, gives: u.step >= 3 ? `всё поле — ${RAKE_BEDS[u.step - 1]}` : `${RAKE_BEDS[u.step - 1]} ${plural(RAKE_BEDS[u.step - 1], 'грядка', 'грядки', 'грядок')} разом` };
+      case 'rake': return { now: `ресурс +${Math.round(RAKE_RESOURCE_BONUS[t.rake - 1] * 100)} п.п.`, gives: `ресурс +${Math.round(RAKE_RESOURCE_BONUS[u.step - 1] * 100)} п.п.` };
       case 'shovel': return { now: SHOVEL_DOUBLE[t.shovel - 1] > 0 ? pct(SHOVEL_DOUBLE[t.shovel - 1]) : 'без двойного урожая', gives: pct(SHOVEL_DOUBLE[u.step - 1]) };
       case 'can': return { now: `${CAN_CHARGES[t.can - 1]} зарядов`, gives: `${CAN_CHARGES[u.step - 1]} зарядов` };
       case 'bag': return { now: `${BAG_PLACES[t.bag - 1]} мест`, gives: `${BAG_PLACES[u.step - 1]} мест` };

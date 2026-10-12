@@ -81,6 +81,13 @@ dialog.k-scrim.farm-scrim--clear { background: transparent; }
 .farm-crop-row .k-ic { width: 22px; height: 22px; }
 .farm-crop-gift { position: absolute; top: -11px; left: 50%; transform: translateX(-50%); }
 .farm-crop.is-locked { justify-content: center; }
+.farm-plant-grid { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+.farm-seed-choice.k-btn { height: auto; min-height: 230px; white-space: normal; color: var(--surf-text); }
+.farm-seed-choice .farm-crop-ic { width: 64px; height: 64px; }
+.farm-seed-choice .farm-crop-row { white-space: normal; }
+.farm-rep-sources { margin: 0; padding-left: 24px; font-size: var(--fs-16); line-height: 1.6; }
+.farm-rep-table { overflow-x: auto; margin-block: 16px; }
+.farm-rep-buffs { display: flex; flex-wrap: wrap; gap: 8px; }
 .farm-next { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 22px; }
 .farm-next-t { margin: 4px 0 10px; font: 900 var(--fs-28)/1.1 var(--font-text); }
 .farm-unlocks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
