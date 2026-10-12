@@ -105,7 +105,7 @@ export const NPCS: readonly NpcDef[] = [
   {
     id: 'zhetonych', name: 'Жетоныч', accent: '#9b1b30', talk: 'slots', mode: null, layout: 'kurzal',
     // Кафейный проулок у западной двери курзала, лицом вдоль проулка к скверу
-    x: 54.2, z: -5.5, y: 0, yaw: HALF_PI, greet: true, wave: L,
+    x: P3.npcs.find((n) => n.id === 'kurzal')!.x, z: P3.npcs.find((n) => n.id === 'kurzal')!.z, y: 0, yaw: HALF_PI, greet: true, wave: L,
     lines: [
       'Заходи, тут всё звенит и мигает!',
       'Автоматы налево, аркада направо — выбирай',
@@ -148,7 +148,7 @@ export const NPCS: readonly NpcDef[] = [
   {
     id: 'tonya', ...tout('cafe'), mode: null, layout: 'cafe',
     // в нише окна-прилавка кафе (anchor_barista), лицом к веранде с картами
-    x: 45.6, z: -1, y: 0, yaw: HALF_PI, wave: R, inside: 'ниша окна кафе «Чайка» (за прилавком)',
+    x: P3.npcs.find((n) => n.id === 'cafe')!.x, z: P3.npcs.find((n) => n.id === 'cafe')!.z, y: 0, yaw: HALF_PI, wave: R, inside: 'ниша окна кафе «Чайка» (за прилавком)',
     idle: {
       len: 4, moves: [
         { p: 'hand.R', t: 0.2, d: 2, e: 'hold', pos: [-0.08, 0.1, -0.1] },

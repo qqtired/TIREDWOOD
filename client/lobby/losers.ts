@@ -1,11 +1,12 @@
-// Экран «Топ проигравших» в павильоне автоматов — на западной стене изнутри, лицом к площади (в plaza3 — на восточной стене
-// курзала изнутри, лицом на запад, в зал: anchor_losers_face модели pav_kursaal): кто больше всех
+// Экран «Топ проигравших» в павильоне автоматов — на западной стене изнутри, лицом к площади (в plaza3 — на северной стене
+// курзала изнутри, лицом на юг, в зал: anchor_losers_face модели pav_kursaal): кто больше всех
 // проиграл жетонов в автоматах. Считает сервер: ставки минус выигрыши, со дня LOSERS_SINCE (раньше ставки не
 // записывались). Светодиодное табло в тёмной раме, как табло джекпота рядом: заголовок, «считаем с …», пять строк —
 // место (первые три — медали), ник, сколько проиграл и золотая монетка (рисуем сами: эмодзи монеты есть не везде).
 // Своя строка подсвечена. Холст перерисовывается, только когда меняется топ.
 import * as THREE from 'three';
 import { PLAZA3 } from '../../shared/layout.ts';
+import { P3 } from '../../shared/plaza3/layout.ts';
 import { LOSERS_ROWS, type LoserRow } from '../../shared/messages.ts';
 import { mergeColored, paint, place } from '../render/kit.ts';
 import { glowCardTexture } from '../render/textures.ts';
@@ -17,11 +18,12 @@ export const LOSERS_SINCE = '2 октября';
 const SCREEN_W = 6;
 const SCREEN_H = 2.3;
 /**
- * Начало группы — на стене (поле экрана — в 8,5 см перед ним). plaza3: внутренняя грань восточной стены курзала — x 65,6, поле
- * экрана по якорю модели — x 65,55 (z −2,7, y 2,95), значит начало на x 65,635; лицом на запад.
+ * Начало группы — в 8,5 см за полем экрана. Поле и поворот plaza3 берутся из настоящего GLB-якоря,
+ * который casino.mjs переводит в ту же раскладку, что корпуса автоматов и точки E.
  */
-const AT = PLAZA3 ? { x: 65.635, y: 2.95, z: -2.7 } : { x: -27.4, y: 2.95, z: -20.8 };
-const FACE_YAW = PLAZA3 ? -Math.PI / 2 : Math.PI / 2;
+const FIELD = P3.modes.casinoBoards.losers;
+const AT = PLAZA3 ? { x: FIELD.x - Math.sin(FIELD.yaw) * .085, y: FIELD.y, z: FIELD.z - Math.cos(FIELD.yaw) * .085 } : { x: -27.4, y: 2.95, z: -20.8 };
+const FACE_YAW = PLAZA3 ? FIELD.yaw : Math.PI / 2;
 const FRAME = 0.12;
 /** Холст */
 const W = 1024;

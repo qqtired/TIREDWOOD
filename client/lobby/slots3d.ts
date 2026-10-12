@@ -18,6 +18,7 @@ import { glowTexture, paint } from '../render/kit.ts';
 import { glowCardTexture, metalEnvTexture } from '../render/textures.ts';
 import type { LobbyFx } from './fx.ts';
 import type { LobbyWorld } from './world.ts';
+import { PAVILIONS, rootMatrix, apply } from './plaza3/pavdata.ts';
 
 /** То, что нужно автоматам из сообщения slotSpin */
 export interface SpinMsg {
@@ -85,7 +86,7 @@ const BULB_ON = new THREE.Color(1, 0.8, 0.45);
 /** Ореол на стене за автоматом: ширина вокруг корпуса, яркость (доля среднего света лампочек), отступ от передней грани */
 const BACK_GLOW_M = 0.5;
 const BACK_GLOW_K = 0.4;
-const BACK_GLOW_Z = -1.69;
+const BACK_GLOW_Z = PLAZA3 ? -1.65 : -1.69;
 /** Отсвет на ковре перед автоматом цветом корпуса: ширина, глубина, яркость */
 const POOL_W = 1.7;
 const POOL_D = 1.3;
@@ -96,13 +97,14 @@ const WIN_LIGHTS_MS = 2000;
 const LOSE_DIM_MS = 600;
 const JACKPOT_MS = 4000;
 const JACKPOT_COINS = 90;
-// plaza3: над бульваром перед фасадом курзала (он смотрит на север, шапка вывески — x 58,3)
-const FIREWORKS_AT = PLAZA3 ? new THREE.Vector3(50.1, 13, -.8) : new THREE.Vector3(-20, 12, -10);
+// Эффекты — в локальных осях того же павильона, что GLB и игровые якоря.
+const CASINO_ROOT = rootMatrix(PAVILIONS.find((p) => p.id === 'kursaal')!);
+const FIREWORKS_AT = PLAZA3 ? new THREE.Vector3(...apply(CASINO_ROOT, [0, 13, -9])) : new THREE.Vector3(-20, 12, -10);
 /** Фонтаны искр: по бокам автомата (за рычагом), сколько секунд у крупного выигрыша */
 const FOUNTAIN_DX = [-0.78, 0.78];
 /** Конфетти-пушки на углах крыши павильона: при джекпоте стреляют над площадью */
 // plaza3: на кровле курзала по краям фасада (кровля у фасада — y 6,0)
-const CANNONS: ReadonlyArray<readonly [number, number, number]> = PLAZA3 ? [[58.4, 6.3, 5.3], [58.4, 6.3, -7.7]] : [[-27.4, 5.3, -15.7], [-12.6, 5.3, -15.7]];
+const CANNONS: ReadonlyArray<readonly [number, number, number]> = PLAZA3 ? [-7.6, 7.6].map((x) => apply(CASINO_ROOT, [x, 6.3, -2.6])) : [[-27.4, 5.3, -15.7], [-12.6, 5.3, -15.7]];
 const BIG_FOUNTAIN_S = 1.6;
 
 const _v = new THREE.Vector3();

@@ -62,14 +62,14 @@ test('новые места24/25 занимают два игрока незав
   assert.equal(hub.lobby.playerOf(players[2].c)!.action, ACT_SIT, 'освобождённое место доступно');
 });
 
-test('автоматы: реальные map корпуса/use и матрица рисунка смотрят на запад, камера смотрит на переднюю панель', () => {
+test('автоматы: реальные map корпуса/use и матрица рисунка согласованы, камера смотрит на переднюю панель', () => {
   const map = buildLobby();
   for (const [i, p] of SLOT_POSES.entries()) {
     const use = map.interact.find((it) => it.kind === 'slot' && it.arg === i)!;
     assert.deepEqual(map.machines[i], { x: p.body.x, z: p.body.z });
     assert.deepEqual([use.x, use.z, use.yaw], [p.use.x, p.use.z, p.use.yaw]);
-    assert.ok(Math.abs(p.front.x - 60.15) < 1e-9 && Math.abs(p.front.z - p.body.z) < 1e-9);
-    assert.ok(Math.abs(Math.sin(p.modelYaw) + 1) < 1e-9, 'геометрический+Z передней панели повернулся на запад');
-    assert.ok(p.use.x < p.front.x && Math.abs(p.use.z - p.front.z) < 1e-9);
+    assert.ok(Math.abs(p.front.x - p.body.x - .85) < 1e-5 && Math.abs(p.front.z - p.body.z) < 1e-5);
+    assert.ok(Math.abs(Math.sin(p.modelYaw) - 1) < 1e-9, 'геометрический+Z передней панели смотрит от стены в зал');
+    assert.ok(p.use.x > p.front.x && Math.abs(p.use.z - p.front.z) < 1e-5);
   }
 });

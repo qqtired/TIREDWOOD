@@ -22,7 +22,8 @@ function overlap(a: number[][], b: number[][]): number {
 }
 
 test('actual Kursaal: подшивка и карниз не имеют общих лицевых поверхностей', async () => {
-  const bytes = readFileSync(new URL('../client/assets/plaza3/pav_kursaal.glb', import.meta.url));
+  const { PAVILIONS } = await import('../client/lobby/plaza3/pavdata.ts');
+  const bytes = readFileSync(new URL(`../client/assets/plaza3/${PAVILIONS.find((p) => p.id === 'kursaal')!.file}`, import.meta.url));
   const gltf = await new GLTFLoader().parseAsync(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength), '');
   const faces: number[][][] = [];
   gltf.scene.getObjectByName('static_kursaal')!.traverse((o) => {

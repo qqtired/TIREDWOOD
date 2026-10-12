@@ -77,6 +77,8 @@ export interface Plaza3Modes {
   tables: Array<{ x: number; z: number; yaw?: number }>;
   /** Корпуса автоматов и места игры; ids — прежний порядок 0…4. */
   slotPoses: Array<{ body: P3Spot; use: P3Spot }>;
+  /** Поля табло казино из GLB-якорей; yaw — поворот плоскости, лицевая сторона по локальной +Z. */
+  casinoBoards: Record<'jackpot' | 'losers', P3Spot & { y: number; w: number; h: number }>;
   /** Дополнительная скамья бельведера: существующие места 18–23 не перенумеровываются. */
   sunsetBench: P3Spot & { y: number; offset: number };
   /** Стойки перголы над столами (CANOPY_POLES) и их высота */
