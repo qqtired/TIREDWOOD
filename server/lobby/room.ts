@@ -82,6 +82,7 @@ import { SlotHall } from './slots.ts';
 import { ArcadeHall } from './arcade.ts';
 import { WheelRide } from './wheel.ts';
 import { FishHolds } from './fishhold.ts';
+import { ACT_KITE, KITE_REEL_FIRST, kiteReel, kiteTick } from '../../shared/kite.ts';
 
 const ONE_SHOT = BTN_FIRE | BTN_JUMP | BTN_DASH | BTN_RELOAD | BTN_USE;
 /** «Болеть» у табло — с одного игрока не чаще раза в 4 с */
@@ -225,11 +226,13 @@ export class LobbyRoom implements Room {
   readonly plane: PlaneHall | null;
   /** Свои лодки рыбаков (флаг сервера ISLE, нужна FISH2; server/lobby/ownboats.ts): null — их нет */
   readonly ownboats: OwnBoats | null;
+  readonly kite: boolean;
   /** Своя лодка игрока появилась или исчезла (pid, номер лодки) — для радио на лодке */
   readonly ownBoatHooks: Array<(pid: number, i: number, on: boolean) => void> = [];
 
-  constructor(hub: Hub, roll?: () => number, now?: () => number, durakDeck?: () => number[], weather: WeatherMode = 'auto', blackjackDeck?: () => number[], eventOptions: { storm?: boolean; pirates?: boolean; devStorm?: boolean; devPirates?: boolean; jukebox?: boolean; billiards?: boolean; plane?: boolean; isle?: boolean } = {}) {
+  constructor(hub: Hub, roll?: () => number, now?: () => number, durakDeck?: () => number[], weather: WeatherMode = 'auto', blackjackDeck?: () => number[], eventOptions: { storm?: boolean; pirates?: boolean; devStorm?: boolean; devPirates?: boolean; jukebox?: boolean; billiards?: boolean; plane?: boolean; isle?: boolean; kite?: boolean } = {}) {
     this.hub = hub;
+    this.kite = eventOptions.kite === true;
     this.now = now ?? Date.now;
     this.weather = new Weather(Math.random, weather, 0, this.now);
     this.map = buildLobby();
@@ -688,6 +691,7 @@ export class LobbyRoom implements Room {
       ...(this.roulette ? { roulette: this.roulette.view() } : {}),
       ...(this.ratrace ? { ratrace: this.ratrace.view() } : {}),
       ...(this.plane ? { plane: this.plane.view() } : {}),
+      ...(this.kite ? { kite: true } : {}),
       ...(this.hub.dungeon ? { dg: this.hub.dungeon.status() } : {}),
       ...(this.regatta && this.boatQueue ? { regatta: { v: this.regatta.view(), q: this.boatQueue.view(this.tick), top: this.hub.regattaTop() } } : {}),
       ...(this.hideQueue ? { hide: this.hideStatus()! } : {}),
@@ -1579,7 +1583,19 @@ export class LobbyRoom implements Room {
   }
 
   private onEmote(p: LobbyPlayer, e: unknown): void {
+    // Смотать можно и после серии нажатий: лимит ограничивает запуск, а не выход из занятия.
+    if (e === ACT_NONE && p.action === ACT_KITE) {
+      if (p.arg < KITE_REEL_FIRST) p.arg = kiteReel(p.arg);
+      return;
+    }
     if (!this.hub.limits.hit(`emote:${p.client.id}`, 2, 1000)) return;
+    if (e === ACT_KITE) {
+      if (!this.kite || p.menuOpen || p.client.ephemeral || isHeld(p.action) || p.action === ACT_KITE) return;
+      p.action = ACT_KITE;
+      p.arg = 1;
+      p.actionUntil = 0;
+      return;
+    }
     if (typeof e !== 'number' || !Number.isInteger(e) || e < ACT_WAVE || e > ACT_LAUGH || isHeld(p.action)) return;
     p.action = e;
     p.arg = 0;
@@ -1724,6 +1740,12 @@ export class LobbyRoom implements Room {
     this.director.step(this.tick);
     for (const p of this.players.values()) {
       this.processPlayer(p);
+      if (p.action === ACT_KITE) {
+        if (p.client.lostAt > 0 && p.arg < KITE_REEL_FIRST) p.arg = kiteReel(p.arg);
+        const next = kiteTick(p.arg);
+        p.arg = Math.max(0, next);
+        if (next < 0) p.action = ACT_NONE;
+      }
       if (p.actionUntil !== 0 && this.tick >= p.actionUntil) {
         p.action = ACT_NONE;
         p.arg = 0;
@@ -2018,7 +2040,7 @@ export class LobbyRoom implements Room {
     // ЛКМ в набеге пиратов: маркер или береговая пушка (решает сервер; пока событие идёт — никого не двигает)
     if (real && eligible && (original.buttons & BTN_FIRE) && this.pirates?.active) this.pirates.fire(p.client.pid, original);
     const hold = holdMask(p.action);
-    if (hold === 0 && p.action !== ACT_NONE && (inp.buttons & STOP_EMOTE) !== 0) {
+    if (hold === 0 && p.action !== ACT_NONE && p.action !== ACT_KITE && (inp.buttons & STOP_EMOTE) !== 0) {
       // эмоцию отменяет шаг, прыжок или рывок (жест вдвоём — у обоих: партнёра отпустит checkPairs)
       p.action = ACT_NONE;
       p.arg = 0;

@@ -1,6 +1,6 @@
 // Интерфейс набережной в слотах кита (client/ui/kit/slots.ts): подсказка действия «E — сесть» внизу по центру
 // (.k-prompt; нельзя — приглушена, с причиной), приглашение на жест вдвоём над ней (.k-prompt с полосой времени),
-// эмоции 1–6 справа внизу (цифра над своим рисунком в компактном ряду), FPS слева вверху
+// эмоции 1–7 справа внизу (цифра над своим рисунком в компактном ряду), FPS слева вверху
 // (.k-faint, по настройке), «Джекпот!» — крупным баннером по центру и секундомер аквапарка — плашкой события сверху (оба —
 // через верх-центр, client/ui/kit/topcenter.ts). Панели набережной (примерочная, столы, автомат) кладут в root. На телефоне
 // подсказку и приглашение можно нажать пальцем — как клавишу.
@@ -19,6 +19,7 @@ const JACKPOT = 'jackpot';
 const EMOTES = [
   ['emote', 'Помахать'], ['music', 'Танец'], ['wd-e-sleepy', 'Устал'],
   ['wd-e-happy', 'Смех'], ['emote', 'Дай пять'], ['heart', 'Обняться'],
+  ['kite', 'Воздушный змей'],
 ] as const;
 
 /** Подсказка: золотая пульсирующая (успей) и награда пилюлей за чертой */
@@ -45,6 +46,9 @@ export class LobbyHud {
   private statsText = '';
   private tapCode = '';
   private askCode = '';
+  private readonly kiteButton: HTMLElement;
+  private readonly kiteNote: HTMLElement;
+  private kiteState = '';
 
   constructor(parent: HTMLElement, slots: HudSlots, top: TopCenter) {
     this.top = top;
@@ -67,6 +71,11 @@ export class LobbyHud {
       item.innerHTML = `${keyHtml(String(i + 1), undefined, 'sm')}<span class="pz-emote-face${i === 4 ? ' pz-emote-five' : ''}" aria-hidden="true">${face}</span>`;
       this.emotes.appendChild(item);
     }
+    this.kiteButton = this.emotes.lastElementChild as HTMLElement;
+    this.kiteButton.hidden = true;
+    this.kiteNote = el('span', 'pz-kite-note');
+    this.kiteNote.hidden = true;
+    this.emotes.appendChild(this.kiteNote);
     this.stats = el('div', 'k-faint pz-stats');
     slots.bc.append(this.ask, this.hint);
     slots.br.append(this.emotes);
@@ -154,6 +163,19 @@ export class LobbyHud {
   showEmotes(v: boolean): void {
     this.emotesOn = v;
     this.paint();
+  }
+
+  setKite(enabled: boolean, active: boolean, reeling: boolean): void {
+    const state = `${enabled}:${active}:${reeling}`;
+    if (state === this.kiteState) return;
+    this.kiteState = state;
+    this.kiteButton.hidden = !enabled;
+    this.emotes.style.setProperty('--emote-count', enabled ? '7' : '6');
+    this.kiteButton.setAttribute('aria-pressed', String(active));
+    this.kiteButton.title = `7 — ${active ? 'Смотать змея' : 'Воздушный змей'}`;
+    this.kiteButton.setAttribute('aria-label', this.kiteButton.title);
+    this.kiteNote.hidden = !enabled || !active;
+    this.kiteNote.textContent = reeling ? 'Сматываем…' : 'Мышь — вести · 7 / Esc — смотать';
   }
 
   /** Приглашение на жест вдвоём: «Ник предлагает дать пять — жми 5», полоска тает за ms. icon — эмодзи жеста (вместо него — картинка). */

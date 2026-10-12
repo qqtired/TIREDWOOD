@@ -9,6 +9,8 @@
 // у кафе (кабинки и пассажиры — по общим часам из shared/wheel.ts).
 // В меню (ещё не вошли или связь пропала) — облёт площади по кругу.
 import * as THREE from 'three';
+import { ACT_KITE, KITE_REEL_FIRST } from '../../shared/kite.ts';
+import { KiteFlyers } from './kite.ts';
 import type { HideStatus } from '../../shared/hide.ts';
 import { BOTS_RULE, botsWord } from '../../shared/solobots.ts';
 import { START_ZONES, type GatherStatus } from '../../shared/startzones.ts';
@@ -263,6 +265,8 @@ export class LobbyScene implements Scene {
   readonly fishJumps: FishJumps;
   /** Рыба в руках у желеек (рюкзак → «Взять в руки»; сервер рассылает fishHold) */
   private readonly fishHolds: FishHolds;
+  private readonly kites: KiteFlyers;
+  private kiteOn = false;
   /** Рулетка рыбака (флаг ROULETTE): стол и колесо в 3D */
   private readonly roulette3d: Roulette3D;
   /** Итог моей ставки: звук (и тост, если плашки раунда нет) — когда шарик остановится (после вращения у меня на экране) */
@@ -416,6 +420,7 @@ export class LobbyScene implements Scene {
   constructor(d: SceneDeps) {
     this.d = d;
     this.world = new LobbyWorld(d.renderer, lobbyQuality(d.settings.quality));
+    this.kites = new KiteFlyers(this.world.scene);
     for (const index of this.world.map.fishPropsBoxes) this.world.collision.setEnabled(index, false);
     for (const index of this.world.map.skillPortalBoxes) this.world.collision.setEnabled(index, false);
     // твёрдое оформление площади у режимов за флагами включается вместе с режимом (пришёл его статус), как на сервере
@@ -705,6 +710,12 @@ export class LobbyScene implements Scene {
     this.rg.quit();
   }
 
+  /** Пауза освобождает руки; обычный чат оставляет змея в полёте. */
+  setPaused(paused: boolean): void {
+    // Chrome может съесть Esc при снятии pointer lock. Открытие паузы всё равно сматывает игрушку; чат — нет.
+    if (paused && this.entered && this.myAct === ACT_KITE && this.arg < KITE_REEL_FIRST) this.d.net.send({ t: 'emote', e: ACT_NONE });
+  }
+
   /** Меню оболочки и диалоги сцены составляют один серверный признак. */
   setMenuOpen(open: boolean): void {
     this.outerMenu = open;
@@ -846,6 +857,8 @@ export class LobbyScene implements Scene {
   }
 
   exit(): void {
+    this.kites.reset();
+    this.kiteOn = false;
     this.resetAdditions();
     this.juke.reset(false);
     this.arcade?.reset();
@@ -914,6 +927,8 @@ export class LobbyScene implements Scene {
         return;
       case 'lobby':
         this.myId = msg.id;
+        this.kiteOn = msg.kite === true;
+        this.hud.setKite(this.kiteOn, false, false);
         this.fishHolds.setMe(msg.id);
         this.d.input.yaw = msg.yaw;
         this.d.input.pitch = -0.12;
@@ -1912,6 +1927,16 @@ export class LobbyScene implements Scene {
     }
     if (this.d.input.blocked) return false;
     if (this.rg.racing) return this.rg.onKey(code);
+    if ((code === 'Digit7' || code === 'Numpad7' || (code === 'Escape' && act === ACT_KITE)) && this.kiteOn && this.hasSelf && !isHeld(act)) {
+      if (!this.outerMenu && !this.ratHud.isOpen && !this.juke.isOpen && !this.radio.isOpen && !this.ob.modalOpen) {
+        if (act === ACT_KITE) this.d.net.send({ t: 'emote', e: ACT_NONE });
+        else if (performance.now() - this.emoteAt >= EMOTE_GAP_MS) {
+          this.emoteAt = performance.now();
+          this.d.net.send({ t: 'emote', e: ACT_KITE });
+        }
+      }
+      return true;
+    }
     // рыба в руках: Esc — убрать (пока она видна в руках — с удочкой Esc как обычно)
     if (code === 'Escape' && this.fishHolds.myShown && !this.fish2.bookOpen) {
       this.d.net.send({ t: 'fishHold', n: -1 });
@@ -2338,7 +2363,7 @@ export class LobbyScene implements Scene {
       this.footZ = ps.z;
     }
     // эмоцию отменяет шаг, прыжок или рывок — показываем сразу (сервер считает так же)
-    if (!held && this.me.action !== ACT_NONE && !isHeld(this.me.action) && (buttons & STOP_EMOTE) !== 0) {
+    if (!held && this.me.action !== ACT_NONE && this.me.action !== ACT_KITE && !isHeld(this.me.action) && (buttons & STOP_EMOTE) !== 0) {
       this.me.setAction(ACT_NONE, 0);
       this.localUntil = performance.now() + 400;
     }
@@ -2426,11 +2451,15 @@ export class LobbyScene implements Scene {
     this.wirePartner(this.me);
     this.fishDrink.update(dt, this.hasSelf && act === ACT_NONE);
     this.fishHolds.update(dt, (id) => (id === this.myId ? (this.hasSelf ? this.me : null) : this.remotes.get(id)?.avatar ?? null));
+    this.kites.begin();
+    this.kites.prepare(this.me, this.myId);
     this.me.update(this.hasSelf ? this.ob.avatarPose(this.me, act, this.arg, this.plane.avatarPose(this.myId, act === ACT_PLANE, this.rg.avatarPose(this.myId, act === ACT_REGATTA, this.pose))) : null, dt, this.time, this.ground, camPos, true);
+    this.kites.draw(this.me, this.hasSelf ? this.pose : null, dt, this.clock.renderTick / TICK_RATE);
     this.me.slotView(act === ACT_SLOT);
     // у бильярдного стола камера прямо над своей головой — себя не рисуем, иначе шапка закрывает ближний борт
     if (act === ACT_BILLIARDS) this.me.root.visible = false;
     this.updateRemotes(dt);
+    this.kites.end();
     this.updateFishing(dt);
     this.fishForCritters.length = 0;
     for (let i = 0; i < FISH_SPOTS.length; i++) if (this.fishOcc[i] && this.fishing.phaseOf(i) === FP_HOLD) this.fishForCritters.push(FISH_SPOTS[i]);
@@ -2792,7 +2821,9 @@ export class LobbyScene implements Scene {
       const av = r.avatar;
       if (av.action !== r.track.hp || av.arg !== r.track.armor) av.setAction(r.track.hp, r.track.armor);
       this.wirePartner(av);
+      this.kites.prepare(av);
       av.update(this.ob.avatarPose(av, r.track.hp, r.track.armor, this.plane.avatarPose(r.track.id, r.track.hp === ACT_PLANE, this.rg.avatarPose(r.track.id, r.track.hp === ACT_REGATTA, ok ? pose : null))), dt, this.time, this.ground, camPos, false);
+      this.kites.draw(av, ok ? pose : null, dt, t / TICK_RATE);
     }
   }
 
@@ -2846,6 +2877,7 @@ export class LobbyScene implements Scene {
       this.wardrobe.placeInspect((this.wardrobeAnchor.x + 1) * this.d.renderer.canvas.clientWidth / 2);
     }
     hud.showEmotes(this.hasSelf && !isHeld(act) && !this.ratHud.cheering);
+    hud.setKite(this.kiteOn, act === ACT_KITE, this.arg >= KITE_REEL_FIRST);
     const kd = this.kartDist();
     this.kartBeeps(kd <= KART_START.r);
     if (!this.hasSelf || act === ACT_WARDROBE) hud.setHint(null);
@@ -3214,6 +3246,7 @@ export class LobbyScene implements Scene {
       ask: this.ask?.k ?? -1, photoCard: this.photo.hasCard, ball: this.ball.debug(),
       fish: this.fishing.debug(), fishSpot: this.myFishSpot, fishCard: this.fishHud.hasCard, fish2: this.fish2.debug(),
       fishHold: this.fishHolds.of(this.myId), fishJumps: { on: this.fishJumps.on, flying: this.fishJumps.flying },
+      kite: this.kites.debug(),
       weather: this.world.weather.debug(), folk: this.folk.debug(), boats: this.world.boats.debug(), respect: this.respects?.debug() ?? null, mermaid: this.mermaid.debug(),
       boat: { ...this.boat, secs: this.boatSecs() }, aqua: { at: this.aquaAt, fin: this.aquaFin, top: this.aquaTop.length, done: this.aquaDone?.ms ?? 0, vt: this.aquaT1, knock: this.aquaDyn.knock },
       wheel: { until: this.wheelUntil, secs: this.wheelSecs() },

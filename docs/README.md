@@ -108,6 +108,7 @@
 | Живность, жители и русалка | `maps/critters.ts`, `mermaid.ts` | — | `lobby/critter*.ts`, `lobby/folk*.ts`, `lobby/mermaid.ts` | — | `critters.test.ts`, `mermaid.test.ts` | план `critters`, design «Кракен и животные» |
 | Круги старта и очереди | `startzones.ts` | `lobby/modequeue.ts` | `lobby/startcircles.ts`, `lobby/kartstart.ts` | — | `startzones.test.ts`, `modequeue.test.ts` | design «Круги старта и очереди» |
 | Колесо, мяч, фото, жесты вдвоём | `wheel.ts`, `ball.ts`, `lobby.ts` | `lobby/wheel.ts` | `lobby/wheel.ts`, `lobby/ball*.ts`, `lobby/photo.ts` | — | `wheel.test.ts`, `ball.test.ts` | design «Колесо обозрения», «Мяч на площади», «Вдвоём и фото у маяка» |
+| Воздушный змей (эмоция 7) | `kite.ts` | `lobby/room.ts` | `lobby/kite.ts`, `lobby/kitemodel.ts` | `KITE` | `kite.test.ts` | [kite.md](kite.md) |
 | Экран с чатом Telegram | — | `tgfeed.ts`, `tgnet.ts` | `lobby/tgscreen.ts` | токен — файл в `DATA_DIR` | `tgfeed.test.ts`, `tgnet.test.ts` | README «Экран с чатом Telegram» |
 | Памятник и «Press F» (памятник не трогать) | `respect.ts` | — | `lobby/statue*.ts`, `lobby/respect.ts`, `assets/statue/` | — | `statue.test.ts` | AGENTS §11 |
 

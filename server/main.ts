@@ -85,9 +85,10 @@ const jukebox = jukeboxEnabled(process.env.JUKEBOX, DEV);
 const billiards = process.env.BILLIARDS === undefined ? DEV : process.env.BILLIARDS === '1';
 // Гидроплан «Стриж» (полёт над городом за 100 🪙): PLANE=1 — включить, PLANE=0 — выключить, без переменной — только с --dev
 const plane = planeEnabled(process.env.PLANE, DEV);
+const kite = process.env.KITE === undefined ? DEV : process.env.KITE === '1';
 // Голосование «выгнать игрока» из меню Tab: VOTEKICK=1 — включить, VOTEKICK=0 — выключить, без переменной — только с --dev
 const votekick = process.env.VOTEKICK === undefined ? DEV : process.env.VOTEKICK === '1';
-const hub = new Hub({ store, profiles, smokeToken: smokeToken(), build, roll, weather, tg, fort, skill, boatrace, hide, farm, farmPond, fish2, isle, roulette, ratrace, storm, pirates, voice, voiceIce, jukebox, billiards, plane, votekick, dungeon,
+const hub = new Hub({ store, profiles, smokeToken: smokeToken(), build, roll, weather, tg, fort, skill, boatrace, hide, farm, farmPond, fish2, isle, roulette, ratrace, storm, pirates, voice, voiceIce, jukebox, billiards, plane, kite, votekick, dungeon,
   giftCodeHash: gifts ? DEVIL_GIFT_CODE_HASH : null,
   devStorm: DEV && process.env.DEV_STORM === 'now', devPirates: DEV && process.env.DEV_PIRATES === 'now',
   // /wave, /event, /gate, /hp в чате крепости — только разработка или DEV_GO=1 (проверка собранного сервера)
