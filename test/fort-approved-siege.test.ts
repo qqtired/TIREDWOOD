@@ -10,7 +10,7 @@ import { HEAVY_IN_HANDS } from '../shared/fortgun.ts';
 import { BTN_ADS, makeInput } from '../shared/sim.ts';
 import { CLIMBS, WALL_H } from '../shared/fortmap.ts';
 import { DEFAULT_OUTFIT } from '../shared/outfit.ts';
-import { EV_METEORS, EV_NONE } from '../shared/fortwaves.ts';
+import { EV_METEORS, EV_NONE, bossHp, teamEarlyBoost, teamPressure, waveHpPerDefender } from '../shared/fortwaves.ts';
 import * as S from '../shared/fortsiege.ts';
 
 function fixture(enabled = true) {
@@ -59,26 +59,26 @@ test('interrupted repair spends nothing and never heals a fallen gate', () => {
   assert.ok(events.some((e) => e[0] === 'repair' && e[5] === 2));
 });
 
-test('new director preserves health budget, boss health and capped old rosters for 1/2/4', () => {
+test('new director preserves the land health target and capped old rosters for 1/2/4', () => {
   for (const n of [1, 2, 4]) {
-    for (const w of [10, 12, 15, 16, 18, 24, 30, 56, 63, 91, 98]) {
+    for (const w of [6, 8, 9, 12, 14, 16, 19, 30, 40, 45, 66, 78, 98]) {
       const p = planWave(w, n, 11, undefined, SIEGE_FEATURES);
-      const old = planWave(w, n, 11);
       assert.equal(p.siege, true);
       if (S.newBossKind(w) >= 0) {
         assert.equal(p.boss, S.newBossKind(w));
-        assert.equal(p.bossHp, old.bossHp);
+        assert.equal(p.bossHp, bossHp(w, n, Math.floor((S.siegeBossNumber(w) - 1) / 3)));
       }
       const fresh = p.spawns.filter((s) => s.kind >= S.Z_ROPECRAB);
       const hp = (p: ReturnType<typeof planWave>) => p.spawns.reduce((sum, s) => sum + budgetHp(s.kind, s.tier, w, n, p.hpScale), 0)
         + p.boats.reduce((sum, b) => sum + b.crew.reduce((s, k, i) => s + budgetHp(k, b.tiers[i], w, n, p.hpScale), 0), 0);
-      assert.ok(Math.abs(hp(p) / hp(old) - 1) < .001, 'new bodies spend the existing land HP target');
+      const target = waveHpPerDefender(w) * n * teamPressure(n) * teamEarlyBoost(w, n) * (p.kraken ? .5 : p.boss >= 0 ? .6 : 1);
+      assert.ok(Math.abs(hp(p) / target - 1) < .001, 'new bodies spend the unchanged land HP target for this encounter');
       assert.ok(fresh.length <= 2);
-      assert.ok(fresh.every((s) => s.tier === 0));
+      assert.ok(fresh.every((s) => s.tier === S.siegeBodyTier(w)));
       assert.ok(p.spawns.filter((s) => s.kind < S.Z_ROPECRAB).length >= p.spawns.length * .6);
       if (fresh.length) assert.equal(p.event, 0);
     }
-    const boats = planWave(13, n, 9, undefined, SIEGE_FEATURES).boats;
+    const boats = planWave(7, n, 9, undefined, SIEGE_FEATURES).boats;
     assert.equal(boats.filter((b) => b.anchor).length, 1);
   }
 });
@@ -87,7 +87,7 @@ test('failed siege gets an ordinary recovery wave, while a scheduled boss keeps 
   const p = planWave(18, 4, 11, { wave: 16, kind: EV_NONE, siegeFailureWave: 17 }, SIEGE_FEATURES);
   assert.ok(p.spawns.every((z) => z.kind < S.Z_ROPECRAB));
   assert.equal(p.event, EV_NONE);
-  const boss = planWave(56, 4, 11, { wave: 53, kind: EV_NONE, siegeFailureWave: 55 }, SIEGE_FEATURES);
+  const boss = planWave(40, 4, 11, { wave: 37, kind: EV_NONE, siegeFailureWave: 39 }, SIEGE_FEATURES);
   assert.equal(boss.boss, S.Z_CRABCRANE);
 });
 

@@ -830,15 +830,14 @@ export class FortMatch {
           break;
         }
         case 'meteor': {
-          const [, id, phase, fx, fy, fz, tx, ty, tz, start, end, left] = e;
+          const [, id, phase, fx, fy, fz, tx, ty, tz, start, end, left, total] = e;
           const now = this.clock.renderTick;
           if (!this.clock.ready || ![now,start,end,fx,fy,fz,tx,ty,tz].every(Number.isFinite) || end <= start) break;
-          this.d.eventFx?.siegeMeteor(id, phase, [fx,fy,fz], [tx,ty,tz], start, end, now);
+          this.d.eventFx?.siegeMeteor(id, phase, [fx,fy,fz], [tx,ty,tz], start, end, now, left, total);
           if (phase === 0) {
             this.d.marks?.meteor(tx,ty,tz,SIEGE_METEOR_RADIUS,end,SIEGE_METEOR_FLIGHT,id);
-            hud.alert('Метеор над крепостью · стреляй в камень или уйди с метки', 2200);
-          } else if (phase === 1) { hud.alert('Метеор: ещё '+left+' попадания', 700); }
-          else this.d.marks?.cancel(id);
+            hud.alert('Метеор над крепостью · сбивайте вместе!', 2200);
+          } else if (phase !== 1) this.d.marks?.cancel(id);
           if (phase === 2) { const u = Math.max(0,Math.min(1,(now-start)/(end-start))); sound.boom([fx+(tx-fx)*u,fy+(ty-fy)*u,fz+(tz-fz)*u],.45); hud.alert('Метеор разбит в воздухе', 1800); }
           break;
         }
@@ -1718,7 +1717,7 @@ export class FortMatch {
       parts = kp;
     }
     // полное HP — по формуле сервера: волна и под сколько защитников усилена орда (в бою снимок шлёт horde.defenders)
-    const bossMax = boss && this.phase === FT_WAVE ? bossMaxHp(boss.kind, this.wave, this.tail.defenders ?? 0) : 0;
+    const bossMax = boss && this.phase === FT_WAVE ? bossMaxHp(boss.kind, this.wave, this.tail.defenders ?? 0, this.card?.siege === true) : 0;
     hud.setBoss(this.phase === FT_WAVE ? boss?.hp ?? 0 : 0, boss?.stage ?? 1, boss?.state ?? 0, boss?.wind ?? 0,
       boss?.kind ?? Z_BOSS, this.card?.tier ?? 0, ((boss?.flags ?? 0) & ZF_RAGE) !== 0, parts, bossMax);
     if (this.phase === FT_END && hud.endShown) hud.setEndTimer(leftS);

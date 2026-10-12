@@ -2,9 +2,10 @@
 // shared/fortwaves.ts (FORT_LAST_WAVE, isBossWave, isSuperWave, isSeaWave, bossHp, krakenHp) и видах врагов
 // shared/fortkinds.ts; признаки видов — kindFlags арсенала (KF_* из ZK).
 // Остальной интерфейс ходит только сюда.
-import { ZK, Z_BOSS, Z_KRAKEN } from '../../../shared/fortkinds.ts';
+import { ZK, Z_BOSS, Z_GOLEM, Z_KRAKEN } from '../../../shared/fortkinds.ts';
 import { FORT_LAST_WAVE, KRAKEN_HEAD_BASE_HP, bossHp, bossTier, isBossWave, isSeaWave, isSuperWave, krakenHp, superTier } from '../../../shared/fortwaves.ts';
 import { kindFlags } from '../../../shared/fortarsenal.ts';
+import { siegeBossNumber } from '../../../shared/fortsiege.ts';
 
 export interface BossInfo {
   name: string;
@@ -21,10 +22,13 @@ export function lastWave(): number {
  * Полное HP босса, как его считает сервер (server/fort/director.ts planWave, horde.hpFor, kraken.ts fixHp): волна, число
  * защитников, под которое орда усилена (снимок: tail.defenders в бою), круг по номеру босса. 0 — не знаем (не босс-волна).
  */
-export function bossMaxHp(kind: number, wave: number, defenders: number): number {
+export function bossMaxHp(kind: number, wave: number, defenders: number, siege = false): number {
   if (wave < 1 || defenders < 1) return 0;
   if (kind === Z_KRAKEN) return krakenHp(KRAKEN_HEAD_BASE_HP, wave, defenders);
-  if (isBossWave(wave)) return bossHp(wave, defenders, bossTier(wave));
+  const mul = kind === Z_GOLEM ? 3 : 1;
+  const n = siege ? siegeBossNumber(wave) : 0;
+  if (n > 0) return bossHp(wave, defenders, Math.floor((n - 1) / 3)) * mul;
+  if (!siege && isBossWave(wave)) return bossHp(wave, defenders, bossTier(wave)) * mul;
   // супер-волна без Кракена и финал: Барон кругом выше
   if (isSuperWave(wave)) return bossHp(wave, defenders, superTier(wave) + 1);
   return 0;

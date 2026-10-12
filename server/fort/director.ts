@@ -3,19 +3,19 @@
 // вход — та же волна, поэтому подкрепление при входе новых защитников — разница двух планов (horde.raiseDefenders).
 // Волны 1–14 — ручные (знакомство с врагами), дальше — взвешенный выбор с «темой» волны. Числа — fortwaves.ts.
 import {
-  BOSS_CYCLE, Z_ARMORED, Z_BLOATER, Z_BOSS, Z_BRUTE, Z_CLIMBER, Z_FLYER, Z_KINDS, Z_KRAKEN, Z_MEDIC, Z_RUNNER, Z_SAPPER, Z_SHIELD,
+  BOSS_CYCLE, Z_ARMORED, Z_BLOATER, Z_BOSS, Z_BRUTE, Z_CLIMBER, Z_FLYER, Z_GOLEM, Z_KINDS, Z_KRAKEN, Z_MEDIC, Z_RUNNER, Z_SAPPER, Z_SHIELD,
   Z_SPITTER, Z_WALKER, ZK,
 } from '../../shared/fortkinds.ts';
 import {
-  ARMOR_BUDGET, EV_FOG, EV_GOLD, EV_METEORS, EV_NONE, EV_SUPPLY, EVENT_CHANCE, SHIELD_BUDGET, TIER_CHAMP, TIER_ELITE, TIER_HP, TIER_NORMAL,
-  bodyCap, bossHp, bossNumber, bossTier, boatCountFor, champShare, crewSize, defenders, eliteShare, eventAllowed, isBossWave, isSeaWaveFor, teamEarlyBoost,
+  ARMOR_BUDGET, EV_FOG, EV_GOLD, EV_METEORS, EV_NONE, EV_SUPPLY, EVENT_CHANCE, EVENT_FROM, EVENT_GAP, SHIELD_BUDGET, TIER_CHAMP, TIER_ELITE, TIER_HP, TIER_NORMAL,
+  bodyCap, bossHp, bossNumber, boatCountFor, champShare, crewSize, defenders, eliteShare, eventAllowed, isSeaWaveFor, teamEarlyBoost,
   isFinalWave, isSuperWave, releaseTicks, shieldHp, superTier, teamCountMul, teamPressure, waveDmgMul, waveHpPerDefender, wavePoints,
 } from '../../shared/fortwaves.ts';
 import type { FortWaveCard } from '../../shared/fort.ts';
 import { hash32, makeRng } from '../../shared/math.ts';
 import {
-  SIEGE_BATTERY, SIEGE_NONE, SIEGE_TOWER, Z_BATTERY, Z_CANOPY, Z_FOREMAN, Z_JAMPUMP, Z_ROPECRAB, Z_SIEGE_TOWER,
-  Z_SPRING, newBossKind,
+  SIEGE_BATTERY, SIEGE_NONE, SIEGE_TOWER, Z_BATTERY, Z_CANOPY, Z_CRABCRANE, Z_FOREMAN, Z_JAMPUMP, Z_MILLER, Z_ROPECRAB, Z_SIEGE_TOWER,
+  Z_SPRING, siegeBodyMul, siegeBodyTier, siegeBossNumber,
 } from '../../shared/fortsiege.ts';
 
 /** Один враг волны: когда (тиков от начала волны), какой, с какой дороги, какой ступени */
@@ -53,6 +53,8 @@ export interface WavePlan {
   siegeEvent?: number;
   /** HP врага = база типа × hpScale × ступень; урон врагов × dmgMul */
   hpScale: number;
+  /** Priority bodies keep the smooth pre-composition scale; only ordinary escorts absorb budget normalization. */
+  siegeHpScale?: number;
   dmgMul: number;
   roads: number[];
   card: FortWaveCard;
@@ -88,16 +90,17 @@ export const ALL_FEATURES: DirectorFeatures = {
 };
 
 export const SIEGE_FEATURES: DirectorFeatures = { ...FEATURES, siege: true };
+const SIEGE_BOSSES = [...BOSS_CYCLE, Z_CRABCRANE, Z_MILLER];
 
 /** Одна читаемая осада через шесть волн. Боссовые/кракеновые волны забирают свой слот. */
 export function siegeEventFor(w: number): number {
-  if (w < 10 || (w - 10) % 6 !== 0 || isBossWave(w) || isSuperWave(w)) return SIEGE_NONE;
-  return ((w - 10) / 6) % 2 === 0 ? SIEGE_TOWER : SIEGE_BATTERY;
+  if (w < 6 || w % 6 !== 0 || siegeBossNumber(w) || isSuperWave(w)) return SIEGE_NONE;
+  return (w / 6) % 2 === 1 ? SIEGE_TOWER : SIEGE_BATTERY;
 }
 
 /** Первое знакомство — один экземпляр. После знакомства выбор меняется по волнам, а не по числу тел. */
 export function siegeRolesFor(w: number, n: number): number[] {
-  if (isBossWave(w) || isSuperWave(w) || siegeEventFor(w)) return [];
+  if (siegeBossNumber(w) || isSuperWave(w) || siegeEventFor(w)) return [];
   const roles = [Z_ROPECRAB, Z_SPRING, Z_JAMPUMP, Z_CANOPY, Z_FOREMAN].filter((k) => ZK[k].first <= w);
   const fresh = roles.find((k) => ZK[k].first === w);
   if (fresh !== undefined) return [fresh];
@@ -166,31 +169,34 @@ export function planWave(w: number, humans: number, seed: number, last: LastEven
   const kraken = superWave && f.kraken;
   let boss = -1;
   let tierOfBoss = 0;
-  /** Рост HP босса — как раньше, по номеру босса (+35 % за каждые три): шесть по кругу не делают боссов тоньше */
+  /** HP растёт каждые три встречи, подпись/скорость — только после полного круга видов. */
   let hpTier = 0;
-  if (isBossWave(w)) {
+  const bossN = f.siege ? siegeBossNumber(w) : bossNumber(w);
+  if (bossN > 0) {
     // круг — по всем боссам ротации (II — когда все уже были); он в подписи и скорости
-    const k = Math.max(1, f.bosses.length);
-    boss = f.bosses[(bossNumber(w) - 1) % k] ?? Z_BOSS;
-    tierOfBoss = Math.floor((bossNumber(w) - 1) / k);
-    hpTier = bossTier(w);
+    const cycle = f.siege ? SIEGE_BOSSES : f.bosses;
+    const k = Math.max(1, cycle.length);
+    boss = cycle[(bossN - 1) % k] ?? Z_BOSS;
+    tierOfBoss = Math.floor((bossN - 1) / k);
+    hpTier = Math.floor((bossN - 1) / 3);
   } else if (superWave && (!kraken || isFinalWave(w))) {
     // Кракена ещё нет — на супер-волне Барон кругом выше; финал — Кракен и Барон разом
     boss = Z_BOSS;
     tierOfBoss = superTier(w) + 1;
     hpTier = tierOfBoss;
   }
-  if (f.siege && newBossKind(w) >= 0) boss = newBossKind(w);
   // Сохраняем прежний бюджет сопровождения. Предложенные -20% для Мельничихи в модели делали 98-ю легче базы.
   const landMul = kraken ? 0.5 : boss >= 0 ? 0.6 : 1;
   const recovery = f.siege && last.siegeFailureWave === w - 1;
   const siegeEvent = f.siege && !recovery ? siegeEventFor(w) : SIEGE_NONE;
   const roles = f.siege && !recovery ? siegeRolesFor(w, n) : [];
+  const anchorWave = f.siege && !recovery && w >= 7 && w % 6 === 1 && !siegeEvent && boss < 0 && !kraken
+    && !roles.some((kind) => ZK[kind].first === w);
 
   // десант: экипаж — из HP волны
   const boats: PlanBoat[] = [];
-  if (f.sea && isSeaWaveFor(w, n)) {
-    const nb = boatCountFor(w, n);
+  if (f.sea && (isSeaWaveFor(w, n) || anchorWave)) {
+    const nb = Math.max(anchorWave ? 1 : 0, boatCountFor(w, n));
     const size = crewSize(w);
     for (let b = 0; b < nb; b++) {
       const crew: number[] = [];
@@ -199,7 +205,7 @@ export function planWave(w: number, humans: number, seed: number, last: LastEven
         crew.push(kind);
       }
       boats.push({ at: 0, lane: b % 2 === 0 ? (rng() < 0.5 ? -1 : 1) : -boats[b - 1].lane, crew, tiers: crew.map(() => TIER_NORMAL),
-        ...(f.siege && !recovery && w >= 13 && w % 6 === 1 && !siegeEvent && boss < 0 && !kraken && b === 0 ? { anchor: true } : {}) });
+        ...(anchorWave && b === 0 ? { anchor: true } : {}) });
     }
   }
 
@@ -212,9 +218,11 @@ export function planWave(w: number, humans: number, seed: number, last: LastEven
   const cs = champShare(w);
   const s0 = enemyHpScale(w, n, f);
   const shield = shieldHp(w, n);
-  const bodyOf = (kind: number, tier: number) => ZK[kind].hp * TIER_HP[tier] * s0 * (kind === Z_ARMORED ? ARMOR_BUDGET : 1);
-  const fixedOf = (kind: number, tier: number) => kind === Z_SHIELD ? SHIELD_BUDGET * shield * (1 + 0.5 * tier) : 0;
-  const hpOf = (kind: number, tier: number) => bodyOf(kind, tier) + fixedOf(kind, tier);
+  const bodyOf = (kind: number, tier: number) => ZK[kind].hp * TIER_HP[tier] * s0 * siegeBodyMul(kind, n) * (kind === Z_ARMORED ? ARMOR_BUDGET : 1);
+  const shieldOf = (kind: number, tier: number) => kind === Z_SHIELD ? SHIELD_BUDGET * shield * (1 + 0.5 * tier) : 0;
+  // A multiplier different from 1 for a pair identifies exactly the seven priority body kinds.
+  const fixedOf = (kind: number, tier: number) => siegeBodyMul(kind, 2) > 1 ? bodyOf(kind, tier) : shieldOf(kind, tier);
+  const hpOf = (kind: number, tier: number) => bodyOf(kind, tier) + shieldOf(kind, tier);
   let fixed = 0;
   const tierOf = () => {
     const u = rng();
@@ -238,8 +246,8 @@ export function planWave(w: number, humans: number, seed: number, last: LastEven
     sum += hpOf(kind, tier);
     fixed += fixedOf(kind, tier);
   };
-  for (const kind of roles) add(kind, TIER_NORMAL);
-  if (siegeEvent) add(siegeEvent === SIEGE_TOWER ? Z_SIEGE_TOWER : Z_BATTERY, TIER_NORMAL);
+  for (const kind of roles) add(kind, siegeBodyTier(w));
+  if (siegeEvent) add(siegeEvent === SIEGE_TOWER ? Z_SIEGE_TOWER : Z_BATTERY, siegeBodyTier(w));
   /** Тема волны и новичок (их тип не срезаем) */
   let theme = -1;
   let title: string;
@@ -350,14 +358,15 @@ export function planWave(w: number, humans: number, seed: number, last: LastEven
   boats.forEach((b, i) => { b.at = Math.floor(span * 0.2) + i * 4 * 60; });
 
   let event = EV_NONE;
-  if (f.events && !recovery && !siegeEvent && !roles.length && !boats.some((b) => b.anchor) && eventAllowed(w, last.wave) && rng() < EVENT_CHANCE) {
+  const canEvent = f.siege ? w >= EVENT_FROM && w - last.wave >= EVENT_GAP && boss < 0 && !superWave : eventAllowed(w, last.wave);
+  if (f.events && !recovery && !siegeEvent && !roles.length && !boats.some((b) => b.anchor) && canEvent && rng() < EVENT_CHANCE) {
     const options = EVENTS.filter((e) => e !== last.kind);
     event = options[Math.floor(rng() * options.length)];
   }
 
   const plan: WavePlan = {
-    w, defenders: n, spawns, boats, boss, bossTier: tierOfBoss, bossHp: boss >= 0 ? bossHp(w, n, hpTier) : 0, kraken, event,
-    hpScale, dmgMul: waveDmgMul(w), roads, ...(f.siege ? { siege: true, siegeEvent } : {}),
+    w, defenders: n, spawns, boats, boss, bossTier: tierOfBoss, bossHp: boss >= 0 ? bossHp(w, n, hpTier) * (boss === Z_GOLEM ? 3 : 1) : 0, kraken, event,
+    hpScale, dmgMul: waveDmgMul(w), roads, ...(f.siege ? { siege: true, siegeEvent, siegeHpScale: s0 } : {}),
     // десант — сюрприз (04.10): в карточке и превью лодок нет, тревога — только когда лодки уже у берега
     card: { w, ...(f.siege ? { siege: true } : {}), title: isFinalWave(w) ? 'Финал: Кракен и Барон' : kraken ? 'Кракен' : boss >= 0 ? ZK[boss].name : title, chips: [], boats: 0, crew: 0,
       boss: kraken ? Z_KRAKEN : boss, tier: kraken ? superTier(w) : tierOfBoss, event, roads: [...roads].sort((a, b) => a - b), fresh: [],
@@ -422,8 +431,9 @@ function budgetBase(kind: number): number {
  * HP врага в бюджете волны — сколько команде нужно снять: тело × hpScale × ступень (Чугунку ×1,5 — кастрюля режет
  * попадания в тело) и 70 % щита. Сумма по плану — цель arsenal (тест), и её же видит модель tools/fort-balance.
  */
-export function budgetHp(kind: number, tier: number, w: number, humans: number, hpScale: number): number {
-  const body = ZK[kind].hp * (TIER_HP[tier] ?? 1) * hpScale * (kind === Z_ARMORED ? ARMOR_BUDGET : 1);
+export function budgetHp(kind: number, tier: number, w: number, humans: number, hpScale: number, siegeHpScale?: number): number {
+  const scale = siegeBodyMul(kind, 2) > 1 ? siegeHpScale ?? enemyHpScale(w, humans) : hpScale;
+  const body = ZK[kind].hp * (TIER_HP[tier] ?? 1) * scale * siegeBodyMul(kind, humans) * (kind === Z_ARMORED ? ARMOR_BUDGET : 1);
   return body + (kind === Z_SHIELD ? SHIELD_BUDGET * shieldHp(w, humans) * (1 + 0.5 * tier) : 0);
 }
 

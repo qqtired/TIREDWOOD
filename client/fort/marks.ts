@@ -12,7 +12,7 @@ import { CRATE_DOWN, CRATE_FALL, CRATE_NONE, SUPPLY_FALL_TICKS } from '../../sha
 export interface EventFxApi {
   meteor(fx: number, fy: number, fz: number, tx: number, ty: number, tz: number, seconds: number): void;
   meteorHit(x: number, y: number, z: number, r?: number): void;
-  siegeMeteor(id: number, phase: number, from: readonly number[], to: readonly number[], startTick: number, endTick: number, renderTick: number): void;
+  siegeMeteor(id: number, phase: number, from: readonly number[], to: readonly number[], startTick: number, endTick: number, renderTick: number, hits?: number, totalHits?: number): void;
   setRenderTick(tick:number):void;
   meteorRay(ox:number,oy:number,oz:number,dx:number,dy:number,dz:number,range:number):number|null;
   /** 1 — начал падать (сядет через 7 с), 2 — лежит, 0 — пропал */

@@ -1,11 +1,14 @@
-/* «Крепость» на ките 2.0 — раскладка поверх кита (префикс .ft-), как на странице lab/ui «Крепость» (screens/fort.css).
-   Цвета и тени — только токены кита. Боевые части (панель бойца, стрелки, прицел, цифры) — client/ui/kit/combat.css.
-   Всё, что висит над боем, — компактно: карточка 240 с картой 96, волна в одну строку с рядом врагов, плитки под бейджем. */
+/* Крепость: верхняя панель по прямому запросу владельца — в теме Dungeon; её токены замкнуты в .ft-command.
+   Остальные окна и нижний HUD сохраняют кит 2.0. Боевые части — client/ui/kit/combat.css. */
 
 /* цвет режима — у слоёв кита, пока ты в крепости (бейдж, чат, тосты — тоже оранжевым) */
 html[data-room='fort'] { --mode-w: var(--m-fort); --mode-h: var(--mh-fort); }
 /* свои части в общих слотах кита — только в крепости */
 html:not([data-room='fort']) .ft-only { display: none !important; }
+/* Только в крепости: общий профиль/уровень/жетоны уступают место золоту текущей игры. */
+html[data-room='fort'] .pz-badge { display: none !important; }
+.ft-command[hidden], .ft-phase[hidden] { display: none; }
+html:has(.screen.pause.show:not(.veil)) .ft-command { display: none; }
 .ft-world [hidden], .ft-scrim[hidden], .ft-stall-wrap[hidden], .ft-vitals[hidden] { display: none !important; }
 /* чат с голосом — в свой угол: низ-лево в крепости свободен (панель бойца — по центру) */
 html[data-room='fort'] .k-hud > .k-slot--bl { bottom: var(--edge); }
@@ -18,14 +21,14 @@ html[data-room='fort'] .k-hud > .k-slot--c:not(.ft-down) { top: 38%; }
   .board, .endscreen, .floaters, .stats) { display: none !important; }
 .ft-world { z-index: 1; }
 
-/* золото крепости — горка самородков, не монета-жетон */
+/* Прежняя картинка цены в лавке/подсказках; верхний баланс использует imagegen-монету token. */
 .ft-nug { display: inline-block; flex: none; width: 1.3em; height: 1.3em; object-fit: contain; vertical-align: -.3em; filter: drop-shadow(0 1px 1px rgba(20, 10, 12, .35)); }
 .k-pill .ft-nug { width: 22px; height: 22px; }
 .ft-sub { margin-left: 6px; color: var(--surf-dim); font: 500 var(--fs-14)/1.2 var(--font-text); }
 .ft-plus { color: var(--good-text); font-weight: 800; }
 
 /* ---------------------------------------------------------------- ВЛ: карта 96 + ворота/кристалл с иконками, HP и прокачкой + колокол */
-.ft-fort { display: grid; grid-template-columns: 96px 127px; align-items: center; gap: 7px; width: 240px; padding: 6px 5px; }
+.ft-fort { display: flex; flex-direction: column; align-items: center; gap: 7px; width: 108px; padding: 6px; }
 .ft-map { width: 96px; height: 96px; overflow: hidden; border-radius: var(--r-sm); box-shadow: inset 0 0 0 1.5px var(--line-strong); }
 .ft-map-cv { display: block; width: 100%; height: 100%; }
 .ft-hps { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
@@ -43,6 +46,80 @@ html[data-room='fort'] .k-hud > .k-slot--c:not(.ft-down) { top: 38%; }
 .ft-bell b { font-weight: 700; }
 .ft-stats { margin-top: -2px; padding: 0 4px; font-variant-numeric: tabular-nums; }
 @keyframes ft-hit { to { box-shadow: inset 0 0 0 2px var(--bad), 0 0 10px var(--bad-soft); } }
+
+/* Общая низкая панель — шрифты, латунь и кованая рамка любимого Dungeon HUD.
+   Токены и переопределения замкнуты здесь: лавка, Tab, итоги и нижний HUD остаются на ките. */
+.ft-command {
+  --dg-font: 'Alegreya Sans', Rubik, system-ui, sans-serif;
+  --dg-font-head: 'Alegreya SC', Georgia, 'Times New Roman', serif;
+  --dg-text: #f7e8c9; --dg-text-dim: #cfb488;
+  --dg-iron: linear-gradient(180deg, #2e2620, #17120f); --dg-iron-edge: #1a120a;
+  --dg-brass: #c99a4b; --dg-brass-hi: #f3d38f; --dg-brass-dk: #8d6b36;
+  --dg-rivet: radial-gradient(circle at 50% 50%, #ffe7ad 0 1.4px, #a47a35 2.2px, #3d2b13 3px, transparent 3.6px);
+  --dg-line: rgba(243, 211, 143, .16); --dg-pip: rgba(243, 211, 143, .22);
+  --dg-teal: #8ae6da; --dg-red: #e0283a; --dg-bar-bg: #0d0907;
+  box-sizing: border-box; position: relative; display: grid; grid-template-columns: 190px minmax(0, 1fr) 192px;
+  align-items: center; gap: 16px; width: 1000px; max-width: calc(100vw / var(--hud-k, 1) - 320px); padding: 10px 16px;
+  color: var(--dg-text); font: 700 16px/1.15 var(--dg-font); font-feature-settings: 'lnum' 1, 'tnum' 1;
+  background: var(--dg-iron); border: 2px solid var(--dg-brass-dk); border-radius: 8px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .7), inset 0 2px 0 1px rgba(243, 211, 143, .12), 0 8px 20px rgba(0, 0, 0, .55);
+}
+.ft-command::before { content: ''; position: absolute; inset: 3px; border: 1px solid var(--dg-line); border-radius: 5px; pointer-events: none; }
+.ft-command::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: var(--dg-rivet) left 1px top 1px / 9px 9px no-repeat, var(--dg-rivet) right 1px top 1px / 9px 9px no-repeat, var(--dg-rivet) left 1px bottom 1px / 9px 9px no-repeat, var(--dg-rivet) right 1px bottom 1px / 9px 9px no-repeat; }
+.ft-command-structures { min-width: 0; padding-right: 12px; border-right: 1px solid var(--dg-line); }
+.ft-command .ft-hps { flex-direction: row; gap: 10px; }
+.ft-command .ft-hp { flex: 1; min-width: 0; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'icon icon' 'up up' 'bar pct'; gap: 5px 4px; margin: 0; padding: 3px; border-radius: 5px; pointer-events: auto; }
+.ft-command .ft-hp-ic { width: 38px; height: 38px; justify-self: center; }
+.ft-command .ft-hp-pct { font: 800 14px/1 var(--dg-font); color: var(--dg-text); }
+.ft-command .ft-hp-up { gap: 4px; }
+.ft-command .ft-hp-up .ft-pips { flex: 1; width: auto; }
+.ft-command .ft-pips i { height: 5px; background: var(--dg-pip); box-shadow: none; }
+.ft-command .ft-pips i.on { background: var(--dg-brass-hi); }
+.ft-command .ft-tier { font: 700 14px/1 var(--dg-font); color: var(--dg-text-dim); }
+.ft-command .ft-hp > .k-meter { height: 7px; background: var(--dg-bar-bg); border-radius: 3px; }
+.ft-command .ft-hp .k-meter-fill { background: var(--dg-brass); }
+.ft-command .ft-hp[data-structure='crystal'] .k-meter-fill { background: var(--dg-teal); }
+.ft-command .ft-hp.is-low .k-meter-fill { background: var(--dg-red); }
+.ft-command .ft-hp.is-low .ft-hp-pct { color: var(--dg-red); }
+.ft-command .ft-hp.is-hit { background: color-mix(in srgb, var(--dg-red) 24%, transparent); box-shadow: inset 0 0 0 1px var(--dg-red); animation: ft-structure-hit .65s ease-out; }
+@keyframes ft-structure-hit { 20% { box-shadow: inset 0 0 0 2px var(--dg-red), 0 0 14px color-mix(in srgb, var(--dg-red) 45%, transparent); } }
+.ft-phase { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 6px 12px; }
+.ft-phase-copy { min-width: 0; }
+.ft-phase-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--dg-brass-hi); font: 900 22px/1.1 var(--dg-font-head); }
+.ft-command .ft-of { color: var(--dg-text-dim); font: 700 14px/1 var(--dg-font); }
+.ft-phase-note { margin-top: 3px; color: var(--dg-text-dim); font-size: 14px; line-height: 1.1; }
+.ft-phase-clock { min-width: 62px; text-align: right; white-space: nowrap; color: var(--dg-brass-hi); font: 900 26px/1 var(--dg-font); }
+.ft-phase-clock small { display: block; margin-bottom: 3px; color: var(--dg-text-dim); font: 700 13px/1 var(--dg-font); }
+.ft-phase-clock.is-hurry { color: var(--dg-red); animation: ft-clock .7s ease-in-out infinite alternate; }
+@keyframes ft-clock { to { opacity: .55; } }
+.ft-command .ft-foes { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 9px; min-width: 0; color: var(--dg-text); font: 800 14px/1 var(--dg-font); }
+.ft-command .ft-chip { pointer-events: auto; }
+.ft-command .ft-chip-ic { width: 22px; height: 22px; }
+.ft-command .ft-chip.is-new { color: var(--dg-brass-hi); background: color-mix(in srgb, var(--dg-brass) 15%, transparent); box-shadow: inset 0 0 0 1px var(--dg-brass-dk); }
+.ft-command .ft-chip.is-boss { color: var(--dg-text); background: color-mix(in srgb, var(--dg-red) 15%, transparent); box-shadow: inset 0 0 0 1px var(--dg-red); }
+.ft-command .ft-chip.is-more { color: var(--dg-text-dim); }
+.ft-phase > .k-meter { grid-column: 1 / -1; height: 3px; border: 0; background: var(--dg-bar-bg); }
+.ft-phase > .k-meter .k-meter-fill { background: var(--dg-brass); }
+.ft-phase.is-boss > .k-meter .k-meter-fill { background: var(--dg-red); }
+.ft-command .ft-tiles { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; gap: 5px 8px; padding-left: 12px; border-left: 1px solid var(--dg-line); }
+.ft-command .k-tile { position: relative; display: flex; flex-direction: row; align-items: center; gap: 4px; width: auto; min-width: 0; }
+.ft-command .k-tile[hidden] { display: none; }
+.ft-command .k-tile-face { flex: 0 0 24px; width: 24px; height: 30px; min-height: 0; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; }
+.ft-command .k-tile-face > img { width: 24px; height: 24px; margin: 0; }
+.ft-command .ft-party .k-tile-face > img { width: 24px; height: 24px; margin: 0; }
+.ft-command .k-tile-cap { min-width: 0; max-width: none; align-items: flex-start; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; color: var(--dg-text); font: 800 14px/1.1 var(--dg-font); text-align: left; white-space: normal; }
+.ft-command .k-tile-cap > span { display: block; white-space: normal; }
+.ft-command .k-tile-cap small { color: var(--dg-text-dim); font: 700 13px/1.1 var(--dg-font); }
+.ft-command .ft-gold { grid-column: 1 / -1; pointer-events: auto; }
+.ft-command .ft-gold .k-tile-face { flex-basis: 34px; width: 34px; height: 38px; }
+.ft-command .ft-gold .k-tile-face > img { width: 34px; height: 34px; }
+.ft-command .ft-gold .k-tile-cap { color: var(--dg-brass-hi); font-size: 25px; white-space: nowrap; }
+.ft-command .ft-gold .k-tile-cap > span { white-space: nowrap; }
+.ft-command .ft-plus { position: absolute; right: 0; top: -5px; font: 800 14px/1 var(--dg-font); color: var(--dg-teal); }
+.ft-command .ft-dots { bottom: 0; gap: 1px; }
+.ft-command .ft-dots i { width: 4px; height: 4px; }
+.ft-command .k-tile--own .k-tile-cap { color: var(--dg-brass-hi); }
+.ft-command .ft-party.k-tile--warn .k-tile-cap { color: var(--dg-red); }
 
 /* ---------------------------------------------------------------- ВП: плитки под бейджем; «команда» — точки цветов ников */
 .ft-tiles.is-off { display: none; }
@@ -109,7 +186,7 @@ html[data-room='fort'] .k-hud > .k-slot--c:not(.ft-down) { top: 38%; }
 
 /* ---------------------------------------------------------------- прилавок (немодальный, справа под бейджем) */
 /* низ — выше панели бойца (низ-центр: 8 + 52 px над краем и зазор): на 1440 окно не заходит на «Shift рывок» */
-.ft-stall-wrap { position: absolute; z-index: 12; top: 72px; right: var(--edge); bottom: calc(var(--edge) + 72px); width: 450px; display: flex; flex-direction: column; justify-content: flex-start; pointer-events: auto; }
+.ft-stall-wrap { position: absolute; z-index: 12; top: calc(160px * var(--hud-k, 1)); right: var(--edge); bottom: calc(var(--edge) + 72px); width: 450px; display: flex; flex-direction: column; justify-content: flex-start; pointer-events: auto; }
 .ft-stall { display: flex; flex-direction: column; width: 100%; max-height: 100%; }
 .ft-stall .k-win-head { gap: 12px; padding-left: 16px; padding-right: 16px; padding-bottom: 12px; }
 .ft-stall .k-win-title { font-size: calc(var(--fs-22) * var(--display-scale)); line-height: 1.1; white-space: normal; }
@@ -199,9 +276,19 @@ button.ft-row:active { transform: translateY(1px); }
 
 /* ---------------------------------------------------------------- телефон: окна поуже, прилавок — ниже кнопок сверху */
 .touch .ft-stall-wrap { top: 64px; bottom: var(--edge); width: 380px; }
+@media (max-width: 780px) {
+  .ft-command { grid-template-columns: 130px minmax(0, 1fr) 140px; max-width: calc(100vw / var(--hud-k, 1) - 32px); gap: 10px; padding: 8px 10px; }
+  .ft-command .ft-hps { gap: 4px; }
+  .ft-command .ft-hp-ic { width: 30px; height: 30px; }
+  .ft-command-structures { padding-right: 6px; }
+  .ft-command .ft-tiles { padding-left: 6px; gap: 5px; }
+  .ft-phase-title { font-size: 18px; }
+  .ft-command .ft-gold .k-tile-cap { font-size: 22px; }
+  .ft-fort { margin-top: 176px; }
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .ft-hp.is-hit, .ft-row.is-no, .ft-spot, .k-tile.ft-spot > .k-tile-face { animation: none !important; }
+  .ft-hp.is-hit, .ft-phase-clock.is-hurry, .ft-row.is-no, .ft-spot, .k-tile.ft-spot > .k-tile-face { animation: none !important; }
 }
 
 .ft-repair-meter{width:110px;min-width:80px}

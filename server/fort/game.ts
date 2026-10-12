@@ -19,6 +19,7 @@ import {
 import { FM_EARLY } from '../../shared/fortnet.ts';
 import { namesLine, recView, wavesText, type FortRecIntro } from '../../shared/fortrecord.ts';
 import { FEATURES, SIEGE_FEATURES, planWave, type LastEvent, type WavePlan } from './director.ts';
+import { siegeBossNumber } from '../../shared/fortsiege.ts';
 import { FortLedger, settle, type FortRun, type SettleFinal } from './ledger.ts';
 import { BOAT_BOUNTY, GREN_BUY, waveBonus, type Loadout } from '../../shared/fortarsenal.ts';
 import { BTN_FT_GRENADE, BTN_FT_HEAVY, armFort, fortAfter, fortBefore, gunInHands, makeFortStep } from '../../shared/fortgun.ts';
@@ -242,6 +243,7 @@ export class FortGame implements HordeHost, EventHost {
     const activeSiege = [...this.waveEvents.replay(), ...this.horde.siege.replay(), ...this.arsenal.repairReplay()];
     if (activeSiege.length) sink.sendJson({ t: 'fev', k: this.tick, e: activeSiege });
     if (this.phase === FT_WAVE && this.horde.raiseDefenders(this.players.size, this.tick)) {
+      this.waveEvents.raiseDefenders(this.horde.defenders);
       this.systemChat(`Орда усилена для ${this.horde.defenders} защитников · подкрепление через 3 с`);
     }
     this.rosterDirty = true;
@@ -399,11 +401,14 @@ export class FortGame implements HordeHost, EventHost {
     this.horde.siege.clear();
     this.arsenal.cancelRepair();
     this.cleared = this.wave;
+    const bossWave = this.siegeEnabled ? siegeBossNumber(this.wave) > 0 : isBossWave(this.wave);
+    // Keep the existing base/super rewards; move only the eight-token land-boss bonus to the active schedule.
+    const tokens = waveTokens(this.wave) + 8 * (Number(bossWave) - Number(isBossWave(this.wave)));
     const credited: FortPlayer[] = [];
     for (const p of this.players.values()) {
       if (p.inWave || p.waveContribution > 0 || this.tick - p.waveJoinTick >= 5 * TICK_RATE) {
         p.waves++;
-        p.run.tokWaves += waveTokens(this.wave);
+        p.run.tokWaves += tokens;
         credited.push(p);
       }
       p.inWave = false;
@@ -424,10 +429,11 @@ export class FortGame implements HordeHost, EventHost {
     this.plan = null;
     const next = this.planFor(this.wave + 1);
     this.card = next.card;
-    const sec = breakSecondsAfter(this.wave);
+    const sec = this.siegeEnabled ? isSuperWave(this.wave + 1) ? 30 : bossWave || isSuperWave(this.wave) ? 20 : 15
+      : breakSecondsAfter(this.wave);
     this.setPhase(FT_BREAK, this.tick + sec * TICK_RATE);
     const ahead = isSuperWave(this.wave + 1) ? ` · ⚠ дальше супер-босс: ${next.card.title}!`
-      : isBossWave(this.wave + 1) ? ` · ⚠ дальше босс: ${next.card.title}` : '';
+      : (this.siegeEnabled ? next.boss >= 0 : isBossWave(this.wave + 1)) ? ` · ⚠ дальше босс: ${next.card.title}` : '';
     this.systemChat(`✅ Волна ${this.wave} отбита! +${waveBonus(this.wave)} 💰 и общак волны${clean ? ' ×1,5 — чистая волна' : ''}. Передышка ${sec} с${ahead}`);
   }
 

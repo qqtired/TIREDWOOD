@@ -1,13 +1,11 @@
-// Карточка крепости в верх-лево (кит: .k-plate, как на странице lab/ui «Крепость»): мини-карта 96 и справа — ворота
-// и кристалл с иконками, процентом и ступенями прокачки (бьют — строка вздрагивает красным, мало — красное число), колокол
-// (щит готов / щит · 6 с / колокол через 23 с). Под карточкой — строка FPS (по настройке). Мини-карту рисует FortHud.
+// Мини-карта и колокол остаются в углу; ворота и кристалл — в общей верхней панели.
 import { TICK_RATE } from '../../../shared/constants.ts';
 import { CRYSTAL_TIERS, GATE_TIERS } from '../../../shared/fortarsenal.ts';
 import { el, setText } from './dom.ts';
 import { fortImg } from './icons.ts';
 
 /** Сколько держится «вздрагивание» после удара, мс */
-const HIT_MS = 1200;
+const HIT_MS = 650;
 
 class HpRow {
   readonly root: HTMLElement;
@@ -18,6 +16,8 @@ class HpRow {
   private tier = -1;
   private last = '';
   private hitTimer = 0;
+  private hpWas = -1;
+  private maxWas = -1;
   private readonly tone: string;
   private readonly maxTier: number;
   /** Подпись при нуле: «Ворота пали», «Кристалл пал» */
@@ -54,6 +54,8 @@ class HpRow {
   }
 
   set(hp: number, max: number): void {
+    if (this.hpWas >= 0 && max === this.maxWas && hp < this.hpWas) this.hurt();
+    this.hpWas = hp; this.maxWas = max;
     const v = max > 0 ? Math.max(0, Math.min(1, hp / max)) : 0;
     const pct = Math.round(v * 100);
     const down = hp <= 0;
@@ -78,6 +80,7 @@ class HpRow {
     clearTimeout(this.hitTimer);
     this.root.classList.remove('is-hit');
     this.last = '';
+    this.hpWas = this.maxWas = -1;
   }
 }
 
@@ -91,15 +94,15 @@ export class FortCard {
   private readonly bell: HTMLElement;
   private bellKey = '';
 
-  constructor(slot: HTMLElement) {
+  constructor(slot: HTMLElement, structures: HTMLElement) {
     this.root = el('div', 'k-plate ft-fort');
     this.root.dataset.mode = 'fort';
     const box = el('div', 'ft-map', this.root);
     this.map = el('canvas', 'ft-map-cv', box);
-    const side = el('div', 'ft-hps', this.root);
+    const side = el('div', 'ft-hps', structures);
     this.gate = new HpRow(side, 'Ворота', 'gate', 'k-meter--mode', 'пали', GATE_TIERS);
     this.crystal = new HpRow(side, 'Кристалл', 'crystal', 'k-meter--info', 'пал', CRYSTAL_TIERS);
-    this.bell = el('div', 'ft-bell', side);
+    this.bell = el('div', 'ft-bell', this.root);
     this.stats = el('div', 'k-faint ft-stats');
     this.stats.hidden = true;
     slot.append(this.root, this.stats);

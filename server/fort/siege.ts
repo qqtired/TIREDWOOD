@@ -181,7 +181,7 @@ export class Siege {
       if (!source || source.state !== S.ZS_SIEGE_ACTION) { z.siegeCarrier = 0; z.state = ZS_WALK; return false; }
       const distance = Math.hypot(source.x - z.x, source.z - z.z);
       if (distance > ZK[source.kind].r + ZK[z.kind].r + .5) {
-        walk(z, source.x, source.z, ZK[z.kind].speed * this.horde.haste); return true;
+        walk(z, source.x, source.z, this.horde.groundSpeed(z)); return true;
       }
       this.board(z, source.climb);
       source.siegeUsed++; source.atk = (source.atk + 1) & 255; source.atkCd = S.BOARD_EVERY;
@@ -274,7 +274,7 @@ export class Siege {
     const cp = CLIMBS[ci];
     if (z.state === ZS_WALK || z.state === S.ZS_SIEGE_APPROACH) {
       z.state = S.ZS_SIEGE_APPROACH;
-      if (walk(z, cp.x, cp.z - (z.kind === S.Z_SIEGE_TOWER ? 2.6 : 1.6), ZK[z.kind].speed * this.horde.haste)) return;
+      if (walk(z, cp.x, cp.z - (z.kind === S.Z_SIEGE_TOWER ? 2.6 : 1.6), this.horde.groundSpeed(z))) return;
       if (z.atkCd > 0 || !this.reserve(z, z.kind === S.Z_SPRING ? S.SPRING_DEPLOY_TICKS : S.SIEGE_DEPLOY_TICKS)) return;
       z.climb = ci;
       z.toX = cp.x; z.toY = WALL_H; z.toZ = cp.z + 1.7;
@@ -399,7 +399,7 @@ export class Siege {
     if (z.state === S.ZS_SIEGE_SPENT) return;
     if (z.state === ZS_WALK || z.state === S.ZS_SIEGE_APPROACH) {
       z.state = S.ZS_SIEGE_APPROACH;
-      if (walk(z, foreman ? 0 : z.id % 2 ? -10 : 10, foreman ? -20 : -30, ZK[z.kind].speed)) return;
+      if (walk(z, foreman ? 0 : z.id % 2 ? -10 : 10, foreman ? -20 : -30, this.horde.groundSpeed(z))) return;
       if (z.atkCd > 0 || !this.reserve(z, (foreman ? S.SIEGE_DEPLOY_TICKS : S.BATTERY_DEPLOY_TICKS) + S.BATTERY_WARN_TICKS + S.BATTERY_FLIGHT_TICKS)) return;
       z.state = S.ZS_SIEGE_DEPLOY; z.t = foreman ? S.SIEGE_DEPLOY_TICKS : S.BATTERY_DEPLOY_TICKS;
       z.yaw = Math.atan2(z.x, -(GATE.face - z.z));

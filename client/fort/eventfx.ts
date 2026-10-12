@@ -720,6 +720,9 @@ interface Meteor {
   startTick: number;
   endTick: number;
   bodyScale: number;
+  hits: number;
+  totalHits: number;
+  shownHits: number;
   on: boolean;
   fx: number; fy: number; fz: number;
   tx: number; ty: number; tz: number;
@@ -763,6 +766,9 @@ export class EventFx {
   // метеоры
   private readonly meteors: Meteor[] = [];
   private readonly rocks: THREE.InstancedMesh;
+  private readonly meteorBars: THREE.InstancedMesh;
+  private readonly barQuaternion = new THREE.Quaternion();
+  private readonly barOffset = new THREE.Vector3();
 
   // монеты
   private readonly coinData = new Float32Array(MAX_COINS * C);
@@ -827,7 +833,7 @@ export class EventFx {
     (this.smoke.mesh.material as THREE.ShaderMaterial).uniforms.uNear.value = 2.5;
 
     for (let i = 0; i < MAX_METEORS; i++) {
-      this.meteors.push({ id: -1, linear: false, startTick: NaN, endTick: NaN, bodyScale: 1.5, on: false, fx: 0, fy: 0, fz: 0, tx: 0, ty: 0, tz: 0, dur: 1, t: 0, r: METEOR_R, ex: 0, ey: 0, ez: 0, smoke: 0, drip: 0, spin: 0 });
+      this.meteors.push({ id: -1, linear: false, startTick: NaN, endTick: NaN, bodyScale: 1.5, hits: 0, totalHits: 0, shownHits: 0, on: false, fx: 0, fy: 0, fz: 0, tx: 0, ty: 0, tz: 0, dur: 1, t: 0, r: METEOR_R, ex: 0, ey: 0, ez: 0, smoke: 0, drip: 0, spin: 0 });
     }
     this.rocks = new THREE.InstancedMesh(meteorGeometry(), new THREE.MeshBasicMaterial({ vertexColors: true }), MAX_METEORS);
     this.rocks.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -836,6 +842,12 @@ export class EventFx {
     this.rocks.visible = false;
     this.rocks.userData.fx = true;
     scene.add(this.rocks);
+    this.meteorBars = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ depthWrite: false }), MAX_METEORS * 2);
+    this.meteorBars.name = 'meteor-durability'; this.meteorBars.count = 0; this.meteorBars.visible = false;
+    this.meteorBars.frustumCulled = false; this.meteorBars.userData.fx = true;
+    this.meteorBars.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    for (let i = 0; i < MAX_METEORS * 2; i++) this.meteorBars.setColorAt(i, new THREE.Color(i % 2 ? 0xffecb3 : 0x342018));
+    scene.add(this.meteorBars);
 
     this.coinMesh = new THREE.InstancedMesh(coinGeometry(), new THREE.MeshStandardMaterial({
       vertexColors: true, metalness: 0.35, roughness: 0.32, emissive: 0x7a4c00, emissiveIntensity: 0.55,
@@ -945,6 +957,7 @@ export class EventFx {
     }
     m.on = true;
     m.id = id; m.linear = linear; m.bodyScale = linear ? SIEGE_METEOR_BODY / .8 : 1.5;
+    m.hits = m.totalHits = m.shownHits = 0;
     m.startTick = m.endTick = NaN;
     m.fx = fx; m.fy = fy; m.fz = fz;
     m.tx = tx; m.ty = ty; m.tz = tz;
@@ -964,7 +977,7 @@ export class EventFx {
   }
 
   /** Targetable meteors use the same absolute server timeline as shot rewinding. */
-  siegeMeteor(id: number, phase: number, from: readonly number[], to: readonly number[], startTick: number, endTick: number, renderTick: number): void {
+  siegeMeteor(id: number, phase: number, from: readonly number[], to: readonly number[], startTick: number, endTick: number, renderTick: number, hits = 0, totalHits = 0): void {
     if (![startTick,endTick,renderTick,...from,...to].every(Number.isFinite) || endTick <= startTick) return;
     this.setRenderTick(renderTick);
     const seconds=(endTick-startTick)/TICK_RATE,elapsed=(renderTick-startTick)/TICK_RATE;
@@ -972,9 +985,11 @@ export class EventFx {
       if (!this.meteors.some(m => m.on && m.id === id)) this.meteor(from[0], from[1], from[2], to[0], to[1], to[2], seconds, SIEGE_METEOR_RADIUS, id, true, elapsed);
       const active=this.meteors.find(m=>m.on&&m.id===id)!;
       active.startTick=startTick;active.endTick=endTick;active.t=elapsed;
+      active.hits = Math.max(0, hits); active.totalHits = Math.max(active.totalHits, totalHits, hits); active.shownHits = active.hits;
       return;
     }
     const m = this.meteors.find(m => m.on && m.id === id);
+    if (m) { m.hits = Math.max(0, hits); m.totalHits = Math.max(m.totalHits, totalHits, hits); }
     const u = Math.max(0, Math.min(1, elapsed / Math.max(.01, seconds)));
     const x = from[0] + (to[0]-from[0])*u, y = from[1] + (to[1]-from[1])*u, z = from[2] + (to[2]-from[2])*u;
     if (phase === 1 || phase === 2) {
@@ -1361,6 +1376,7 @@ export class EventFx {
     for (const m of this.meteors) m.on = false;
     this.rocks.count = 0;
     this.rocks.visible = false;
+    this.meteorBars.count = 0; this.meteorBars.visible = false;
     for (let i = CLIFE; i < this.coinData.length; i += C) this.coinData[i] = 0;
     this.coinMesh.count = 0;
     this.coinMesh.visible = false;
@@ -1376,7 +1392,7 @@ export class EventFx {
   /** Убрать всё из сцены и освободить видеопамять (мир крепости разбирают); свет вернуть как было */
   dispose(): void {
     this.clear();
-    const roots: THREE.Object3D[] = [...this.pools.map((p) => p.mesh), this.rocks, this.coinMesh, this.crateRoot, this.dome, this.sheets];
+    const roots: THREE.Object3D[] = [...this.pools.map((p) => p.mesh), this.rocks, this.meteorBars, this.coinMesh, this.crateRoot, this.dome, this.sheets];
     for (const root of roots) {
       this.scene.remove(root);
       root.traverse((o) => {
@@ -1405,6 +1421,8 @@ export class EventFx {
 
   private updateMeteors(dt: number): void {
     let n = 0;
+    let bars = 0;
+    this.camera.getWorldQuaternion(this.barQuaternion);
     const k = this.density;
     for (const m of this.meteors) {
       if (!m.on) continue;
@@ -1437,6 +1455,15 @@ export class EventFx {
       _q.setFromEuler(_e);
       const pulse = m.bodyScale * (1 + 0.025 * Math.sin(this.time * 31 + m.spin));
       this.rocks.setMatrixAt(n++, _m.compose(_p.set(x, y, z), _q, _s.set(pulse, pulse, pulse)));
+      if (m.linear && m.totalHits > 0) {
+        m.shownHits += (m.hits - m.shownHits) * Math.min(1, dt * 14);
+        const fraction = Math.max(0, Math.min(1, m.shownHits / m.totalHits)), width = 4.4;
+        _p.set(x, y + SIEGE_METEOR_BODY + .65, z);
+        this.meteorBars.setMatrixAt(bars++, _m.compose(_p, this.barQuaternion, _s.set(width + .12, .25, 1)));
+        this.barOffset.set((fraction - 1) * width / 2, 0, .018).applyQuaternion(this.barQuaternion);
+        _p.add(this.barOffset);
+        this.meteorBars.setMatrixAt(bars++, _m.compose(_p, this.barQuaternion, _s.set(Math.max(.001, width * fraction), .13, 1)));
+      }
       // ком в языках пламени: мягкий оранжевый ореол, внешнее и внутреннее пламя рвутся назад (плотные клубы — на светлом
       // небе читаются лучше свечения: сложение с небом даёт белое), горячая сердцевина и хвост-полоса
       const fl = Math.sin(this.time * 23 + m.spin);
@@ -1526,6 +1553,9 @@ export class EventFx {
     this.rocks.count = n;
     this.rocks.visible = n > 0;
     if (n) this.rocks.instanceMatrix.needsUpdate = true;
+    this.meteorBars.count = bars;
+    this.meteorBars.visible = bars > 0;
+    if (bars) this.meteorBars.instanceMatrix.needsUpdate = true;
   }
 
   private updateCrate(dt: number): void {

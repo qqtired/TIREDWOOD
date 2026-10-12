@@ -36,10 +36,10 @@ import { Z_LESHY, Z_PUMPKIN, Z_WEAVER } from '../../shared/fortkinds.ts';
 import { newBossRadius } from '../../shared/fortbosses.ts';
 import { stepBoat, stepHop, type SeaCtx } from './sea.ts';
 import { krakenArmor, stepKraken, stepTentacle, tentacleRage } from './kraken.ts';
-import { planCounts, type WavePlan } from './director.ts';
+import { enemyHpScale, planCounts, type WavePlan } from './director.ts';
 import { FortNav, rectDist } from './nav.ts';
 import { Siege } from './siege.ts';
-import { BOAT_ANCHOR_FLAG, SIEGE_SLOT_RESERVE, Z_ROPECRAB, ZS_SIEGE_APPROACH, ZS_SIEGE_OPEN, ZS_SIEGE_ACTION, ZS_SIEGE_WINDUP, ZS_SIEGE_DEPLOY, Z_JAMPUMP, Z_MILLER } from '../../shared/fortsiege.ts';
+import { BOAT_ANCHOR_FLAG, SIEGE_SLOT_RESERVE, Z_ROPECRAB, ZS_SIEGE_APPROACH, ZS_SIEGE_OPEN, ZS_SIEGE_ACTION, ZS_SIEGE_WINDUP, ZS_SIEGE_DEPLOY, Z_JAMPUMP, Z_MILLER, siegeBodyMul } from '../../shared/fortsiege.ts';
 
 /** История для отката выстрелов: тиков (откат — до MAX_REWIND_TICKS) */
 export const ZHIST_TICKS = 32;
@@ -183,6 +183,8 @@ export class Horde {
   private nextId = 1;
   private queue: Spawn[] = [];
   private queueAt = 0;
+  /** Ordered quota includes pending, living and defeated enemies; the original route plan stays unchanged. */
+  private committedCounts = new Array<number>(Z_KINDS).fill(0);
   /** Сколько живых */
   alive = 0;
   // расталкивание
@@ -238,6 +240,7 @@ export class Horde {
     this.alive = 0;
     this.queue = [];
     this.queueAt = 0;
+    this.committedCounts.fill(0);
     this.pops.length = 0;
     this.popBy.length = 0;
     this.barrels.length = 0;
@@ -259,6 +262,7 @@ export class Horde {
   startWave(plan: WavePlan, tick: number, replan: ((humans: number) => WavePlan) | null = null): void {
     this.siege.clear();
     this.plan = plan;
+    this.committedCounts = planCounts(plan);
     this.replan = replan;
     this.wave = plan.w;
     this.hpHumans = plan.defenders;
@@ -301,17 +305,21 @@ export class Horde {
     this.hpHumans = n;
     const scale = next ? next.hpScale : this.hpScale * teamHpMul(n) / teamHpMul(prevHumans);
     const ratio = scale / this.hpScale;
+    const siegeScale = next?.siegeHpScale ?? (old?.siegeHpScale === undefined ? undefined
+      : old.siegeHpScale * enemyHpScale(this.wave, n) / enemyHpScale(this.wave, prevHumans));
+    const siegeRatio = siegeScale !== undefined && old?.siegeHpScale !== undefined ? siegeScale / old.siegeHpScale : ratio;
     const bossRatio = bossTeamMul(n) / bossTeamMul(prevHumans);
     this.hpScale = scale;
     for (const z of this.zombies) {
       if (!z.alive) continue;
       const fraction = z.hp / z.maxHp;
-      z.maxHp *= isBossKind(z.kind) ? bossRatio : ratio;
+      z.maxHp *= isBossKind(z.kind) ? bossRatio
+        : (siegeBodyMul(z.kind, 2) > 1 ? siegeRatio : ratio) * siegeBodyMul(z.kind, n) / siegeBodyMul(z.kind, prevHumans);
       z.hp = z.maxHp * fraction;
     }
     const extra: Spawn[] = [];
     if (old && next) {
-      const before = planCounts(old);
+      const before = this.committedCounts;
       const after = planCounts(next);
       const roads = next.roads;
       for (let kind = 0; kind < Z_KINDS; kind++) {
@@ -320,8 +328,11 @@ export class Horde {
           const at = extra.length;
           extra.push({ at: tick + 3 * TICK_RATE + at * 10, kind, road: roads[at % roads.length], tier: tiers[i] ?? 0 });
         }
+        before[kind] = Math.max(before[kind], after[kind]);
       }
       this.plan = { ...next, spawns: old.spawns, boats: old.boats };
+    } else if (old && siegeScale !== undefined) {
+      this.plan = { ...old, siegeHpScale: siegeScale };
     }
     // Consumed prefix is discarded; quota still derives from the locked roster, not queue length.
     this.queue = this.queue.slice(this.queueAt).concat(extra).sort((a, b) => a.at - b.at);
@@ -333,10 +344,17 @@ export class Horde {
   hpFor(kind: number, tier: number, hpHumans = this.hpHumans): number {
     if (isBossKind(kind)) {
       if (this.plan && this.plan.boss === kind) return this.plan.bossHp * bossTeamMul(hpHumans) / bossTeamMul(this.plan.defenders);
-      return BOSS_BASE_HP * waveHpMul(Math.max(1, this.wave)) * bossTeamMul(hpHumans);
+      return BOSS_BASE_HP * waveHpMul(Math.max(1, this.wave)) * bossTeamMul(hpHumans) * (kind === Z_GOLEM ? 3 : 1);
     }
-    const scale = this.plan ? this.hpScale * teamHpMul(hpHumans) / teamHpMul(this.hpHumans) : teamHpMul(hpHumans) * waveHpMul(Math.max(1, this.wave));
-    return ZK[kind].hp * scale * (TIER_HP[tier] ?? 1);
+    const scale = this.plan?.siegeHpScale !== undefined && siegeBodyMul(kind, 2) > 1
+      ? this.plan.siegeHpScale * (hpHumans === this.hpHumans ? 1 : enemyHpScale(this.wave, hpHumans) / enemyHpScale(this.wave, this.hpHumans))
+      : this.plan ? this.hpScale * teamHpMul(hpHumans) / teamHpMul(this.hpHumans) : teamHpMul(hpHumans) * waveHpMul(Math.max(1, this.wave));
+    return ZK[kind].hp * scale * (TIER_HP[tier] ?? 1) * siegeBodyMul(kind, hpHumans);
+  }
+
+  /** Один наземный множитель для пути по сетке, подхода устройств и пассажиров осады. */
+  groundSpeed(z: Zombie): number {
+    return ZK[z.kind].speed * (TIER_SPEED[z.tier] ?? 1) * (z.hasted ? CHAMP_HASTE : 1) * this.haste * this.host.slow(z.x, z.z);
   }
 
   /** Урон врага z (по игроку, воротам, кристаллу): волна × ступень */
@@ -1066,7 +1084,7 @@ export class Horde {
     }
 
     z.state = attacking ? ZS_ATTACK : ZS_WALK;
-    const speed = attacking ? 0 : k.speed * (TIER_SPEED[z.tier] ?? 1) * (z.hasted ? CHAMP_HASTE : 1) * this.haste * host.slow(z.x, z.z);
+    const speed = attacking ? 0 : this.groundSpeed(z);
     z.vx += (dx * speed - z.vx) * 0.25;
     z.vz += (dz * speed - z.vz) * 0.25;
     z.x += z.vx * DT;

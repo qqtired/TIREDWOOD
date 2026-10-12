@@ -50,6 +50,7 @@ interface Strike {
   fromY?: number;
   fromZ?: number;
   hits?: number;
+  totalHits?: number;
 }
 
 /** Откуда в небе прилетает метеор: с севера и чуть сбоку, высоко */
@@ -100,7 +101,7 @@ export class WaveEvents {
         const jitter = Math.round((rng() - 0.5) * 16);
         const at = first + (this.siege ? i * S.SIEGE_METEOR_GAP : Math.round((i * METEOR_TICKS) / METEOR_COUNT) + (i > 0 ? jitter : 0));
         this.strikes.push({ at, crowd: !this.siege && i % METEOR_CROWD_EVERY === 0, warned: false, x: 0, y: 0, z: 0,
-          ...(this.siege ? { id: this.nextMeteor++, hits: S.meteorHits(plan.defenders) } : {}) });
+          ...(this.siege ? { id: this.nextMeteor++, hits: S.meteorHits(plan.defenders), totalHits: S.meteorHits(plan.defenders) } : {}) });
       }
       this.strikes.sort((a, b) => a.at - b.at);
     } else if (this.kind === EV_SUPPLY) {
@@ -111,6 +112,15 @@ export class WaveEvents {
     } else if (this.kind === EV_FOG) {
       this.host.event(['event', EV_FOG, 1]);
       this.host.systemChat('🌫 С моря пришёл туман — видно недалеко, ищите светящиеся глаза');
+    }
+  }
+
+  /** Новые защитники усиливают ещё не объявленные метеоры. Уже летящий не отращивает HP и не меняет срок удара. */
+  raiseDefenders(humans: number): void {
+    if (!this.siege || humans <= this.humans) return;
+    this.humans = humans;
+    for (const s of this.strikes) if (!s.warned && s.at >= 0) {
+      s.hits = s.totalHits = S.meteorHits(humans);
     }
   }
 
@@ -172,7 +182,7 @@ export class WaveEvents {
     if (!this.meteorsOn) {
       this.meteorsOn = true;
       this.host.event(['event', EV_METEORS, 1]);
-      this.host.systemChat(this.siege ? `☄ Крупные метеоры! ${S.meteorHits(this.humans)} попадания сбивают камень — прикройте замок!`
+      this.host.systemChat(this.siege ? `☄ Крупные метеоры! Прочность: ${S.meteorHits(this.humans)}. Сбивайте вместе — удар накроет большую часть стены!`
         : '☄ Метеоры! 14 с — не стойте на месте, уходите из красных кругов');
     }
     const p = this.spot;
@@ -216,14 +226,14 @@ export class WaveEvents {
   }
 
   private meteorEvent(s: Strike, phase: number): void {
-    this.host.event(['meteor', s.id!, phase, s.fromX!, s.fromY!, s.fromZ!, r2(s.x), r2(s.y), r2(s.z), s.start!, s.at, s.hits!]);
+    this.host.event(['meteor', s.id!, phase, s.fromX!, s.fromY!, s.fromZ!, r2(s.x), r2(s.y), r2(s.z), s.start!, s.at, s.hits!, s.totalHits ?? s.hits!]);
   }
 
   replay(): FortEvent[] {
     const events: FortEvent[] = [];
     for (const s of this.strikes) if (s.id && s.warned && s.at > this.host.tick) {
       events.push(['warn', s.id, ZS_METEOR, r2(s.x), r2(s.y), r2(s.z), S.SIEGE_METEOR_RADIUS, s.at]);
-      events.push(['meteor', s.id, 0, s.fromX!, s.fromY!, s.fromZ!, r2(s.x), r2(s.y), r2(s.z), s.start!, s.at, s.hits!]);
+      events.push(['meteor', s.id, 0, s.fromX!, s.fromY!, s.fromZ!, r2(s.x), r2(s.y), r2(s.z), s.start!, s.at, s.hits!, s.totalHits ?? s.hits!]);
     }
     return events;
   }

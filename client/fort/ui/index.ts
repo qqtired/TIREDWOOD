@@ -1,10 +1,10 @@
-// Интерфейс «Крепости» на ките 2.0 (как на странице lab/ui «Крепость»). Части — в слотах HUD кита:
-// верх-лево — карточка крепости (мини-карта, ворота, кристалл, колокол), верх-право — плитки под бейджем (золото,
-// рекорд, команда), верх-центр — одна плашка (волна / босс / голосование «сдаться») и тосты (тревоги, новости),
+// Интерфейс «Крепости»: общая верхняя панель в теме Dungeon — укрепления, волна, золото, команда и рекорд.
+// Мини-карта с колоколом остаётся слева; панель стоит первой в штатном слоте TopCenter, поэтому босс,
+// голосование, связь и тосты автоматически располагаются ниже неё. Остальные части — на ките 2.0:
 // низ-центр — подсказка действия над панелью бойца (здоровье, стволы, граната, патроны, рывок), центр — «Тебя
 // повалили!» и крупные баннеры. Стрелки угроз у края экрана, прицел и цифры урона — в слое без zoom (.k-world).
 // Tab и итоги — окна кита (.k-scrim). FortHud создаёт FortUi и отдаёт сюда крючки; match.ts раз в кадр передаёт снимок
-// того, что видно (frame). Без своего места верх-центра: всё сверху идёт через TopCenter кита.
+// того, что видно (frame). Размер и масштаб верхнего слота считает существующий TopCenter кита.
 import type * as THREE from 'three';
 import { FT_BREAK, FT_END, FT_GATHER, FT_WAVE, ZS_BOAT_LAND, ZS_CLIMB, ZS_FLY_WARN, ZS_TOP, Z_BOAT, type FortWaveCard } from '../../../shared/fort.ts';
 import { kindFlags, waveBonus } from '../../../shared/fortarsenal.ts';
@@ -22,7 +22,7 @@ import { BossBar } from './boss.ts';
 import { FortCard } from './card.ts';
 import { Coach, EdgeArrows, ladderHint, type CoachSpot, type Threat } from './coach.ts';
 import { DownBlock } from './down.ts';
-import { hudK } from './dom.ts';
+import { el, hudK } from './dom.ts';
 import { fortIcon } from './icons.ts';
 import { hotBanner } from './record.ts';
 import { Results } from './results.ts';
@@ -31,6 +31,10 @@ import { FortTiles, type TeamRow } from './tiles.ts';
 import { FortCross, FortPrompt, FortVitals } from './vitals.ts';
 import { WavePlate } from './wave.ts';
 import { foeIcon } from './text.ts';
+import '@fontsource/alegreya-sc/900.css';
+import '@fontsource/alegreya-sans/700.css';
+import '@fontsource/alegreya-sans/800.css';
+import '@fontsource/alegreya-sans/900.css';
 import './ui.css';
 
 export type { AlarmTarget } from './alarms.ts';
@@ -86,6 +90,7 @@ const GATE_AT = { x: (GATE.x0 + GATE.x1) / 2, y: 1.6, z: GATE.face };
 const CRYSTAL_AT = { x: 0, y: 1.6, z: 2.6 };
 
 export class FortUi {
+  readonly command: HTMLElement;
   readonly top: TopCenter;
   readonly card: FortCard;
   readonly tiles: FortTiles;
@@ -123,9 +128,13 @@ export class FortUi {
     const { slots, top } = kit;
     this.top = top;
     this.online = kit.online ?? null;
-    this.card = new FortCard(slots.tl);
-    this.tiles = new FortTiles(slots.tr);
-    this.wave = new WavePlate(top);
+    this.command = el('div', 'ft-command ft-only');
+    this.command.setAttribute('aria-label', 'Крепость: укрепления, волна и золото');
+    slots.tc.prepend(this.command);
+    const structures = el('div', 'ft-command-structures', this.command);
+    this.card = new FortCard(slots.tl, structures);
+    this.wave = new WavePlate(top, this.command);
+    this.tiles = new FortTiles(this.command);
     this.boss = new BossBar(top);
     this.alarms = new Alarms(top);
     this.banners = new FortBanners(top);
@@ -141,7 +150,7 @@ export class FortUi {
     this.record = { set: (r) => this.tiles.setRecord(r), grow: (w) => this.tiles.growMine(w) };
     // всё своё в общих слотах — только в крепости (html[data-room='fort'], ui.css)
     for (const e of [this.card.root, this.card.stats, this.tiles.root, this.down.root, this.prompt.root, this.vitals.root]) e.classList.add('ft-only');
-    const spots: Record<CoachSpot, HTMLElement> = { fort: this.card.root, gren: this.vitals.gren.root, gold: this.tiles.gold.root };
+    const spots: Record<CoachSpot, HTMLElement> = { fort: structures, gren: this.vitals.gren.root, gold: this.tiles.gold.root };
     this.coach.onSpot = (spot) => {
       for (const [k, e] of Object.entries(spots)) e.classList.toggle('ft-spot', k === spot);
     };
@@ -167,10 +176,10 @@ export class FortUi {
     this.tiles.setGold(v.gold);
     this.tiles.setTeam(v.team, calm);
     this.tiles.updateRecord(v.cleared ?? 0, v.wave, v.phase);
-    const off = this.stallOpen() || this.results.shown;
+    const off = this.results.shown;
     if (off !== this.tilesOff) {
       this.tilesOff = off;
-      this.tiles.root.classList.toggle('is-off', off);
+      this.command.hidden = off;
     }
     this.wave.update(v.phase, v.wave, v.leftS, v.enemies, !this.results.shown);
     this.boss.setWave(v.wave, v.enemies);

@@ -59,20 +59,31 @@ export const REPAIR_WORK_TICKS = 4 * TICK_RATE;
 export const REPAIR_COOLDOWN_TICKS = 8 * TICK_RATE;
 
 export const SIEGE_METEOR_COUNT = 6;
-export const SIEGE_METEOR_FLIGHT = 2.4 * TICK_RATE;
-export const SIEGE_METEOR_GAP = 3 * TICK_RATE;
-export const SIEGE_METEOR_RADIUS = 5.5;
-export const SIEGE_METEOR_BODY = 1.8;
+export const SIEGE_METEOR_FLIGHT = 6 * TICK_RATE;
+export const SIEGE_METEOR_GAP = 7.5 * TICK_RATE;
+export const SIEGE_METEOR_RADIUS = 11;
+export const SIEGE_METEOR_BODY = 2.2;
 export const SIEGE_METEOR_PLAYER = 75;
 export const SIEGE_METEOR_GATE = 650;
 export const SIEGE_METEOR_CRYSTAL = 420;
 
 /** Число попаданий одной очередью выстрела (дробины не считаются отдельными выстрелами). */
-export function meteorHits(humans: number): number { return humans >= 4 ? 4 : humans >= 2 ? 3 : 2; }
+export function meteorHits(humans: number): number { return 8 * Math.max(1, Math.min(6, Math.floor(humans))); }
+/** Priority bodies share the wave budget, but gain personal durability in a larger team. */
+export function siegeBodyMul(kind: number, humans: number): number {
+  return (kind >= Z_ROPECRAB && kind <= Z_FOREMAN || kind >= Z_SIEGE_TOWER && kind <= Z_SPRING)
+    ? 1 + .5 * (Math.max(1, Math.min(6, humans)) - 1) : 1;
+}
+export function siegeBodyTier(wave: number): number { return wave >= 70 ? 2 : wave >= 30 ? 1 : 0; }
+/** Every fifth wave; the 25th/50th/... remain Kraken encounters. All eight land bosses appear by45. */
+export function siegeBossNumber(wave: number): number {
+  return wave > 0 && wave % 5 === 0 && wave % 25 !== 0 ? Math.floor(wave / 5) - Math.floor(wave / 25) : 0;
+}
 export function urgentSlots(humans: number): number { return humans >= 4 ? 4 : humans >= 2 ? 3 : 2; }
 export function siegePassengerLimit(humans: number): number { return humans >= 4 ? 6 : humans >= 2 ? 4 : 3; }
 export function newBossKind(wave: number): number {
-  return wave === 56 || wave === 91 ? Z_CRABCRANE : wave === 63 || wave === 98 ? Z_MILLER : -1;
+  const n = siegeBossNumber(wave);
+  return n > 0 && n % 8 === 7 ? Z_CRABCRANE : n > 0 && n % 8 === 0 ? Z_MILLER : -1;
 }
 
 export interface SiegePhaseClock {
@@ -106,8 +117,8 @@ export type SiegeEvent =
   | ['siege', number, number, number, number, number]
   /** Снять предупреждение прерванной атаки. */
   | ['warnend', number]
-  /** ID, фаза (0 появился, 1 попадание, 2 сбит, 3 удар, 4 отмена), откуда, куда, начало/конец, осталось попаданий. */
-  | ['meteor', number, number, number, number, number, number, number, number, number, number, number]
+  /** ID, фаза, откуда, куда, начало/конец, осталось попаданий, исходная прочность (для позднего входа). */
+  | ['meteor', number, number, number, number, number, number, number, number, number, number, number, number]
   /** Игрок, действие, тик завершения, тик конца общей паузы, статус (0 работа, 1 готово, 2 отмена, 3 занято). */
   | ['repair', number, number, number, number, number]
   /** Лужа моба: ID, центр, радиус, тик исчезновения (0 — убрать), тип источника (смола/мука). */

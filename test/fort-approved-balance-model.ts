@@ -12,10 +12,10 @@ import { budgetHp, planWave, SIEGE_FEATURES } from '../server/fort/director.ts';
 import { SKILLS, powerOf, simulate, type Director, type Kit, type Skill } from '../tools/fort-balance/model.ts';
 
 const SEED = 12345;
-const sampleWaves = [1, 10, 16, 24, 40, 60, 98];
+const sampleWaves = [6, 12, 19, 40, 45, 78, 98];
 export const assumptions = {
   kind: 'Arithmetic HP work with paid purchase trajectories; no paths, spawn queue, turret visibility, hit-rate observation or win-rate.',
-  seed: SEED, densities: [4, 8], towerBusy: .8, brazierNear: .6, repairBudgetShare: .15,
+  seed: SEED, sampleWaves, densities: [4, 8], towerBusy: .8, brazierNear: .6, repairBudgetShare: .15,
   acquireSecondsPerCounter: 1.2, weakpointAccuracy: .75, grenadeFirstThrowSeconds: 12,
   referenceBossEffectiveHp: 1.3,
   warning: 'The old economy model supplies buying choices only. Its continuous-grenade DPS and cannon x0.8 are replaced below. Income assumes every listed enemy is killed and a clean-wave fraction from SKILLS.',
@@ -23,9 +23,9 @@ export const assumptions = {
 
 function spec(w: number, n: number, approved: boolean) {
   const p = planWave(w, n, SEED, undefined, approved ? SIEGE_FEATURES : undefined);
-  const spawns = p.spawns.map((s) => ({ kind: s.kind, count: 1, hp: budgetHp(s.kind, s.tier, w, n, p.hpScale), rank: s.tier }));
+  const spawns = p.spawns.map((s) => ({ kind: s.kind, count: 1, hp: budgetHp(s.kind, s.tier, w, n, p.hpScale, p.siegeHpScale), rank: s.tier }));
   for (const b of p.boats) for (let i = 0; i < b.crew.length; i++) spawns.push({ kind: b.crew[i], count: 1,
-    hp: budgetHp(b.crew[i], b.tiers[i], w, n, p.hpScale), rank: b.tiers[i], ...{ crew: true } });
+    hp: budgetHp(b.crew[i], b.tiers[i], w, n, p.hpScale, p.siegeHpScale), rank: b.tiers[i], ...{ crew: true } });
   if (p.boss >= 0) spawns.push({ kind: p.boss, count: 1, hp: p.bossHp * assumptions.referenceBossEffectiveHp, rank: 0 });
   if (p.kraken) {
     spawns.push({ kind: Z_TENTACLE, count: TENT_COUNT, hp: W.krakenHp(W.TENTACLE_BASE_HP, w, n) * 1.3, rank: 0 });
@@ -124,6 +124,37 @@ export function balanceRows() {
   return rows;
 }
 
+export function priorityBodyAudit() {
+  let minOldBodyShare = 1, minTeamRatio = Infinity, maxBudgetError = 0;
+  let largestFixed = { share: 0, w: 0, n: 0, seed: 0 };
+  for (let seed = 1; seed <= 60; seed++) for (let w = 1; w <= 100; w++) {
+    const solo = planWave(w, 1, seed, undefined, SIEGE_FEATURES);
+    for (const n of [1, 2, 4]) {
+      const p = n === 1 ? solo : planWave(w, n, seed, undefined, SIEGE_FEATURES);
+      const ordinary = p.spawns.filter((s) => s.kind < S.Z_ROPECRAB).length;
+      minOldBodyShare = Math.min(minOldBodyShare, ordinary / p.spawns.length);
+      const body = (kind: number, tier: number) => budgetHp(kind, tier, w, n, p.hpScale, p.siegeHpScale);
+      const priorityHp = p.spawns.filter((s) => s.kind >= S.Z_ROPECRAB).reduce((sum, s) => sum + body(s.kind, s.tier), 0);
+      const total = p.spawns.reduce((sum, s) => sum + body(s.kind, s.tier), 0)
+        + p.boats.reduce((sum, b) => sum + b.crew.reduce((hp, k, i) => hp + body(k, b.tiers[i]), 0), 0);
+      const target = W.waveHpPerDefender(w) * n * W.teamPressure(n) * W.teamEarlyBoost(w, n) * (p.kraken ? .5 : p.boss >= 0 ? .6 : 1);
+      maxBudgetError = Math.max(maxBudgetError, Math.abs(total / target - 1));
+      if (priorityHp / target > largestFixed.share) largestFixed = { share: priorityHp / target, w, n, seed };
+      if (n === 4) minTeamRatio = Math.min(minTeamRatio, p.siegeHpScale! * S.siegeBodyMul(S.Z_CANOPY, n) / solo.siegeHpScale!);
+    }
+  }
+  const bodies = [];
+  for (const w of [6, 8, 9, 12, 14, 16, 19, 31, 40, 45, 58, 70, 76, 78, 98]) for (const n of [1, 2, 4]) {
+    const p = planWave(w, n, SEED, undefined, SIEGE_FEATURES);
+    bodies.push({ w, n, boss: p.boss < 0 ? null : ZK[p.boss].name, bossHp: round(p.bossHp),
+      ordinaryBodies: p.spawns.filter((s) => s.kind < S.Z_ROPECRAB).length,
+      priority: p.spawns.filter((s) => s.kind >= S.Z_ROPECRAB).map((s) => ({ kind: s.kind, name: ZK[s.kind].name, tier: s.tier,
+        hp: round(budgetHp(s.kind, s.tier, w, n, p.hpScale, p.siegeHpScale)) })) });
+  }
+  return { plans: 18000, seeds: [1, 60], defenders: [1, 2, 4], waves: [1, 100],
+    minOldBodyShare, minTeamRatio, maxBudgetError, largestFixed, bodies };
+}
+
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  console.log(JSON.stringify({ assumptions, rows: balanceRows() }, null, 2));
+  console.log(JSON.stringify({ assumptions, feedback: priorityBodyAudit(), rows: balanceRows() }, null, 2));
 }
