@@ -1,7 +1,7 @@
 #!/bin/sh
 # Запускается на сервере (root) после загрузки архива релиза: ставит релиз, перезапускает игру
-# и проверяет, что в неё можно зайти. Если проверка не прошла — возвращает предыдущий релиз.
-# Данные игры (профили, жетоны, банк джекпота) лежат в /var/lib/game-opus и при выкладке не меняются.
+# и проверяет, что в неё можно зайти. Если проверка не прошла — возвращает совместимый предыдущий релиз.
+# Данные игры лежат в /var/lib/game-opus; новый Store может обновить их формат, откат одного кода тогда запрещён.
 # nginx и другие сайты этот скрипт не трогает.
 set -eu
 RELEASE_ID=$1
@@ -69,14 +69,19 @@ healthy() {
 }
 
 if ! healthy; then
+    # SIGTERM проходит через hub.shutdown()/Store.flush(); проверяем именно данные после остановки.
+    if ! systemctl stop game-opus || [ "$(systemctl show game-opus -p ActiveState --value)" != inactive ]; then
+        echo 'Откат остановлен: штатная остановка не подтверждена; нужен совместимый код/данные.' >&2
+        exit 1
+    fi
     echo "Релиз $RELEASE_ID не отвечает. Журнал службы:" >&2
     journalctl -u game-opus -n 30 --no-pager >&2 || true
     if [ -n "$OLD" ] && [ -d "$OLD" ]; then
+        # Никакого восстановления снимка: несовместимый старый Store не должен переписать новые архивы.
+        node "$RELEASE/deploy/check-record-rollback.ts" "$OLD" /var/lib/game-opus || exit 1
         echo "Возвращаю предыдущий релиз: $OLD" >&2
         switch_to "$OLD"
         systemctl restart game-opus
-    else
-        systemctl stop game-opus
     fi
     exit 1
 fi
