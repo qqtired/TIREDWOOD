@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { DgEvent } from '../shared/dungeon/api.ts';
 import { hurtMob } from '../shared/dungeon/core.ts';
+import { stepPickups } from '../shared/dungeon/pickups.ts';
+import { startWave, stepDirector } from '../shared/dungeon/director.ts';
 import { blocked, terrainAt } from '../shared/dungeon/map.ts';
 import { applyEvent, createRun, DG_LEVEL, dgHash, dgResult, step, wrapD, wrapP, type DgSim } from '../shared/dungeon/sim.ts';
 
@@ -223,11 +225,11 @@ test('зачистка до таймера: «Зачистка!», переды�
   assert.equal(sim.wave.swept, 0);
 });
 
-test('обычные сундуки карты: 4–5 на старте вне стен и воды; подбор — одно улучшение; за волну +1', () => {
+test('обычные сундуки карты: 2 на старте вне стен и воды; подбор — одно улучшение; за первую волну без пополнения', () => {
   for (const seed of [1, 2, 3, 4, 5, 6]) {
     const s = createRun(seed);
     const map = s.items.filter((i) => i.k === 'chest' && i.src === 'map');
-    assert.ok(map.length >= 4 && map.length <= 5, `сундуков ${map.length}`);
+    assert.equal(map.length, 2);
     for (const c of map) {
       assert.equal(blocked(c.x, c.z, 1.2), false, 'не в стене');
       assert.equal(terrainAt(c.x, c.z), 0, 'не в воде и варенье');
@@ -249,10 +251,10 @@ test('обычные сундуки карты: 4–5 на старте вне �
     step(sim);
     if (sim.choice || sim.chest) applyEvent(sim, { t: sim.t, k: 'pick', i: 0 });
   }
-  assert.equal(sim.items.filter((i) => i.src === 'map').length, Math.min(6, n0 + 1), 'волна засчитана — новый сундук');
+  assert.equal(sim.items.filter((i) => i.src === 'map').length, n0, 'первая волна не пополняет сундуки');
 });
 
-test('озеро: брод к островку проходим, поперёк — глубина; на островке сундук на 2 улучшения, новый через 120 с', () => {
+test('озеро: брод к островку проходим, поперёк — глубина; на островке сундук на 1 улучшение, новый через 400 с', () => {
   const lk = DG_LEVEL.lake!;
   const dist = (s: DgSim): number => Math.hypot(wrapD(s.hero.x - lk.x), wrapD(s.hero.z - lk.z));
   const sim = createRun(2);
@@ -272,17 +274,18 @@ test('озеро: брод к островку проходим, поперёк 
   }
   assert.ok(dist(sim) < lk.island, `дошёл до островка: ${dist(sim).toFixed(2)}`);
   assert.equal(kind, 'isle');
-  assert.equal(rows, 2);
+  assert.equal(rows, 1);
   assert.ok(sim.isleT > sim.t, 'новый сундук потом');
   assert.equal(sim.items.some((i) => i.src === 'isle'), false);
   const due = sim.isleT;
-  let back = -1;
-  for (let g = 0; g < 30 * 400 && back < 0; g++) {
-    step(sim);
-    if (sim.choice || sim.chest) applyEvent(sim, { t: sim.t, k: 'pick', i: 0 });
-    if (sim.items.some((i) => i.src === 'isle')) back = sim.t;
-  }
-  assert.ok(back >= due && back <= due + 1, `вернулся через 120 с: ${back} / ${due}`);
+  sim.hero.x = 120;
+  sim.hero.z = 120;
+  sim.t = due - 1;
+  stepPickups(sim);
+  assert.equal(sim.items.filter(i => i.src === 'isle').length, 0);
+  sim.t = due;
+  stepPickups(sim);
+  assert.equal(sim.items.filter(i => i.src === 'isle').length, 1);
   // поперёк брода — глубина не пускает
   const s2 = createRun(3);
   const nx = lk.ford.dz;
@@ -316,4 +319,39 @@ test('проклятый сундук вне волны: причина why и f
   }
   assert.equal(p.st, 1, 'в волне постоял — проклятие');
   assert.equal(p.why, 'busy');
+});
+
+test('map chests replenish on credited waves 5/10/15 and stop at six', () => {
+  const sim = createRun(7);
+  for (const [wave, expected] of [[4, 2], [5, 3], [6, 3], [10, 4], [15, 5], [20, 6], [25, 6]]) {
+    startWave(sim, wave);
+    sim.t = wave % 10 === 0 ? sim.wave.t1 : sim.t + 90;
+    sim.wave.pend.fill(0);
+    for (const event of sim.wave.ev) event.done = 1;
+    sim.mobs = [];
+    stepDirector(sim);
+    assert.equal(sim.stats.waves, wave);
+    assert.equal(sim.items.filter(i => i.src === 'map').length, expected);
+    stepDirector(sim);
+    assert.equal(sim.items.filter(i => i.src === 'map').length, expected);
+  }
+});
+
+test('island chest returns exactly 400 seconds after collection', () => {
+  const sim = createRun(7), chest = sim.items.find(i => i.src === 'isle')!;
+  sim.t = 100;
+  sim.hero.x = chest.x;
+  sim.hero.z = chest.z;
+  stepPickups(sim);
+  assert.equal(sim.chest?.rows.length, 1);
+  assert.equal(sim.isleT, 12100);
+  sim.hero.x = 120;
+  sim.hero.z = 120;
+  sim.t = 12099;
+  stepPickups(sim);
+  assert.equal(sim.items.filter(i => i.src === 'isle').length, 0);
+  sim.t = 12100;
+  stepPickups(sim);
+  stepPickups(sim);
+  assert.equal(sim.items.filter(i => i.src === 'isle').length, 1);
 });

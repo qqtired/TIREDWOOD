@@ -6,10 +6,11 @@ import { addXp, openChest } from './progress.ts';
 import type { DgItem, DgSim } from './types.ts';
 import { DT, L, rnd, ticks, wrapD, wrapP } from './util.ts';
 
-/** Обычные сундуки карты: на старте 4–5, +1 за каждую засчитанную волну, на карте не больше 6 */
-const MAP_START = interNum('mapChest', 'start', 4);
-const MAP_START_MAX = interNum('mapChest', 'startMax', 5);
+/** Обычные сундуки карты: на старте 2, +1 за каждые 5 засчитанных волн, на карте не больше 6 */
+const MAP_START = interNum('mapChest', 'start', 2);
+const MAP_START_MAX = interNum('mapChest', 'startMax', 2);
 const MAP_PER_WAVE = interNum('mapChest', 'perWave', 1);
+const MAP_EVERY_WAVES = interNum('mapChest', 'everyWaves', 5);
 const MAP_MAX = interNum('mapChest', 'max', 6);
 /** не ближе к другому сундуку, к герою, к постройке, м */
 const MAP_GAP = interNum('mapChest', 'gap', 30);
@@ -111,15 +112,16 @@ function placeMapChest(sim: DgSim): boolean {
   }
   return false;
 }
-/** Старт забега: 4–5 обычных сундуков и сундук на островке озера */
+/** Старт забега: 2 обычных сундука и сундук на островке озера */
 export function initChests(sim: DgSim): void {
   const n = MAP_START + (rnd(sim) < 0.5 ? 0 : Math.max(0, MAP_START_MAX - MAP_START));
   for (let i = 0; i < n; i++) placeMapChest(sim);
   if (LV.lake) dropItem(sim, 'chest', LV.lake.chest.x, LV.lake.chest.z, 'isle');
   sim.isleT = -1;
 }
-/** Волна засчитана: +1 обычный сундук (на карте не больше 6) */
+/** Каждая пятая волна засчитана: +1 обычный сундук (на карте не больше 6) */
 export function waveChest(sim: DgSim): void {
+  if (sim.stats.waves <= 0 || sim.stats.waves % MAP_EVERY_WAVES !== 0) return;
   for (let i = 0; i < MAP_PER_WAVE && mapChests(sim) < MAP_MAX; i++) placeMapChest(sim);
 }
 
@@ -200,7 +202,7 @@ function takeItem(sim: DgSim, it: DgItem): void {
       kegBlast(sim);
       break;
     case 'chest':
-      if (it.src === 'isle') sim.isleT = sim.t + ticks(LV.lake?.chest.respawn ?? 120);
+      if (it.src === 'isle') sim.isleT = sim.t + ticks(LV.lake?.chest.respawn ?? 400);
       openChest(sim, it.src === 'map' ? 'plain' : it.src === 'isle' ? 'isle' : 'small');
       break;
     case 'bigchest':

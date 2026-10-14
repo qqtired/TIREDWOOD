@@ -45,6 +45,8 @@ test('old enemies and both boss families retain their HP', () => {
 
 test('tougher new enemies keep the previous wave roster and common HP multiplier', () => {
   const sim = createRun(7);
+  // Сравниваем состав при прежнем RNG перед волной: число стартовых сундуков меняет расход случайных чисел.
+  sim.rng = 1493268471;
   startWave(sim, 21);
   assert.equal(sim.wave.total, 501);
   assert.equal(sim.wave.hpMul, 9.261348590119281);

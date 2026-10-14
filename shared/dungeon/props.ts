@@ -79,9 +79,9 @@ export function initProps(sim: DgSim): void {
     p.st = 0;
     act++;
   }
-  // проклятые сундуки: 2 из 3
-  const ch = B.cursedChest.map((c) => prop(sim, 'chest', c.x, c.z, 0));
-  ch[Math.floor(rnd(sim) * ch.length)].st = 3;
+  // проклятые сундуки: 1 из 3
+  const ch = B.cursedChest.map((c) => prop(sim, 'chest', c.x, c.z, 3));
+  ch[Math.floor(rnd(sim) * ch.length)].st = 0;
   for (const s of B.spring) prop(sim, 'spring', s.x, s.z, 0, 1);
   for (const l of P.lantern) prop(sim, 'lamp', l.x, l.z, 0);
   // вагонетки на кольце рельсов: у станции и напротив

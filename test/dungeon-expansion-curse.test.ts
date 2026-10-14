@@ -45,3 +45,35 @@ test('boss stage cancels a waiting curse and twin reservation keeps its slots',(
   const {s:t,p:q}=chestFixture(299);t.pendingBossWaves.push({wave:30,at:t.t,dmgMul:1});stepProps(t);t.t=t.hero.useT1;stepProps(t);
   assert.equal(q.st,0);assert.equal(q.why,'crowd');assert.equal(t.mobs.filter(m=>m.curse===q.id).length,0);
 });
+
+test('one cursed chest rotates between three places after success or failure', () => {
+  for (const success of [true, false]) {
+    const s = createRun(7);
+    startWave(s, 1);
+    const places = s.props.filter(p => p.k === 'chest');
+    assert.equal(places.length, 3);
+    assert.equal(places.filter(p => p.st === 0).length, 1);
+    assert.equal(places.filter(p => p.st === 3).length, 2);
+    const p = places.find(p => p.st === 0)!;
+    s.hero.x = p.x; s.hero.z = p.z;
+    stepProps(s);
+    assert.equal(s.hero.useT1 - s.t, 45);
+    s.t = s.hero.useT1; stepProps(s);
+    assert.equal(p.t1 - s.t, 1350);
+    if (success) {
+      const m = s.mobs.find(m => m.curse === p.id)!;
+      hurtMob(s, m, m.hpMax * 2, 'test', m.x, m.z, 0, 0, 0);
+      assert.equal(s.chest?.rows.length, 2);
+      assert.equal(s.weapons[0].lv, 3);
+    } else { s.t = p.t1; stepProps(s); }
+    assert.equal(p.st, 2);
+    assert.equal(p.t1 - s.t, 3600);
+    s.hero.x = 120; s.hero.z = 120;
+    s.t = p.t1 - 1; stepProps(s);
+    assert.equal(places.filter(p => p.st === 0).length, 0);
+    s.t++; stepProps(s);
+    assert.equal(p.st, 3);
+    assert.equal(places.filter(p => p.st === 0).length, 1);
+    assert.equal(places.filter(p => p.st === 3).length, 2);
+  }
+});

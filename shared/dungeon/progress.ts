@@ -5,14 +5,14 @@ import type { DgCard, DgChestRow, DgSim } from './types.ts';
 import { rnd, ticks, wrapD } from './util.ts';
 
 const MAX_WLV = 7;
-// Осколок 1 × Подкова (+4 % за уровень) × 60 % точно помещается в тысячные опыта.
-const XP_UNIT = 1000;
+// Осколок 1 × Подкова (+4 % за уровень) × 54 % точно помещается в десятитысячные опыта.
+const XP_UNIT = 10000;
 
 export function xpNeed(level: number): number {
   return D.xp.base + D.xp.perLevel * level;
 }
 
-/** Получаемый опыт: на 40 % меньше, с прежним бонусом Подковы. Также для подписей наград. */
+/** Получаемый опыт: на 46 % меньше, с прежним бонусом Подковы. Также для подписей наград. */
 export function earnedXp(sim: DgSim, v: number): number {
   const mag = passiveLv(sim, 'magnet') * (passiveDef('magnet').xp ?? 0);
   return Math.round(v * (1 + mag) * D.xp.gainMul * XP_UNIT) / XP_UNIT;
@@ -240,11 +240,11 @@ function upgradable(sim: DgSim): { k: 'w' | 'p'; id: string }[] {
 
 /** Сундук: эволюция (если готова, одна), иначе барабан 1/2/3 уровня; всё собрано — опыт и +30 HP */
 /** Сундук островка: сколько улучшений */
-const ISLE_ROWS = interNum('isleChest', 'rows', 2);
+const ISLE_ROWS = interNum('isleChest', 'rows', 1);
 
 /**
- * Сундук: готова эволюция — она (одна). Иначе: plain (обычный сундук карты) — 1 уровень своей вещи, isle — 2;
- * small (элита) — барабан 1/2/3 уровня своим вещам; big/curse — 3. Новых вещей не выдаёт.
+ * Сундук: готова эволюция — она (одна). Иначе: plain (обычный сундук карты) — 1 уровень своей вещи, isle — 1;
+ * small (элита) — барабан 1/2/3 уровня своим вещам; big — 3; curse — 2. Новых вещей не выдаёт.
  * Нечего улучшать — опыт и +30 HP.
  */
 export function openChest(sim: DgSim, kind: 'small' | 'big' | 'curse' | 'plain' | 'isle'): void {
@@ -260,7 +260,7 @@ export function openChest(sim: DgSim, kind: 'small' | 'big' | 'curse' | 'plain' 
       rows.push({ k: 'evo', id: e.id, lv: w.lv });
     }
   } else {
-    let n = kind === 'plain' ? 1 : kind === 'isle' ? ISLE_ROWS : 3;
+    let n = kind === 'plain' ? 1 : kind === 'isle' ? ISLE_ROWS : kind === 'curse' ? 2 : 3;
     if (kind === 'small') {
       const r = rnd(sim);
       n = r < 0.6 ? 1 : r < 0.9 ? 2 : 3;

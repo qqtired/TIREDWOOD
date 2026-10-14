@@ -8,7 +8,8 @@
 // 16 — ферма: комната farm, сообщения farm/farmMe/farmPlot/farmRoster/farmEv/farmSt, калитка на площади
 // 17 — новая набережная (флаг PLAZA3): аркада (shared/arcade/net.ts), раскладка в me.lay, Fight Club удалён (fc*)
 // 18 — новые трассы картинга/регаты и коллизии площади: старый клиент не должен предсказывать прежнюю геометрию.
-export const PROTOCOL_VERSION = 18;
+// 19 — новые награды, частота сундуков и опыт Подземелья: журнал клиента и сервер считают по одним правилам.
+export const PROTOCOL_VERSION = 19;
 
 export const TICK_RATE = 60;
 export const DT = 1 / TICK_RATE;

@@ -6,18 +6,18 @@ import { dropGem, stepPickups } from '../shared/dungeon/pickups.ts';
 import { addXp, maybeOpenChoice, openChest, pick } from '../shared/dungeon/progress.ts';
 import { createRun } from '../shared/dungeon/sim.ts';
 
-test('small gems keep exactly 60% XP across pickups and level boundaries', () => {
+test('small gems keep exactly 54% XP across pickups and level boundaries', () => {
   const sim = createRun(7);
   for (let i = 1; i <= 100; i++) {
     dropGem(sim, sim.hero.x, sim.hero.z, 1);
     stepPickups(sim);
-    if (i === 1) assert.equal(sim.hero.xp, 0.6);
-    if (i === 10) assert.equal(sim.hero.xp, 6);
-    if (i === 33) assert.deepEqual([sim.hero.level, sim.hero.xp], [1, 19.8]);
-    if (i === 34) assert.deepEqual([sim.hero.level, sim.hero.xp], [2, 0.4]);
+    if (i === 1) assert.equal(sim.hero.xp, 0.54);
+    if (i === 10) assert.equal(sim.hero.xp, 5.4);
+    if (i === 37) assert.deepEqual([sim.hero.level, sim.hero.xp], [1, 19.98]);
+    if (i === 38) assert.deepEqual([sim.hero.level, sim.hero.xp], [2, 0.52]);
   }
-  // 100 old XP → 60 XP: the unchanged 20 + 30 thresholds leave 10.
-  assert.deepEqual([sim.hero.level, sim.hero.xp, sim.hero.xpNext, sim.pendLv], [3, 10, 40, 2]);
+  // 100 old XP → 54 XP: the unchanged 20 + 30 thresholds leave 4.
+  assert.deepEqual([sim.hero.level, sim.hero.xp, sim.hero.xpNext, sim.pendLv], [3, 4, 40, 2]);
   maybeOpenChoice(sim);
   assert.equal(sim.choice?.why, 'level');
   pick(sim, 0);
@@ -33,12 +33,12 @@ test('large and merged XP awards receive the reduction only once', () => {
   dropGem(merged, merged.hero.x, merged.hero.z, 30);
   stepPickups(separate);
   stepPickups(merged);
-  assert.equal(separate.hero.xp, 18);
-  assert.equal(merged.hero.xp, 18);
+  assert.equal(separate.hero.xp, 16.2);
+  assert.equal(merged.hero.xp, 16.2);
 });
 
-test('the 40% reduction stacks with every Horseshoe XP level without losing fractions', () => {
-  for (const [lv, remaining] of [[1, 12.4], [2, 14.8], [3, 17.2], [4, 19.6], [5, 22]] as const) {
+test('the 46% reduction stacks with every Horseshoe XP level without losing fractions', () => {
+  for (const [lv, remaining] of [[1, 6.16], [2, 8.32], [3, 10.48], [4, 12.64], [5, 14.8]] as const) {
     const sim = createRun(7);
     sim.passives.push({ id: 'magnet', lv });
     for (let i = 0; i < 100; i++) addXp(sim, 1);
@@ -49,9 +49,9 @@ test('the 40% reduction stacks with every Horseshoe XP level without losing frac
 test('an exact boosted level boundary opens the level choice on that award', () => {
   const sim = createRun(7);
   sim.passives.push({ id: 'magnet', lv: 5 });
-  for (let i = 0; i < 125; i++) addXp(sim, 1);
-  // 125 × 1.2 × 0.6 = 90, exactly the 20 + 30 + 40 level thresholds.
-  assert.deepEqual([sim.hero.level, sim.hero.xp, sim.hero.xpNext, sim.pendLv], [4, 0, 50, 3]);
+  sim.hero.xp = 19.352;
+  addXp(sim, 1);
+  assert.deepEqual([sim.hero.level, sim.hero.xp, sim.hero.xpNext, sim.pendLv], [2, 0, 30, 1]);
 });
 
 test('chest XP is reduced while free upgrades and healing retain their values', () => {
@@ -64,8 +64,8 @@ test('chest XP is reduced while free upgrades and healing retain their values', 
   const curse = createRun(7);
   curse.hero.hp = 40;
   openChest(curse, 'curse');
-  assert.equal(curse.weapons[0].lv, 4);
-  assert.deepEqual([curse.hero.level, curse.hero.xp, curse.hero.hp], [2, 10, 80]);
+  assert.equal(curse.weapons[0].lv, 3);
+  assert.deepEqual([curse.hero.level, curse.hero.xp, curse.hero.hp], [2, 7, 80]);
 
   const full = createRun(7);
   full.weapons[0].lv = 7;
@@ -73,11 +73,11 @@ test('chest XP is reduced while free upgrades and healing retain their values', 
   full.hero.hp = 40;
   openChest(full, 'big');
   assert.equal(full.chest?.rows[0].k, 'gold');
-  assert.deepEqual([full.hero.level, full.hero.xp, full.hero.hp], [2, 16, 80]);
+  assert.deepEqual([full.hero.level, full.hero.xp, full.hero.hp], [2, 12.4, 80]);
 });
 
 test('chest HUD displays the credited XP including the Horseshoe bonus', () => {
-  for (const [lv, expected] of [[0, '+30 опыта и +30 HP'], [5, '+36 опыта и +30 HP']] as const) {
+  for (const [lv, expected] of [[0, '+27 опыта и +30 HP'], [5, '+32,4 опыта и +30 HP']] as const) {
     const run = new SimRun(7);
     run.sim.weapons[0].lv = 7;
     if (lv) run.sim.passives.push({ id: 'magnet', lv });
@@ -90,7 +90,7 @@ test('chest HUD displays the credited XP including the Horseshoe bonus', () => {
 });
 
 test('wave clear displays reduced XP and collects the raw bonus only once', () => {
-  for (const [lv, expected] of [[0, 3], [1, 3.12], [5, 3.6]] as const) {
+  for (const [lv, expected] of [[0, 2.7], [1, 2.808], [5, 3.24]] as const) {
     const sim = createRun(7);
     if (lv) sim.passives.push({ id: 'magnet', lv });
     startWave(sim, 1);

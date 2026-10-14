@@ -18,7 +18,7 @@ for (const kind of kinds) {
       const rows = sim.chest!.rows;
       assert.ok(rows.every(row => (row.k === 'w' || row.k === 'p') && owned.has(row.id)));
       if (kind === 'small') assert.ok(rows.length >= 1 && rows.length <= 3);
-      else assert.equal(rows.length, kind === 'plain' ? 1 : kind === 'isle' ? 2 : 3);
+      else assert.equal(rows.length, kind === 'plain' || kind === 'isle' ? 1 : kind === 'curse' ? 2 : 3);
     }
   });
   test(`${kind} chest preserves evolution and exhausted-build fallback`, () => {
