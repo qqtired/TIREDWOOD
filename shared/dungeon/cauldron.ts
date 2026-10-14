@@ -28,6 +28,8 @@ export function stepCauldron(sim:DgSim,m:DgMob):void {
  const fraction=m.hp/m.hpMax,want=fraction<=.33?3:fraction<=.66?2:1;
  if(want>b.phase){b.phase=want;clearMarks(sim,m);begin(sim,m,b,'roar');m.attackKind='phase'+want;fx(sim,{k:'phase',id:m.id,phase:want});}
  const actionTicks=(seconds:number):number=>phaseTicks(seconds,b.phase);
+ // Удваиваем весь цикл второй фазы, сохраняя исходные сроки попаданий и клипов.
+ const cycleMul=b.phase===2?2:1;
  const el=sim.t-b.actT;const h=sim.hero;
  if(m.attackStep===-1&&b.act==='boil'){clearMarks(sim,m);begin(sim,m,b,'recover');m.st='rest';m.vulT=sim.t+actionTicks(2);return;}
  let vx=0,vz=0;
@@ -35,7 +37,7 @@ export function stepCauldron(sim:DgSim,m:DgMob):void {
   if(el>=actionTicks(b.act==='recover'?2:C.transition))begin(sim,m,b,'pause');
  }else if(b.act==='pause'){
   angleToHero(sim,m);vx=m.dx*m.spd*cauldronMoveMul(b.phase);vz=m.dz*m.spd*cauldronMoveMul(b.phase);m.attackKind='walk';
-  if(el>=actionTicks((b.phase===1?1.6:1.1)*(b.rage?.5:1))){const rotations=b.phase===1?['ladle','pour']:b.phase===2?['ladle2','pour']:['boil','pour','ladle2'];let next=rotations[b.rot++%rotations.length];const a=C.attacks[next],distance=angleToHero(sim,m);
+  if(el>=actionTicks((b.phase===1?1.6:1.1)*(b.rage?.5:1))*cycleMul){const rotations=b.phase===1?['ladle','pour']:b.phase===2?['ladle2','pour']:['boil','pour','ladle2'];let next=rotations[b.rot++%rotations.length];const a=C.attacks[next],distance=angleToHero(sim,m);
    if((next==='ladle'||next==='ladle2')&&distance>Math.sqrt(a.right!**2+a.forward!**2)+a.radius+.45)next='pour';
    if(next==='boil'&&distance>a.radius+.45)next='pour';
    begin(sim,m,b,next);vx=vz=0;if(next==='ladle'||next==='ladle2')aimContact(m,next);
@@ -51,7 +53,7 @@ export function stepCauldron(sim:DgSim,m:DgMob):void {
   if(b.act==='ladle2'&&b.step===0&&el>=actionTicks((a.impact2??2.833)-1)){contact(sim,m,'ladle2',Math.max(0,actionTicks(a.impact2??2.833)-el),true);b.step=1;}
   const lastImpact=a.impact2??a.impact;
   if(el>=actionTicks(lastImpact)){m.st='rest';if(m.attackStep===0){m.attackStep=1;m.vulT=sim.t+actionTicks(b.phase===3?3:b.phase===2?2.5:2);}}
-  if(el>=actionTicks(a.recover))begin(sim,m,b,'pause');
+  if(el>=actionTicks(a.recover)*cycleMul)begin(sim,m,b,'pause');
  }
  if(b.phase===2&&sim.t>=b.sumT&&(b.summonLeft??0)>0){let made=0;for(let i=0;i<Math.min(C.summonN,b.summonLeft??0)&&canSpawn(sim,'hookclaw');i++){dirOf(i*Math.PI/2,V);spawnMob(sim,'hookclaw',m.x+V.x*3,m.z+V.z*3,0);made++;}b.summonLeft=(b.summonLeft??0)-made;b.sumT=sim.t+actionTicks(made?C.summonEvery:1);}
  const p=collide(m.x+vx*DT,m.z+vz*DT,m.r,T_SOLID|T_PIT);m.vx=vx;m.vz=vz;m.x=wrapP(p.x);m.z=wrapP(p.z);

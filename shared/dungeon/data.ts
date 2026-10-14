@@ -62,7 +62,7 @@ export interface WaveDef {
 export interface BossAttack { id: string; dmg: number; radius: number; n?: number; knockback?: number; puddle?: { time: number; slow: number; dps: number } }
 export interface BossPhase { n: number; hpFrom: number; hpTo: number; attacks: BossAttack[]; summons: { mob: MobKind; every: number; n: number }; pause: number; speedMul?: number }
 export interface BossDef {
-  id: string; name: string; hp: number; contactDmg: number; speed: number; xp: number; enrageAt: number; phases: BossPhase[]; endlessGrowth: number;
+  id: string; name: string; hp: number; firstWaveHp: number; contactDmg: number; speed: number; xp: number; enrageAt: number; phases: BossPhase[]; endlessGrowth: number;
 }
 export interface EndlessDef {
   hpMul: number; dmgPerWave: number; countGrowth: number; durations: { from: number; dur: number }[];

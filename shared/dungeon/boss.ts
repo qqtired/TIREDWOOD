@@ -27,7 +27,7 @@ export function spawnBosses(sim: DgSim,n=sim.wave.n,damageMul=sim.wave.dmgMul): 
   if(n%40===20){spawnCauldron(sim,n,damageMul);return;}
   const kind = (Math.floor(n / 10) - 1) % 4;
   const cyc = cycleOf(n);
-  const hp = B.hp * powi(B.endlessGrowth, n - 10) * (1 + 0.25 * cyc);
+  const hp = (n === 10 ? B.firstWaveHp : B.hp) * powi(B.endlessGrowth, n - 10) * (1 + 0.25 * cyc);
   const count = kind === 2 ? 2 : 1;
   const h = sim.hero;
   for (let i = 0; i < count; i++) {

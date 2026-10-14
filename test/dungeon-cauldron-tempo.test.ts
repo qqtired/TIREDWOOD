@@ -22,8 +22,8 @@ function fixture(phase: number, distance = 10, rotation = 0) {
   return { sim, boss, mob };
 }
 
-test('cauldron slows phase one slightly and shortens only phase two attack pauses', () => {
-  for (const [phase, pause] of [[1, 27], [2, 15], [3, 17]] as const) {
+test('cauldron slows phase one slightly and lengthens phase two attack pauses', () => {
+  for (const [phase, pause] of [[1, 27], [2, 30], [3, 17]] as const) {
     const { sim, boss, mob } = fixture(phase);
     boss.actT = sim.t;
     stepCauldron(sim, mob);
@@ -34,14 +34,14 @@ test('cauldron slows phase one slightly and shortens only phase two attack pause
     sim.t++;
     stepCauldron(sim, mob);
     assert.equal(boss.act, 'pour');
-    assert.equal(mob.hpMax, 64000);
+    assert.equal(mob.hpMax, 51200);
   }
 });
 
 test('cauldron attacks preserve impact and recovery boundaries at each phase tempo', () => {
   for (const [phase, distance, rotation, attack, impact, recovery] of [
     [1, 2.6, 0, 'ladle', 22, 58],
-    [2, 2.6, 0, 'ladle2', 18, 72],
+    [2, 2.6, 0, 'ladle2', 18, 144],
     [1, 10, 1, 'pour', 21, 52],
     [3, 5, 0, 'boil', 23, 53],
   ] as const) {
@@ -129,4 +129,29 @@ test('cauldron appearance and interrupted boil retain their complete transition 
   const started = boss.actT;
   sim.t = started + 29; stepCauldron(sim, mob); assert.equal(boss.act, 'recover');
   sim.t++; stepCauldron(sim, mob); assert.equal(boss.act, 'pause');
+});
+
+test('phase two attack starts are half as frequent, including rage and frozen clocks', () => {
+  for (const [attack, rotation, recovery, normal, rageInterval] of [
+    ['ladle2', 0, 144, 174, 160], ['pour', 1, 86, 116, 102],
+  ] as const) for (const rage of [0, 1] as const) for (const frozen of [false, true]) {
+    const {sim, boss, mob} = fixture(2, 2.6, rotation);
+    boss.rage = rage;
+    stepCauldron(sim, mob);
+    assert.equal(boss.act, attack);
+    const started = boss.actT;
+    let freezeCount = 0;
+    for (let elapsed = 1; elapsed <= 200; elapsed++) {
+      sim.t = started + elapsed;
+      // Keep the hero in range to compare the attack schedule, not pursuit geometry.
+      mob.x = sim.hero.x + 2.6; mob.z = sim.hero.z;
+      if (frozen && (elapsed === 10 || elapsed === recovery + 5)) {
+        sim.freezeT = sim.t + 1; freezeCount++;
+      }
+      stepCauldron(sim, mob);
+      if (String(boss.act) !== 'pause' && boss.actT > started + freezeCount) break;
+    }
+    assert.equal(boss.actT - started, (rage ? rageInterval : normal) + freezeCount);
+    assert.equal(freezeCount, frozen ? 2 : 0);
+  }
 });

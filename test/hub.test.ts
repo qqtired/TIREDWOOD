@@ -53,13 +53,15 @@ test('вход новичка: me, chatlog, scene, lobby по порядку, п
   assert.equal(hub.health().lobby, 1);
 });
 
-test('клиент до перебаланса Подземелья: error version и закрытие 4002', () => {
-  const { hub } = setupHub();
-  const { c, s } = connect(hub);
-  hub.onJson(c, { t: 'hello', v: 18, key: newKey(), nick: 'Старичок' });
-  assert.equal(lastOf(s, 'error')?.code, 'version');
-  assert.equal(s.closed?.code, 4002);
-  assert.equal(c.profile, null);
+test('клиент до актуального баланса Подземелья: error version и закрытие 4002', () => {
+  for (const v of [18, 19]) {
+    const { hub } = setupHub();
+    const { c, s } = connect(hub);
+    hub.onJson(c, { t: 'hello', v, key: newKey(), nick: 'Старичок' });
+    assert.equal(lastOf(s, 'error')?.code, 'version');
+    assert.equal(s.closed?.code, 4002);
+    assert.equal(c.profile, null);
+  }
 });
 
 test('без ника: need_nick, соединение живо; с ником — вход', () => {

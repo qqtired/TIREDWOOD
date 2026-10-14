@@ -26,7 +26,7 @@ test('the four new enemies survive their old lethal damage with exactly 2.5 time
   }
 });
 
-test('old enemies and both boss families retain their HP', () => {
+test('old enemies retain HP while the first bosses use their reduced health', () => {
   const sim = createRun(7);
   for (const [kind, hp] of [
     ['rat', 10], ['bat', 8], ['slime', 38], ['slimelet', 10], ['shroom', 85],
@@ -35,7 +35,7 @@ test('old enemies and both boss families retain their HP', () => {
     const mob = spawnMob(sim, kind, sim.hero.x + 1, sim.hero.z, 0);
     assert.deepEqual([mob.hp, mob.hpMax], [hp, hp], kind);
   }
-  for (const [wave, kind, hp] of [[10, 'povidl', 30000], [20, 'cauldronmaster', 64000]] as const) {
+  for (const [wave, kind, hp] of [[10, 'povidl', 22500], [20, 'cauldronmaster', 51200]] as const) {
     const bossRun = createRun(7);
     spawnBosses(bossRun, wave);
     const boss = bossRun.mobs.find((mob) => mob.k === kind)!;
@@ -51,4 +51,12 @@ test('tougher new enemies keep the previous wave roster and common HP multiplier
   assert.equal(sim.wave.total, 501);
   assert.equal(sim.wave.hpMul, 9.261348590119281);
   assert.deepEqual(sim.wave.pend, [280, 0, 0, 0, 33, 0, 41, 0, 0, 0, 0, 45, 0, 53, 0, 0]);
+});
+
+test('later Povidl variants keep their health and cauldron keeps its growth formula', () => {
+  for (const [wave, health] of [[30, [58045, 58045]], [40, [228368]], [50, [561542]], [60, [958365]]] as const) {
+    const sim = createRun(7);
+    spawnBosses(sim, wave);
+    assert.deepEqual(sim.bosses.map(b => sim.mobs.find(m => m.id === b.id)!.hpMax), health, 'wave ' + wave);
+  }
 });
