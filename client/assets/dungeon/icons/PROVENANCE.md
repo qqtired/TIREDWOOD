@@ -287,3 +287,11 @@ Runtime preparation: штатный docs/ui-redesign/icons-pipeline/post.mjs, 25
 | `wickmole` | `01a130cc-170a-7df2-b0f6-a35ba4faeaa3` | `3f83c1dca416e1150f6279e10100334b7a2921dd9e2763bc2abf1955605a871b` |
 | `railhopper` | `01a130ce-e25a-7972-86bc-9799774b436c` | `075e1785671a54cec52e3dad853d3b28636dd40839cd8c7d0f58ac88f4ba81c8` |
 | `chainwarden` | `01a130cf-1917-7fb2-a94c-dcba2dc9d7f2` | `4aa03064a635e9d87a6dcf4d4117a646c9c6ec5f404866a3bcb5c25b52e7439d` |
+
+## Квашня — 15 октября 2026
+
+`mob-kvashnya.png`, 256×256 RGBA. Встроенный ImageGen; приложены существующий медальон `mob-spitter.webp` и одобренный концепт Квашни v2. Оригинал сохранён в `reports/tiredwood-dungeon-elites-2026-10-15/art/mob-kvashnya-original.png` рядом с игровым репозиторием. Уменьшение штатным sips, прозрачность сохранена. Изображение без надписей, просмотрено ведущим.
+
+Промпт:
+
+Create the inventory/bestiary medallion icon for the vicious toad shown in the second reference, matching exactly the round aged copper-framed game portrait format and clarity of the first reference. Replace the first reference's tame cheek-pouch frog with Kvashnya: angry narrow lilac eyes, strong inward-sloping brows, dark moss olive skin, a few purple jam stains, wide dark open mouth with short ivory teeth, single thick plum-colored tongue curling forward. No twin inflated cheek pouches. Keep one round copper/brass frame, warm dark brown interior, three-quarter close crop of face and shoulders that reads clearly at 64 px. Stylized painted 3D game icon, light from upper left, material richness, no horror/gore/blood, no letters, no numbers, no typography. Transparent outside the circular medallion. Square 1024x1024.

@@ -1,14 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { spawnBosses } from '../shared/dungeon/boss.ts';
+import { mobDef } from '../shared/dungeon/data.ts';
 import { hurtMob } from '../shared/dungeon/core.ts';
 import { startWave } from '../shared/dungeon/director.ts';
 import { spawnMob } from '../shared/dungeon/mobs.ts';
 import { createRun } from '../shared/dungeon/sim.ts';
 
-test('the four new enemies survive their old lethal damage with exactly 2.5 times their HP', () => {
+test('new enemies keep their tuned health, damage, movement and rewards', () => {
   for (const [kind, oldHp, hp, dmg, speed, xp] of [
-    ['hookclaw', 52, 130, 9, 3.6, 3],
+    ['hookclaw', 130, 156, 9, 3.6, 3],
     ['wickmole', 66, 165, 8, 2.5, 4],
     ['railhopper', 44, 110, 7, 2.8, 3],
     ['chainwarden', 720, 1800, 18, 2.15, 40],
@@ -44,13 +45,14 @@ test('old enemies retain HP while the first bosses use their reduced health', ()
 });
 
 test('tougher new enemies keep the previous wave roster and common HP multiplier', () => {
+  assert.equal(mobDef('hookclaw').waveBudgetHp, 52, 'extra crab health does not change roster budgeting');
   const sim = createRun(7);
   // Сравниваем состав при прежнем RNG перед волной: число стартовых сундуков меняет расход случайных чисел.
   sim.rng = 1493268471;
   startWave(sim, 21);
   assert.equal(sim.wave.total, 501);
   assert.equal(sim.wave.hpMul, 9.261348590119281);
-  assert.deepEqual(sim.wave.pend, [280, 0, 0, 0, 33, 0, 41, 0, 0, 0, 0, 45, 0, 53, 0, 0]);
+  assert.deepEqual(sim.wave.pend, [280, 0, 0, 0, 33, 0, 41, 0, 0, 0, 0, 45, 0, 53, 0, 0, 0]);
 });
 
 test('later Povidl variants keep their health and cauldron keeps its growth formula', () => {

@@ -11,6 +11,7 @@ import {
 import { evoOf } from '../../shared/dungeon/data.ts';
 import { earnedXp } from '../../shared/dungeon/progress.ts';
 import { expansionKind } from '../../shared/dungeon/expansion.ts';
+import { KVASHNYA_TIMING } from '../../shared/dungeon/kvashnya-state.ts';
 import { areaMul } from '../../shared/dungeon/core.ts';
 import { BOSS_NAME, BUFFS, MISC, MOBS, PASSIVES, WEAPONS } from './data.ts';
 import type { HudBuff, HudCard, HudChest, HudItem } from './hudtypes.ts';
@@ -518,11 +519,15 @@ export class SimRun implements RunSource {
       }
       if (m.die) continue;
       const act = mobAct(m, sim);
+      const jumpAge = t - (m.attackAt ?? t);
+      const jumping = m.attackKind === 'jump' && jumpAge >= KVASHNYA_TIMING.jump.windup && jumpAge < KVASHNYA_TIMING.jump.windup + KVASHNYA_TIMING.jump.attack;
       enemies.push({
         id: m.id, kind: m.k as MobKind, x: m.x, z: m.z, yaw: Math.atan2(m.dx, m.dz), hp: m.hp, hpMax: m.hpMax,
         act, actAt: act === ACT_ATTACK ? t - (m.id % 9) : m.stT, elite: m.elite === 1,
-        anim: expansionKind(m.k) ? (m.attackKind === 'recover' ? 'recover' : m.attackKind === 'attack' ? 'attack' : Math.abs(m.vx) + Math.abs(m.vz) > 0.3 ? 'walk' : 'idle') : undefined,
-        animAt: expansionKind(m.k) ? m.attackAt ?? m.stT : undefined,
+        anim: m.k === 'kvashnya' ? (Math.abs(m.vx) + Math.abs(m.vz) > 0.3 ? 'walk' : 'idle') : expansionKind(m.k) ? (m.attackKind === 'recover' ? 'recover' : m.attackKind === 'attack' ? 'attack' : Math.abs(m.vx) + Math.abs(m.vz) > 0.3 ? 'walk' : 'idle') : undefined,
+        animAt: m.k === 'kvashnya' || expansionKind(m.k) ? m.attackAt ?? m.stT : undefined,
+        skill: m.k === 'kvashnya' && (m.attackKind === 'tongue' || m.attackKind === 'jump' || m.attackKind === 'recover') ? m.attackKind : undefined,
+        animFrozen: m.k === 'kvashnya' && (sim.freezeT > t || (m.stunT > t && !jumping)),
         rage: m.rage > 0 && t - this.rageAt < 12 ? m.rage + 0.9 * (1 - (t - this.rageAt) / 12) : m.rage,
       });
     }

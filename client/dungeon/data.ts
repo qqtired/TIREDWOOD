@@ -54,6 +54,7 @@ export const MOBS: Record<MobKind, { name: string; icon: string }> = {
   larva: { name: 'Личинка', icon: '🐛' },
   barrel: { name: 'Бочар', icon: '🛢' },
   shaman: { name: 'Грибной шаман', icon: '🧙' },
+  kvashnya:{name:'Квашня',icon:''},
   hookclaw:{name:'Крюколап',icon:''},wickmole:{name:'Фитильщик',icon:''},railhopper:{name:'Рельсовый щелкун',icon:''},chainwarden:{name:'Цепной пристав',icon:''},
 };
 

@@ -11,7 +11,7 @@ import { cleanupMobs, aliveCount } from '../shared/dungeon/mobs.ts';
 
 test('actual renderer buffers accept the global live cap for every mob model before corpses', () => {
   // Geometry is a CPU-only fixture, not a product model or visual acceptance.
-  const models = ['rat','bat','slug','shroom','beetle','spitter','larva','cooper','shaman','hookclaw','wickmole','railhopper','chainwarden'];
+  const models = ['rat','bat','slug','shroom','beetle','spitter','larva','cooper','shaman','hookclaw','wickmole','railhopper','chainwarden','kvashnya'];
   const mobs = {} as DungeonAssets['mobs'];
   for (const name of models) {
     const scene = new THREE.Group(), root = new THREE.Group(); root.name = name;

@@ -9,7 +9,7 @@ export type WeaponId = 'lantern' | 'embers' | 'pickaxe' | 'fireflies' | 'spark' 
 export type PassiveId = 'might' | 'cooldown' | 'area' | 'amount' | 'maxhp' | 'armor' | 'speed' | 'magnet';
 export type MobKind =
   | 'rat' | 'bat' | 'slime' | 'slimelet' | 'shroom' | 'beetle' | 'spitter' | 'larva' | 'barrel' | 'shaman' | 'povidl'
-  | 'hookclaw' | 'wickmole' | 'railhopper' | 'chainwarden' | 'cauldronmaster';
+  | 'hookclaw' | 'wickmole' | 'railhopper' | 'chainwarden' | 'cauldronmaster' | 'kvashnya';
 
 /** Уровень оружия: все поля необязательные — у каждого вида свои */
 export interface WeaponLevel {
@@ -198,7 +198,7 @@ export function interNum(id: string, key: string, def: number): number {
 }
 
 /** Порядок видов врагов — для счётчиков отряда (индексы массивов) */
-export const MOB_KINDS: MobKind[] = ['rat', 'bat', 'slime', 'slimelet', 'shroom', 'beetle', 'spitter', 'larva', 'barrel', 'shaman', 'povidl','hookclaw','wickmole','railhopper','chainwarden','cauldronmaster'];
+export const MOB_KINDS: MobKind[] = ['rat', 'bat', 'slime', 'slimelet', 'shroom', 'beetle', 'spitter', 'larva', 'barrel', 'shaman', 'povidl','hookclaw','wickmole','railhopper','chainwarden','cauldronmaster','kvashnya'];
 export function mobIndex(k: MobKind): number {
   return MOB_KINDS.indexOf(k);
 }

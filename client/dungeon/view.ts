@@ -5,6 +5,7 @@
 import type { DgStage } from '../../shared/dungeon/api.ts';
 import type { HudBuff, HudCards, HudChest, HudItem } from './hudtypes.ts';
 import type {MobKind as SharedMobKind} from '../../shared/dungeon/data.ts';
+import type { KvashnyaSkill } from './kvashnya-pose.ts';
 
 export type MobKind = Exclude<SharedMobKind,'povidl'|'cauldronmaster'>;
 
@@ -32,6 +33,9 @@ export interface VEnemy {
   rage?: number;
   anim?: 'idle'|'walk'|'attack'|'windup'|'recover';
   animAt?: number;
+  /** Full Kvashnya attack clock; phase changes do not reset it. */
+  skill?: KvashnyaSkill;
+  animFrozen?: boolean;
 }
 
 export interface VHero {

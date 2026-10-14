@@ -1,4 +1,5 @@
 // «Подземелье»: рядовые и элиты — ИИ, движение, расталкивание, касание, смерть (опыт, слизнята, споры, сундук).
+import { stepKvashnya } from './kvashnya.ts';
 import { stepBoss } from './boss.ts';
 import {
   fx, hurtHero, hurtMob, KB_DECAY, KB_V, makeMob, neighbors, newId, Q, setKillHook,
@@ -104,6 +105,7 @@ export function stepMobs(sim: DgSim): void {
       hurtMob(sim, m, m.burnD * 0.5, 'lantern', m.x, m.z, 0, 0, 0);
       if (m.die) continue;
     }
+    if (m.k === 'kvashnya') { stepKvashnya(sim, m); continue; }
     let ox = wrapD(h.x - m.x);
     let oz = wrapD(h.z - m.z);
     const d = Math.sqrt(ox * ox + oz * oz) || 1e-6;
@@ -529,7 +531,7 @@ function onKill(sim: DgSim, m: DgMob, src: string): void {
   fx(sim, { k: 'die', id: m.id, mob: m.k, x: m.x, z: m.z });
   void src;
   const def = mobDef(m.k);
-  if(expansionKind(m.k)||m.k==='cauldronmaster')for(const mk of sim.marks)if(mk.src===m.id)mk.t1=sim.t-1;
+  if(expansionKind(m.k)||m.k==='cauldronmaster'||m.k==='kvashnya')for(const mk of sim.marks)if(mk.src===m.id)mk.t1=sim.t-1;
   if (m.k === 'povidl'||m.k==='cauldronmaster') {
     bossDeath(sim, m);
     return;

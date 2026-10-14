@@ -19,6 +19,7 @@ import { DungeonHud } from './hud.ts';
 import type { HudArrow, HudFrame, HudPoiKind, HudRadar, HudResults } from './hudtypes.ts';
 import { Journal } from './journal.ts';
 import { eliteHpFraction, MobRenderer, WALK_REF, type ClipKey } from './mobs.ts';
+import { getKvashnyaPose } from './kvashnya-pose.ts';
 import { DungeonSfx } from './sfx.ts';
 import type { RunSource } from './source.ts';
 import { ACT_ATTACK, ACT_LOOP, ACT_SPECIAL, ACT_STUN, type BuildingKind, type DgView, type MobKind, type VBoss, type VBuilding, type VFx } from './view.ts';
@@ -47,7 +48,7 @@ const NUM_MERGE = 0.22;
 /** Видно от камеры по x и z (для отсечения), м */
 const VIEW_X = 30;
 const VIEW_Z = 24;
-const OWN_MODEL_SCALE = new Set<MobKind>(['barrel', 'shaman', 'hookclaw', 'wickmole', 'railhopper', 'chainwarden']);
+const OWN_MODEL_SCALE = new Set<MobKind>(['barrel', 'shaman', 'hookclaw', 'wickmole', 'railhopper', 'chainwarden', 'kvashnya']);
 
 export interface WorldLike {
   readonly root: THREE.Object3D;
@@ -851,6 +852,12 @@ export class DungeonGame {
         break;
       case 'atk':
         if (f.what === 'spit' || f.what === 'boss_spit' || f.what === 'boss_spit5') sfx.spit(this.pan(f.x));
+        else if (f.what === 'kvashnya_tongue') sfx.spit(this.pan(f.x), 0.65);
+        else if (f.what === 'kvashnya_jump') {
+          sfx.splat(this.pan(f.x), 0.8);
+          P.decal({ x: f.x, z: f.z, yaw: 0, shape: D_RING, r0: 1.65, r1: 2.1, len: 0, p1: 0.9, p2: 0.1, r: 0.8, g: 0.65, b: 0.45, a: 0.65, max: 0.25, add: false });
+          P.burst(f.x, 0.12, f.z, 8, 3, A_SOFT, 0.65, 0.5, 0.35, 0.35, 0.25, false, 5, 1);
+        }
         else if (f.what === 'boss_summon') sfx.bossRoar();
         break;
     }
@@ -933,7 +940,8 @@ export class DungeonGame {
       // враги
       this.liveRenderOverflow = 0;
       for (const e of v.enemies) {
-        if (!near(e.x, e.z, 2)) continue;
+        // The tongue can still be on screen while the body is outside the ordinary culling margin.
+        if (!near(e.x, e.z, e.kind === 'kvashnya' ? 8 : 2)) continue;
         const p = this.prev.get(e.id);
         let x = e.x;
         let z = e.z;
@@ -958,10 +966,13 @@ export class DungeonGame {
         const hitT = hit !== undefined ? wt - hit : 9;
         let key: ClipKey = 'walk';
         let t = wt * Math.max(0.5, Math.min(2.2, spd / WALK_REF[e.kind])) + (e.id % 17) * 0.137;
-        if (e.anim) {
+        if (e.kind === 'kvashnya' && e.skill) {
+          const pose = getKvashnyaPose(e.skill, tick - (e.animAt ?? e.actAt) + (e.animFrozen ? 0 : alpha));
+          key = pose.key; t = pose.time;
+        } else if (e.anim) {
           key = e.anim;
           if (e.anim !== 'walk' && e.anim !== 'idle') t = (tick - (e.animAt ?? e.actAt) + alpha) * DT;
-          else if (e.act === ACT_STUN) t = 0;
+          else if (e.act === ACT_STUN || e.animFrozen) t = 0;
         } else if (e.act === ACT_SPECIAL) {
           key = 'special';
           t = (tick - e.actAt + alpha) * DT;
@@ -970,7 +981,7 @@ export class DungeonGame {
           key = e.act === ACT_ATTACK ? 'attack' : 'special';
           t = ((tick - e.actAt + alpha) * DT) % Math.max(0.2, this.mobs.duration(e.kind, key));
         } else if (e.act === ACT_STUN) t = (e.id % 7) * 0.1;
-        const over: ClipKey | null = hitT < 0.33 && (!e.anim || e.anim === 'walk' || e.anim === 'idle') ? 'hit' : null;
+        const over: ClipKey | null = !e.skill && hitT < 0.33 && (!e.anim || e.anim === 'walk' || e.anim === 'idle') ? 'hit' : null;
         const s = (e.elite && !OWN_MODEL_SCALE.has(e.kind) ? 1.35 : 1) * (0.2 + 0.8 * born);
         if (!this.mobs.push(e.kind, X(x), born < 1 ? -0.4 * (1 - born) : 0, Z(z), yaw, key, t, flash, s, over, hitT, over ? 0.65 * (1 - hitT / 0.33) : 0, e.rage ?? 0)) this.liveRenderOverflow++;
         const r = e.elite ? 1.3 : e.kind === 'rat' || e.kind === 'slimelet' || e.kind === 'larva' ? 0.42 : e.kind === 'bat' ? 0.38 : 0.62;
@@ -979,7 +990,8 @@ export class DungeonGame {
         if (e.elite) this.decA.add(X(x), 0.05, Z(z), 2.4, 2.4, 0, D_SOFT, 1.6, 0, 0.55, 0.25, 0.8, 0.5);
         const hp = eliteHpFraction(e);
         if (hp !== null) {
-          const bx = X(x), bz = Z(z), by = this.mobs.height(e.kind) * s + 0.35 - 0.4 * (1 - born);
+          const lift = e.kind === 'kvashnya' ? this.mobs.bodyLift(e.kind, key, t) * s : 0;
+          const bx = X(x), bz = Z(z), by = this.mobs.height(e.kind) * s + lift + 0.35 - 0.4 * (1 - born);
           const right = this.camera.matrixWorld.elements, offset = 1.64 * (hp - 1) / 2;
           this.bbN.add(bx, by, bz, 1.8, 0.19, 0, A_BAR, 0.09, 0.07, 0.06, born * 0.92);
           this.bbN.add(bx + right[0] * offset, by + right[1] * offset, bz + right[2] * offset,

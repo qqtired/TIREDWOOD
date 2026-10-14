@@ -98,6 +98,9 @@ export interface DgMob {
   attackKind?: string;
   attackStep?: number;
   attackHp?: number;
+  /** Квашня: зафиксированные начало/посадка и следующая атака; входят в replay hash. */
+  attackX0?: number; attackZ0?: number; attackX1?: number; attackZ1?: number;
+  attackNext?: 'tongue' | 'jump';
 }
 
 export interface DgBuff {

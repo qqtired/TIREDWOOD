@@ -17,6 +17,7 @@ const MOB_FILES = {
   hookclaw:new URL('../assets/dungeon/hookclaw.glb',import.meta.url).href,
   wickmole:new URL('../assets/dungeon/wickmole.glb',import.meta.url).href,
   railhopper:new URL('../assets/dungeon/railhopper.glb',import.meta.url).href,
+  kvashnya:new URL('../assets/dungeon/kvashnya.glb',import.meta.url).href,
   chainwarden:new URL('../assets/dungeon/chainwarden.glb',import.meta.url).href,
 } as const;
 export type MobModel = keyof typeof MOB_FILES;

@@ -162,6 +162,14 @@ export function startWave(sim: DgSim, n: number): void {
   } else {
     total = endlessSetup(sim, n);
   }
+  // One toad replaces one old elite; pending queues and existing caps still own the spawn.
+  if (n >= 8 && (n - 8) % 3 === 0 && !boss) {
+    const e = w.ev.find(e => e.type === 'elite' && e.n > 0 && (e.mob === 'barrel' || e.mob === 'shaman'));
+    if (e) {
+      if (e.n > 1) { e.n--; w.ev.push({ ...e, mob: 'kvashnya', n: 1 }); w.ev.sort((a, b) => a.at - b.at); }
+      else e.mob = 'kvashnya';
+    }
+  }
   w.total = total;
   w.left = total;
   w.swept = 0;
@@ -187,7 +195,13 @@ function endlessSetup(sim: DgSim, n: number): number {
   }
   const originalMix = E.mixes[mi];
   const pairs:MobKind[][]=[['hookclaw','wickmole'],['hookclaw','railhopper'],['wickmole','railhopper']];
-  const mix=n>20?{...originalMix,share:{...Object.fromEntries(Object.entries(originalMix.share).map(([k,v])=>[k,(v as number)*.6])),[pairs[mi%3][0]]:.2,[pairs[mi%3][1]]:.2}}:originalMix;
+  const firstWave = D.expansion.firstWave;
+  const newcomers: MobKind[] = n < firstWave ? [] : n === firstWave ? ['hookclaw'] : n === firstWave + 1 ? pairs[0] : pairs[mi % 3];
+  const oldShare = newcomers.length === 1 ? .8 : .6;
+  const mix = newcomers.length ? { ...originalMix, share: {
+    ...Object.fromEntries(Object.entries(originalMix.share).map(([k, v]) => [k, (v as number) * oldShare])),
+    ...Object.fromEntries(newcomers.map(k => [k, .2])),
+  }} : originalMix;
   w.mix = mix.id;
   const hpMul = w.hpMul;
   const budget = B9 * E.step11 * powi(E.countGrowth, n - 11);
@@ -227,7 +241,7 @@ function endlessSetup(sim: DgSim, n: number): number {
   // элиты: 1 + ⌊(w − 10)/4⌋; каждая 5-я — Бочар и Шаман вместе
   const ne = 1 + Math.floor((n - 10) / 4);
   for (let i = 0; i < ne; i++) {
-    const k = n > 20 && n % 3 === 1 && i === 0 ? 'chainwarden' : n % 5 === 0 ? (i % 2 === 0 ? 'barrel' : 'shaman') : (n + i) % 2 === 0 ? 'barrel' : 'shaman';
+    const k = n >= firstWave + 2 && n % 3 === 1 && i === 0 ? 'chainwarden' : n % 5 === 0 ? (i % 2 === 0 ? 'barrel' : 'shaman') : (n + i) % 2 === 0 ? 'barrel' : 'shaman';
     w.ev.push({ at: Math.round(T * (0.15 + (0.6 * i) / Math.max(1, ne))), type: 'elite', mob: k, n: 1, done: 0 });
     total += 1;
   }

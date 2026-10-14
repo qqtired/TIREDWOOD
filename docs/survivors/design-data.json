@@ -1292,11 +1292,23 @@
       "interrupt": 0.15
     },
     {
+      "id": "kvashnya",
+      "name": "Квашня",
+      "short": "Элитная жаба: язык и прыжок с передышкой",
+      "tier": "elite",
+      "hp": 1150,
+      "speed": 2.2,
+      "dmg": 16,
+      "xp": 40,
+      "radius": 1.05,
+      "knockbackResist": 0.8
+    },
+    {
       "id": "hookclaw",
       "name": "Крюколап",
       "short": "Крюк бьёт реальным концом: круг0.65 м перед телом, подготовка0.833 с",
       "tier": "mob",
-      "hp": 130,
+      "hp": 156,
       "waveBudgetHp": 52,
       "speed": 3.6,
       "dmg": 9,
@@ -2984,11 +2996,12 @@
       "hookclaw": 18,
       "wickmole": 6,
       "railhopper": 8,
-      "chainwarden": 1
+      "chainwarden": 1,
+      "kvashnya": 1
     },
     "newTelegraphs": 2,
     "enemyCharges": 6,
-    "firstWave": 16
+    "firstWave": 11
   },
   "cauldron": {
     "id": "cauldronmaster",

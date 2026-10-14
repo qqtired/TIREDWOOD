@@ -1,3 +1,4 @@
+import { hitKvashnyaMark } from './kvashnya.ts';
 // «Подземелье»: витрина симуляции. createRun → applyEvent (ввод из журнала) → step (30 Гц) → dgResult / dgHash.
 // Детерминизм: одно зерно + один журнал → один и тот же забег в node и в браузере (без Math.random/sin/cos/Date).
 // Пауза — просто не вызывать step. Выбор карточек и сундук замораживают мир: step ничего не двигает и не растит t,
@@ -181,7 +182,8 @@ function stepMarks(sim: DgSim): void {
         const phase = sim.bosses.find(b => b.id === mk.src)?.phase ?? 1;
         if (mk.what === 'cauldron_flow') fx(sim, { k: 'flow', x: mk.x, z: mk.z, dx: mk.dx, dz: mk.dz, len: mk.len, w: mk.w, phase });
         if (mk.what === 'cauldron_boil') fx(sim, { k: 'boil', x: mk.x, z: mk.z, r: mk.r, inner: mk.inner ?? 0, phase });
-        if (mk.dmg > 0 && heroInMark(sim.hero, mk)) {
+        if (mk.what === 'kvashnya_tongue' || mk.what === 'kvashnya_jump') hitKvashnyaMark(sim, mk);
+        else if (mk.dmg > 0 && heroInMark(sim.hero, mk)) {
           let by = mk.what;
           for (const m of sim.mobs) if (m.id === mk.src) by = m.k;
           if (hurtHero(sim, mk.dmg, by) && mk.kb > 0) {
@@ -271,6 +273,12 @@ export function dgHash(sim: DgSim): number {
   for (const w of sim.weapons) mix(w.lv * 2 + w.evo);
   // Новый бой включает отложенные удары и фазы: одинаковая позиция ещё не означает одинаковое состояние.
   for (const m of sim.mobs) if (m.attackAt !== undefined) { mix(m.id); mix(m.attackAt); mix(m.attackStep ?? 0); }
+  for (const m of sim.mobs) if (m.k === 'kvashnya') {
+    mix(m.id); mix(m.cd); mix(m.stunT); mix(m.attackNext === 'jump' ? 1 : 0);
+    mix(m.attackKind === 'tongue' ? 1 : m.attackKind === 'jump' ? 2 : m.attackKind === 'recover' ? 3 : 0);
+    mix(q(m.ax)); mix(q(m.az));
+    mix(q(m.attackX0 ?? 0)); mix(q(m.attackZ0 ?? 0)); mix(q(m.attackX1 ?? 0)); mix(q(m.attackZ1 ?? 0));
+  }
   for (const b of sim.bosses) { mix(b.id); mix(b.phase); mix(b.actT); mix(b.step); mix(b.summonLeft ?? 0); }
   for (const c of sim.enemyCharges) { mix(c.id); mix(q(c.x)); mix(q(c.z)); mix(c.end); }
   for (const mk of sim.marks) { mix(mk.id); mix(mk.t1); mix(q(mk.dmg)); }

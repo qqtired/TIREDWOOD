@@ -1,3 +1,4 @@
+import { cancelKvashnya } from './kvashnya-state.ts';
 // «Подземелье»: общее ядро шага — номера, эффекты, сетка врагов, урон врагам и герою, множители героя.
 import { D, mobDef, type MobKind } from './data.ts';
 import { CELL, CELLS, cellIdx, cellOf } from './map.ts';
@@ -223,6 +224,7 @@ export function hurtMob(
   if (stun > 0 && !boss) {
     const until = sim.t + stun;
     if (m.stunT < until) m.stunT = until;
+    if (m.k === 'kvashnya') cancelKvashnya(sim, m);
     if((m.k==='hookclaw'||m.k==='chainwarden')&&m.st==='wind'){m.attackAt=sim.t;m.attackKind='recover';m.attackStep=0;m.st='rest';for(const mk of sim.marks)if(mk.src===m.id)mk.t1=sim.t-1;}
   }
   if(m.k==='cauldronmaster'&&src==='q'&&stun>0&&m.attackKind==='boil'&&m.attackAt!==undefined){const age=(sim.t-m.attackAt)/30*D.cauldron.actionSpeed;if(age>=D.cauldron.attacks.boil.impact-.6&&age<D.cauldron.attacks.boil.impact&&d<=m.r+1.5)m.attackStep=-1;}

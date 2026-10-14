@@ -13,7 +13,7 @@ import { D } from '../../shared/dungeon/data.ts';
 
 const FPS = 24;
 
-export type ClipKey = 'idle'|'windup'|'recover'|'walk' | 'attack' | 'hit' | 'death' | 'special' | 'emerge';
+export type ClipKey = 'idle'|'windup'|'recover'|'walk' | 'attack' | 'hit' | 'death' | 'special' | 'emerge' | 'tongue_windup' | 'tongue_attack' | 'tongue_recover';
 
 interface ClipRows {
   start: number;
@@ -27,6 +27,7 @@ interface Baked {
   tex: THREE.DataTexture;
   clips: Partial<Record<ClipKey, ClipRows>>;
   height: number;
+  bodyLift: Float32Array;
   atlas?: THREE.Texture;
 }
 
@@ -37,6 +38,7 @@ export function eliteHpFraction(enemy: Pick<VEnemy, 'elite' | 'hp' | 'hpMax'>): 
 
 /** Вид врага → модель и масштаб */
 const KIND_MODEL: Record<MobKind, { model: MobModel; scale: number; cap: number }> = {
+  kvashnya: { model: 'kvashnya', scale: 1, cap: 1 },
   rat: { model: 'rat', scale: 1, cap: 340 },
   bat: { model: 'bat', scale: 1, cap: 160 },
   slime: { model: 'slug', scale: 1.1, cap: 160 },
@@ -52,6 +54,7 @@ const KIND_MODEL: Record<MobKind, { model: MobModel; scale: number; cap: number 
 
 /** Имена клипов в GLB: <модель>_<действие> */
 const CLIP_NAMES: Record<MobModel, Partial<Record<ClipKey, string>>> = {
+  kvashnya: { idle:'kvashnya_idle', walk:'kvashnya_walk', windup:'kvashnya_windup', attack:'kvashnya_attack', recover:'kvashnya_recover', hit:'kvashnya_hit', death:'kvashnya_death', tongue_windup:'kvashnya_tongue_windup', tongue_attack:'kvashnya_tongue_attack', tongue_recover:'kvashnya_tongue_recover' },
   rat: { walk: 'rat_walk', attack: 'rat_attack', hit: 'rat_hit', death: 'rat_death' },
   bat: { walk: 'bat_fly', attack: 'bat_attack', hit: 'bat_hit', death: 'bat_death' },
   slug: { walk: 'slug_walk', attack: 'slug_attack', hit: 'slug_hit', death: 'slug_death' },
@@ -69,6 +72,7 @@ const CLIP_NAMES: Record<MobModel, Partial<Record<ClipKey, string>>> = {
 
 /** Скорость, при которой цикл ходьбы не скользит (м/с) — для темпа шага */
 export const WALK_REF: Record<MobKind, number> = {
+  kvashnya: 2.2,
   rat: 3.6, bat: 4.5, slime: 1.8, slimelet: 2.6, shroom: 1.9, beetle: 2.4, spitter: 2.2, larva: 4.2, barrel: 2.2, shaman: 1.8,
   hookclaw:3.6,wickmole:2.5,railhopper:2.8,chainwarden:2.15,
 };
@@ -89,6 +93,8 @@ function bake(gltf: GLTF, model: MobModel): Baked {
   root.position.set(0, 0, 0);
   root.updateMatrixWorld(true);
   const height = new THREE.Box3().setFromObject(root).max.y;
+  const body = root.getObjectByName('body'), bodyPosition = new THREE.Vector3();
+  const restBodyY = body?.getWorldPosition(bodyPosition).y ?? 0;
   const rootInv = root.matrixWorld.clone().invert();
 
   // геометрия: каждая часть — в системе своего сустава, номер части в вершине
@@ -160,6 +166,7 @@ function bake(gltf: GLTF, model: MobModel): Baked {
   rows = Math.max(1, rows);
   const width = joints.length * 3;
   const data = new Float32Array(width * rows * 4);
+  const bodyLift = new Float32Array(rows);
   const m = new THREE.Matrix4();
   for (const [key, clip] of order) {
     const info = clips[key]!;
@@ -169,6 +176,7 @@ function bake(gltf: GLTF, model: MobModel): Baked {
     for (let f = 0; f < info.frames; f++) {
       mixer.setTime(Math.min(f / FPS, clip.duration - 1e-4));
       root.updateMatrixWorld(true);
+      bodyLift[info.start + f] = body ? body.getWorldPosition(bodyPosition).y - restBodyY : 0;
       for (let j = 0; j < joints.length; j++) {
         m.copy(rootInv).multiply(joints[j].matrixWorld);
         const e = m.elements;
@@ -185,7 +193,7 @@ function bake(gltf: GLTF, model: MobModel): Baked {
   tex.minFilter = THREE.NearestFilter;
   tex.magFilter = THREE.NearestFilter;
   tex.needsUpdate = true;
-  return { geo, tex, clips, height, atlas };
+  return { geo, tex, clips, height, bodyLift, atlas };
 }
 
 const VERT_HEAD = /* glsl */ `
@@ -324,6 +332,14 @@ export class MobRenderer {
 
   height(kind: MobKind): number {
     return (this.target(kind)?.baked.height ?? 0) * KIND_MODEL[kind].scale;
+  }
+
+  /** Follow the baked jump body without adding its height a second time to the model or ground shadow. */
+  bodyLift(kind: MobKind, key: ClipKey, time: number): number {
+    const baked = this.target(kind)?.baked, clip = baked?.clips[key];
+    if (!baked || !clip) return 0;
+    const frame = frameAt(clip, time), a = Math.floor(frame), b = Math.min(clip.frames - 1, a + 1);
+    return THREE.MathUtils.lerp(baked.bodyLift[clip.start + a], baked.bodyLift[clip.start + b], frame - a) * KIND_MODEL[kind].scale;
   }
 
   capacity(kind: MobKind): number {
