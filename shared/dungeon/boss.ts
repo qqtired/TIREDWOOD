@@ -290,6 +290,8 @@ function burrow(sim: DgSim, m: DgMob, b: DgBoss, el: number, ox: number, oz: num
         const a = attack(b.phase, b.act === 'burrow2' ? 'burrow' : b.act === 'burrowChain' ? 'burrowChain' : 'burrow');
         mark(sim, m, 'rise', m.x, m.z, a.radius, warn, a.dmg, a.knockback ?? 5, 0);
         if (b.act === 'burrow2') {
+          // Запоминаем направление при объявлении: герой может сменить сторону до удара.
+          m.dx = ox; m.dz = oz;
           // ещё 2 круга по 3 м цепочкой к герою через 0,6 с
           const a2 = attack(2, 'burrow2');
           for (let k = 1; k <= 2; k++) {
@@ -309,8 +311,8 @@ function burrow(sim: DgSim, m: DgMob, b: DgBoss, el: number, ox: number, oz: num
       if (el >= warn + extra) {
         // вынырнул (в последнем круге для тройного)
         if (b.act === 'burrow2') {
-          m.x = wrapP(m.x + ox * 7);
-          m.z = wrapP(m.z + oz * 7);
+          m.x = wrapP(m.x + m.dx * 7);
+          m.z = wrapP(m.z + m.dz * 7);
         }
         m.under = 0;
         if (b.kind === 1) {

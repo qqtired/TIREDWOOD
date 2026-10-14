@@ -243,9 +243,9 @@ function upgradable(sim: DgSim): { k: 'w' | 'p'; id: string }[] {
 const ISLE_ROWS = interNum('isleChest', 'rows', 2);
 
 /**
- * Сундук: готова эволюция — она (одна). Иначе: plain (обычный сундук карты) — 1 улучшение из общего пула карточек
- * (новое оружие, пассивка или уровень своей вещи, как при новом уровне), isle — 2 таких; small (элита) — барабан
- * 1/2/3 уровня своим вещам; big/curse — 3. Нечего давать — 30 опыта до Подковы и +30 HP.
+ * Сундук: готова эволюция — она (одна). Иначе: plain (обычный сундук карты) — 1 уровень своей вещи, isle — 2;
+ * small (элита) — барабан 1/2/3 уровня своим вещам; big/curse — 3. Новых вещей не выдаёт.
+ * Нечего улучшать — опыт и +30 HP.
  */
 export function openChest(sim: DgSim, kind: 'small' | 'big' | 'curse' | 'plain' | 'isle'): void {
   const rows: DgChestRow[] = [];
@@ -259,19 +259,8 @@ export function openChest(sim: DgSim, kind: 'small' | 'big' | 'curse' | 'plain' 
       w.cd = 0;
       rows.push({ k: 'evo', id: e.id, lv: w.lv });
     }
-  } else if (kind === 'plain' || kind === 'isle') {
-    const n = kind === 'isle' ? ISLE_ROWS : 1;
-    for (let i = 0; i < n; i++) {
-      const c = takeWeighted(sim, candidates(sim));
-      if (!c || (c.c.k !== 'w' && c.c.k !== 'p')) {
-        rows.push({ k: 'gold', id: '', lv: 0 });
-        break;
-      }
-      applyCard(sim, c.c);
-      rows.push({ k: c.c.k, id: c.c.id, lv: c.c.lv });
-    }
   } else {
-    let n = 3;
+    let n = kind === 'plain' ? 1 : kind === 'isle' ? ISLE_ROWS : 3;
     if (kind === 'small') {
       const r = rnd(sim);
       n = r < 0.6 ? 1 : r < 0.9 ? 2 : 3;

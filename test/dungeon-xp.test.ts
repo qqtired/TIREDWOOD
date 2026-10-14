@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { SimRun } from '../client/dungeon/simview.ts';
-import { PASSIVE_IDS, WEAPON_IDS } from '../shared/dungeon/data.ts';
 import { startWave, stepDirector } from '../shared/dungeon/director.ts';
 import { dropGem, stepPickups } from '../shared/dungeon/pickups.ts';
 import { addXp, maybeOpenChoice, openChest, pick } from '../shared/dungeon/progress.ts';
@@ -78,9 +77,9 @@ test('chest XP is reduced while free upgrades and healing retain their values', 
 });
 
 test('chest HUD displays the credited XP including the Horseshoe bonus', () => {
-  for (const [lv, expected] of [[0, '+30 опыта и +30 HP'], [1, '+31,2 опыта и +30 HP'], [5, '+36 опыта и +30 HP']] as const) {
+  for (const [lv, expected] of [[0, '+30 опыта и +30 HP'], [5, '+36 опыта и +30 HP']] as const) {
     const run = new SimRun(7);
-    run.sim.banned = [...WEAPON_IDS, ...PASSIVE_IDS];
+    run.sim.weapons[0].lv = 7;
     if (lv) run.sim.passives.push({ id: 'magnet', lv });
     openChest(run.sim, 'plain');
     // No free upgrade remains, and viewing the chest must not add any more XP.

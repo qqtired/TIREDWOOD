@@ -1097,12 +1097,13 @@ export class DungeonGame {
       this.zones.draw(this.run, this.camera, X, Z, this.decN, this.decA, this.pool, time, still, dt);
       // метки, лужи
       for (const t of v.teles) {
-        if (!near(t.x, t.z, 18)) continue;
+        if (!near(t.x, t.z, t.r)) continue;
         const col = t.tone === 'jam' ? [0.78, 0.45, 1] : t.tone === 'red' ? [1, 0.25, 0.2] : [1, 0.75, 0.3];
         const shape = t.shape === 'circle' ? D_TCIRCLE : t.shape === 'strip' ? D_TSTRIP : D_TSECTOR;
         const sx = t.shape === 'strip' ? t.w / 2 : t.r;
         const target = t.tone === 'amber' ? this.decN : this.threats;
         target.add(X(t.x), 0.04, Z(t.z), sx, t.r, t.yaw, shape, t.t01, t.shape === 'sector' ? t.w : t.inner ? t.inner / t.r : 0, col[0], col[1], col[2], 0.85);
+        if (t.centerRadius) target.add(X(t.x), 0.04, Z(t.z), t.centerRadius, t.centerRadius, 0, D_TCIRCLE, t.t01, 0, col[0], col[1], col[2], 0.85);
       }
       for (const p of v.puddles) {
         if (!near(p.x, p.z, 6)) continue;

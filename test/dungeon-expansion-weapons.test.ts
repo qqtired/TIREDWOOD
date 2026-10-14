@@ -7,7 +7,7 @@ import { spawnMob, addMark } from '../shared/dungeon/mobs.ts';
 import { spawnBosses } from '../shared/dungeon/boss.ts';
 import { D } from '../shared/dungeon/data.ts';
 import { syncPhysicalMarks } from '../shared/dungeon/expansion.ts';
-import { wrapP } from '../shared/dungeon/util.ts';
+import { wrapD, wrapP } from '../shared/dungeon/util.ts';
 
 function empty(seed: number) { const s = createRun(seed); s.t = 1; s.weapons = []; s.props = []; s.hero.invT = 1e9; return s; }
 
@@ -86,7 +86,9 @@ test('cauldron aims its real contact cup at the hero and has no old invisible se
   const s = empty(66); s.hero.invT = 0; spawnBosses(s, 20); const b = s.bosses[0], m = s.mobs.find(m => m.id === b.id)!;
   m.x = s.hero.x + 2.6; m.z = s.hero.z; b.act = 'pause'; b.actT = -100; b.rot = 0;
   step(s); const mk = s.marks.find(m => m.what === 'cauldron_ladle')!;
-  assert.equal(mk.k, 'circle'); assert.equal(mk.r, .54); assert.equal(mk.localRight, -.0363);
+  assert.equal(mk.k, 'circle'); assert.equal(mk.r, .54);
+  assert.equal(mk.localRight, undefined, 'the announced cup stays fixed in world space');
+  assert.ok(Math.hypot(wrapD(mk.x - s.hero.x), wrapD(mk.z - s.hero.z)) < mk.r + .45, 'the cup is aimed at the hero');
   const hp = s.hero.hp; while (s.t < mk.t1) step(s); assert.equal(s.hero.hp, hp); step(s); assert.ok(s.hero.hp < hp);
 });
 

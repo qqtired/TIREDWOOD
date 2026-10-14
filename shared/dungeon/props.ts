@@ -23,6 +23,7 @@ const SPRING_REFILL = interNum('spring', 'refill', 60);
 const LAMP_TIME = interNum('lamppost', 'lightTime', 1.5);
 const LAMP_R = interNum('lamppost', 'lightRadius', 7);
 const LAMP_REGEN = interNum('lamppost', 'heroRegen', 1);
+const LAMP_GLOBAL_REGEN = interNum('lamppost', 'globalRegen', 0.3);
 const CART_SPEED = interNum('minecart', 'speed', 12);
 const CART_RUN = interNum('minecart', 'run', 120);
 const CART_BRAKE = interNum('minecart', 'brake', 2);
@@ -320,7 +321,8 @@ export function stepProps(sim: DgSim): void {
         break;
     }
   }
-  if (lampHeal && sim.t % 30 === 0) healHero(sim, LAMP_REGEN);
+  // Каждый зажжённый фонарь добавляет лечение по всей карте до конца этого забега.
+  if (sim.t % 30 === 0) healHero(sim, sim.stats.lamps * LAMP_GLOBAL_REGEN + (lampHeal ? LAMP_REGEN : 0));
   lockCheck(sim);
   // приземление с батута
   if (h.jumpT1 === sim.t && h.jumpT1 > 0) land(sim);

@@ -513,8 +513,11 @@ export function addPuddle(sim: DgSim, k: 'spit' | 'jam' | 'spore' | 'boss', x: n
 export function addContactMark(sim: DgSim, m: DgMob, what: string, right: number, forward: number, radius: number, dur: number, dmg: number, kb = 0): void {
   addMark(sim, 'circle', what, m.x + m.ax * forward + m.az * right, m.z + m.az * forward - m.ax * right, radius, 0, 0, dur, dmg, kb, 0, m);
   const mk = sim.marks[sim.marks.length - 1];
-  mk.localRight = right;
-  mk.localForward = forward;
+  // Ковш босса бьёт объявленное место, даже если тело сдвинула коллизия.
+  if (m.k !== 'cauldronmaster') {
+    mk.localRight = right;
+    mk.localForward = forward;
+  }
 }
 
 /** Смерть врага: опыт, слизнята, споры, сундук элиты, счёт отряда */

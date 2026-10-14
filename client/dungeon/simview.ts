@@ -1,6 +1,7 @@
 // «Подземелье»: настоящая симуляция (shared/dungeon/sim.ts) для сцены. Шаги, события журнала, хеш и итог — как у
 // сервера; здесь только перевод DgSim в DgView (что рисовать) раз в шаг: состояния врагов → клипы, метки → тревоги на
 // полу, постройки → вид и свечение, fx шага → эффекты и звук, выбор и сундук → экраны интерфейса.
+import { attackFootprint, HERO_RADIUS } from '../../shared/dungeon/attack-footprint.ts';
 import type { DgEvent, DgResult } from '../../shared/dungeon/api.ts';
 import { DG_HZ } from '../../shared/dungeon/api.ts';
 import {
@@ -544,9 +545,11 @@ export class SimRun implements RunSource {
       if (mk.dmg <= 0 && mk.what === 'hole') continue;
       const spit = mk.what === 'spit' || mk.what === 'bspit' || mk.what === 'cauldron_pour';
       const tone: VTele['tone'] = spit || mk.what === 'heal' ? 'jam' : 'red';
-      if (mk.k === 'lane') teles.push({ id: mk.id, shape: 'strip', x: mk.x, z: mk.z, r: mk.len, w: mk.w, yaw: Math.atan2(mk.dx, mk.dz), t01: k01, tone });
-      else if (mk.k === 'sector') teles.push({ id: mk.id, shape: 'sector', x: mk.x, z: mk.z, r: mk.r, w: (Math.min(360, mk.w) * Math.PI) / 180, yaw: Math.atan2(mk.dx, mk.dz), t01: k01, tone });
-      else teles.push({ id: mk.id, shape: 'circle', x: mk.x, z: mk.z, r: mk.r, w: 0, yaw: 0, t01: k01, tone, inner: mk.inner });
+      const fp = attackFootprint(mk);
+      if (mk.k === 'lane') teles.push({ id: mk.id, shape: 'strip', x: fp.x, z: fp.z, r: fp.len, w: fp.width, yaw: Math.atan2(mk.dx, mk.dz), t01: k01, tone });
+      else if (mk.k === 'sector') teles.push({ id: mk.id, shape: 'sector', x: mk.x, z: mk.z, r: fp.r, w: fp.angle * Math.PI / 180, yaw: Math.atan2(mk.dx, mk.dz), t01: k01, tone, centerRadius: fp.centerRadius });
+      else teles.push({ id: mk.id, shape: 'circle', x: mk.x, z: mk.z, r: fp.r, w: 0, yaw: 0, t01: k01, tone, inner: fp.inner });
+      if (mk.what === 'cavein') projectiles.push({ id: mk.id, kind: 'rock', x: mk.x, z: mk.z, y: 0.5 + 11 * (1 - k01) ** 2, yaw: mk.id });
       if (spit && mk.src >= 0) {
         // плевок летит дугой от плевуна в центр метки
         const dx = wrap(mk.x - mk.fx);
@@ -556,7 +559,7 @@ export class SimRun implements RunSource {
     }
     for (const c of sim.enemyCharges) if (c.end >= t) {
       projectiles.push({ id: c.id, kind: 'enemy_charge', x: c.x, z: c.z, y: 0.16, yaw: c.id });
-      teles.push({ id: c.id, shape: 'circle', x: c.x, z: c.z, r: c.r, w: 0, yaw: 0, t01: Math.min(1, (t - c.t0) / Math.max(1, c.end - c.t0)), tone: 'red' });
+      teles.push({ id: c.id, shape: 'circle', x: c.x, z: c.z, r: c.r + HERO_RADIUS, w: 0, yaw: 0, t01: Math.min(1, (t - c.t0) / Math.max(1, c.end - c.t0)), tone: 'red' });
     }
     const P = { x: 0, z: 0 };
     let rays: DgView['rays'] = [];

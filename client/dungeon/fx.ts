@@ -62,27 +62,27 @@ void main() {
     a = 1.0 - smoothstep(0.0, vShape.z, abs(d - vShape.y));
   } else if (t == 2.0) {
     // метка-круг: кромка, заливка растёт к краю, в конце — пульс
-    float edge = 1.0 - smoothstep(0.0, 0.06, abs(d - 0.95));
-    float fill = step(d, vShape.y) * (0.28 + 0.25 * smoothstep(vShape.y - 0.15, vShape.y, d));
+    float edge = 1.0 - smoothstep(0.0, 0.06, abs(d - 1.0));
+    float fill = 0.12 + step(d, vShape.y) * (0.28 + 0.25 * smoothstep(vShape.y - 0.15, vShape.y, d));
     float pulse = vShape.y > 0.92 ? 0.25 + 0.25 * sin(uTime * 40.0) : 0.0;
     a = (max(edge * 0.95, fill) + pulse * step(d, 1.0)) * step(d, 1.0);
     if (vShape.z > 0.0) {
       float innerEdge = 1.0 - smoothstep(0.0, 0.035, abs(d - vShape.z));
-      a = max(a * step(vShape.z, d), innerEdge * 0.95);
+      a = max(a, innerEdge * 0.95) * step(vShape.z, d);
     }
   } else if (t == 3.0) {
     // метка-полоса: v вдоль (0 — у начала), u поперёк
     float v = vUv.y * 0.5 + 0.5;
     float u = abs(vUv.x);
-    float edge = max(1.0 - smoothstep(0.0, 0.08, abs(u - 0.92)), 0.0);
-    float fill = step(v, vShape.y) * 0.4;
+    float edge = max(1.0 - smoothstep(0.0, 0.08, abs(u - 1.0)), 1.0 - smoothstep(0.0, 0.04, min(v, 1.0 - v)));
+    float fill = 0.12 + step(v, vShape.y) * 0.4;
     a = max(edge * 0.9, fill) * step(u, 1.0);
   } else if (t == 4.0) {
     float ang = atan(vUv.x, vUv.y);
     float inA = step(abs(ang), vShape.z * 0.5);
-    float edge = 1.0 - smoothstep(0.0, 0.05, abs(d - 0.96));
+    float edge = 1.0 - smoothstep(0.0, 0.05, abs(d - 1.0));
     float side = 1.0 - smoothstep(0.0, 0.03 / max(d, 0.1), abs(abs(ang) - vShape.z * 0.5));
-    float fill = step(d, vShape.y) * 0.35;
+    float fill = 0.12 + step(d, vShape.y) * 0.35;
     a = max(max(edge, side * step(d, 1.0)) * 0.9, fill) * inA * step(d, 1.0);
   } else if (t == 5.0) {
     // конус вспышки фонаря

@@ -12,11 +12,12 @@ import { addPuddle, cleanupMobs, pushHero, stepMobs } from './mobs.ts';
 import { initChests, stepPickups } from './pickups.ts';
 import { ban, maybeOpenChoice, pick, reroll, xpNeed } from './progress.ts';
 import { enemyHitsKegs, initProps, scanProps, stepProps } from './props.ts';
-import type { DgMark, DgSim } from './types.ts';
-import { cosDeg, ticks, wrapD } from './util.ts';
+import type { DgSim } from './types.ts';
+import { ticks, wrapD } from './util.ts';
 import { ownMarkHit, stepWeapons } from './weapons.ts';
 import {stepEnemyCharges} from './enemycharges.ts';
 import {syncPhysicalMarks} from './expansion.ts';
+import { heroInMark } from './attack-footprint.ts';
 import { hash32 } from '../math.ts';
 
 export type * from './types.ts';
@@ -167,43 +168,6 @@ function pruneBuffs(sim: DgSim): void {
   b.length = w;
 }
 
-/** Попадает ли герой в метку */
-function heroIn(sim: DgSim, mk: DgMark): boolean {
-  const h = sim.hero;
-  const ox = wrapD(h.x - mk.x);
-  const oz = wrapD(h.z - mk.z);
-  const R = 0.45;
-  switch (mk.k) {
-    case 'circle':
-    case 'ring':
-      return ox * ox + oz * oz < (mk.r + R) * (mk.r + R) && (!mk.inner||ox*ox+oz*oz>(mk.inner-R)**2);
-    case 'lane': {
-      const along = ox * mk.dx + oz * mk.dz;
-      const perp = Math.abs(ox * mk.dz - oz * mk.dx);
-      return along > -R && along < mk.len + R && perp < mk.w / 2 + R;
-    }
-    case 'sector': {
-      const d2 = ox * ox + oz * oz;
-      if (d2 > (mk.r + R) * (mk.r + R)) return false;
-      const d = Math.sqrt(d2);
-      if (d < 1) return true;
-      // w — полный угол в градусах; ≥ 180 — полуплоскость
-      const dot = (ox * mk.dx + oz * mk.dz) / d;
-      return mk.w >= 180 ? dot >= 0 : dot >= halfCos(mk.w);
-    }
-  }
-  return false;
-}
-const halfCosCache = new Map<number, number>();
-function halfCos(deg: number): number {
-  let v = halfCosCache.get(deg);
-  if (v === undefined) {
-    v = cosDeg(deg / 2);
-    halfCosCache.set(deg, v);
-  }
-  return v;
-}
-
 /** Метки: в момент t1 — удар (свой — по врагам, вражеский — по герою), лужа; старые убираем */
 function stepMarks(sim: DgSim): void {
   const marks = sim.marks;
@@ -213,10 +177,11 @@ function stepMarks(sim: DgSim): void {
     if (mk.t1 === sim.t) {
       if (mk.own) ownMarkHit(sim, mk);
       else {
+        if (mk.what === 'cavein' || mk.what === 'bspit' || mk.what === 'rise') fx(sim, { k: 'boom', x: mk.x, z: mk.z, r: mk.r, what: mk.what });
         const phase = sim.bosses.find(b => b.id === mk.src)?.phase ?? 1;
         if (mk.what === 'cauldron_flow') fx(sim, { k: 'flow', x: mk.x, z: mk.z, dx: mk.dx, dz: mk.dz, len: mk.len, w: mk.w, phase });
         if (mk.what === 'cauldron_boil') fx(sim, { k: 'boil', x: mk.x, z: mk.z, r: mk.r, inner: mk.inner ?? 0, phase });
-        if (mk.dmg > 0 && heroIn(sim, mk)) {
+        if (mk.dmg > 0 && heroInMark(sim.hero, mk)) {
           let by = mk.what;
           for (const m of sim.mobs) if (m.id === mk.src) by = m.k;
           if (hurtHero(sim, mk.dmg, by) && mk.kb > 0) {

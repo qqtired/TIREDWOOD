@@ -54,7 +54,10 @@ test('all current buildings and both ordinary chest types have a pause guide ent
   assert.equal(new Set(PAUSE_BUILDINGS.map((entry) => entry.id)).size, PAUSE_BUILDINGS.length);
   for (const entry of PAUSE_BUILDINGS) for (const field of ['short', 'action', 'cost', 'result'] as const) assert.ok(entry[field].length > 0, `${entry.id}.${field}`);
   const forge = PAUSE_BUILDINGS.find((entry) => entry.id === 'forge')!;
-  assert.match(forge.action, /3 с.*ударов/);
+  assert.match(forge.action, /3 с.*Удары не сбивают/);
+  const lamp = PAUSE_BUILDINGS.find((entry) => entry.id === 'lamppost')!;
+  assert.match(lamp.result, /Каждый фонарь: \+0,3 HP\/с по всей карте до конца забега/);
+  assert.match(lamp.result, /В свете ещё \+1 HP\/с/);
   assert.match(forge.cost, /Весь опыт.*полполосы/);
   assert.match(forge.result, /\+1 уровень.*Закалка/);
   assert.match(PAUSE_BUILDINGS.find((entry) => entry.id === 'powderKegs')!.text, /тебя/);

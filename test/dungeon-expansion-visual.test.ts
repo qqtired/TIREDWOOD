@@ -45,7 +45,7 @@ test('boss phase and ring safe center reach the actual client view', () => {
   r.step();
   const v = r.view(), view = v.bosses.find(v => v.id === m.id)!;
   assert.equal(view.family, 'cauldronmaster'); assert.equal(view.phase, 3); assert.equal(view.anim, 'boil');
-  assert.equal(v.teles.find(t => t.inner)?.inner, 4);
+  assert.equal(v.teles.find(t => t.inner)?.inner, 3.55, 'safe center accounts for the hero radius');
 });
 
 test('beacon visual dimensions match its passive-scaled hit area', () => {

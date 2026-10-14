@@ -29,13 +29,31 @@ test('detached lid stays on the floor through walk/attack/death and wraps with t
 });
 
 // The same real elapsed time must land on the accelerated attack pose, not only finish sooner.
-test('Казанщик: клип и длительность ускорены вдвое, Повидл сохраняет прежний темп',()=>{
-  for(const family of ['cauldronmaster','povidl'] as const){
+test('Казанщик: поза и длительность совпадают с темпом каждой фазы, Повидл сохраняет темп',()=>{
+  for(const family of ['cauldronmaster','povidl'] as const) for(const phase of [1,2,3]){
     const scene=new THREE.Group(), marker=new THREE.Group();marker.name='marker';scene.add(marker);
     const prefix=family==='povidl'?'boss':'cauldronmaster';
     const gltf={scene,animations:[new THREE.AnimationClip(prefix+'_attack',1,[new THREE.VectorKeyframeTrack('marker.position',[0,1],[0,0,0,10,0,0])])]} as unknown as GLTF;
-    const view=new BossView(gltf,family);view.update(0,{...boss('attack',1),family},0,0,.2);
-    assert.equal(view.duration('attack'),family==='cauldronmaster'?.5:1);
-    assert.ok(Math.abs(view.root.getObjectByName('marker')!.position.x-(family==='cauldronmaster'?4:2))<1e-5);
+    const view=new BossView(gltf,family);view.update(0,{...boss('attack',phase),family},0,0,.2);
+    const speed = family === 'cauldronmaster' ? [1.8,2.2,2][phase-1] : 1;
+    assert.equal(view.duration('attack',phase),1/speed);
+    assert.ok(Math.abs(view.root.getObjectByName('marker')!.position.x-(2*speed))<1e-5);
+  }
+});
+
+test('walking follows movement speed; transitions, recovery and death follow the action clock',()=>{
+  for(const phase of [1,2,3]) for(const anim of ['walk','appear','phase2','phase3','recover','death'] as const){
+    if(anim==='phase2'&&phase!==2||anim==='phase3'&&phase!==3) continue;
+    const scene=new THREE.Group(), marker=new THREE.Group();marker.name='marker';scene.add(marker);
+    const key=anim==='appear'?'idle':anim==='phase2'?'phase_p2':anim==='phase3'?'phase_p3':anim;
+    const gltf={scene,animations:[new THREE.AnimationClip('cauldronmaster_'+key,2,[new THREE.VectorKeyframeTrack('marker.position',[0,2],[0,0,0,20,0,0])])]} as unknown as GLTF;
+    const view=new BossView(gltf,'cauldronmaster'), state=boss(anim,phase);
+    const speed=anim==='walk'?(phase===1?1.8:2):[1.8,2.2,2][phase-1];
+    view.update(0,state,0,0,.2);
+    assert.equal(view.duration(anim,phase),2/speed);
+    const markerView=view.root.getObjectByName('marker')!;
+    assert.ok(Math.abs(markerView.position.x-2*speed)<1e-5);
+    view.update(.1,state,0,0,.2);
+    assert.ok(Math.abs(markerView.position.x-2*speed)<1e-5,'frozen elapsed time holds the pose');
   }
 });

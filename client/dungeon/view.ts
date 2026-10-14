@@ -83,6 +83,8 @@ export interface VTele {
   tone: 'jam' | 'red' | 'amber';
   /** Безопасный центр кольцевой атаки, м. */
   inner?: number;
+  /** Сектор включает опасный диск у источника. */
+  centerRadius?: number;
 }
 
 export interface VPuddle {
