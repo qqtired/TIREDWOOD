@@ -1802,7 +1802,7 @@ export class FortMatch {
     hud.showBoard(this.boardHeld && this.phase !== FT_END, this.rosterList, this.myId, this.phase);
     pb.updateFloaters(dt, cam, window.innerWidth, window.innerHeight);
     this.ars.frame(dt, cam, window.innerWidth, window.innerHeight);
-    pb.setStats(settings.showStats ? `${this.fps} FPS · ${Math.round(this.d.net.pingMs)} мс · буфер ${this.clock.delay.toFixed(1)} т · зомби ${this.d.zombies.count}` : null);
+    pb.setStats(settings.showStats ? `${this.fps} FPS` : null);
 
     this.mapTimer -= dt;
     if (this.mapTimer <= 0) {

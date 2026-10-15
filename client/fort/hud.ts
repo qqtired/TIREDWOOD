@@ -46,6 +46,7 @@ export class FortHud {
   private readonly mapCtx: CanvasRenderingContext2D;
   private readonly mapBase: HTMLCanvasElement;
   private readonly map: HTMLCanvasElement;
+  private readonly mapInk: Record<'land' | 'sea' | 'road' | 'court' | 'wall' | 'enemy' | 'dark' | 'gold' | 'light' | 'crystal', string>;
 
   /** root — слой сцены (.hud в оболочке); kit — слоты и верх-центр кита */
   constructor(root: HTMLElement, kit: FortKit) {
@@ -72,6 +73,13 @@ export class FortHud {
     this.map.width = MAP_PX;
     this.map.height = MAP_PX;
     this.mapCtx = this.map.getContext('2d')!;
+    const style = getComputedStyle(this.ui.card.root);
+    const color = (name: string) => style.getPropertyValue(name).trim();
+    this.mapInk = {
+      land: color('--ft-map-land'), sea: color('--ft-map-sea'), road: color('--ft-map-road'),
+      court: color('--ft-map-court'), wall: color('--ft-map-wall'), enemy: color('--ft-map-enemy'),
+      dark: color('--dg-bar-bg'), gold: color('--dg-brass-hi'), light: color('--dg-text'), crystal: color('--dg-teal'),
+    };
     this.mapBase = this.drawMapBase(MAP_PX, MAP_PX);
     this.mapCtx.drawImage(this.mapBase, 0, 0);
   }
@@ -161,37 +169,61 @@ export class FortHud {
     const k = w / (MAP.x1 - MAP.x0);
     const X = (x: number) => (x - MAP.x0) * k;
     const Z = (z: number) => (z - MAP.z0) * k;
-    ctx.fillStyle = '#5f8f45';
+    const ink = this.mapInk;
+    ctx.fillStyle = ink.land;
     ctx.fillRect(0, 0, w, h);
+    // Тихая координатная сетка, целиком в закэшированной подложке.
+    ctx.strokeStyle = ink.wall;
+    ctx.globalAlpha = 0.09;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let x = -40; x <= 40; x += 20) { ctx.moveTo(X(x), 0); ctx.lineTo(X(x), h); }
+    for (let z = -60; z <= 20; z += 20) { ctx.moveTo(0, Z(z)); ctx.lineTo(w, Z(z)); }
+    ctx.stroke();
+    ctx.globalAlpha = 1;
     // море на юге
-    ctx.fillStyle = '#2f86ad';
+    ctx.fillStyle = ink.sea;
     ctx.fillRect(0, Z(22), w, h - Z(22));
-    // дороги
-    ctx.strokeStyle = '#d8bb86';
-    ctx.lineWidth = 4 * k;
+    // Контуры трёх подходов к воротам отделяют дорогу от луга.
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     for (const r of ROADS) {
       ctx.beginPath();
       r.pts.forEach(([x, z], i) => (i ? ctx.lineTo(X(x), Z(z)) : ctx.moveTo(X(x), Z(z))));
+      ctx.strokeStyle = ink.dark;
+      ctx.lineWidth = 6 * k;
+      ctx.stroke();
+      ctx.strokeStyle = ink.road;
+      ctx.lineWidth = 3 * k;
       ctx.stroke();
     }
     // стены и двор
-    ctx.fillStyle = '#d9ccb2';
+    ctx.fillStyle = ink.wall;
     ctx.fillRect(X(FORT.x0), Z(FORT.z0), (FORT.x1 - FORT.x0) * k, (FORT.z1 - FORT.z0) * k);
-    ctx.fillStyle = '#9a8c74';
+    ctx.fillStyle = ink.court;
     ctx.fillRect(X(FORT.x0 + 3), Z(FORT.z0 + 3), (FORT.x1 - FORT.x0 - 6) * k, (FORT.z1 - FORT.z0 - 6) * k);
+    ctx.strokeStyle = ink.dark;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(X(FORT.x0) - 1, Z(FORT.z0) - 1, (FORT.x1 - FORT.x0) * k + 2, (FORT.z1 - FORT.z0) * k + 2);
+    ctx.strokeStyle = ink.road;
+    ctx.lineWidth = 2 * k;
+    ctx.beginPath();
+    ctx.moveTo(X(0), Z(GATE.face));
+    ctx.lineTo(X(0), Z(2.6));
+    ctx.stroke();
     // воротные башни и бастионы
-    ctx.fillStyle = '#d9ccb2';
+    ctx.fillStyle = ink.wall;
     ctx.fillRect(X(-6), Z(-18.5), 12 * k, 3 * k);
     ctx.fillRect(X(-21), Z(-19), 6 * k, 6 * k);
     ctx.fillRect(X(15), Z(-19), 6 * k, 6 * k);
     // места башен
-    ctx.strokeStyle = 'rgba(255,236,190,0.9)';
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = ink.gold;
+    ctx.fillStyle = ink.court;
+    ctx.lineWidth = 1.5;
     for (const s of TOWER_SPOTS) {
       ctx.beginPath();
       ctx.arc(X(s.x), Z(s.z), 4, 0, Math.PI * 2);
+      ctx.fill();
       ctx.stroke();
     }
     return c;
@@ -204,32 +236,44 @@ export class FortHud {
     const k = w / (MAP.x1 - MAP.x0);
     const X = (x: number) => (x - MAP.x0) * k;
     const Z = (z: number) => (z - MAP.z0) * k;
+    const ink = this.mapInk;
     ctx.clearRect(0, 0, w, this.map.height);
     ctx.drawImage(this.mapBase, 0, 0);
-    // ворота: целы — коричневые, пали — красный пролом
-    ctx.fillStyle = gateUp ? '#784c28' : '#ff463c';
+    // Ворота: латунная черта или красный пролом.
+    ctx.fillStyle = gateUp ? ink.gold : ink.enemy;
     ctx.fillRect(X(GATE.x0) - 1, Z(GATE.face) - 3, (GATE.x1 - GATE.x0) * k + 2, gateUp ? 5 : 7);
     // кристалл
-    ctx.fillStyle = '#6fe6ff';
-    ctx.strokeStyle = 'rgba(10,40,60,0.8)';
+    ctx.fillStyle = ink.crystal;
+    ctx.strokeStyle = ink.dark;
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.arc(X(0), Z(2.6), 6, 0, Math.PI * 2);
+    ctx.moveTo(X(0), Z(2.6) - 8);
+    ctx.lineTo(X(0) + 5, Z(2.6));
+    ctx.lineTo(X(0), Z(2.6) + 6);
+    ctx.lineTo(X(0) - 5, Z(2.6));
+    ctx.closePath();
     ctx.fill();
     ctx.stroke();
     for (let i = 0; i < nz; i++) {
       const z = zombies[i];
       const kk = ZK[z.kind] ?? ZK[0];
-      ctx.fillStyle = `#${kk.color.toString(16).padStart(6, '0')}`;
+      const boss = isBossKind(z.kind);
+      ctx.fillStyle = boss ? ink.gold : ink.enemy;
       ctx.beginPath();
-      ctx.arc(X(z.x), Z(z.z), isBossKind(z.kind) ? 9 : kk.r >= 0.7 ? 6 : 4.2, 0, Math.PI * 2);
+      if (boss) {
+        ctx.moveTo(X(z.x), Z(z.z) - 10);
+        ctx.lineTo(X(z.x) + 8, Z(z.z));
+        ctx.lineTo(X(z.x), Z(z.z) + 10);
+        ctx.lineTo(X(z.x) - 8, Z(z.z));
+        ctx.closePath();
+      } else ctx.arc(X(z.x), Z(z.z), kk.r >= 0.7 ? 6 : 4.2, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = 'rgba(20,10,10,0.75)';
-      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = ink.dark;
+      ctx.lineWidth = 2;
       ctx.stroke();
     }
-    ctx.fillStyle = '#ffffff';
-    ctx.strokeStyle = 'rgba(20,10,10,0.75)';
+    ctx.fillStyle = ink.light;
+    ctx.strokeStyle = ink.dark;
     for (let i = 0; i < nm; i++) {
       ctx.beginPath();
       ctx.arc(X(mates[i].x), Z(mates[i].z), 5, 0, Math.PI * 2);
@@ -241,9 +285,17 @@ export class FortHud {
       ctx.save();
       ctx.translate(X(meX), Z(meZ));
       ctx.rotate(-meYaw);
-      ctx.fillStyle = '#ffd35a';
-      ctx.strokeStyle = 'rgba(30,20,10,0.9)';
-      ctx.lineWidth = 2.5;
+      ctx.fillStyle = ink.gold;
+      ctx.globalAlpha = 0.14;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.arc(0, 0, 30, -Math.PI / 2 - 0.5, -Math.PI / 2 + 0.5);
+      ctx.closePath();
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = ink.light;
+      ctx.strokeStyle = ink.dark;
+      ctx.lineWidth = 3;
       ctx.beginPath();
       ctx.moveTo(0, -11);
       ctx.lineTo(7.5, 7.5);

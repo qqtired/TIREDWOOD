@@ -27,10 +27,20 @@ html[data-room='fort'] .k-hud > .k-slot--c:not(.ft-down) { top: 38%; }
 .ft-sub { margin-left: 6px; color: var(--surf-dim); font: 500 var(--fs-14)/1.2 var(--font-text); }
 .ft-plus { color: var(--good-text); font-weight: 800; }
 
-/* ---------------------------------------------------------------- ВЛ: карта 96 + ворота/кристалл с иконками, HP и прокачкой + колокол */
-.ft-fort { display: flex; flex-direction: column; align-items: center; gap: 7px; width: 108px; padding: 6px; }
-.ft-map { width: 96px; height: 96px; overflow: hidden; border-radius: var(--r-sm); box-shadow: inset 0 0 0 1.5px var(--line-strong); }
+/* ---------------------------------------------------------------- ВЛ: тактическая карта и щит в той же кованой рамке, что верхняя панель */
+.ft-fort {
+  --ft-map-land: #293128; --ft-map-sea: #1a2c30; --ft-map-road: #807258; --ft-map-court: #302820;
+  --ft-map-wall: #c1aa80; --ft-map-enemy: #ef7969;
+  box-sizing: border-box; position: relative; display: flex; flex-direction: column; gap: 6px;
+  width: 124px; padding: 6px; color: var(--dg-text); font: 800 16px/1 var(--dg-font);
+  background: var(--dg-iron); border: 2px solid var(--dg-brass-dk); border-radius: 8px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .7), 0 6px 16px rgba(0, 0, 0, .4);
+}
+.ft-map { position: relative; width: 108px; height: 108px; overflow: hidden; border: 1px solid var(--dg-brass-dk); border-radius: 4px; }
 .ft-map-cv { display: block; width: 100%; height: 100%; }
+.ft-map, .ft-bell { pointer-events: auto; cursor: default; }
+.ft-map-north { position: absolute; top: 2px; left: 50%; translate: -50% 0; padding: 0 4px; color: var(--dg-text-dim); background: var(--ft-map-land); font: 900 13px/1 var(--dg-font-head); pointer-events: none; }
+.ft-fort.is-shielded .ft-map { border-color: var(--dg-brass-hi); }
 .ft-hps { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .ft-hp { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; grid-template-areas: 'icon bar pct' 'icon up up'; align-items: center; gap: 2px 3px; margin: -2px -3px; padding: 2px 3px; border-radius: var(--r-sm); }
 .ft-hp-ic { grid-area: icon; width: 32px; height: 32px; object-fit: contain; }
@@ -41,15 +51,20 @@ html[data-room='fort'] .k-hud > .k-slot--c:not(.ft-down) { top: 38%; }
 .ft-hp-up .ft-tier { color: var(--surf-dim); }
 .ft-hp.is-low .ft-hp-pct { color: var(--bad-text); }
 .ft-hp.is-hit { background: var(--bad-soft); box-shadow: inset 0 0 0 1.5px var(--bad); animation: ft-hit .5s ease-in-out infinite alternate; }
-.ft-bell { display: flex; align-items: center; gap: 5px; font: 700 var(--fs-13)/1.1 var(--font-text); white-space: nowrap; }
-.ft-bell img { flex: none; width: 18px; height: 18px; object-fit: contain; }
-.ft-bell b { font-weight: 700; }
-.ft-stats { margin-top: -2px; padding: 0 4px; font-variant-numeric: tabular-nums; }
+.ft-bell { --ft-shield-color: var(--dg-teal); display: grid; grid-template-columns: 22px minmax(0, 1fr); align-items: center; gap: 3px 6px; padding: 2px 0 1px; white-space: nowrap; }
+.ft-bell .ft-shield-icon { grid-row: 1 / span 2; width: 22px; height: 22px; object-fit: contain; }
+.ft-shield-label { color: var(--ft-shield-color); font: 800 16px/1 var(--dg-font); }
+.ft-shield-progress { grid-column: 2; height: 3px; overflow: hidden; border-radius: 2px; background: var(--dg-bar-bg); }
+.ft-shield-progress i { display: block; height: 100%; background: var(--ft-shield-color); transform: scaleX(var(--v, 1)); transform-origin: left; transition: transform .18s linear; }
+.ft-bell[data-state='active'] { --ft-shield-color: var(--dg-brass-hi); }
+.ft-bell[data-state='cooldown'] { --ft-shield-color: var(--dg-text-dim); }
+.ft-bell[data-state='cooldown'] .ft-shield-icon { opacity: .5; }
+.ft-stats { width: 124px; margin-top: -2px; padding: 0; text-align: center; font: 800 13px/1.2 'Alegreya Sans', Rubik, sans-serif; font-variant-numeric: tabular-nums; }
 @keyframes ft-hit { to { box-shadow: inset 0 0 0 2px var(--bad), 0 0 10px var(--bad-soft); } }
 
 /* Общая низкая панель — шрифты, латунь и кованая рамка любимого Dungeon HUD.
    Токены и переопределения замкнуты здесь: лавка, Tab, итоги и нижний HUD остаются на ките. */
-.ft-command {
+.ft-command, .ft-fort {
   --dg-font: 'Alegreya Sans', Rubik, system-ui, sans-serif;
   --dg-font-head: 'Alegreya SC', Georgia, 'Times New Roman', serif;
   --dg-text: #f7e8c9; --dg-text-dim: #cfb488;
@@ -58,14 +73,16 @@ html[data-room='fort'] .k-hud > .k-slot--c:not(.ft-down) { top: 38%; }
   --dg-rivet: radial-gradient(circle at 50% 50%, #ffe7ad 0 1.4px, #a47a35 2.2px, #3d2b13 3px, transparent 3.6px);
   --dg-line: rgba(243, 211, 143, .16); --dg-pip: rgba(243, 211, 143, .22);
   --dg-teal: #8ae6da; --dg-red: #e0283a; --dg-bar-bg: #0d0907;
+}
+.ft-command {
   box-sizing: border-box; position: relative; display: grid; grid-template-columns: 210px minmax(0, 1fr) 244px;
   align-items: center; gap: 12px; width: 1000px; height: 64px; max-width: calc(100vw / var(--hud-k, 1) - 320px); padding: 5px 14px;
   color: var(--dg-text); font: 700 16px/1.15 var(--dg-font); font-feature-settings: 'lnum' 1, 'tnum' 1;
   background: var(--dg-iron); border: 2px solid var(--dg-brass-dk); border-radius: 8px;
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .7), inset 0 2px 0 1px rgba(243, 211, 143, .12), 0 8px 20px rgba(0, 0, 0, .55);
 }
-.ft-command::before { content: ''; position: absolute; inset: 3px; border: 1px solid var(--dg-line); border-radius: 5px; pointer-events: none; }
-.ft-command::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: var(--dg-rivet) left 1px top 1px / 9px 9px no-repeat, var(--dg-rivet) right 1px top 1px / 9px 9px no-repeat, var(--dg-rivet) left 1px bottom 1px / 9px 9px no-repeat, var(--dg-rivet) right 1px bottom 1px / 9px 9px no-repeat; }
+.ft-command::before, .ft-fort::before { content: ''; position: absolute; inset: 3px; border: 1px solid var(--dg-line); border-radius: 5px; pointer-events: none; }
+.ft-command::after, .ft-fort::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: var(--dg-rivet) left 1px top 1px / 9px 9px no-repeat, var(--dg-rivet) right 1px top 1px / 9px 9px no-repeat, var(--dg-rivet) left 1px bottom 1px / 9px 9px no-repeat, var(--dg-rivet) right 1px bottom 1px / 9px 9px no-repeat; }
 .ft-command-structures { min-width: 0; padding-right: 10px; border-right: 1px solid var(--dg-line); }
 .ft-command .ft-hps { flex-direction: row; gap: 8px; }
 .ft-command .ft-hp { flex: 1; min-width: 0; grid-template-columns: 30px minmax(0, 1fr) auto; grid-template-areas: 'icon up pct' 'bar bar bar'; gap: 3px 4px; margin: 0; padding: 2px; border-radius: 5px; pointer-events: auto; }
@@ -286,6 +303,7 @@ button.ft-row:active { transform: translateY(1px); }
 
 @media (prefers-reduced-motion: reduce) {
   .ft-hp.is-hit, .ft-phase-timer.is-hurry > span, .ft-row.is-no, .ft-spot, .k-tile.ft-spot > .k-tile-face { animation: none !important; }
+  .ft-shield-progress i { transition: none; }
 }
 
 .ft-repair-meter{width:110px;min-width:80px}

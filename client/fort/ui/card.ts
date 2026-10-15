@@ -1,8 +1,8 @@
 // Мини-карта и колокол остаются в углу; ворота и кристалл — в общей верхней панели.
-import { TICK_RATE } from '../../../shared/constants.ts';
 import { CRYSTAL_TIERS, GATE_TIERS } from '../../../shared/fortarsenal.ts';
 import { el, setText } from './dom.ts';
 import { fortImg } from './icons.ts';
+import { shieldReadout } from './text.ts';
 
 /** Сколько держится «вздрагивание» после удара, мс */
 const HIT_MS = 650;
@@ -91,17 +91,33 @@ export class FortCard {
   readonly crystal: HpRow;
   readonly stats: HTMLElement;
   private readonly bell: HTMLElement;
+  private readonly bellLabel: HTMLElement;
+  private readonly bellProgress: HTMLElement;
   private bellKey = '';
 
   constructor(slot: HTMLElement, structures: HTMLElement) {
-    this.root = el('div', 'k-plate ft-fort');
+    this.root = el('div', 'ft-fort');
     this.root.dataset.mode = 'fort';
     const box = el('div', 'ft-map', this.root);
+    box.setAttribute('role', 'img');
+    box.setAttribute('aria-label', 'Карта крепости: север сверху, ты — стрелка, союзники — светлые точки, враги — красные, боссы — ромбы');
+    box.title = 'Север сверху · ты — стрелка · союзники — светлые точки · враги — красные · боссы — ромбы';
     this.map = el('canvas', 'ft-map-cv', box);
+    this.map.setAttribute('aria-hidden', 'true');
+    const north = el('span', 'ft-map-north', box);
+    north.textContent = 'С';
+    north.setAttribute('aria-hidden', 'true');
     const side = el('div', 'ft-hps', structures);
     this.gate = new HpRow(side, 'Ворота', 'gate', 'k-meter--mode', 'пали', GATE_TIERS);
     this.crystal = new HpRow(side, 'Кристалл', 'crystal', 'k-meter--info', 'пал', CRYSTAL_TIERS);
     this.bell = el('div', 'ft-bell', this.root);
+    this.bell.setAttribute('role', 'img');
+    this.bell.innerHTML = fortImg('shield', 'ft-shield-icon');
+    this.bellLabel = el('b', 'ft-shield-label', this.bell);
+    this.bellProgress = el('span', 'ft-shield-progress', this.bell);
+    this.bellProgress.innerHTML = '<i></i>';
+    this.bellProgress.setAttribute('aria-hidden', 'true');
+    this.bell.title = 'В бою нажми E у колокола: он защищает ворота и кристалл на 8 секунд';
     this.stats = el('div', 'k-faint ft-stats');
     this.stats.hidden = true;
     slot.append(this.root, this.stats);
@@ -109,13 +125,15 @@ export class FortCard {
 
   /** Колокол: rally — щит идёт (тики), cd — откат (тики), fight — идёт волна */
   setBell(fight: boolean, rally: number, cd: number): void {
-    const key = rally > 0 ? `r${Math.ceil(rally / TICK_RATE)}` : fight && cd > 0 ? `c${Math.ceil(cd / TICK_RATE)}` : 'ready';
+    const view = shieldReadout(fight, rally, cd);
+    const key = `${view.mode}|${view.label}`;
     if (key === this.bellKey) return;
     this.bellKey = key;
-    const icon = fortImg('bell');
-    if (rally > 0) this.bell.innerHTML = `${icon}<b class="k-gold">щит · ${Math.ceil(rally / TICK_RATE)} с</b>`;
-    else if (key !== 'ready') this.bell.innerHTML = `${icon}<span class="k-dim">колокол · ${Math.ceil(cd / TICK_RATE)} с</span>`;
-    else this.bell.innerHTML = `${icon}<b class="k-good">щит готов</b>`;
+    this.bell.dataset.state = view.mode;
+    this.root.classList.toggle('is-shielded', view.mode === 'active');
+    this.bellLabel.textContent = view.label;
+    this.bellProgress.style.setProperty('--v', view.progress.toFixed(3));
+    this.bell.setAttribute('aria-label', view.label);
   }
 
   setStats(text: string | null): void {
@@ -128,5 +146,6 @@ export class FortCard {
     this.gate.reset();
     this.crystal.reset();
     this.bellKey = '';
+    this.root.classList.remove('is-shielded');
   }
 }

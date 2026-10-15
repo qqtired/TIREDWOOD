@@ -6,6 +6,15 @@ import {
   Z_RUNNER, Z_SAPPER, Z_SHIELD, Z_SPITTER, Z_TENTACLE, Z_WALKER, Z_WEAVER,
 } from '../../../shared/fortkinds.ts';
 import { EV_FOG, EV_GOLD, EV_METEORS, EV_SUPPLY } from '../../../shared/fortwaves.ts';
+import { RALLY_COOLDOWN, RALLY_TICKS } from '../../../shared/fort.ts';
+import { TICK_RATE } from '../../../shared/constants.ts';
+
+/** Щит колокола: время и доля шкалы из тех же тиков, что управляют защитой на сервере. */
+export function shieldReadout(fight: boolean, rally: number, cooldown: number): { mode: 'ready' | 'active' | 'cooldown'; label: string; progress: number } {
+  if (rally > 0) return { mode: 'active', label: `Щит · ${Math.ceil(rally / TICK_RATE)} с`, progress: Math.min(1, rally / RALLY_TICKS) };
+  if (fight && cooldown > 0) return { mode: 'cooldown', label: `Через ${Math.ceil(cooldown / TICK_RATE)} с`, progress: Math.max(0, 1 - cooldown / RALLY_COOLDOWN) };
+  return { mode: 'ready', label: 'Щит готов', progress: 1 };
+}
 
 /** Враг → картинка (свои значки есть у всех обычных врагов и боссов; Барон — 'boss', Кракен и щупальце — 'kraken') */
 const FOE: Record<number, string> = {

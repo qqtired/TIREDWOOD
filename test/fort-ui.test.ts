@@ -1,14 +1,24 @@
 // Слова интерфейса «Крепости» на ките (client/fort/ui/text.ts): тревога → тост с картинкой, откуда идёт волна.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { alarmText, capFirst, nickTone, roadsText, sec1 } from '../client/fort/ui/text.ts';
+import { alarmText, capFirst, nickTone, roadsText, sec1, shieldReadout } from '../client/fort/ui/text.ts';
 import { bossMaxHp, WaveCountdown } from '../client/fort/ui/schedule.ts';
-import { FT_BREAK, FT_END, FT_GATHER } from '../shared/fort.ts';
+import { FT_BREAK, FT_END, FT_GATHER, RALLY_COOLDOWN, RALLY_TICKS } from '../shared/fort.ts';
+import { TICK_RATE } from '../shared/constants.ts';
 import { TopCenterModel } from '../client/ui/kit/topcenter.ts';
 import { FEATURES, planWave } from '../server/fort/director.ts';
 import { KRAKEN_HEAD_BASE_HP, bossHp, krakenHp } from '../shared/fortwaves.ts';
 import { Z_GOLEM, Z_KRAKEN } from '../shared/fortkinds.ts';
 import { siegeBossNumber } from '../shared/fortsiege.ts';
+
+test('щит: готовность, время действия и восстановление читаются из серверных тиков', () => {
+  assert.deepEqual(shieldReadout(true, 0, 0), { mode: 'ready', label: 'Щит готов', progress: 1 });
+  assert.deepEqual(shieldReadout(true, RALLY_TICKS / 2, RALLY_COOLDOWN), { mode: 'active', label: 'Щит · 4 с', progress: 0.5 });
+  assert.deepEqual(shieldReadout(true, 0, RALLY_COOLDOWN / 2), { mode: 'cooldown', label: 'Через 15 с', progress: 0.5 });
+  assert.equal(shieldReadout(true, 0, TICK_RATE + 1).label, 'Через 2 с');
+  assert.equal(shieldReadout(true, 0, RALLY_COOLDOWN * 2).progress, 0);
+  assert.deepEqual(shieldReadout(false, 0, RALLY_COOLDOWN), { mode: 'ready', label: 'Щит готов', progress: 1 }, 'в передышке откат не показываем');
+});
 
 test('дуга отсчёта убывает с текущей паузой, включая сокращение колоколом', () => {
   const clock = new WaveCountdown();
