@@ -8,7 +8,7 @@ import {
   applyEvent, beamDir, createRun, dgHash, dgResult, DG_DATA, orbCount, orbPos, step, wstats,
   type DgBoss, type DgCard, type DgFx, type DgMob, type DgProp, type DgSim,
 } from '../../shared/dungeon/sim.ts';
-import { evoOf } from '../../shared/dungeon/data.ts';
+import { evoOf, mobDef } from '../../shared/dungeon/data.ts';
 import { earnedXp } from '../../shared/dungeon/progress.ts';
 import { expansionKind } from '../../shared/dungeon/expansion.ts';
 import { KVASHNYA_TIMING } from '../../shared/dungeon/kvashnya-state.ts';
@@ -543,6 +543,9 @@ export class SimRun implements RunSource {
       }
       enemies.push({
         id: m.id, kind: m.k as MobKind, x: m.x, z: m.z, yaw: Math.atan2(m.dx, m.dz), hp: m.hp, hpMax: m.hpMax,
+        storedXp: m.k === 'hapuga' ? m.storedXp ?? 0 : undefined,
+        hoardXp: m.k === 'hapuga' ? earnedXp(sim, m.storedXp ?? 0) : undefined,
+        hoardFill: m.k === 'hapuga' ? Math.min(1, (m.storedXp ?? 0) / mobDef('hapuga').collect!.capacity) : undefined,
         act, actAt: act === ACT_ATTACK ? t - (m.id % 9) : m.stT, elite: m.elite === 1,
         anim: authoredElite ? eliteAnim : m.k === 'shroom_bud' ? 'idle' : m.k === 'kvashnya' ? (Math.abs(m.vx) + Math.abs(m.vz) > 0.3 ? 'walk' : 'idle') : expansionKind(m.k) ? (m.attackKind === 'recover' ? 'recover' : m.attackKind === 'attack' ? 'attack' : Math.abs(m.vx) + Math.abs(m.vz) > 0.3 ? 'walk' : 'idle') : undefined,
         animTime: authoredElite ? eliteTime : undefined,

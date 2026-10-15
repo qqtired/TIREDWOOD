@@ -241,6 +241,9 @@ export const A_STAR = 25;
 export const A_SPARK = 26;
 export const A_RING = 27;
 export const A_BAR = 28;
+export const A_HOARD = 29;
+export const A_XP = 30;
+export const A_LESS = 11;
 export const ICONS: Record<string, number> = { stew: 16, magnet: 17, keg: 18, hourglass: 19, chest: 20, skull: 21, heart: 22, bolt: 23 };
 const ICON_GLYPH = ['🍲', '🧲', '🛢️', '⏳', '🎁', '💀', '❤️', '⚡'];
 
@@ -264,6 +267,15 @@ function makeAtlas(): THREE.CanvasTexture {
     g.strokeText(ch, x, y);
     g.fillStyle = '#fff';
     g.fillText(ch, x, y);
+  }
+  // Reward label reuses the existing atlas and billboard batch.
+  for (const [i, text, size] of [[A_HOARD, 'В МЕШКЕ', 14], [A_XP, 'XP', 34], [A_LESS, '<', 48]] as const) {
+    const x = (i % 8) * S + S / 2, y = Math.floor(i / 8) * S + S / 2 + 2;
+    g.font = '900 ' + size + 'px Rubik, system-ui, sans-serif';
+    g.lineWidth = size > 20 ? 6 : 2;
+    g.strokeStyle = 'rgba(30,12,20,0.95)';
+    g.strokeText(text, x, y);
+    g.fillStyle = '#fff'; g.fillText(text, x, y);
   }
   g.font = '44px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
   ICON_GLYPH.forEach((ch, k) => {

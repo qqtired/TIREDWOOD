@@ -50,7 +50,7 @@ export interface MobDef {
   summon?: { every: number; warn: number; mob: MobKind; n: number };
   interrupt?: number;
   grow?: { every: number; release: number; duration: number; mature: number; n: number };
-  collect?: { duration: number; scoop: number; deposit: number; radius: number; capacity: number };
+  collect?: { duration: number; scoop: number; deposit: number; radius: number; capacity: number; search: number; approach: number; fullSpeed: number };
   jab?: { wind: number; impact: number; duration: number; range: number; width: number };
   hook?: { every: number; impact: number; recover: number; radius: number; dmg: number; right: number; forward: number };
   plant?: { every: number; impact: number; recover: number; fuse: number; radius: number; dmg: number; right: number; forward: number };

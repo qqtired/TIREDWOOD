@@ -158,6 +158,8 @@ export interface HudArrow {
   angle: number;
   /** до цели, м */
   dist: number;
+  /** Hero-adjusted XP carried by a loaded Hapuga. */
+  hoardXp?: number;
 }
 
 /** Радар (рисуется 10–15 раз в секунду): всё в метрах от героя, x — вправо, z — вниз экрана */

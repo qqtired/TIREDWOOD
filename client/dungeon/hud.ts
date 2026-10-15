@@ -1259,10 +1259,12 @@ export class DungeonHud implements DungeonHudApi {
       e.tx = x;
       e.ty = y;
       const d = Math.round(a.dist);
-      if (d !== e.d) {
-        e.d = d;
-        e.dist.textContent = `${d} м`;
-      }
+      const xp = a.hoardXp === undefined ? null : a.hoardXp < 1 ? '<1' : String(Math.floor(a.hoardXp));
+      const label = xp === null ? `${d} м` : `${xp} XP · ${d} м`;
+      if (e.dist.textContent !== label) e.dist.textContent = label;
+      e.d = d;
+      const title = xp === null ? POI[a.kind].name : `Хапуга: в мешке ${xp} XP`;
+      if (e.root.title !== title) e.root.title = title;
       e.tip.style.transform = `rotate(${a.angle.toFixed(3)}rad)`;
       placed.push(e);
     }

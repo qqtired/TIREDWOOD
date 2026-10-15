@@ -29,6 +29,10 @@ export interface VEnemy {
   /** с какого шага идёт act (для фазы разового клипа) */
   actAt: number;
   elite: boolean;
+  /** Raw XP retained by Hapuga; display uses the hero-adjusted reward below. */
+  storedXp?: number;
+  hoardXp?: number;
+  hoardFill?: number;
   /** озверение 0…3 (пережил конец волны); дробная часть — вспышка в момент озверения */
   rage?: number;
   anim?: 'idle'|'walk'|'attack'|'windup'|'recover'|'collect'|'spill'|'plant';

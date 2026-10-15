@@ -26,27 +26,27 @@ const total=(s:ReturnType<typeof createRun>)=>s.gems.reduce((a,g)=>a+g.v,0)+s.mo
 function collect(s:ReturnType<typeof createRun>,m:ReturnType<typeof makeMob>){eliteAi(s,m,12,1,0);assert.equal(m.attackKind,'collect');s.t+=30;eliteAi(s,m,12,1,0);}
 
 test('Hapuga caps raw XP, splits large gems, ignores flying gems and returns exact raw XP',()=>{
-  const {s,m}=fixture();dropGem(s,m.x+.2,m.z,40);dropGem(s,m.x,m.z,9);s.gems[1].fly=1;
-  collect(s,m);assert.equal(m.storedXp,25);assert.equal(total(s),49);assert.equal(s.gems[0].v,15);assert.equal(s.gems[1].v,9);
-  spillHoard(s,m);assert.equal(m.storedXp,0);assert.equal(total(s),49);spillHoard(s,m);assert.equal(total(s),49);
+  const {s,m}=fixture();dropGem(s,m.x+.2,m.z,650);dropGem(s,m.x,m.z,9);s.gems[1].fly=1;
+  collect(s,m);assert.equal(m.storedXp,600);assert.equal(total(s),659);assert.equal(s.gems[0].v,50);assert.equal(s.gems[1].v,9);
+  spillHoard(s,m);assert.equal(m.storedXp,0);assert.equal(total(s),659);spillHoard(s,m);assert.equal(total(s),659);
   s.hero.x=m.x;s.hero.z=m.z;s.passives=[{id:'magnet',lv:3}];stepPickups(s);
-  assert.equal(s.hero.xp,earnedXp(s,49));assert.equal(s.gems.length,0);
+  assert.equal(s.hero.xp,earnedXp(s,659));assert.equal(s.gems.length,0);
 });
 
 test('death and merge cap preserve hoarded XP, no double spill or disappearing carryover',()=>{
-  const {s,m}=fixture();m.storedXp=25;
+  const {s,m}=fixture();m.storedXp=600;
   for(let i=0;i<D.xp.mergeOver;i++)s.gems.push({id:s.nextId++,x:m.x+20,z:m.z,v:1,fly:0});
   const before=total(s);hurtMob(s,m,10000,'test',m.x,m.z,0,0,0);
   assert.equal(total(s),before+mobDef('hapuga').xp);assert.equal(m.storedXp,0);
-  assert.ok(s.gems.some(g=>g.x===m.x&&g.v>=25));spillHoard(s,m);assert.equal(total(s),before+40);
+  assert.ok(s.gems.some(g=>g.x===m.x&&g.v>=600));spillHoard(s,m);assert.equal(total(s),before+40);
   const f=fixture();f.m.storedXp=18;startWave(f.s,10);assert.equal(f.m.storedXp,18);assert.equal(f.m.die,0);
 });
 
 test('only full Q within its actual radius spills XP; tap and distant full Q do not',()=>{
-  for(const [full,distance,expected] of [[false,2,20],[true,2,0],[true,20,20]] as const){
-    const {s,m}=fixture();m.storedXp=20;s.hero.x=m.x+distance;buildGrid(s);
+  for(const [full,distance,expected] of [[false,2,600],[true,2,0],[true,20,600]] as const){
+    const {s,m}=fixture();m.storedXp=600;s.hero.x=m.x+distance;buildGrid(s);
     s.hero.qHold=full?s.hero.qFull:2;s.in.q=0;s.in.qPress=0;stepHero(s);
-    assert.equal(m.storedXp,expected);assert.equal(total(s),20);assert.equal(m.die,0);
+    assert.equal(m.storedXp,expected);assert.equal(total(s),600);assert.equal(m.die,0);
   }
 });
 
@@ -119,4 +119,64 @@ test('full Q spill cancels jab permanently even when stun holds the source on it
 test('stun never revives an expired jab even without hoarded XP',()=>{
  const {s,m}=fixture();s.hero.x=m.x+1.5;eliteAi(s,m,1.5,1,0);const mk=s.marks[0];
  s.t=mk.t1+1;const expired=mk.t1;m.stunT=s.t+20;buildGrid(s);stepMobs(s);assert.equal(mk.t1,expired);
+});
+
+// Exercise the actual step order (AI -> knockback/crowd -> pickups), not only direct AI calls.
+function huntingFixture(){
+ const f=fixture();let found=false;
+ outer:for(let x=20;x<220;x+=4){candidate:for(let z=12;z<228;z+=4){
+   for(let dx=-12;dx<=12;dx+=2)for(let dz=-3;dz<=3;dz+=1.5)if(blocked(x+dx,z+dz,1))continue candidate;
+   f.m.x=x;f.m.z=z;found=true;break outer;
+ }}
+ assert.ok(found,'open corridor fixture');f.s.hero.x=f.m.x+12;f.s.hero.z=f.m.z;f.s.hero.invT=1e9;return f;
+}
+function advance(s:ReturnType<typeof createRun>,n:number){for(let i=0;i<n;i++)step(s);}
+
+test('sparse XP away from hero is collected through actual movement without false stuck kicks',()=>{
+ const {s,m}=huntingFixture();const x=m.x;for(const dx of [-1,-4,-7,-10])dropGem(s,x+dx,m.z,1);
+ advance(s,900);assert.equal(m.storedXp,4);assert.equal(total(s),4);assert.equal(s.hero.xp,0);
+});
+
+test('dense scattered XP is collected in a crowd and conserved in a thirty second run',()=>{
+ const {s,m}=huntingFixture();
+ for(let i=0;i<80;i++)dropGem(s,m.x-5+(i%8)*.35,m.z-1+Math.floor(i/8)*.2,1);
+ for(let i=0;i<12;i++){const a=i*Math.PI/6,r=makeMob(s,'rat',m.x+Math.cos(a)*1.2,m.z+Math.sin(a)*1.2,1,1,0);r.stunT=10000;}
+ advance(s,900);assert.ok((m.storedXp??0)>=60,String(m.storedXp));assert.equal(total(s),80);
+});
+
+test('a valuable reachable cluster wins over a lone nearest crumb and faces its loot',()=>{
+ const {s,m}=huntingFixture();dropGem(s,m.x+.5,m.z,1);dropGem(s,m.x-8,m.z,100);
+ eliteAi(s,m,12,1,0);assert.equal(m.huntGem,s.gems[1].id);assert.ok(m.vx<0);assert.equal(m.attackKind,undefined);
+ m.x-=6;eliteAi(s,m,18,1,0);assert.equal(m.attackKind,'collect');assert.ok(m.dx<0);
+});
+
+test('empty scoop aborts in one second plus short recovery, never plays a deposit',()=>{
+ const {s,m}=fixture();dropGem(s,m.x,m.z,10);eliteAi(s,m,12,1,0);s.gems=[];s.t+=30;eliteAi(s,m,12,1,0);
+ assert.equal(m.attackKind,'recover');assert.equal(m.attackStep,-1);assert.equal(m.storedXp,0);
+ s.t+=6;eliteAi(s,m,12,1,0);assert.equal(m.attackAt,undefined);assert.equal(s.fx.some(f=>f.k==='atk'&&f.what==='collect_deposit'),false);
+});
+
+test('same-tick hero attraction and flying gems are ineligible at both selection and scoop',()=>{
+ const {s,m}=fixture();s.hero.x=m.x+3;dropGem(s,m.x+1,m.z,100);dropGem(s,m.x-1,m.z,100);s.gems[1].fly=1;
+ eliteAi(s,m,3,1,0);assert.notEqual(m.attackKind,'collect');assert.equal(m.huntGem,0);
+ m.attackAt=s.t-30;m.attackKind='collect';m.attackStep=0;eliteAi(s,m,3,1,0);assert.equal(m.storedXp,0);assert.equal(total(s),200);
+});
+
+test('full bag retreats at catchable speed and remains present across waves',()=>{
+ const {s,m}=huntingFixture();m.storedXp=600;s.hero.x=m.x+5;eliteAi(s,m,5,1,0);
+ assert.equal(m.spd,2.6);assert.ok(m.vx<0);assert.ok(Math.hypot(m.vx,m.vz)<=2.600001);
+ advance(s,90);assert.equal(m.die,0);assert.equal(m.storedXp,600);assert.ok(m.x<s.hero.x-5);
+ startWave(s,12);assert.equal(m.die,0);assert.equal(m.storedXp,600);
+});
+
+test('loot cache is replay-visible and freeze pauses its countdown',()=>{
+ const {s,m}=huntingFixture();dropGem(s,m.x-8,m.z,30);eliteAi(s,m,12,1,0);
+ const copy=structuredClone(s),h=dgHash(s);copy.mobs[0].huntGem=0;assert.notEqual(dgHash(copy),h);
+ const copy2=structuredClone(s);copy2.mobs[0].huntScan=(copy2.mobs[0].huntScan??0)-1;assert.notEqual(dgHash(copy2),h);
+ const scan=m.huntScan;s.freezeT=s.t+20;buildGrid(s);stepMobs(s);assert.equal(m.huntScan,scan);
+});
+
+test('bag speed preserves rage without compounding it across AI ticks',()=>{
+ const {s,m}=huntingFixture();m.storedXp=600;m.rage=3;s.hero.x=m.x+5;
+ for(let i=0;i<20;i++)eliteAi(s,m,5,1,0);assert.ok(Math.abs(m.spd-2.6*1.3)<1e-9);assert.ok(m.spd<D.hero.speed);
 });

@@ -218,7 +218,7 @@ export function stepMobs(sim: DgSim): void {
           vz = oz * m.spd;
       }
       // проверка «застрял»: 1 с не приближается — толчок вбок
-      if (!flying && sim.t - m.chkT >= 30) {
+      if (m.k !== 'hapuga' && !flying && sim.t - m.chkT >= 30) {
         if (d > 3 && d > m.chkD - 0.3 && m.st === 'walk') {
           const sgn = m.id & 1 ? 1 : -1;
           m.kx += -oz * sgn * 3 * KB_V * 0.5;

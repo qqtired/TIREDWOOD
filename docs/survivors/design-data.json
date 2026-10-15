@@ -1407,7 +1407,7 @@
       "tier": "elite",
       "hp": 850,
       "waveBudgetHp": 600,
-      "speed": 2.35,
+      "speed": 3.2,
       "dmg": 14,
       "xp": 40,
       "radius": 0.75,
@@ -1416,8 +1416,11 @@
         "duration": 4,
         "scoop": 1,
         "deposit": 2.6666666666666665,
-        "radius": 1.5,
-        "capacity": 25
+        "radius": 4,
+        "capacity": 600,
+        "search": 30,
+        "approach": 2.8,
+        "fullSpeed": 2.6
       },
       "jab": {
         "wind": 1,

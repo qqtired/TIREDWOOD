@@ -12,7 +12,7 @@ import { BossView } from './boss.ts';
 import { BuildingRenderer } from './buildings.ts';
 import { BuildingZones } from './zones.ts';
 import { BOSS_NAME, WEAPONS, plural } from './data.ts';
-import { A_BAR, A_SOFT, A_SPARK, A_STAR, Billboards, D_BEAM, D_CONE, D_PUDDLE, D_RING, D_SHADOW, D_SOFT, D_SPLAT, D_TCIRCLE, D_TSECTOR, D_TSTRIP, FloorDecals, FxPool, ICONS } from './fx.ts';
+import { A_HOARD, A_XP, A_LESS, A_BAR, A_SOFT, A_SPARK, A_STAR, Billboards, D_BEAM, D_CONE, D_PUDDLE, D_RING, D_SHADOW, D_SOFT, D_SPLAT, D_TCIRCLE, D_TSECTOR, D_TSTRIP, FloorDecals, FxPool, ICONS } from './fx.ts';
 import { HeroView } from './hero.ts';
 import { EvolutionRenderer } from './evolutions.ts';
 import { DungeonHud } from './hud.ts';
@@ -1016,6 +1016,9 @@ export class DungeonGame {
         this.decN.add(X(x), 0.02, Z(z), r * 1.7, r * 1.7, 0, D_SHADOW, 0, 0, 0.02, 0.01, 0.02, 0.85);
         // светящиеся глаза у края экрана (сиреневые точки) — элите ореол
         if (e.elite) this.decA.add(X(x), 0.05, Z(z), 2.4, 2.4, 0, D_SOFT, 1.6, 0, 0.55, 0.25, 0.8, 0.5);
+        if (e.kind === 'hapuga' && (e.storedXp ?? 0) > 0) {
+          this.drawHoard(X(x), this.mobs.height(e.kind) * s + .35 - .4 * (1 - born), Z(z), e.hoardXp ?? 0, e.hoardFill ?? 0, born);
+        }
         const hp = eliteHpFraction(e);
         if (hp !== null) {
           const lift = e.kind === 'kvashnya' ? this.mobs.bodyLift(e.kind, key, t) * s : 0;
@@ -1269,6 +1272,32 @@ export class DungeonGame {
     if (v) this.hudFrame(v, now);
   }
 
+  /** Fixed screen size keeps the reward legible; the bottom stays 8px above the HP bar. */
+  private drawHoard(x: number, y: number, z: number, xp: number, fill: number, alpha: number): void {
+    const right = this.bbN.mat.uniforms.uRight.value as THREE.Vector3;
+    const up = this.bbN.mat.uniforms.uUp.value as THREE.Vector3;
+    const ce = this.camera.matrixWorld.elements;
+    const depth = (this.camera.position.x - x) * ce[8] + (this.camera.position.y - y) * ce[9] + (this.camera.position.z - z) * ce[10];
+    const px = 2 * Math.max(1, depth) * Math.tan(this.camera.fov * Math.PI / 360) / (this.vh * 2);
+    const add = (dx: number, dy: number, w: number, h: number, cell: number, r: number, g: number, b: number, a = alpha): void => {
+      this.bbN.add(x + (right.x * dx + up.x * dy) * px, y + (right.y * dx + up.y * dy) * px,
+        z + (right.z * dx + up.z * dy) * px, w * px, h * px, 0, cell, r, g, b, a);
+    };
+    // Same warm dark backing and amber reward color as existing dungeon effects.
+    const full = fill >= .999;
+    add(0, 30, 80, 42, A_BAR, 1, .75, .3, alpha * (full ? .95 : .65));
+    add(0, 30, 77, 39, A_BAR, .09, .07, .06, alpha * .96);
+    add(0, 40, 66, 64, A_HOARD, 1, .85, .55);
+    const chars = xp < 1 ? '<1' : String(Math.floor(xp));
+    const width = chars.length * 10 + 22;
+    for (let i = 0; i < chars.length; i++) {
+      add(-width / 2 + 5 + i * 10, 23, 18, 18, chars[i] === '<' ? A_LESS : Number(chars[i]), 1, .85, .4);
+    }
+    add(width / 2 - 9, 23, 22, 30, A_XP, 1, .85, .4);
+    add(0, 12, 66, 2, A_BAR, .3, .22, .12);
+    if (fill > 0) add(-33 * (1 - fill), 12, 66 * fill, 2, A_BAR, 1, .75, .3);
+  }
+
   private drawNumber(x: number, y: number, z: number, n: number, big: boolean, r: number, g: number, b: number, a: number): void {
     const s = String(n);
     const w = big ? 0.62 : 0.4;
@@ -1354,13 +1383,15 @@ export class DungeonGame {
   private arrows(v: DgView): HudArrow[] {
     const hx = v.hero.x;
     const hz = v.hero.z;
-    type Cand = { id: string; kind: HudPoiKind; x: number; z: number; pr: number; d: number };
+    type Cand = { id: string; kind: HudPoiKind; x: number; z: number; pr: number; d: number; hoardXp?: number };
     const cands: Cand[] = [];
     const dist = (x: number, z: number): number => Math.hypot(wrap(x - hx), wrap(z - hz));
     const hp01 = v.hero.hp / Math.max(1, v.hero.hpMax);
     for (const b of v.bosses) if (b.anim !== 'under') cands.push({ id: `boss${b.id}`, kind: 'boss', x: b.x, z: b.z, pr: 0, d: dist(b.x, b.z) });
-    const elites = v.enemies.filter((e) => e.elite).map((e) => ({ e, d: dist(e.x, e.z) })).sort((a, b) => a.d - b.d).slice(0, 2);
-    for (const { e, d } of elites) cands.push({ id: `e${e.id}`, kind: 'elite', x: e.x, z: e.z, pr: 1, d });
+    const loadedHapuga = (e: DgView['enemies'][number]): boolean => e.kind === 'hapuga' && (e.storedXp ?? 0) > 0;
+    const elites = v.enemies.filter((e) => e.elite).map((e) => ({ e, d: dist(e.x, e.z) }))
+      .sort((a, b) => Number(loadedHapuga(b.e)) - Number(loadedHapuga(a.e)) || a.d - b.d).slice(0, 2);
+    for (const { e, d } of elites) cands.push({ id: `e${e.id}`, kind: 'elite', x: e.x, z: e.z, pr: 1, d, hoardXp: loadedHapuga(e) ? e.hoardXp : undefined });
     let chest: Cand | null = null;
     for (const p of v.pickups) {
       if (p.kind !== 'chest') continue;
@@ -1389,7 +1420,7 @@ export class DungeonGame {
       if (!cur || d < cur.d) best.set(r[0], { id: `b${b.id}`, kind: r[0], x: b.x, z: b.z, pr: r[1], d });
     }
     cands.push(...best.values());
-    cands.sort((a, b) => a.pr - b.pr || a.d - b.d);
+    cands.sort((a, b) => a.pr - b.pr || Number(b.hoardXp !== undefined) - Number(a.hoardXp !== undefined) || a.d - b.d);
     // на экране или нет и направление от центра кадра
     const cam = this.camera;
     const vec = this.tmpV;
@@ -1408,7 +1439,7 @@ export class DungeonGame {
       const n = Math.hypot(dx, dz) || 1;
       vec.set(lookX + (dx / n) * 8, 0, lookZ + (dz / n) * 8).project(cam);
       const angle = Math.atan2(-(vec.y - c0y) * this.vh, (vec.x - c0x) * this.vw);
-      out.push({ id: c.id, kind: c.kind, angle, dist: c.d });
+      out.push({ id: c.id, kind: c.kind, angle, dist: c.d, hoardXp: c.hoardXp });
     }
     return out;
   }

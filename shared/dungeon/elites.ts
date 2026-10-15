@@ -1,9 +1,10 @@
 // Хапуга и Грибовод: перенос уже лежащего опыта и конечный бюджет видимых ростков.
 import { fx, makeMob, newId, hasBuff } from './core.ts';
 import { mobDef, mobIndex } from './data.ts';
-import { addMark, addContactMark, canSpawn } from './mobs.ts';
+import { addMark, addContactMark, canSpawn, rageRule } from './mobs.ts';
 import { blocked } from './map.ts';
-import type { DgMob, DgSim } from './types.ts';
+import { pickupRadius } from './pickups.ts';
+import type { DgGem, DgMob, DgSim } from './types.ts';
 import { ticks, wrapD, wrapP } from './util.ts';
 
 /** Значения gem.v ещё без gainMul/Подковы: возвращаем точно их, без повторного начисления. */
@@ -32,20 +33,92 @@ function finish(sim:DgSim,m:DgMob):void {
   m.attackAt=sim.t; m.attackKind='recover'; m.st='rest'; m.stT=sim.t; m.attackStep=0;
 }
 
-function scoop(sim:DgSim,m:DgMob):void {
-  if (hasBuff(sim, 'pull')) return;
+function scoop(sim:DgSim,m:DgMob):number {
+  if (hasBuff(sim, 'pull')) return 0;
   const c=mobDef('hapuga').collect!;
   let left=c.capacity-(m.storedXp??0);
   // Nearest first; stable id tie-break avoids array-order changes selecting another crystal.
-  const eligible=sim.gems.filter(g=>!g.fly && wrapD(g.x-m.x)**2+wrapD(g.z-m.z)**2<=c.radius**2)
+  const pr=pickupRadius(sim);
+  const eligible=sim.gems.filter(g=>loose(sim,g,pr) && wrapD(g.x-m.x)**2+wrapD(g.z-m.z)**2<=c.radius**2 && clearLine(m.x,m.z,g.x,g.z,.12))
     .sort((a,b)=>(wrapD(a.x-m.x)**2+wrapD(a.z-m.z)**2)-(wrapD(b.x-m.x)**2+wrapD(b.z-m.z)**2)||a.id-b.id);
+  let collected=0;
   for(const g of eligible){
     if(left<=0)break;
-    const n=Math.min(left,g.v); g.v-=n; left-=n; m.storedXp=(m.storedXp??0)+n;
+    const n=Math.min(left,g.v); g.v-=n; left-=n; collected+=n; m.storedXp=(m.storedXp??0)+n;
     fx(sim,{k:'hoard',id:m.id,x:g.x,z:g.z,n});
   }
   sim.gems=sim.gems.filter(g=>g.v>0);
-  fx(sim,{k:'atk',id:m.id,what:'collect_scoop'});
+  if(collected>0)fx(sim,{k:'atk',id:m.id,what:'collect_scoop'});
+  m.huntGem=0;m.huntScan=0;
+  return collected;
+}
+
+/** Same-tick magnet eligibility matters: pickups are stepped AFTER mob AI. */
+function loose(sim:DgSim,g:DgGem,pr:number):boolean {
+  return !g.fly && g.v>0 && wrapD(g.x-sim.hero.x)**2+wrapD(g.z-sim.hero.z)**2>=pr*pr;
+}
+function clearLine(x:number,z:number,tx:number,tz:number,r:number):boolean {
+  const dx=wrapD(tx-x),dz=wrapD(tz-z),n=Math.max(1,Math.ceil(Math.hypot(dx,dz)/.6));
+  for(let i=1;i<=n;i++)if(blocked(wrapP(x+dx*i/n),wrapP(z+dz*i/n),r))return false;
+  return true;
+}
+function reachable(m:DgMob,g:DgGem):boolean {
+  const dx=wrapD(g.x-m.x),dz=wrapD(g.z-m.z),d=Math.hypot(dx,dz),f=d>2?(d-2)/d:0;
+  // Body needs room to approach; the final short scoop must not pass through a wall.
+  return clearLine(m.x,m.z,wrapP(m.x+dx*f),wrapP(m.z+dz*f),m.r) &&
+    clearLine(wrapP(m.x+dx*f),wrapP(m.z+dz*f),g.x,g.z,.12);
+}
+
+/** One scan per .5 active seconds, at most twelve clusters evaluated against the gem list. */
+function chooseLoot(sim:DgSim,m:DgMob,pr:number):DgGem|undefined {
+  const c=mobDef('hapuga').collect!;
+  const looseGems=sim.gems.filter(g=>loose(sim,g,pr)&&wrapD(g.x-m.x)**2+wrapD(g.z-m.z)**2<c.search**2);
+  const buckets=new Map<string,{gem:DgGem,value:number,d:number}>();
+  for(const g of looseGems){
+    const dx=wrapD(g.x-m.x),dz=wrapD(g.z-m.z),key=Math.floor(dx/4)+','+Math.floor(dz/4),d=dx*dx+dz*dz;
+    const b=buckets.get(key);
+    if(b){b.value+=g.v;if(g.v>b.gem.v || g.v===b.gem.v&&g.id<b.gem.id){b.gem=g;b.d=d;}}
+    else buckets.set(key,{gem:g,value:g.v,d});
+  }
+  const candidates=[...buckets.values()].sort((a,b)=>b.value/(1+Math.sqrt(b.d)/20)-a.value/(1+Math.sqrt(a.d)/20)||a.gem.id-b.gem.id).slice(0,12);
+  let best:DgGem|undefined,score=-1;
+  for(const b of candidates){
+    if(!reachable(m,b.gem))continue;
+    let value=0;
+    for(const g of looseGems)if(wrapD(g.x-b.gem.x)**2+wrapD(g.z-b.gem.z)**2<=c.radius**2)value+=g.v;
+    const rank=Math.min(c.capacity-(m.storedXp??0),value)/(1+Math.sqrt(b.d)/20);
+    if(rank>score){score=rank;best=b.gem;}
+  }
+  return best;
+}
+
+/** Short deterministic obstacle probes; no hero-distance stuck kicks for a forager. */
+function steer(m:DgMob,ox:number,oz:number):void {
+  const side=m.id&1?1:-1;
+  for(const angle of [0,side*Math.PI/4,-side*Math.PI/4,side*Math.PI/2,-side*Math.PI/2]){
+    const c=Math.cos(angle),s=Math.sin(angle),x=ox*c-oz*s,z=ox*s+oz*c;
+    if(!clearLine(m.x,m.z,wrapP(m.x+x*1.1),wrapP(m.z+z*1.1),m.r))continue;
+    m.vx=x*m.spd;m.vz=z*m.spd;return;
+  }
+}
+
+/** true means loot owns this tick; false leaves only the close defensive jab / retreat. */
+function hunt(sim:DgSim,m:DgMob):boolean {
+  const def=mobDef('hapuga'),c=def.collect!,fill=Math.min(1,(m.storedXp??0)/c.capacity);
+  m.spd=(def.speed+(c.fullSpeed-def.speed)*fill)*(1+rageRule().speed*m.rage);
+  if(hasBuff(sim,'pull')||fill>=1){m.huntGem=0;m.huntScan=0;return false;}
+  const pr=pickupRadius(sim);
+  if((m.huntScan??0)>0)m.huntScan=(m.huntScan??0)-1;
+  let target=m.huntGem?sim.gems.find(g=>g.id===m.huntGem):undefined;
+  if(target&&!loose(sim,target,pr)){target=undefined;m.huntGem=0;m.huntScan=0;}
+  if(!m.huntScan){target=chooseLoot(sim,m,pr);m.huntGem=target?.id??0;m.huntScan=15;}
+  if(!target)return false;
+  const dx=wrapD(target.x-m.x),dz=wrapD(target.z-m.z),d=Math.hypot(dx,dz);
+  if(d<=c.approach&&clearLine(m.x,m.z,target.x,target.z,.12)){
+    begin(sim,m,'collect',d>1e-6?dx/d:m.dx,d>1e-6?dz/d:m.dz);return true;
+  }
+  steer(m,dx/(d||1),dz/(d||1));
+  return true;
 }
 
 function plant(sim:DgSim,m:DgMob):void {
@@ -88,13 +161,16 @@ export function eliteAi(sim:DgSim,m:DgMob,d:number,ox:number,oz:number):void {
   if(m.attackAt!==undefined){
     const age=sim.t-m.attackAt;
     if(m.attackKind==='recover'){
-      if(age>=ticks(.6)){m.attackAt=undefined;m.attackKind=undefined;m.st='walk';m.stT=sim.t;}
+      if(age>=ticks(m.k==='hapuga'&&m.attackStep===-1?.2:.6)){m.attackAt=undefined;m.attackKind=undefined;m.st='walk';m.stT=sim.t;}
       return;
     }
     if(m.attackKind==='spill'){if(age>=ticks(58/24))finish(sim,m);return;}
     if(m.attackKind==='collect'){
       const c=def.collect!;
-      if(m.attackStep===0&&age>=ticks(c.scoop)){scoop(sim,m);m.attackStep=1;}
+      if(m.attackStep===0&&age>=ticks(c.scoop)){
+        if(scoop(sim,m)===0){finish(sim,m);m.attackStep=-1;m.huntGem=0;m.huntScan=0;return;}
+        m.attackStep=1;
+      }
       if(m.attackStep===1&&age>=ticks(c.deposit)){m.attackStep=2;fx(sim,{k:'atk',id:m.id,what:'collect_deposit'});}
       if(age>=ticks(c.duration))finish(sim,m);
     }else if(m.attackKind==='plant'){
@@ -109,6 +185,8 @@ export function eliteAi(sim:DgSim,m:DgMob,d:number,ox:number,oz:number):void {
     return;
   }
   if(m.cd>0)m.cd--;if(m.cd2>0)m.cd2--;
+  // Foragers choose loot before defending themselves. Gribovod's priority is unchanged.
+  if(m.k==='hapuga'&&hunt(sim,m))return;
   if(d<jab.range+.3&&m.cd===0){
     // Aim the real offset tool tip at the hero, then lock body yaw for the whole clip.
     const right=m.k==='hapuga'?-.48:-.67,forward=m.k==='hapuga'?1.4508:1.52849;
@@ -125,16 +203,8 @@ export function eliteAi(sim:DgSim,m:DgMob,d:number,ox:number,oz:number):void {
     return;
   }
   if(m.k==='hapuga'){
-    let nearest=null,bd=18**2;
-    if(!hasBuff(sim,'pull')&&(m.storedXp??0)<def.collect!.capacity)for(const g of sim.gems){
-      if(g.fly)continue;const dd=wrapD(g.x-m.x)**2+wrapD(g.z-m.z)**2;
-      if(dd<bd){bd=dd;nearest=g;}
-    }
-    if(nearest){
-      if(bd<=def.collect!.radius**2){begin(sim,m,'collect',ox,oz);return;}
-      const distance=Math.sqrt(bd);ox=wrapD(nearest.x-m.x)/distance;oz=wrapD(nearest.z-m.z)/distance;
-    }
-    m.vx=ox*m.spd;m.vz=oz*m.spd;
+    // No loose XP: keep a catchable distance instead of walking into the hero.
+    if(d<12)steer(m,-ox,-oz);
   }else{
     if(m.cd2===0&&sim.wave.pend[mobIndex('shroom')]>0&&canSpawn(sim,'shroom_bud')&&
       sim.mobs.filter(b=>!b.die&&b.k==='shroom_bud'&&b.budOwner===m.id).length<def.grow!.n){begin(sim,m,'plant',ox,oz);return;}

@@ -95,6 +95,9 @@ export interface DgMob {
   curse: number;
   /** Полный цикл новой атаки: клиент не перезапускает клип при impact/recover. */
   storedXp?: number;
+  /** Хапуга: cached gem id and remaining active ticks before bounded cluster scan. */
+  huntGem?: number;
+  huntScan?: number;
   spillAt?: number;
   budOwner?: number;
   budMatureAt?: number;
