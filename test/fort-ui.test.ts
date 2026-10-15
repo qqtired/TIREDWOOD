@@ -2,12 +2,33 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { alarmText, capFirst, nickTone, roadsText, sec1 } from '../client/fort/ui/text.ts';
-import { bossMaxHp } from '../client/fort/ui/schedule.ts';
+import { bossMaxHp, WaveCountdown } from '../client/fort/ui/schedule.ts';
+import { FT_BREAK, FT_END, FT_GATHER } from '../shared/fort.ts';
 import { TopCenterModel } from '../client/ui/kit/topcenter.ts';
 import { FEATURES, planWave } from '../server/fort/director.ts';
 import { KRAKEN_HEAD_BASE_HP, bossHp, krakenHp } from '../shared/fortwaves.ts';
 import { Z_GOLEM, Z_KRAKEN } from '../shared/fortkinds.ts';
 import { siegeBossNumber } from '../shared/fortsiege.ts';
+
+test('дуга отсчёта убывает с текущей паузой, включая сокращение колоколом', () => {
+  const clock = new WaveCountdown();
+  assert.equal(clock.update(FT_BREAK, 49, 30), 1);
+  assert.equal(clock.update(FT_BREAK, 49, 24), 0.8);
+  assert.equal(clock.update(FT_BREAK, 49, 3), 0.1, 'колокол не запускает новую полную дугу');
+  assert.equal(clock.update(FT_BREAK, 49, -0.1), 0);
+  assert.equal(clock.update(FT_BREAK, 50, 20), 1, 'следующая передышка начинает новую дугу');
+  assert.equal(clock.update(FT_BREAK, 50, 10), 0.5);
+});
+
+test('дуга отсчёта сбрасывается для новой фазы и повторного входа', () => {
+  const clock = new WaveCountdown();
+  assert.equal(clock.update(FT_GATHER, 0, 24.9), 1);
+  assert.equal(clock.update(FT_GATHER, 0, 4.1), 0.2, 'дуга и число используют одинаковые полные секунды');
+  assert.equal(clock.update(FT_END, 0, 15), 1);
+  clock.reset();
+  assert.equal(clock.update(FT_END, 0, 6), 1, 'после повторного входа считаем от увиденного остатка');
+  assert.equal(clock.update(FT_END, 0, 0), 0);
+});
 
 test('тревога с эмодзи → картинка, заголовок до « · », остальное — подстрокой, без тегов', () => {
   assert.deepEqual(alarmText('🚪 Ворота трещат!'), { icon: 'gate', title: 'Ворота трещат!', sub: '', tone: 'warn' });

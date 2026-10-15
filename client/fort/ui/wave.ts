@@ -7,7 +7,7 @@ import { fmtTime } from '../../paintball/hud.ts';
 import { cardChips, foldChips, romanTier } from '../wavecard.ts';
 import { el, num } from './dom.ts';
 import { fortImg } from './icons.ts';
-import { lastWave } from './schedule.ts';
+import { lastWave, WaveCountdown } from './schedule.ts';
 import { EVENT_TEXT, foeIcon } from './text.ts';
 
 const KEY = 'fort-wave';
@@ -25,6 +25,7 @@ export class WavePlate {
   private shown = false;
   private card: FortWaveCard | null = null;
   private html = '';
+  private readonly countdown = new WaveCountdown();
   /** Кого уже представили за это посещение (новые враги, боссы) и какие волны уже объявлены */
   private readonly met = new Set<number>();
   private announced = -1;
@@ -61,11 +62,10 @@ export class WavePlate {
         + `<div class="ft-phase-clock ft-phase-left" title="Осталось врагов: ${left}">${fortImg('zombie', 'ft-left-ic')}${left}</div>`
         + `${chips ? `<div class="ft-foes">${chips}</div>` : ''}`;
     } else {
-      const s = Math.max(0, Math.ceil(leftS));
       const title = `Дальше: волна ${num(n)}${card?.title ? ` · ${escHtml(card.title)}` : ''}`;
       const chips = card ? this.chips(card) : '';
       html = `<div class="ft-phase-copy"><div class="ft-phase-title">${title}</div></div>`
-        + `<div class="ft-phase-clock${leftS < 5.5 ? ' is-hurry' : ''}">${fmtTime(s)}</div>`
+        + this.clockHtml(phase, wave, leftS)
         + `${chips ? `<div class="ft-foes">${chips}</div>` : ''}`;
     }
     if (html === this.html && this.shown) return;
@@ -130,9 +130,8 @@ export class WavePlate {
 
   /** Итоги закрыты, новая игра — сама через N с */
   private endPlate(leftS: number): void {
-    const s = Math.max(0, Math.ceil(leftS));
     const html = '<div class="ft-phase-copy"><div class="ft-phase-title">Новая игра</div></div>'
-      + `<div class="ft-phase-clock${s <= 5 ? ' is-hurry' : ''}">${fmtTime(s)}</div>`;
+      + this.clockHtml(FT_END, 0, leftS);
     if (html === this.html && this.shown) return;
     this.html = html;
     this.shown = true;
@@ -141,11 +140,19 @@ export class WavePlate {
     this.root.innerHTML = html;
   }
 
+  private clockHtml(phase: number, wave: number, leftS: number): string {
+    const s = Math.max(0, Math.ceil(leftS));
+    const remain = Math.round(this.countdown.update(phase, wave, leftS) * 100);
+    const hint = phase === FT_END ? 'До новой игры' : 'До следующей волны';
+    return `<div class="ft-phase-clock ft-phase-timer${s <= 5 ? ' is-hurry' : ''}" style="--ft-remaining:${remain}%" title="${hint}" aria-label="${hint}: ${s} с"><span>${fmtTime(s)}</span></div>`;
+  }
+
   hide(): void {
     if (this.shown) this.top.clear(KEY);
     this.shown = false;
     this.html = '';
     this.root.hidden = true;
+    this.countdown.reset();
   }
 
   /** Новая игра: знакомим заново */

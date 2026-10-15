@@ -18,6 +18,27 @@ export function lastWave(): number {
   return FORT_LAST_WAVE;
 }
 
+/** Дуга от первого увиденного остатка текущей паузы. Колокол сокращает остаток, а не перезапускает дугу. */
+export class WaveCountdown {
+  private phase = -1;
+  private wave = -1;
+  private duration = 0;
+
+  update(phase: number, wave: number, leftS: number): number {
+    const seconds = Math.max(0, Math.ceil(leftS));
+    if (phase !== this.phase || wave !== this.wave) this.duration = 0;
+    this.phase = phase;
+    this.wave = wave;
+    this.duration = Math.max(this.duration, seconds);
+    return this.duration > 0 ? seconds / this.duration : 0;
+  }
+
+  reset(): void {
+    this.phase = this.wave = -1;
+    this.duration = 0;
+  }
+}
+
 /**
  * Полное HP босса, как его считает сервер (server/fort/director.ts planWave, horde.hpFor, kraken.ts fixHp): волна, число
  * защитников, под которое орда усилена (снимок: tail.defenders в бою), круг по номеру босса. 0 — не знаем (не босс-волна).
