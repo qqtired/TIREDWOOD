@@ -53,7 +53,9 @@ export const MOBS: Record<MobKind, { name: string; icon: string }> = {
   spitter: { name: 'Плевун', icon: '🐸' },
   larva: { name: 'Личинка', icon: '🐛' },
   barrel: { name: 'Бочар', icon: '🛢' },
-  shaman: { name: 'Грибной шаман', icon: '🧙' },
+  shaman: { name: 'Грибовод', icon: '🍄' },
+  hapuga: { name: 'Хапуга', icon: '💰' },
+  shroom_bud: { name: 'Росток', icon: '🌱' },
   kvashnya:{name:'Квашня',icon:''},
   hookclaw:{name:'Крюколап',icon:''},wickmole:{name:'Фитильщик',icon:''},railhopper:{name:'Рельсовый щелкун',icon:''},chainwarden:{name:'Цепной пристав',icon:''},
 };

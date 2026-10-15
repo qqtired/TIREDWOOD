@@ -394,6 +394,11 @@ export class SimRun implements RunSource {
       case 'lvl':
         out.push({ k: 'level', level: f.level });
         break;
+      case 'hoard': {
+        const m = this.mob(f.id);
+        if (m) out.push({ k: 'gather', id: f.id, x: f.x, z: f.z, tx: m.x, tz: m.z, yaw: Math.atan2(m.dx, m.dz), n: f.n });
+        break;
+      }
       case 'pick': {
         const kind: PickupKind = f.what === 'gem' ? 'gem1' : f.what === 'bigchest' ? 'chest' : (f.what as PickupKind);
         out.push({ k: 'pick', kind, x: f.x, z: f.z });
@@ -521,13 +526,31 @@ export class SimRun implements RunSource {
       const act = mobAct(m, sim);
       const jumpAge = t - (m.attackAt ?? t);
       const jumping = m.attackKind === 'jump' && jumpAge >= KVASHNYA_TIMING.jump.windup && jumpAge < KVASHNYA_TIMING.jump.windup + KVASHNYA_TIMING.jump.attack;
+      const planter = m.k === 'shroom_bud' ? sim.mobs.find(q => q.id === m.budOwner) : undefined;
+      const authoredElite = m.k === 'hapuga' || m.k === 'shaman';
+      let eliteAnim: VEnemy['anim'];
+      let eliteTime = Math.max(0, (t - (m.attackAt ?? t)) / DG_HZ);
+      if (authoredElite) {
+        const spillAge = m.spillAt === undefined ? Infinity : (t - m.spillAt) / DG_HZ;
+        if (m.k === 'hapuga' && spillAge < 58 / 24) { eliteAnim = 'spill'; eliteTime = spillAge; }
+        else if (m.attackKind === 'collect') eliteAnim = 'collect';
+        else if (m.attackKind === 'plant') eliteAnim = 'plant';
+        else if (m.attackKind === 'jab') {
+          const wind = m.k === 'hapuga' ? 1 : .75;
+          eliteAnim = eliteTime < wind ? 'windup' : 'attack';
+          if (eliteTime >= wind) eliteTime -= wind;
+        } else eliteAnim = Math.hypot(m.vx, m.vz) > .03 ? 'walk' : 'idle';
+      }
       enemies.push({
         id: m.id, kind: m.k as MobKind, x: m.x, z: m.z, yaw: Math.atan2(m.dx, m.dz), hp: m.hp, hpMax: m.hpMax,
         act, actAt: act === ACT_ATTACK ? t - (m.id % 9) : m.stT, elite: m.elite === 1,
-        anim: m.k === 'kvashnya' ? (Math.abs(m.vx) + Math.abs(m.vz) > 0.3 ? 'walk' : 'idle') : expansionKind(m.k) ? (m.attackKind === 'recover' ? 'recover' : m.attackKind === 'attack' ? 'attack' : Math.abs(m.vx) + Math.abs(m.vz) > 0.3 ? 'walk' : 'idle') : undefined,
+        anim: authoredElite ? eliteAnim : m.k === 'shroom_bud' ? 'idle' : m.k === 'kvashnya' ? (Math.abs(m.vx) + Math.abs(m.vz) > 0.3 ? 'walk' : 'idle') : expansionKind(m.k) ? (m.attackKind === 'recover' ? 'recover' : m.attackKind === 'attack' ? 'attack' : Math.abs(m.vx) + Math.abs(m.vz) > 0.3 ? 'walk' : 'idle') : undefined,
+        animTime: authoredElite ? eliteTime : undefined,
+        plantedFrom: planter ? { x: planter.x + .348 * planter.dz + .535 * planter.dx, z: planter.z - .348 * planter.dx + .535 * planter.dz } : undefined,
+        growth: m.k === 'shroom_bud' ? Math.max(0, Math.min(1, 1 - ((m.budMatureAt ?? t) - t) / (3 * DG_HZ))) : undefined,
         animAt: m.k === 'kvashnya' || expansionKind(m.k) ? m.attackAt ?? m.stT : undefined,
         skill: m.k === 'kvashnya' && (m.attackKind === 'tongue' || m.attackKind === 'jump' || m.attackKind === 'recover') ? m.attackKind : undefined,
-        animFrozen: m.k === 'kvashnya' && (sim.freezeT > t || (m.stunT > t && !jumping)),
+        animFrozen: (authoredElite || m.k === 'shroom_bud' || m.k === 'kvashnya') && (sim.freezeT > t || (m.stunT > t && !jumping)),
         rage: m.rage > 0 && t - this.rageAt < 12 ? m.rage + 0.9 * (1 - (t - this.rageAt) / 12) : m.rage,
       });
     }
@@ -549,7 +572,7 @@ export class SimRun implements RunSource {
       }
       if (mk.dmg <= 0 && mk.what === 'hole') continue;
       const spit = mk.what === 'spit' || mk.what === 'bspit' || mk.what === 'cauldron_pour';
-      const tone: VTele['tone'] = spit || mk.what === 'heal' ? 'jam' : 'red';
+      const tone: VTele['tone'] = spit || mk.what === 'growth' ? 'jam' : 'red';
       const fp = attackFootprint(mk);
       if (mk.k === 'lane') teles.push({ id: mk.id, shape: 'strip', x: fp.x, z: fp.z, r: fp.len, w: fp.width, yaw: Math.atan2(mk.dx, mk.dz), t01: k01, tone });
       else if (mk.k === 'sector') teles.push({ id: mk.id, shape: 'sector', x: mk.x, z: mk.z, r: fp.r, w: fp.angle * Math.PI / 180, yaw: Math.atan2(mk.dx, mk.dz), t01: k01, tone, centerRadius: fp.centerRadius });

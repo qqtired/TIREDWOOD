@@ -31,7 +31,11 @@ export interface VEnemy {
   elite: boolean;
   /** озверение 0…3 (пережил конец волны); дробная часть — вспышка в момент озверения */
   rage?: number;
-  anim?: 'idle'|'walk'|'attack'|'windup'|'recover';
+  anim?: 'idle'|'walk'|'attack'|'windup'|'recover'|'collect'|'spill'|'plant';
+  /** Explicit phase time in seconds for authored elite clips. */
+  animTime?: number;
+  growth?: number;
+  plantedFrom?: { x: number; z: number };
   animAt?: number;
   /** Full Kvashnya attack clock; phase changes do not reset it. */
   skill?: KvashnyaSkill;
@@ -154,6 +158,7 @@ export type VFx =
   /** id = −1 — попали в босса, boss — какого именно (id червя) */
   | { k: 'hit'; id: number; boss?: number; x: number; z: number; dmg: number; big: boolean; blocked?: boolean }
   | { k: 'kill'; id: number; kind: MobKind; x: number; z: number; elite: boolean }
+  | { k: 'gather'; id: number; x: number; z: number; tx: number; tz: number; yaw: number; n: number }
   | { k: 'pick'; kind: PickupKind; x: number; z: number }
   | { k: 'level'; level: number }
   | { k: 'dash'; x: number; z: number; tx: number; tz: number }

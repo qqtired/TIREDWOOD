@@ -94,6 +94,11 @@ export interface DgMob {
   /** проклятый сундук: id постройки, за которой пришла элита (−1 — нет) */
   curse: number;
   /** Полный цикл новой атаки: клиент не перезапускает клип при impact/recover. */
+  storedXp?: number;
+  spillAt?: number;
+  budOwner?: number;
+  budMatureAt?: number;
+  budMatureHp?: number;
   attackAt?: number;
   attackKind?: string;
   attackStep?: number;
@@ -455,6 +460,7 @@ export interface DgWave {
 
 /** События шага для эффектов и звука (очищаются в начале каждого шага) */
 export type DgFx =
+  | { k: 'hoard'; id: number; x: number; z: number; n: number }
   | { k: 'hit'; id: number; x: number; z: number; n: number; big: 0 | 1; w: string } // попадание, n — урон, w — чем
   | { k: 'die'; id: number; mob: string; x: number; z: number } // смерть врага
   | { k: 'hurt'; n: number; by: string } // герою попали

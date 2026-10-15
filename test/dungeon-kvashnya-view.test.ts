@@ -58,7 +58,7 @@ test('actual Kvashnya GLB bakes all ten clips, keeps its own scale and lifts onl
   assert.ok(gltf.scene.getObjectByName('tongue'));
   assert.ok(gltf.scene.getObjectByName('tongue_tip'));
   for (const clip of gltf.animations) assert.equal(clip.tracks.length, 33, clip.name);
-  const models: MobModel[] = ['rat','bat','slug','shroom','beetle','spitter','larva','cooper','shaman','hookclaw','wickmole','railhopper','chainwarden'];
+  const models: MobModel[] = ['rat','bat','slug','shroom','beetle','spitter','larva','cooper','gribovod','hapuga','hookclaw','wickmole','railhopper','chainwarden'];
   const mobs = { kvashnya: gltf } as DungeonAssets['mobs'];
   for (const name of models) {
     const scene = new THREE.Group(), root = new THREE.Group(); root.name = name;

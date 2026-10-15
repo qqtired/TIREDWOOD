@@ -1,4 +1,5 @@
 // «Подземелье»: рядовые и элиты — ИИ, движение, расталкивание, касание, смерть (опыт, слизнята, споры, сундук).
+import { eliteAi, stepBud, spillHoard } from './elites.ts';
 import { stepKvashnya } from './kvashnya.ts';
 import { stepBoss } from './boss.ts';
 import {
@@ -105,6 +106,7 @@ export function stepMobs(sim: DgSim): void {
       hurtMob(sim, m, m.burnD * 0.5, 'lantern', m.x, m.z, 0, 0, 0);
       if (m.die) continue;
     }
+    if (m.k === 'shroom_bud') { stepBud(sim, m); continue; }
     if (m.k === 'kvashnya') { stepKvashnya(sim, m); continue; }
     let ox = wrapD(h.x - m.x);
     let oz = wrapD(h.z - m.z);
@@ -124,7 +126,8 @@ export function stepMobs(sim: DgSim): void {
         continue;
       }
     } else if (frozen || m.stunT > sim.t) {
-      if(expansionKind(m.k))holdExpansionAttack(sim,m);
+      if(expansionKind(m.k)||m.k==='hapuga'||m.k==='shaman')holdExpansionAttack(sim,m);
+      if(m.k==='hapuga'&&m.attackKind==='spill'&&m.spillAt!==undefined)m.spillAt++;
       // стоит (песочные часы, оглушение)
       if (m.st === 'dash' && m.k === 'barrel') setSt(sim, m, 'stun');
     } else {
@@ -204,10 +207,11 @@ export function stepMobs(sim: DgSim): void {
           vx = m.vx * far;
           vz = m.vz * far;
           break;
+        case 'hapuga':
         case 'shaman':
-          shamanAi(sim, m, d, ox, oz);
-          vx = m.vx * far;
-          vz = m.vz * far;
+          eliteAi(sim, m, d, ox, oz);
+          vx = m.vx;
+          vz = m.vz;
           break;
         default:
           vx = ox * m.spd;
@@ -289,7 +293,7 @@ export function stepMobs(sim: DgSim): void {
     m.x = wrapP(nx);
     m.z = wrapP(nz);
     // касание героя
-    if (m.st !== 'flee' && m.touch === 0 && !h.dead) {
+    if (m.k !== 'hapuga' && m.k !== 'shaman' && m.st !== 'flee' && m.touch === 0 && !h.dead) {
       const tx = wrapD(h.x - m.x);
       const tz = wrapD(h.z - m.z);
       const rr = m.r + HERO_R;
@@ -415,69 +419,6 @@ function barrelWall(sim: DgSim, m: DgMob): void {
   m.vulT = sim.t + ticks(ch.stunWall);
 }
 
-function shamanAi(sim: DgSim, m: DgMob, d: number, ox: number, oz: number): void {
-  const def = mobDef('shaman');
-  const heal = def.heal!;
-  const sum = def.summon!;
-  if (m.st === 'cast') {
-    m.vx = 0;
-    m.vz = 0;
-    if (m.castHp - m.hp > m.hpMax * (def.interrupt ?? 0.15)) {
-      setSt(sim, m, 'walk'); // сбит
-      m.cd = ticks(heal.every);
-      for (const mk of sim.marks) if (mk.src === m.id && mk.what === 'heal') mk.t1 = sim.t;
-      return;
-    }
-    if (sim.t - m.stT >= ticks(heal.warn)) {
-      const r2 = heal.radius * heal.radius;
-      for (const o of sim.mobs) {
-        if (o === m || o.die) continue;
-        const ex = wrapD(o.x - m.x);
-        const ez = wrapD(o.z - m.z);
-        // Любого босса — на3%, остальных как прежде.
-        if (ex * ex + ez * ez < r2) o.hp = Math.min(o.hpMax, o.hp + o.hpMax * (o.k === 'povidl' || o.k === 'cauldronmaster' ? 0.03 : heal.frac));
-      }
-      setSt(sim, m, 'walk');
-      m.cd = ticks(heal.every);
-    }
-    return;
-  }
-  if (m.st === 'summon') {
-    m.vx = 0;
-    m.vz = 0;
-    if (sim.t - m.stT >= ticks(sum.warn)) {
-      const early = sim.wave.n < 5;
-      const k: MobKind = early ? 'rat' : sum.mob;
-      const n = early ? 6 : sum.n;
-      for (let j = 0; j < n; j++) {
-        const a = (j / n) * Math.PI * 2;
-        sinCos(a, SC);
-        summonFromBudget(sim, k, m.x + SC.c * 1.8, m.z + SC.s * 1.8);
-      }
-      setSt(sim, m, 'walk');
-      m.cd2 = ticks(sum.every);
-    }
-    return;
-  }
-  // держится в 7–10 м
-  let s = 0;
-  if (d < 7) s = -1;
-  else if (d > 10) s = 1;
-  m.vx = ox * m.spd * s;
-  m.vz = oz * m.spd * s;
-  if (m.cd > 0) m.cd--;
-  if (m.cd2 > 0) m.cd2--;
-  if (m.cd === 0) {
-    setSt(sim, m, 'cast');
-    m.castHp = m.hp;
-    addMark(sim, 'ring', 'heal', m.x, m.z, heal.radius, 0, 0, ticks(heal.warn), 0, 0, 0, m);
-    fx(sim, { k: 'atk', id: m.id, what: 'heal' });
-  } else if (m.cd2 === 0) {
-    setSt(sim, m, 'summon');
-    fx(sim, { k: 'atk', id: m.id, what: 'summon' });
-  }
-}
-
 /** Свита из бюджета волны: если в отряде есть невышедшие такого вида — берём их (они часть отряда) */
 export function summonFromBudget(sim: DgSim, k: MobKind, x: number, z: number): DgMob | null {
   if(!canSpawn(sim,k))return null;
@@ -531,12 +472,13 @@ function onKill(sim: DgSim, m: DgMob, src: string): void {
   fx(sim, { k: 'die', id: m.id, mob: m.k, x: m.x, z: m.z });
   void src;
   const def = mobDef(m.k);
-  if(expansionKind(m.k)||m.k==='cauldronmaster'||m.k==='kvashnya')for(const mk of sim.marks)if(mk.src===m.id)mk.t1=sim.t-1;
+  if(expansionKind(m.k)||m.k==='cauldronmaster'||m.k==='kvashnya'||m.k==='hapuga'||m.k==='shaman'||m.k==='shroom_bud')for(const mk of sim.marks)if(mk.src===m.id)mk.t1=sim.t-1;
   if (m.k === 'povidl'||m.k==='cauldronmaster') {
     bossDeath(sim, m);
     return;
   }
-  dropGem(sim, m.x, m.z, def.xp);
+  if (m.k === 'hapuga') spillHoard(sim, m);
+  if (def.xp > 0) dropGem(sim, m.x, m.z, def.xp);
   if (def.splitInto && roomForExtra(sim, def.splitInto.n)) {
     for (let j = 0; j < def.splitInto.n; j++) {
       const c = spawnMob(sim, def.splitInto.id, m.x + (j ? 0.4 : -0.4), m.z + (j ? -0.3 : 0.3), 0);
@@ -577,7 +519,7 @@ function rageMul(m: DgMob): number {
 /** Все живые уходят в норы (сейчас не используется: остатки волны остаются и звереют) */
 export function fleeAll(sim: DgSim): void {
   for (const m of sim.mobs) {
-    if (m.die || m.st === 'flee') continue;
+    if (m.die || m.st === 'flee' || m.k === 'hapuga') continue;
     m.st = 'flee';
     m.stT = sim.t;
     m.under = 0;

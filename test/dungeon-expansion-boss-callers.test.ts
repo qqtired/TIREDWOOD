@@ -31,12 +31,12 @@ test('cart ignores either boss without changing its attack state or HP',()=>{
   }
 });
 
-test('shaman heals either boss by3% and keeps ordinary healing at30%',()=>{
+test('Gribovod never heals bosses or ordinary mobs',()=>{
   for(const wave of [10,20]){
     const {s,m}=fixture(wave);m.hp=m.hpMax*.5;
     const shaman=spawnMob(s,'shaman',m.x,m.z,0);shaman.st='cast';shaman.stT=0;shaman.castHp=shaman.hp;
     const ordinary=spawnMob(s,'shroom',m.x+.2,m.z,0);ordinary.hp=ordinary.hpMax*.5;
-    stepMobs(s);assert.ok(Math.abs(m.hp-m.hpMax*.53)<1e-6,String(wave));assert.ok(Math.abs(ordinary.hp-ordinary.hpMax*.8)<1e-6);
+    stepMobs(s);assert.ok(Math.abs(m.hp-m.hpMax*.5)<1e-6,String(wave));assert.ok(Math.abs(ordinary.hp-ordinary.hpMax*.5)<1e-6);
   }
 });
 

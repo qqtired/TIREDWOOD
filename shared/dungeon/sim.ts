@@ -268,6 +268,12 @@ export function dgHash(sim: DgSim): number {
     mix(q(m.hp));
   }
   mix(sim.gems.length);
+  for (const g of sim.gems) { mix(g.id); mix(q(g.x)); mix(q(g.z)); mix(q(g.v)); mix(g.fly); }
+  for (const m of sim.mobs) if (m.k === 'hapuga' || m.k === 'shaman' || m.budOwner !== undefined) {
+    mix(q(m.storedXp ?? 0)); mix(m.spillAt ?? 0); mix(m.budOwner ?? 0); mix(m.budMatureAt ?? 0); mix(q(m.budMatureHp ?? 0));
+    mix(m.cd); mix(m.cd2); mix(m.stunT); mix(q(m.ax)); mix(q(m.az));
+    mix(m.attackKind === 'collect' ? 1 : m.attackKind === 'plant' ? 2 : m.attackKind === 'jab' ? 3 : m.attackKind === 'recover' ? 4 : m.attackKind === 'spill' ? 5 : 0);
+  }
   mix(sim.wave.n);
   mix(sim.stats.kills);
   for (const w of sim.weapons) mix(w.lv * 2 + w.evo);

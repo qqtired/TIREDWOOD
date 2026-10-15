@@ -170,6 +170,13 @@ export function startWave(sim: DgSim, n: number): void {
       else e.mob = 'kvashnya';
     }
   }
+  if (n >= 9 && (n - 9) % 3 === 0 && !boss) {
+    const e = w.ev.find(e => e.type === 'elite' && e.n > 0 && (e.mob === 'barrel' || e.mob === 'shaman'));
+    if (e) {
+      if (e.n > 1) { e.n--; w.ev.push({ ...e, mob: 'hapuga', n: 1 }); w.ev.sort((a, b) => a.at - b.at); }
+      else e.mob = 'hapuga';
+    }
+  }
   w.total = total;
   w.left = total;
   w.swept = 0;

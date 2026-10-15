@@ -5,7 +5,7 @@ import type {DgSim,DgMob} from './types.ts';
 import {ticks,wrapP} from './util.ts';
 
 export function expansionKind(k:MobKind):boolean{return k==='hookclaw'||k==='wickmole'||k==='railhopper'||k==='chainwarden';}
-export function holdExpansionAttack(sim:DgSim,m:DgMob):void {if(m.attackAt===undefined)return;m.attackAt++;for(const mk of sim.marks)if(mk.src===m.id){mk.t0++;mk.t1++;}}
+export function holdExpansionAttack(sim:DgSim,m:DgMob):void {if(m.attackAt===undefined)return;m.attackAt++;for(const mk of sim.marks)if(mk.src===m.id&&mk.t1>=sim.t){mk.t0++;mk.t1++;}}
 export function cancelExpansionAttack(sim:DgSim,m:DgMob):void {m.attackAt=sim.t;m.attackKind='recover';m.attackStep=0;m.st='rest';for(const mk of sim.marks)if(mk.src===m.id)mk.t1=sim.t-1;}
 /** Модель могла сдвинуться от обычного отброса. Физическая метка следует руке, направление остаётся зафиксированным. */
 export function syncPhysicalMarks(sim:DgSim):void {

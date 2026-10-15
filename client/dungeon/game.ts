@@ -48,7 +48,7 @@ const NUM_MERGE = 0.22;
 /** Видно от камеры по x и z (для отсечения), м */
 const VIEW_X = 30;
 const VIEW_Z = 24;
-const OWN_MODEL_SCALE = new Set<MobKind>(['barrel', 'shaman', 'hookclaw', 'wickmole', 'railhopper', 'chainwarden', 'kvashnya']);
+const OWN_MODEL_SCALE = new Set<MobKind>(['barrel', 'shaman', 'hapuga', 'hookclaw', 'wickmole', 'railhopper', 'chainwarden', 'kvashnya']);
 
 export interface WorldLike {
   readonly root: THREE.Object3D;
@@ -111,6 +111,9 @@ export class DungeonGame {
   private readonly flashAt = new Map<number, number>();
   private readonly hitAt = new Map<number, number>();
   private corpses: Corpse[] = [];
+  private readonly eliteWalkTime = new Map<number, number>();
+  private readonly elitePose = new Map<number, { key: ClipKey; time: number }>();
+  private gathers: Extract<VFx, { k: 'gather' }>[] = [];
   private liveRenderOverflow = 0;
   private acc = 0;
   private time = 0;
@@ -281,6 +284,9 @@ export class DungeonGame {
     this.hitAt.clear();
     this.numAcc.clear();
     this.corpses = [];
+    this.eliteWalkTime.clear();
+    this.elitePose.clear();
+    this.gathers = [];
     this.bossCorpses.clear();
     this.pool.clear();
     this.queue = [];
@@ -675,6 +681,8 @@ export class DungeonGame {
       }
       case 'kill': {
         this.flushNum(f.id, true);
+        this.eliteWalkTime.delete(f.id);
+        this.elitePose.delete(f.id);
         const prev = this.prev.get(f.id);
         const dur = this.mobs.duration(f.kind, 'death');
         this.corpses.push({ kind: f.kind, x: f.x, z: f.z, yaw: prev?.yaw ?? 0, t: this.wtime, dur, elite: f.elite });
@@ -689,6 +697,9 @@ export class DungeonGame {
         }
         break;
       }
+      case 'gather':
+        this.gathers.push(f);
+        break;
       case 'pick':
         if (f.kind.startsWith('gem')) {
           sfx.gem();
@@ -957,6 +968,13 @@ export class DungeonGame {
           yaw = p.yaw + dy * alpha;
           spd = Math.hypot(dx, dz) * DG_HZ;
         }
+        let sproutY = 0;
+        if (e.growth !== undefined && e.plantedFrom) {
+          const flight = Math.min(1, e.growth * 3 / .15);
+          x = e.plantedFrom.x + wrap(x - e.plantedFrom.x) * flight;
+          z = e.plantedFrom.z + wrap(z - e.plantedFrom.z) * flight;
+          sproutY = .477 * (1 - flight) + Math.sin(flight * Math.PI) * .2;
+        }
         const fs = this.firstSeen.get(e.id) ?? 0;
         const born = Math.min(1, (wt - fs) / 0.3);
         const fl = this.flashAt.get(e.id);
@@ -969,6 +987,15 @@ export class DungeonGame {
         if (e.kind === 'kvashnya' && e.skill) {
           const pose = getKvashnyaPose(e.skill, tick - (e.animAt ?? e.actAt) + (e.animFrozen ? 0 : alpha));
           key = pose.key; t = pose.time;
+        } else if ((e.kind === 'hapuga' || e.kind === 'shaman') && e.anim) {
+          key = e.anim;
+          const oldTime = this.eliteWalkTime.get(e.id) ?? (e.id % 17) * .137;
+          const nextTime = oldTime + (still || e.animFrozen ? 0 : dt * (key === 'idle' ? 1 : spd / WALK_REF[e.kind]));
+          this.eliteWalkTime.set(e.id, nextTime);
+          t = key === 'walk' || key === 'idle' ? nextTime : (e.animTime ?? 0) + (still || e.animFrozen ? 0 : alpha * DT);
+          const frozenPose = this.elitePose.get(e.id);
+          if (e.animFrozen && frozenPose) { key = frozenPose.key; t = frozenPose.time; }
+          else this.elitePose.set(e.id, { key, time: t });
         } else if (e.anim) {
           key = e.anim;
           if (e.anim !== 'walk' && e.anim !== 'idle') t = (tick - (e.animAt ?? e.actAt) + alpha) * DT;
@@ -982,8 +1009,9 @@ export class DungeonGame {
           t = ((tick - e.actAt + alpha) * DT) % Math.max(0.2, this.mobs.duration(e.kind, key));
         } else if (e.act === ACT_STUN) t = (e.id % 7) * 0.1;
         const over: ClipKey | null = !e.skill && hitT < 0.33 && (!e.anim || e.anim === 'walk' || e.anim === 'idle') ? 'hit' : null;
-        const s = (e.elite && !OWN_MODEL_SCALE.has(e.kind) ? 1.35 : 1) * (0.2 + 0.8 * born);
-        if (!this.mobs.push(e.kind, X(x), born < 1 ? -0.4 * (1 - born) : 0, Z(z), yaw, key, t, flash, s, over, hitT, over ? 0.65 * (1 - hitT / 0.33) : 0, e.rage ?? 0)) this.liveRenderOverflow++;
+        const growth = e.growth === undefined ? 1 : .18 + .82 * e.growth;
+        const s = growth * (e.elite && !OWN_MODEL_SCALE.has(e.kind) ? 1.35 : 1) * (0.2 + 0.8 * born);
+        if (!this.mobs.push(e.kind, X(x), e.growth !== undefined ? sproutY : born < 1 ? -0.4 * (1 - born) : 0, Z(z), yaw, key, t, flash, s, over, hitT, over ? 0.65 * (1 - hitT / 0.33) : 0, e.rage ?? 0)) this.liveRenderOverflow++;
         const r = e.elite ? 1.3 : e.kind === 'rat' || e.kind === 'slimelet' || e.kind === 'larva' ? 0.42 : e.kind === 'bat' ? 0.38 : 0.62;
         this.decN.add(X(x), 0.02, Z(z), r * 1.7, r * 1.7, 0, D_SHADOW, 0, 0, 0.02, 0.01, 0.02, 0.85);
         // светящиеся глаза у края экрана (сиреневые точки) — элите ореол
@@ -998,6 +1026,25 @@ export class DungeonGame {
             1.64 * hp, 0.09, 0, A_BAR, 1, 0.56, 0.69, born);
         }
       }
+      // Stolen XP follows the authored rake sweep and bag deposit, only for real hoard events.
+      this.gathers = this.gathers.filter(f => {
+        const e = v.enemies.find(e => e.id === f.id);
+        if (!e || e.anim !== 'collect') return false;
+        const age = (e.animTime ?? 0) + (still || e.animFrozen ? 0 : alpha * DT) - 1;
+        if (age >= 5 / 3) return false;
+        const a = Math.max(0, age);
+        let lx = -.6, ly = .035, lz = .86 - .29 * Math.min(1, a / (10 / 24));
+        if (a > 10 / 24) {
+          const u = Math.min(1, (a - 10 / 24) / 1.25);
+          lx += 1.23 * u; ly += 1.865 * u; lz = .57 - .86 * u;
+        }
+        const c = Math.cos(f.yaw), sn = Math.sin(f.yaw);
+        const tx = f.tx + lx * c + lz * sn, tz = f.tz - lx * sn + lz * c;
+        const pull = Math.min(1, a / .16);
+        const x = f.x + wrap(tx - f.x) * pull, z = f.z + wrap(tz - f.z) * pull;
+        this.bbA.add(X(x), ly, Z(z), .22 + Math.min(25, f.n) * .003, .22, 0, A_STAR, .45, 1, .85, 1);
+        return true;
+      });
       // трупы: клип смерти, потом исчезают
       this.corpses = this.corpses.filter((c) => wt - c.t < c.dur);
       for (const c of this.corpses) {

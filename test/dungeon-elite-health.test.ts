@@ -15,7 +15,7 @@ test('elite health bars show the actual remaining fraction and omit ordinary or 
 });
 
 test('health bar anchor follows the loaded model top including the renderer scale', () => {
-  const names: MobModel[] = ['rat','bat','slug','shroom','beetle','spitter','larva','cooper','shaman','hookclaw','wickmole','railhopper','chainwarden','kvashnya'];
+  const names: MobModel[] = ['rat','bat','slug','shroom','beetle','spitter','larva','cooper','gribovod','hapuga','hookclaw','wickmole','railhopper','chainwarden','kvashnya'];
   const mobs = {} as DungeonAssets['mobs'];
   for (const name of names) {
     const scene = new THREE.Group(), root = new THREE.Group();
@@ -27,7 +27,8 @@ test('health bar anchor follows the loaded model top including the renderer scal
   }
   const renderer = new MobRenderer({ mobs } as DungeonAssets);
   assert.equal(renderer.height('barrel'), 3);
-  assert.ok(Math.abs(renderer.height('shaman') - 3.15) < 1e-9);
+  assert.equal(renderer.height('shaman'), 3);
+  assert.equal(renderer.height('hapuga'), 3);
   assert.equal(renderer.height('chainwarden'), 3);
   renderer.dispose();
 });

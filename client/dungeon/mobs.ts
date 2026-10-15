@@ -13,7 +13,7 @@ import { D } from '../../shared/dungeon/data.ts';
 
 const FPS = 24;
 
-export type ClipKey = 'idle'|'windup'|'recover'|'walk' | 'attack' | 'hit' | 'death' | 'special' | 'emerge' | 'tongue_windup' | 'tongue_attack' | 'tongue_recover';
+export type ClipKey = 'collect'|'spill'|'plant'|'idle'|'windup'|'recover'|'walk' | 'attack' | 'hit' | 'death' | 'special' | 'emerge' | 'tongue_windup' | 'tongue_attack' | 'tongue_recover';
 
 interface ClipRows {
   start: number;
@@ -48,7 +48,9 @@ const KIND_MODEL: Record<MobKind, { model: MobModel; scale: number; cap: number 
   spitter: { model: 'spitter', scale: 1, cap: 100 },
   larva: { model: 'larva', scale: 1.15, cap: 90 },
   barrel: { model: 'cooper', scale: 1, cap: 8 },
-  shaman: { model: 'shaman', scale: 1.05, cap: 8 },
+  shaman: { model: 'gribovod', scale: 1, cap: 8 },
+  hapuga: { model: 'hapuga', scale: 1, cap: 8 },
+  shroom_bud: { model: 'shroom', scale: 1, cap: 80 },
   hookclaw:{model:'hookclaw',scale:1,cap:80},wickmole:{model:'wickmole',scale:1,cap:32},railhopper:{model:'railhopper',scale:1,cap:40},chainwarden:{model:'chainwarden',scale:1,cap:8},
 };
 
@@ -63,7 +65,8 @@ const CLIP_NAMES: Record<MobModel, Partial<Record<ClipKey, string>>> = {
   spitter: { walk: 'spitter_walk', attack: 'spitter_attack', hit: 'spitter_hit', death: 'spitter_death', special: 'spitter_spit' },
   larva: { walk: 'larva_walk', attack: 'larva_attack', hit: 'larva_hit', death: 'larva_death', emerge: 'larva_emerge' },
   cooper: { walk: 'cooper_walk', attack: 'cooper_attack', hit: 'cooper_hit', death: 'cooper_death', special: 'cooper_charge' },
-  shaman: { walk: 'shaman_walk', attack: 'shaman_attack', hit: 'shaman_hit', death: 'shaman_death', special: 'shaman_cast' },
+  gribovod: { idle:'gribovod_idle', walk:'gribovod_walk', windup:'gribovod_windup', attack:'gribovod_attack', plant:'gribovod_plant', hit:'gribovod_hit', death:'gribovod_death' },
+  hapuga: { idle:'hapuga_idle', walk:'hapuga_walk', windup:'hapuga_windup', attack:'hapuga_attack', collect:'hapuga_collect', spill:'hapuga_spill', hit:'hapuga_hit', death:'hapuga_death' },
   hookclaw:{idle:'hookclaw_idle',walk:'hookclaw_walk',windup:'hookclaw_windup',attack:'hookclaw_attack',recover:'hookclaw_recover',hit:'hookclaw_hit',death:'hookclaw_death'},
   wickmole:{idle:'wickmole_idle',walk:'wickmole_walk',windup:'wickmole_windup',attack:'wickmole_attack',recover:'wickmole_recover',hit:'wickmole_hit',death:'wickmole_death'},
   railhopper:{idle:'railhopper_idle',walk:'railhopper_walk',windup:'railhopper_windup',attack:'railhopper_attack',recover:'railhopper_recover',hit:'railhopper_hit',death:'railhopper_death'},
@@ -73,7 +76,7 @@ const CLIP_NAMES: Record<MobModel, Partial<Record<ClipKey, string>>> = {
 /** Скорость, при которой цикл ходьбы не скользит (м/с) — для темпа шага */
 export const WALK_REF: Record<MobKind, number> = {
   kvashnya: 2.2,
-  rat: 3.6, bat: 4.5, slime: 1.8, slimelet: 2.6, shroom: 1.9, beetle: 2.4, spitter: 2.2, larva: 4.2, barrel: 2.2, shaman: 1.8,
+  rat: 3.6, bat: 4.5, slime: 1.8, slimelet: 2.6, shroom: 1.9, beetle: 2.4, spitter: 2.2, larva: 4.2, barrel: 2.2, shaman: 0.2580645, hapuga: 0.4, shroom_bud: 1.9,
   hookclaw:3.6,wickmole:2.5,railhopper:2.8,chainwarden:2.15,
 };
 

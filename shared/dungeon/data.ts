@@ -9,7 +9,7 @@ export type WeaponId = 'lantern' | 'embers' | 'pickaxe' | 'fireflies' | 'spark' 
 export type PassiveId = 'might' | 'cooldown' | 'area' | 'amount' | 'maxhp' | 'armor' | 'speed' | 'magnet';
 export type MobKind =
   | 'rat' | 'bat' | 'slime' | 'slimelet' | 'shroom' | 'beetle' | 'spitter' | 'larva' | 'barrel' | 'shaman' | 'povidl'
-  | 'hookclaw' | 'wickmole' | 'railhopper' | 'chainwarden' | 'cauldronmaster' | 'kvashnya';
+  | 'hookclaw' | 'wickmole' | 'railhopper' | 'chainwarden' | 'cauldronmaster' | 'kvashnya' | 'hapuga' | 'shroom_bud';
 
 /** Уровень оружия: все поля необязательные — у каждого вида свои */
 export interface WeaponLevel {
@@ -49,6 +49,9 @@ export interface MobDef {
   heal?: { every: number; warn: number; radius: number; frac: number };
   summon?: { every: number; warn: number; mob: MobKind; n: number };
   interrupt?: number;
+  grow?: { every: number; release: number; duration: number; mature: number; n: number };
+  collect?: { duration: number; scoop: number; deposit: number; radius: number; capacity: number };
+  jab?: { wind: number; impact: number; duration: number; range: number; width: number };
   hook?: { every: number; impact: number; recover: number; radius: number; dmg: number; right: number; forward: number };
   plant?: { every: number; impact: number; recover: number; fuse: number; radius: number; dmg: number; right: number; forward: number };
   rail?: { every: number; impact: number; recover: number; width: number; length: number; speed: number; dmg: number };
@@ -198,7 +201,7 @@ export function interNum(id: string, key: string, def: number): number {
 }
 
 /** Порядок видов врагов — для счётчиков отряда (индексы массивов) */
-export const MOB_KINDS: MobKind[] = ['rat', 'bat', 'slime', 'slimelet', 'shroom', 'beetle', 'spitter', 'larva', 'barrel', 'shaman', 'povidl','hookclaw','wickmole','railhopper','chainwarden','cauldronmaster','kvashnya'];
+export const MOB_KINDS: MobKind[] = ['rat', 'bat', 'slime', 'slimelet', 'shroom', 'beetle', 'spitter', 'larva', 'barrel', 'shaman', 'povidl','hookclaw','wickmole','railhopper','chainwarden','cauldronmaster','kvashnya','hapuga','shroom_bud'];
 export function mobIndex(k: MobKind): number {
   return MOB_KINDS.indexOf(k);
 }

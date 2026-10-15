@@ -288,6 +288,7 @@ export function makeMob(sim: DgSim, k: MobKind, x: number, z: number, hpMul: num
     hp, hpMax: hp, dmg: def.dmg * dmgMulV, spd: def.speed, r: def.radius, st: 'walk', stT: sim.t, hitT: -1, die: 0, cd: 0, cd2: 0, touch: 0,
     stunT: 0, burnT: 0, burnD: 0, sq, rage: 0, ax: 0, az: 0, sw: 0, castHp: 0, under: 0, vulT: 0, chkT: sim.t, chkD: 1e9, ffT: 0, bmT: 0, curse: -1,
   };
+  if (k === 'hapuga') m.storedXp = 0;
   sim.mobs.push(m);
   return m;
 }

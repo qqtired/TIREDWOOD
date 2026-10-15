@@ -31,7 +31,7 @@ test('old enemies retain HP while the first bosses use their reduced health', ()
   const sim = createRun(7);
   for (const [kind, hp] of [
     ['rat', 10], ['bat', 8], ['slime', 38], ['slimelet', 10], ['shroom', 85],
-    ['beetle', 60], ['spitter', 34], ['larva', 24], ['barrel', 600], ['shaman', 450],
+    ['beetle', 60], ['spitter', 34], ['larva', 24], ['barrel', 600], ['shaman', 650],
   ] as const) {
     const mob = spawnMob(sim, kind, sim.hero.x + 1, sim.hero.z, 0);
     assert.deepEqual([mob.hp, mob.hpMax], [hp, hp], kind);
@@ -52,7 +52,7 @@ test('tougher new enemies keep the previous wave roster and common HP multiplier
   startWave(sim, 21);
   assert.equal(sim.wave.total, 501);
   assert.equal(sim.wave.hpMul, 9.261348590119281);
-  assert.deepEqual(sim.wave.pend, [280, 0, 0, 0, 33, 0, 41, 0, 0, 0, 0, 45, 0, 53, 0, 0, 0]);
+  assert.deepEqual(sim.wave.pend, [280, 0, 0, 0, 33, 0, 41, 0, 0, 0, 0, 45, 0, 53, 0, 0, 0, 0, 0]);
 });
 
 test('later Povidl variants keep their health and cauldron keeps its growth formula', () => {
