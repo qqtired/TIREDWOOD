@@ -13,7 +13,7 @@ import {
   Z_BLOATER, Z_BOSS, Z_BRUTE, Z_RUNNER, ZS_BOSS_OPEN, ZS_FLY_WARN, ZS_BOSS_GATE, ZS_BOSS_PULSE, isBossKind,
   ZS_BARREL, ZS_KRAKEN_SPIT, ZS_PLANT, ZS_SPIT, ZS_THROW, Z_FLYER, Z_SAPPER, Z_SPITTER, Z_RAM, Z_GOLEM,
   ZS_CHARGE, ZS_CHARGE_WARN, ZS_HOWL, ZS_QUAKE, ZS_STOMP, Z_BOAT, ZS_BOAT, ZS_BOAT_LEAVE, ZS_METEOR, Z_KRAKEN, Z_TENTACLE, Z_WEAVER,
-  type FortEvent, type FortPlayerRow, type FortResultRow, type FortRunRec, type FortWaveCard, type FtReward,
+  type FortEvent, type FortPlayerRow, type FortResultRow, type FortRunRec, type FortTowerRow, type FortWaveCard, type FtReward,
 } from '../../shared/fort.ts';
 import {
   CRATE_DOWN, CRATE_FALL, CRATE_NONE, EV_FOG, EV_GOLD, EV_METEORS, EV_SUPPLY, FOG_FAR, FOG_NEAR, METEOR_WARN_TICKS, SUPPLY_PICK_R,
@@ -439,7 +439,7 @@ export class FortMatch {
         this.wave = m.wave;
         this.card = m.card ?? null;
         this.ready = true;
-        this.setRoster(m.players);
+        this.setRoster(m.players, m.towers);
         // вошёл: что идёт и что дальше — плашкой волны и тостами (без «волна отбита» и крупного баннера)
         this.d.hud.ui.onPhase(m.phase, m.wave, this.card, true);
         this.showReadyNotice();
@@ -453,7 +453,7 @@ export class FortMatch {
         this.onRecord(m.k, m.wave, m.prev, m.first === true);
         break;
       case 'froster':
-        this.setRoster(m.players);
+        this.setRoster(m.players, m.towers);
         this.showReadyNotice();
         break;
       case 'fev':
@@ -475,8 +475,9 @@ export class FortMatch {
     }
   }
 
-  private setRoster(list: FortPlayerRow[]): void {
+  private setRoster(list: FortPlayerRow[], towers: readonly FortTowerRow[] = []): void {
     this.rosterList = list;
+    this.d.hud.ui.board.setTowers(towers);
     this.roster.clear();
     for (const r of list) this.roster.set(r.id, r);
     for (const [id, av] of this.avatars) {

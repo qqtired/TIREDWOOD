@@ -252,8 +252,17 @@ button.ft-row:active { transform: translateY(1px); }
 /* ---------------------------------------------------------------- Tab и итоги */
 .ft-scrim { pointer-events: auto; }
 .ft-scrim-light { background: radial-gradient(70% 70% at 50% 45%, rgba(16, 10, 12, .2), rgba(16, 10, 12, .45)); pointer-events: none; }
-.ft-tab { width: 760px; }
+.ft-tab-scrim { position: fixed; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+html:has(.screen.pause.show:not(.veil)) .ft-tab-scrim { display: none; }
+.ft-tab { width: min(940px, 100%); min-width: 0; min-height: 0; max-width: 100%; pointer-events: auto; }
 .ft-tab .k-table td { padding-top: 6px; padding-bottom: 6px; }
+.ft-table-scroll { overflow-x: auto; }
+.ft-tab .k-r { white-space: nowrap; }
+.ft-tab .ft-damage { font-weight: 800; }
+.ft-tower-name { display: flex; align-items: center; gap: 8px; }
+.ft-tower-ic { flex: none; width: 30px; height: 30px; object-fit: contain; }
+.ft-tower-name small { display: block; margin-top: 2px; color: var(--surf-dim); font-size: var(--fs-13); }
+.ft-tab .ft-total td { background: var(--surf-3); font-weight: 800; }
 .ft-ping { color: var(--surf-dim); }
 .ft-tab-h { margin: 14px 0 8px; color: var(--surf-faint); font: 800 var(--fs-13)/1 var(--font-text); letter-spacing: .08em; text-transform: uppercase; }
 .ft-others { display: flex; flex-wrap: wrap; gap: 8px; }

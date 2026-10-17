@@ -8,7 +8,7 @@ import type { FishNpcId } from './fishplaces.ts';
 import type { FishTop } from './fishrules.ts';
 import type { IsleView } from './isle.ts';
 import type { RouletteColor, RouletteLogRow, RouletteView } from './roulette.ts';
-import type { FortEvent, FortPlayerRow, FortResultRow, FortRunRec, FortStatus, FortWaveCard, FtReward } from './fort.ts';
+import type { FortEvent, FortPlayerRow, FortResultRow, FortRunRec, FortStatus, FortTowerRow, FortWaveCard, FtReward } from './fort.ts';
 import type { FortRecIntro, FortRecKind } from './fortrecord.ts';
 import type { FortSurrender } from './fortsurrender.ts';
 import type { Outfit } from './outfit.ts';
@@ -629,8 +629,8 @@ export type ServerMsg =
   // --- крепость (shared/fort.ts): вход (id — свой номер в снимках, wave — какая волна идёт или была последней),
   // состав, события тика, смена фазы, итоги, жетоны; на набережную — что в крепости (раз в секунду, если менялось)
   // rec — рекорд крепости и свой рекорд (shared/fortrecord.ts)
-  | { t: 'fort'; id: number; tick: number; seed: number; phase: number; phaseEnd: number; wave: number; players: FortPlayerRow[]; card?: FortWaveCard; rec?: FortRecIntro }
-  | { t: 'froster'; players: FortPlayerRow[] }
+  | { t: 'fort'; id: number; tick: number; seed: number; phase: number; phaseEnd: number; wave: number; players: FortPlayerRow[]; towers?: FortTowerRow[]; card?: FortWaveCard; rec?: FortRecIntro }
+  | { t: 'froster'; players: FortPlayerRow[]; towers?: FortTowerRow[] }
   | { t: 'fev'; k: number; e: FortEvent[] }
   // card — карточка идущей волны (в бою) или следующей (в передышке и сборе)
   | { t: 'fphase'; phase: number; end: number; wave: number; card?: FortWaveCard }

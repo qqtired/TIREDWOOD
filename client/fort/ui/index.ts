@@ -145,7 +145,8 @@ export class FortUi {
     this.down = new DownBlock(slots.root);
     this.prompt = new FortPrompt(slots.bc);
     this.vitals = new FortVitals(slots.bc);
-    this.board = new Board(scrims);
+    // Длинный TAB должен быть над тостами, а не внутри нижнего stacking context сцены.
+    this.board = new Board(slots.top.parentElement ?? scrims);
     this.results = new Results(scrims);
     this.record = { set: (r) => this.tiles.setRecord(r), grow: (w) => this.tiles.growMine(w) };
     // всё своё в общих слотах — только в крепости (html[data-room='fort'], ui.css)

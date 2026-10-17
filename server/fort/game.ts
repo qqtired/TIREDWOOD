@@ -238,7 +238,7 @@ export class FortGame implements HordeHost, EventHost {
     this.players.set(id, p);
     p.waveJoinTick = this.tick;
     // приветствие — строго первым, до снимков и событий
-    sink.sendJson({ t: 'fort', id, tick: this.tick, seed: p.seed, phase: this.phase, phaseEnd: this.phaseEnd, wave: this.wave, players: this.roster(),
+    sink.sendJson({ t: 'fort', id, tick: this.tick, seed: p.seed, phase: this.phase, phaseEnd: this.phaseEnd, wave: this.wave, players: this.roster(), towers: this.arsenal.towerStats(),
       ...(this.card ? { card: this.card } : {}), rec: this.recIntro(p) });
     this.spawn(p);
     this.sendSurrTo(p);
@@ -264,7 +264,11 @@ export class FortGame implements HordeHost, EventHost {
     this.players.delete(id);
     this.usedIds.delete(id);
     // Snapshot IDs can be reused by a new defender; prior damage belongs to the departed session.
-    for (const zombie of this.horde.zombies) zombie.damageBy.delete(id);
+    for (const zombie of this.horde.zombies) {
+      zombie.damageBy.delete(id);
+      if (zombie.lastBy === id) zombie.lastBy = 0;
+    }
+    this.arsenal.forgetOwner(id);
     this.rosterDirty = true;
     if (this.players.size > 0) this.systemChat(`${p.name} ушёл из крепости`);
     // ушедший выбывает из подсчёта голосов: без него голосование может пройти или провалиться раньше срока
@@ -745,6 +749,10 @@ export class FortGame implements HordeHost, EventHost {
     this.rosterDirty = true;
   }
 
+  damageDealt(by: number, amount: number): void {
+    this.arsenal.recordDamage(by, amount);
+  }
+
   event(e: FortEvent): void {
     this.events.push(e);
   }
@@ -1103,14 +1111,14 @@ export class FortGame implements HordeHost, EventHost {
   roster(): FortPlayerRow[] {
     return [...this.players.values()].map((p) => ({
       id: p.id, pid: p.pid, level: p.level, name: p.name, o: p.outfit, pts: Math.floor(p.run.arsenal.gold), k: p.kills, d: p.deaths, ready: p.ready,
-      ping: Math.round(p.ping), ar: this.arsenal.row(p),
+      damage: Math.round(p.run.arsenal.damage), ping: Math.round(p.ping), ar: this.arsenal.row(p),
     }));
   }
 
   private sendRoster(): void {
     this.rosterDirty = false;
     this.rosterSentTick = this.tick;
-    this.broadcast({ t: 'froster', players: this.roster() });
+    this.broadcast({ t: 'froster', players: this.roster(), towers: this.arsenal.towerStats() });
   }
 }
 

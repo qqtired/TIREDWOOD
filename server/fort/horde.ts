@@ -70,6 +70,8 @@ export interface HordeHost {
   slow(x: number, z: number): number;
   /** Сбит: кем (0 — никем: краскомёт, сам лопнул у цели) */
   killed(z: Zombie, by: number): void;
+  /** Фактически снятая прочность: для статистики, независимо от добивания и наград. */
+  damageDealt?(by: number, amount: number): void;
   event(e: FortEvent): void;
 }
 
@@ -461,6 +463,7 @@ export class Horde {
       const taken = Math.min(z.shield, dmg);
       z.shield -= taken;
       dmg -= taken;
+      this.host.damageDealt?.(by, taken);
       this.host.event(['zhit', by, z.id, Math.round(taken), 2, r2(hx), r2(hy), r2(hz)]);
       if (z.shield <= 0) {
         z.shield = 0;
@@ -526,6 +529,7 @@ export class Horde {
   /** Урон по HP: mark — как отметить попадание (0 тело, 1 голова, 2 щит, 3 броня) */
   private hurt(z: Zombie, dmg: number, by: number, mark: number, hx: number, hy: number, hz: number): void {
     if (!z.alive) return;
+    this.host.damageDealt?.(by, Math.max(0, Math.min(dmg, z.hp)));
     z.hp -= dmg;
     if (by) {
       z.lastBy = by;
@@ -538,6 +542,10 @@ export class Horde {
   /** Сбит (by — кто; 0 — взрыв, сам, краскомёт без хозяина). Пузырь и бочка рвутся следом, очередью. */
   kill(z: Zombie, by: number): void {
     if (!z.alive) return;
+    // Прямой контрход по механизму и остаток до порога смерти тоже снимают оставшиеся HP.
+    this.host.damageDealt?.(by, Math.max(0, z.hp));
+    // Цепной взрыв принадлежит этому уничтожению, а не последнему прежнему попаданию.
+    z.lastBy = by;
     this.siege.death(z);
     z.alive = false;
     z.hp = 0;
@@ -659,7 +667,9 @@ export class Horde {
         if (!o.alive || o === b || o.kind === Z_SAPPER) continue;
         if (Math.hypot(o.x - b.x, o.y - b.y, o.z - b.z) >= BARREL_R) continue;
         if (host.traceAttack(b.x, y, b.z, o.x, o.y + ZK[o.kind].hcy, o.z, _attack)) continue;
-        o.hp -= isBossKind(o.kind) ? hit * BOSS_ARMOR : hit;
+        const dealt = isBossKind(o.kind) ? hit * BOSS_ARMOR : hit;
+        host.damageDealt?.(b.lastBy, Math.max(0, Math.min(o.hp, dealt)));
+        o.hp -= dealt;
         if (o.hp <= 0.5) this.kill(o, b.lastBy);
       }
     }
@@ -688,7 +698,9 @@ export class Horde {
         if (!o.alive || o === b) continue;
         if (Math.hypot(o.x - b.x, o.y - b.y, o.z - b.z) >= POP_R) continue;
         if (host.traceAttack(b.x, b.y + 0.8, b.z, o.x, o.y + ZK[o.kind].hcy, o.z, _attack)) continue;
-        o.hp -= isBossKind(o.kind) ? popZ * BOSS_ARMOR : popZ;
+        const dealt = isBossKind(o.kind) ? popZ * BOSS_ARMOR : popZ;
+        host.damageDealt?.(by, Math.max(0, Math.min(o.hp, dealt)));
+        o.hp -= dealt;
         if (o.hp <= 0.5) this.kill(o, by);
       }
     }

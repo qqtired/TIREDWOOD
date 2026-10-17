@@ -3,7 +3,7 @@
 // кристалл (ремонт и укрепление). Цены и строки лавки — shared/fortarsenal.ts (их же рисует клиент), шаг стволов —
 // shared/fortgun.ts. Всё, что даёт и забирает золото, — только здесь.
 import { EYE_HEIGHT, MAX_REWIND_TICKS, TICK_RATE } from '../../shared/constants.ts';
-import { FORT_MAX_ALIVE, FT_BREAK, FT_END, FT_GATHER, FT_WAVE, ZK, ZS_ATTACK, ZS_WALK, Z_BOSS, Z_BRUTE, Z_FLYER, type FortEvent } from '../../shared/fort.ts';
+import { FORT_MAX_ALIVE, FT_BREAK, FT_END, FT_GATHER, FT_WAVE, ZK, ZS_ATTACK, ZS_WALK, Z_BOSS, Z_BRUTE, Z_FLYER, type FortEvent, type FortTowerRow } from '../../shared/fort.ts';
 import { FT_STRIDE, fortShotDir, nearestZombie, zombieHead, zombieRay } from '../../shared/fortaim.ts';
 import {
   ACT_CRYSTAL, ACT_GATE, ACT_SHOP, ACT_TOWER, AR_TAIL_BYTES, BOAT_BOUNTY, BURN_TICKS, CANNON_SPEED, CLEAN_MULT, CRIT_MUL, CRYSTAL_TIERS,
@@ -43,6 +43,8 @@ export interface ArsenalRun {
   invest: number;
   /** Золото за сбитых (для «лучшего защитника») */
   killGold: number;
+  /** Фактический личный урон по HP и щитам за забег; вышки считаются отдельно. */
+  damage: number;
 }
 
 /**
@@ -52,7 +54,7 @@ export interface ArsenalRun {
 export type { FortRun };
 
 export function makeArsenalRun(): ArsenalRun {
-  return { gold: START_GOLD, earned: 0, lv: [0, 0, 0, 0, 0], gn: 0, hv: 0, gr: GREN_START, invest: 0, killGold: 0 };
+  return { gold: START_GOLD, earned: 0, lv: [0, 0, 0, 0, 0], gn: 0, hv: 0, gr: GREN_START, invest: 0, killGold: 0, damage: 0 };
 }
 
 /** Старый забег (из сохранения, от другой версии) — к нынешнему виду, ничего не теряя */
@@ -68,6 +70,7 @@ export function normalizeArsenalRun(a: Partial<ArsenalRun> | undefined): Arsenal
   r.gr = Math.max(0, Math.floor(num(a.gr, r.gr)));
   r.invest = Math.max(0, num(a.invest, 0));
   r.killGold = Math.max(0, num(a.killGold, 0));
+  r.damage = Math.max(0, num(a.damage, 0));
   return r;
 }
 
@@ -80,6 +83,8 @@ interface TowerState {
   cd: number;
   /** Кто сколько вложил (pid → золото): им делится награда за урон башни */
   invest: Map<number, number>;
+  damage: number;
+  gold: number;
 }
 
 interface Flying {
@@ -152,7 +157,7 @@ export class Arsenal {
 
   constructor(game: FortGame) {
     this.game = game;
-    for (let i = 0; i < TOWER_SPOT_COUNT; i++) this.towers.push({ type: -1, level: 0, cd: 0, invest: new Map() });
+    for (let i = 0; i < TOWER_SPOT_COUNT; i++) this.towers.push({ type: -1, level: 0, cd: 0, invest: new Map(), damage: 0, gold: 0 });
   }
 
   // ------------------------------------------------------------ жизненный цикл
@@ -166,6 +171,7 @@ export class Arsenal {
       t.level = 0;
       t.cd = 0;
       t.invest.clear();
+      t.damage = t.gold = 0;
     }
     this.tarUntil.fill(0);
     this.grenades = [];
@@ -203,6 +209,27 @@ export class Arsenal {
   row(p: FortPlayer): ArsenalRow {
     const a = p.run.arsenal;
     return { g: Math.floor(a.gold), lv: a.lv.slice(), gn: a.gn, hv: a.hv, gr: a.gr };
+  }
+
+  towerStats(): FortTowerRow[] {
+    return this.towers.flatMap((t, spot) => t.type < 0 ? [] : [{ spot, type: t.type, level: t.level, damage: Math.round(t.damage), gold: t.gold }]);
+  }
+
+  /** Орда передаёт только реальную потерю HP/щита. Частоту сетевых сообщений не увеличиваем. */
+  recordDamage(by: number, amount: number): void {
+    if (!(amount > 0) || !Number.isFinite(amount)) return;
+    const tower = this.towers[by - TOWER_BY];
+    if (tower && tower.type >= 0) tower.damage += amount;
+    else {
+      const player = this.game.players.get(by);
+      if (player) player.run.arsenal.damage += amount;
+    }
+  }
+
+  /** Снаряд ушедшего не становится снарядом новичка, получившего тот же номер снимка. */
+  forgetOwner(id: number): void {
+    for (const grenade of this.grenades) if (grenade.by === id) grenade.by = 0;
+    for (const burn of this.burns.values()) if (burn.by === id) burn.by = 0;
   }
 
   onWaveStart(): void {
@@ -299,6 +326,7 @@ export class Arsenal {
       const amount = Math.round((part * v) / sum);
       if (amount <= 0) continue;
       this.credit(p.run.arsenal, amount);
+      t.gold += amount;
       given += (part * v) / sum;
       this.game.event(['gold', p.id, amount, r2(x), r2(y), r2(z)]);
     }

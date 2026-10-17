@@ -245,10 +245,21 @@ export interface FortPlayerRow {
   pts: number;
   k: number;
   d: number;
+  /** Личный урон за забег: фактически снятые HP и щиты, без урона вышек. */
+  damage?: number;
   ready: boolean;
   ping: number;
   /** Арсенал на эту игру: золото, ступени прокачки, стволы, гранаты (только в крепости) */
   ar?: ArsenalRow;
+}
+
+/** Статистика построенной вышки за текущую игру; gold — фактические выплаты вкладчикам, без общака. */
+export interface FortTowerRow {
+  spot: number;
+  type: number;
+  level: number;
+  damage: number;
+  gold: number;
 }
 
 /** Строка итогов: волн отбил с участием, жетонов получил */
