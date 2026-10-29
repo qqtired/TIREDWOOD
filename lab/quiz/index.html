@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="ru" data-skin="retro2" data-hud="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>«Ракушка» — квизы на набережной</title>
+<meta name="description" content="Страница-обзор TIREDWOOD: летняя эстрада «Ракушка» и четыре игры с ведущим — «Своя игра», «Загадка», «Крокодил», «Кто из нас?», паки вопросов и загрузка паков SIGame">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M32 6c-13 0-22 13-22 30 0 13 9 22 22 22s22-9 22-22C54 19 45 6 32 6z' fill='%236ee7b7'/%3E%3Ccircle cx='25' cy='30' r='5' fill='%23fff'/%3E%3Ccircle cx='39' cy='30' r='5' fill='%23fff'/%3E%3Ccircle cx='26' cy='31' r='2.4' fill='%23222'/%3E%3Ccircle cx='40' cy='31' r='2.4' fill='%23222'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="kit/tokens.css">
+<link rel="stylesheet" href="kit/kit.css">
+<link rel="stylesheet" href="kit/modes.css">
+<link rel="stylesheet" href="page/page.css">
+<!-- стили разделов: файла может не быть — страница от этого не ломается -->
+<link rel="stylesheet" href="css/venue.css">
+<link rel="stylesheet" href="css/jeopardy.css">
+<link rel="stylesheet" href="css/riddle.css">
+<link rel="stylesheet" href="css/croc.css">
+<link rel="stylesheet" href="css/whoofus.css">
+<link rel="stylesheet" href="css/packs.css">
+<link rel="stylesheet" href="css/chat.css">
+</head>
+<body>
+<main class="pg">
+  <header>
+    <div class="pg-brand"><span class="pg-jelly" aria-hidden="true"></span><b>TIREDWOOD</b> · лаборатория<span class="pg-ver">концепт 29.10.2026</span></div>
+
+    <div class="pg-hero">
+      <img class="pg-hero-art" data-art="shell" src="img/venue-shell.jpg" alt="Летняя эстрада «Ракушка»: желейки за пультами, ведущий у трибуны, зрители на скамейках">
+      <img class="pg-hero-art" data-art="awning" src="img/venue-awning.jpg" alt="Вариант «Шатёр»: сцена под полосатым навесом" hidden>
+      <div class="pg-hero-copy">
+        <div>
+          <h1 class="pg-title">Ракушка</h1>
+          <p class="pg-sub">Квизы и игры с ведущим прямо на набережной: «Своя игра», «Загадка», «Крокодил» и «Кто из нас?»</p>
+        </div>
+        <div class="pg-variant">
+          <span class="pg-variant-cap">Вид эстрады — выбери:</span>
+          <div class="pg-seg" role="group" aria-label="Вид эстрады">
+            <button type="button" data-variant="shell" aria-pressed="true">«Ракушка»</button>
+            <button type="button" data-variant="awning" aria-pressed="false">«Шатёр»</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="pg-intro">
+      <b>Летняя эстрада в Приморском саду</b>, за Курзалом: сцена, шесть пультов с лампами, трибуна ведущего, большое табло
+      и скамейки для зрителей. Зашёл за ограду — здесь <b>свой голос</b> и строка чата <b>«В игру»</b>. Нет желающих вести —
+      ведёт житель <b>Затейник</b>. Всё ниже — живые макеты на настоящем интерфейсе игры: нажимай, отвечай, ставь лайки, рисуй.
+    </p>
+
+    <div class="pg-modes">
+      <a class="pg-mode" href="#jeopardy"><span class="pg-mode-ic"><img src="img/icons/bell.webp" alt=""></span><b>«Своя игра»</b><span>Табло тем и цен, кнопка «кто первый», ведущий ставит ✓ или ✗. Паки с выбором тем, свои паки.</span><em>2–6 игроков + ведущий · 20–35 мин</em></a>
+      <a class="pg-mode" href="#riddle"><span class="pg-mode-ic"><img src="img/icons/scroll.webp" alt=""></span><b>«Загадка»</b><span>Загадай что угодно — остальные угадывают в чате, ты ставишь 👍 или 👎, пока не дойдут до ответа.</span><em>от 2 человек · раунд до 5 мин</em></a>
+      <a class="pg-mode" href="#croc"><span class="pg-mode-ic"><img src="img/icons/paint.webp" alt=""></span><b>«Крокодил»</b><span>Рисуешь слово на мольберте сцены, все угадывают в чате, сервер сам ловит верный ответ.</span><em>от 3 человек · раунд 80 с</em></a>
+      <a class="pg-mode" href="#whoofus"><span class="pg-mode-ic"><img src="img/icons/online.webp" alt=""></span><b>«Кто из нас?»</b><span>Вопрос про своих, тайное голосование, лидер получает титул над ником.</span><em>3–12 человек · 10 раундов</em></a>
+    </div>
+    <div class="pg-offers">
+      <a class="pg-mode pg-mode--offer" href="#chat"><span class="pg-mode-ic"><img src="img/icons/chat.webp" alt=""></span><b>Викторина в общем чате</b><span>Раз в 25 минут Затейник задаёт вопрос в чат, первый верный ответ — +10 🪙. Зовёт людей на «Ракушку».</span><em>Предложение — нужно твоё «да»</em></a>
+      <a class="pg-mode pg-mode--offer" href="#packs"><span class="pg-mode-ic"><img src="img/icons/lighthouse.webp" alt=""></span><b>Пак «Набережная»</b><span>Вопросы про саму игру: рыбы по силуэту, мобы крепости, жители, места. Плюс слова «Крокодила» и вопросы «Кто из нас?».</span><em>Предложение — нужно твоё «да»</em></a>
+    </div>
+
+    <nav class="pg-nav" aria-label="Разделы">
+      <a href="#venue">Где</a><a href="#jeopardy">Своя игра</a><a href="#riddle">Загадка</a><a href="#croc">Крокодил</a>
+      <a href="#whoofus">Кто из нас?</a><a href="#packs">Паки</a><a href="#chat">Чат и Затейник</a><a href="#plan">Награды и план</a>
+      <button class="pg-mute" type="button" aria-pressed="false">Звук макетов</button>
+    </nav>
+  </header>
+
+  <section class="pg-sec" id="venue">
+    <div class="pg-sec-head"><span class="pg-sec-num">01</span><h2 class="pg-sec-title">Где это</h2>
+      <p class="pg-sec-lead">Приморский сад — пустая новая земля за Курзалом. «Ракушка» стоит спиной к морю, раскрытием к кафе «Чайка»:
+        табло видно из прохода между Курзалом и Смотровой. <b>Внутри ограды — свой голос</b>: на сцене слышат друг друга, набережная — нет.</p></div>
+    <div class="qz-mount" data-mount="venue"></div>
+  </section>
+
+  <section class="pg-sec" id="jeopardy">
+    <div class="pg-sec-head"><span class="pg-sec-num">02</span><h2 class="pg-sec-title">«Своя игра»</h2>
+      <p class="pg-sec-lead">Как в передаче: табло тем и цен, кнопка «кто первый», ведущий судит. Ведёт игрок за трибуной, а если желающих нет — Затейник.</p></div>
+    <ol class="pg-rules">
+      <li><b>Ведущий выбирает пак и темы</b>, игроки встают за пульты — от двух до шести.</li>
+      <li><b>Игрок с ходом выбирает клетку.</b> Кнопки открываются, когда вопрос прочитан; кто первым нажал Пробел — отвечает голосом или текстом.</li>
+      <li><b>Ведущий ставит ✓ или ✗</b> — цена в плюс или в минус. Нет ведущего — ответ сверяет Затейник, спорный можно оспорить.</li>
+    </ol>
+    <div class="qz-mount" data-mount="jeopardy"></div>
+  </section>
+
+  <section class="pg-sec" id="riddle">
+    <div class="pg-sec-head"><span class="pg-sec-num">03</span><h2 class="pg-sec-title">«Загадка»</h2>
+      <p class="pg-sec-lead">Твоя идея: один загадывает что угодно, остальные угадывают в чате, он ставит лайк или дизлайк — и так доходят до ответа.</p></div>
+    <ol class="pg-rules">
+      <li><b>Загадай что угодно</b> и выбери категорию — само слово видишь только ты.</li>
+      <li><b>Остальные пишут догадки</b> в строку «В игру», а ты ставишь 👍 тепло, 👎 мимо или 🎯 угадал.</li>
+      <li><b>Лайкнутые догадки встают на табло цепочкой</b> — по ней и доходят до ответа. Угадавший загадывает следующим.</li>
+    </ol>
+    <div class="qz-mount" data-mount="riddle"></div>
+  </section>
+
+  <section class="pg-sec" id="croc">
+    <div class="pg-sec-head"><span class="pg-sec-num">04</span><h2 class="pg-sec-title">«Крокодил»</h2>
+      <p class="pg-sec-lead">Рисунок сразу появляется на большом мольберте сцены — его видно даже с прохода у кафе.</p></div>
+    <ol class="pg-rules">
+      <li><b>Выбери одно из трёх слов</b> и рисуй 80 секунд: восемь цветов, три кисти, ластик.</li>
+      <li><b>Остальные угадывают в чате</b>; сервер сам ловит верный ответ и лично шепчет «почти».</li>
+      <li><b>Чем раньше угадал — тем больше очков</b>; рисующему — за каждого угадавшего.</li>
+    </ol>
+    <div class="qz-mount" data-mount="croc"></div>
+  </section>
+
+  <section class="pg-sec" id="whoofus">
+    <div class="pg-sec-head"><span class="pg-sec-num">05</span><h2 class="pg-sec-title">«Кто из нас?»</h2>
+      <p class="pg-sec-lead">Лёгкая игра для своих: вопросы про компанию, тайное голосование и смешные титулы.</p></div>
+    <ol class="pg-rules">
+      <li><b>Вопрос про своих:</b> «Кто из нас первым уснёт на рыбалке?» — можно добавить и свои.</li>
+      <li><b>Все тайно голосуют</b> за кого-то из участников, за себя нельзя.</li>
+      <li><b>Лидер получает титул</b> над ником до конца игры, а угадавшие мнение большинства — очко.</li>
+    </ol>
+    <div class="qz-mount" data-mount="whoofus"></div>
+  </section>
+
+  <section class="pg-sec" id="packs">
+    <div class="pg-sec-head"><span class="pg-sec-num">06</span><h2 class="pg-sec-title">Паки вопросов</h2>
+      <p class="pg-sec-lead">Паки SIGame (.siq) — в сообществе их тысячи — и свой простой формат: хоть руками, хоть из Google Таблиц.
+        <b>Брось сюда настоящий .siq</b> — страница разберёт его прямо в браузере, как будет в игре.</p></div>
+    <div class="qz-mount" data-mount="packs"></div>
+  </section>
+
+  <section class="pg-sec" id="chat">
+    <div class="pg-sec-head"><span class="pg-sec-num">07</span><h2 class="pg-sec-title">Чат «В игру» и Затейник</h2>
+      <p class="pg-sec-lead">Внутри ограды строка чата переключается: «В игру» — только игре, «Всем» — как раньше. Общий чат не засыпает догадками.</p></div>
+    <div class="qz-mount" data-mount="chat"></div>
+  </section>
+
+  <section class="pg-sec" id="plan">
+    <div class="pg-sec-head"><span class="pg-sec-num">08</span><h2 class="pg-sec-title">Награды и план</h2>
+      <p class="pg-sec-lead">Жетоны и рекорды считает сервер. Делаем по этапам — каждый смотришь отдельно на своём адресе.</p></div>
+    <div class="pg-grid2">
+      <div class="pg-card">
+        <h3>Жетоны</h3>
+        <table class="pg-table">
+          <tr><th>За что</th><th>Сколько</th></tr>
+          <tr><td>Минута активной игры: нажал, отвечал, угадывал, голосовал, рисовал или вёл</td><td><b>8 🪙</b></td></tr>
+          <tr><td>«Своя игра»: 1-е / 2-е / 3-е место (если игроков от трёх)</td><td><b>+100 / +50 / +25</b></td></tr>
+          <tr><td>Ведущий доиграл игру до конца</td><td><b>+50</b></td></tr>
+          <tr><td>«Загадка»: разгадал / твою разгадали</td><td><b>+15 / +10</b></td></tr>
+          <tr><td>«Крокодил»: места в итоге</td><td><b>+60 / +30 / +15</b></td></tr>
+          <tr><td>«Кто из нас?»: самый «в теме»</td><td><b>+40</b></td></tr>
+          <tr><td>Викторина в общем чате: первый верный ответ</td><td><b>+10</b>, до 50 в день</td></tr>
+        </table>
+        <p>Меньше трёх людей в игре — без жетонов. Потолок квизов — <b>400 🪙 в день</b>.</p>
+      </div>
+      <div class="pg-card">
+        <h3>Рекорды и где видно</h3>
+        <ul>
+          <li><b>Профиль:</b> победы и лучший счёт в «Своей игре», угадано в «Крокодиле» и «Загадке», титулы «Кто из нас?».</li>
+          <li><b>Набережная:</b> строка «Ракушки» на афише кафе, вывеска над аркой с живым статусом, табло видно с прохода.</li>
+          <li><b>Общий чат:</b> начало игры, победа, разгаданная загадка — не чаще раза в 2 минуты.</li>
+          <li><b>Итоги:</b> общее окно итогов режимов — места, счёт, жетоны, «Ещё раз».</li>
+        </ul>
+      </div>
+    </div>
+    <div class="pg-card" style="margin-top:14px">
+      <h3>Этапы</h3>
+      <table class="pg-table">
+        <tr><th>Этап</th><th>Что войдёт</th><th>Как проверим</th></tr>
+        <tr><td><b>1. «Ракушка» и «Загадка»</b></td><td>Планировка из простых объёмов на настоящем месте, ограда, места и роли, свой голос, строка «В игру», «Загадка» целиком, жетоны</td><td>Втроём: голос только внутри, цепочка «тепло» видна с прохода, 🎯 — праздник</td></tr>
+        <tr><td><b>2. «Своя игра» и паки</b></td><td>Свой формат, загрузка .siq, каталог, живой ведущий и Затейник, финал, итоги, рекорды</td><td>Ведущий + трое за пультами + зритель, честная кнопка при разном пинге</td></tr>
+        <tr><td><b>3. «Крокодил» и «Кто из нас?»</b></td><td>Холст с мазками у всех и на мольберте, слова; голосование и титулы</td><td>Четверо: рисунок у всех без задержки, «почти» видит только автор</td></tr>
+        <tr><td><b>4. Модели и звук</b></td><td>Ракушка, пульты, мольберт, Затейник с анимациями; звуки; викторина в чате (если «да»)</td><td>Замер бюджета, приёмка «как игрок», общий релиз</td></tr>
+      </table>
+      <p>Бюджет: у «Ракушки» не больше +10 отрисовок и без новых программ (их уже 79 из 80), табло — один холст. Всё новое — за флагом сервера <b>QUIZ</b>.</p>
+    </div>
+    <div class="pg-card" style="margin-top:14px">
+      <h3>Что нужно решить</h3>
+      <ol class="pg-ask">
+        <li><b>Вид эстрады:</b> «Ракушка» или «Шатёр»? (переключатель в шапке)</li>
+        <li><b>С чего начать:</b> с «Загадки» — быстрее, и на ней проверим площадку, голос и чат — или сразу со «Своей игры»?</li>
+        <li><b>Викторина в общем чате:</b> делаем? Раз в 25 минут — нормально?</li>
+        <li><b>Пак «Набережная»</b> со своими вопросами про игру — делаем?</li>
+        <li><b>Жетоны:</b> так, меньше или больше?</li>
+        <li><b>Загрузка паков с 3-го уровня</b> (защита от мусора) — оставить или пускать всех?</li>
+      </ol>
+    </div>
+  </section>
+
+  <p class="pg-foot">Страница-обзор не входит в игру. Решения и правила — <code>docs/quiz/brief.md</code>. Картинки — Codex image_gen, промпты — <code>img/PROVENANCE.md</code>.</p>
+</main>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

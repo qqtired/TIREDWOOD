@@ -1,0 +1,122 @@
+/* «Чат «В игру» и Затейник» (раздел #chat страницы-обзора «Ракушка»). Все классы — ch-*, правила — только под корнем #chat,
+   классы кита (.k-*) глобально не трогаем. Цвета, тени и шрифты — токены кита; своё — только раскладка. */
+
+#chat [hidden] { display: none !important; }
+#chat .ch-block { margin: 0 0 44px; }
+#chat .ch-block:last-child { margin-bottom: 0; }
+#chat .ch-notes { margin-top: -8px; }
+#chat .pg-btn:disabled { opacity: .45; cursor: default; }
+#chat .pg-btn:disabled:hover { background: rgba(255, 244, 220, .06); }
+
+/* ------------------------------------------------ док чата кита: список, говорящие, строка «голос + ввод» */
+#chat .ch-chat { width: 360px; }
+#chat .ch-list { justify-content: flex-end; }
+#chat .ch-chat .k-chat-line { animation: ch-in .25s var(--ease-out) both, ch-old .01s 12s forwards; }
+#chat .ch-speak { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+#chat .ch-speak:empty { display: none; }
+#chat .ch-zone { gap: 6px; padding-left: 6px; font-weight: 700; }
+#chat .ch-zone .k-ic { width: 20px; height: 20px; }
+#chat .ch-sp { gap: 6px; }
+#chat .ch-voice img { width: 26px; height: 26px; object-fit: contain; filter: drop-shadow(0 2px 2px rgba(20, 10, 12, .3)); }
+#chat .ch-voice:focus-visible { outline: none; box-shadow: var(--plate-shadow), var(--focus); }
+#chat .ch-input { cursor: text; }
+#chat .ch-input > input { min-width: 0; }
+#chat .ch-lab { flex: none; }
+
+/* подпись у ввода — переключатель «В игру ▾» / «Всем ▾» (только внутри ограды) */
+#chat .ch-mode { flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 28px; margin-left: -6px; padding: 0 9px 0 11px; border: 0; border-radius: var(--r-pill); background: var(--gold-soft); color: var(--gold-text); font: 700 var(--fs-14)/1 var(--font-text); white-space: nowrap; cursor: pointer; transition: background .15s; }
+#chat .ch-mode::after { content: ''; width: 0; height: 0; margin-top: 1px; border: 4px solid transparent; border-top: 5px solid currentColor; border-bottom: 0; }
+#chat .ch-mode:hover { background: color-mix(in srgb, var(--gold) 30%, transparent); }
+#chat .ch-mode:focus-visible { outline: none; box-shadow: var(--focus); }
+#chat .ch-input.is-game { box-shadow: var(--plate-shadow), 0 0 0 2px var(--info); }
+#chat .ch-input.is-game .ch-mode { background: var(--info-soft); color: var(--info-text); }
+#chat .ch-input.is-game .ch-mode:hover { background: color-mix(in srgb, var(--info) 30%, transparent); }
+
+#chat .ch-hints { display: flex; flex-wrap: wrap; gap: 6px; }
+#chat .ch-hints .k-pill { gap: 6px; padding-left: 5px; }
+
+/* подсказка у калитки — кнопка, как .k-prompt в игре */
+#chat button.k-prompt { font-family: var(--font-text); cursor: pointer; }
+#chat button.k-prompt:hover { filter: brightness(1.04); }
+#chat button.k-prompt:focus-visible { outline: none; box-shadow: var(--plate-shadow), var(--focus); }
+
+/* ------------------------------------------------ лента игры (только на «Ракушке») */
+#chat .ch-feed { display: flex; flex-direction: column; gap: 8px; width: 300px; padding: 10px 12px 12px; animation: k-toast-in .35s var(--ease-spring) both; }
+#chat .ch-feed-head { display: flex; align-items: center; gap: 10px; }
+#chat .ch-feed-head > .k-ic { flex: none; width: 30px; height: 30px; }
+#chat .ch-feed-t { display: grid; flex: 1; gap: 2px; min-width: 0; }
+#chat .ch-feed-t b { overflow: hidden; font: 800 var(--fs-16)/1.15 var(--font-text); text-overflow: ellipsis; white-space: nowrap; }
+#chat .ch-feed-t small { color: var(--surf-dim); font: 500 var(--fs-13)/1.2 var(--font-text); }
+#chat .ch-feed-list { display: flex; flex-direction: column; justify-content: flex-end; gap: 3px; min-height: 96px; }
+#chat .ch-fl { flex: none; padding: 3px 8px 4px; border-radius: var(--r-sm); background: var(--surf-2); font: 500 var(--fs-14)/1.3 var(--font-text); overflow-wrap: anywhere; animation: ch-in .25s var(--ease-out) both; }
+#chat .ch-fl > b { margin-right: 2px; color: var(--nick, var(--nick-1)); font-weight: 700; }
+#chat .ch-fl.is-own { box-shadow: inset 3px 0 0 var(--gold); padding-left: 11px; }
+
+/* ------------------------------------------------ над миром: подписи и облачка над желейками */
+#chat .ch-wpos { position: absolute; transform: translate(-50%, -100%); }
+#chat .ch-np { display: block; max-width: 160px; padding: 2px 10px 3px; border-radius: var(--r-pill); overflow: hidden; font: 700 var(--fs-14)/1.25 var(--font-text); text-overflow: ellipsis; white-space: nowrap; }
+#chat .ch-np.is-own { box-shadow: var(--plate-shadow), 0 0 0 2px var(--gold); }
+#chat .ch-bubpos { transition: opacity .3s; }
+#chat .ch-bubpos.is-out { opacity: 0; }
+#chat .ch-bub { width: max-content; max-width: 200px; padding: 5px 12px 6px; border-radius: var(--r-md); font: 600 var(--fs-14)/1.3 var(--font-text); text-align: center; overflow-wrap: anywhere; transform-origin: 50% 100%; animation: ch-pop .32s var(--ease-pop) both; }
+#chat .ch-bub::after { content: ''; position: absolute; left: calc(50% - 6px); bottom: -6px; width: 12px; height: 12px; border-right: var(--plate-border); border-bottom: var(--plate-border); border-radius: 0 0 3px 0; background: var(--plate-bg); transform: rotate(45deg); }
+#chat .ch-bub.is-own { box-shadow: var(--plate-shadow), 0 0 0 2px var(--gold); }
+
+/* ------------------------------------------------ Затейник: портрет и реплика */
+#chat .ch-zat { position: absolute; left: 84px; bottom: 30px; width: 540px; animation: ch-bob 2.8s ease-in-out infinite; }
+#chat .ch-zat img { display: block; width: 100%; height: auto; transform-origin: 50% 92%; filter: drop-shadow(0 16px 18px rgba(3, 25, 23, .38)); }
+#chat .ch-zat.is-say img { animation: ch-talk .55s var(--ease-pop) both; }
+#chat .ch-zat[data-mood='happy'].is-say img { animation: ch-cheer .85s var(--ease-out) both; }
+#chat .ch-zat[data-mood='sad'] img { transform: rotate(-3deg) translateY(6px); }
+#chat .ch-zat[data-mood='sad'].is-say img { animation: ch-droop .7s var(--ease-out) both; }
+#chat .ch-zname { position: absolute; left: 50%; bottom: -8px; display: inline-flex; align-items: center; gap: 10px; padding: 6px 12px 6px 18px; border-radius: var(--r-pill); font: 800 var(--fs-18)/1 var(--font-text); white-space: nowrap; transform: translateX(-50%); }
+#chat .ch-say { position: absolute; left: 650px; top: 300px; display: flex; flex-direction: column; justify-content: center; gap: 10px; width: 600px; min-height: 150px; padding: 20px 28px 24px; border-radius: var(--r-xl); }
+#chat .ch-say::before { content: ''; position: absolute; left: -10px; top: 70px; width: 18px; height: 18px; border-left: var(--plate-border); border-bottom: var(--plate-border); border-radius: 0 0 0 4px; background: var(--plate-bg); transform: rotate(45deg); }
+#chat .ch-say-t { min-height: 1.15em; margin: 0; font: 800 var(--fs-28)/1.2 var(--font-text); text-wrap: balance; overflow-wrap: anywhere; }
+#chat .ch-dots { display: inline-flex; align-items: center; gap: 8px; height: 1.2em; }
+#chat .ch-dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--surf-faint); animation: ch-dot .9s ease-in-out infinite; }
+#chat .ch-dots i:nth-child(2) { animation-delay: .15s; }
+#chat .ch-dots i:nth-child(3) { animation-delay: .3s; }
+
+/* ------------------------------------------------ викторина в общем чате */
+#chat .ch-offer { margin-left: 10px; vertical-align: 3px; }
+#chat .ch-sw { gap: 10px; min-height: 38px; padding: 3px 14px 3px 4px; border: 1px solid rgba(255, 244, 220, .22); border-radius: 999px; background: rgba(255, 244, 220, .06); color: var(--pg-text); font: 700 14px/1 var(--font-text); }
+#chat .ch-sw:hover { background: rgba(255, 244, 220, .12); }
+#chat .ch-evslot { display: flex; justify-content: center; }
+#chat .ch-evslot:empty { display: none; }
+#chat .ch-qplate { animation: k-toast-in .4s var(--ease-spring) both; }
+#chat .ch-qoff .ch-evslot, #chat .ch-qoff .ch-q { display: none; }
+/* реплики Затейника в общем чате: не курсив, цветная кромка слева; ответ-победа — зелёная, шёпот — приглушённый */
+#chat .k-chat-line.is-sys.ch-q { padding-left: 12px; box-shadow: var(--chat-shadow), inset 3px 0 0 var(--info); color: var(--plate-text); font-style: normal; font-weight: 600; }
+#chat .k-chat-line.is-sys.ch-q.is-win { box-shadow: var(--chat-shadow), inset 3px 0 0 var(--good); }
+#chat .k-chat-line.is-sys.ch-q.ch-whisper { box-shadow: var(--chat-shadow); color: var(--surf-dim); font-style: italic; font-weight: 500; }
+
+#chat .ch-pair { align-items: start; }
+#chat .ch-set .k-seg > button { min-height: 36px; padding: 6px 10px; font-size: var(--fs-14); }
+#chat .ch-set .k-row-title .k-pill { margin-left: 6px; vertical-align: 2px; }
+#chat .ch-set label.k-row { cursor: pointer; }
+#chat .ch-rules ul { display: grid; gap: 6px; margin: 0 0 14px; padding-left: 20px; }
+#chat .ch-day { padding-top: 12px; border-top: 1px solid rgba(255, 244, 220, .12); }
+#chat .ch-day-row { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+#chat .ch-day-row .k-meter { flex: 1; }
+#chat .ch-day-n { color: var(--pg-text); font-weight: 800; white-space: nowrap; }
+
+/* ------------------------------------------------ анимации */
+@keyframes ch-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes ch-old { to { opacity: var(--chat-old, .72); } }
+@keyframes ch-pop { from { opacity: 0; transform: translateY(6px) scale(.8); } to { opacity: 1; transform: none; } }
+@keyframes ch-bob { 50% { transform: translateY(-7px); } }
+@keyframes ch-talk { 30% { transform: scale(1.035, .97); } 60% { transform: scale(.99, 1.02); } }
+@keyframes ch-cheer { 25% { transform: translateY(-26px) rotate(-3deg); } 50% { transform: none; } 70% { transform: translateY(-12px) rotate(2deg); } }
+@keyframes ch-droop { 40% { transform: rotate(-4deg) translateY(12px) scale(1, .97); } 100% { transform: rotate(-3deg) translateY(6px); } }
+@keyframes ch-dot { 0%, 60%, 100% { opacity: .5; transform: none; } 30% { opacity: 1; transform: translateY(-6px); } }
+
+/* узкий экран: строка настройки — текст сверху, переключатель под ним */
+@media (max-width: 640px) {
+  #chat .ch-set .k-row { grid-template-columns: minmax(0, 1fr); }
+  #chat .ch-set .k-seg { flex-wrap: wrap; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #chat .ch-zat, #chat .ch-zat img, #chat .ch-dots i, #chat .ch-feed, #chat .ch-fl, #chat .ch-bub, #chat .ch-qplate, #chat .ch-chat .k-chat-line { animation: none !important; }
+}

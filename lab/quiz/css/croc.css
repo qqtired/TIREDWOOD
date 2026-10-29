@@ -1,0 +1,93 @@
+/* «Крокодил» (раздел #croc страницы-обзора «Ракушка»). Все классы — cr-*, правила — только под корнем #croc, классы кита
+   (.k-*) глобально не трогаем. Цвета, тени и шрифты — токены кита; своё — только раскладка. */
+
+/* ------------------------------------------------ окна: выбор слова, рисование, итоги (внутри .k-scrim кита) */
+#croc .cr-win { -webkit-user-select: none; user-select: none; }
+#croc .cr-pick-time { gap: 8px; }
+#croc .cr-pick-time .k-ic { width: 26px; height: 26px; }
+#croc .cr-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; padding-top: 8px; }
+#croc .cr-card { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; min-height: 176px; padding: 20px 12px 18px; color: var(--surf-text); font: inherit; text-align: center; cursor: pointer; transition: transform .1s, background .15s, box-shadow .15s; }
+#croc .cr-card:hover { transform: translateY(-3px); background: var(--gold-soft); box-shadow: inset 0 0 0 2px var(--gold), 0 0 18px var(--gold-soft); }
+#croc .cr-card:active { transform: translateY(0); }
+#croc .cr-card:focus-visible { outline: none; box-shadow: var(--focus); }
+#croc .cr-card-w { max-width: 100%; font: 800 min(var(--fs-36), calc(290px / var(--len, 8)))/1.05 var(--font-text); letter-spacing: .02em; text-transform: uppercase; }
+#croc .cr-pick-bar { display: grid; gap: 10px; margin-top: 22px; text-align: center; }
+#croc .cr-pick-bar .k-meter { width: 100%; }
+
+#croc .cr-body { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; align-items: stretch; }
+#croc .cr-main { min-width: 0; }
+#croc .cr-timerow { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+#croc .cr-clock { display: inline-flex; align-items: center; gap: 6px; min-width: 84px; font: 800 var(--fs-22)/1 var(--font-text); }
+#croc .cr-clock .k-ic { width: 28px; height: 28px; }
+#croc .cr-clock.is-hurry { color: var(--bad-text); animation: k-hurry .9s ease-in-out infinite; }
+#croc .cr-timerow .k-meter { flex: 1; }
+
+/* бумага: холст 4:3 (рисуется в 800×600 точках и масштабируется) */
+#croc .cr-paper { position: relative; overflow: hidden; aspect-ratio: 4 / 3; border-radius: var(--r-md); background: var(--h-surf-solid); box-shadow: 0 0 0 2px var(--line-strong), var(--panel-shadow); }
+#croc .cr-paper canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+#croc .cr-paper--big canvas { cursor: crosshair; touch-action: none; }
+#croc .cr-empty { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; color: var(--h-surf-faint); font: 700 var(--fs-22)/1.2 var(--font-text); pointer-events: none; }
+#croc .cr-empty[hidden] { display: none; }
+
+/* инструменты под холстом */
+#croc .cr-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 22px; margin-top: 16px; }
+#croc .cr-inks { display: flex; gap: 8px; }
+#croc .cr-ink { flex: none; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%; background: var(--ink); box-shadow: 0 0 0 2px var(--line-strong); cursor: pointer; transition: transform .1s, box-shadow .12s; }
+#croc .cr-ink:hover { transform: translateY(-2px); }
+#croc .cr-ink.is-on { box-shadow: 0 0 0 2px var(--surf-solid), 0 0 0 5px var(--gold); }
+#croc .cr-ink:focus-visible { outline: none; box-shadow: var(--focus); }
+#croc .cr-sizes { display: flex; gap: 6px; margin-left: auto; }
+#croc .cr-size { display: grid; place-items: center; width: 42px; height: 42px; padding: 0; border: var(--ghost-border); border-radius: var(--r-sm); background: var(--ghost-bg); color: var(--ghost-text); cursor: pointer; }
+#croc .cr-size i { display: block; width: var(--d); height: var(--d); border-radius: 50%; background: currentColor; }
+#croc .cr-size:hover { background: var(--ghost-bg-hover); }
+#croc .cr-size.is-on { border-color: transparent; background: var(--gold); color: var(--gold-ink); }
+#croc .cr-size:focus-visible { outline: none; box-shadow: var(--focus); }
+#croc .cr-acts { display: flex; flex: 1 1 100%; flex-wrap: wrap; gap: 10px; }
+#croc .cr-eraser.is-on { border-color: transparent; background: var(--gold); color: var(--gold-ink); }
+
+/* лента догадок (у рисующего видны все) */
+#croc .cr-side { position: relative; min-height: 0; }
+#croc .cr-side-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; height: 32px; margin-bottom: 8px; }
+#croc .cr-feed { position: absolute; left: 0; right: 0; top: 40px; bottom: 0; display: flex; flex-direction: column; gap: 6px; overflow: hidden; }
+#croc .cr-feed:empty::before { content: 'Здесь появятся догадки — рисуй'; padding: 12px 4px; color: var(--surf-faint); font: 500 var(--fs-14)/1.3 var(--font-text); }
+#croc .cr-g { display: flex; align-items: center; gap: 8px; flex: none; padding: 8px 10px; border-radius: var(--r-sm); background: var(--surf-2); font: 500 var(--fs-14)/1.25 var(--font-text); overflow-wrap: anywhere; animation: k-toast-in .3s var(--ease-out) both; }
+#croc .cr-g > b { font-weight: 700; }
+#croc .cr-g > span { min-width: 0; }
+#croc .cr-g.is-yes { background: var(--good-soft); color: var(--good-text); box-shadow: inset 3px 0 0 var(--good); }
+#croc .cr-dot { flex: none; width: 12px; height: 12px; border-radius: 50%; background: var(--c); box-shadow: 0 0 0 2px var(--line-strong); }
+#croc .cr-foot .k-pill b { margin-left: 2px; }
+#croc .cr-foot .k-pill.is-bump { animation: k-bump .35s var(--ease-pop); }
+
+/* ------------------------------------------------ вид угадывающего: панель рисунка справа, мольберт на сцене */
+#croc .cr-easel { position: absolute; left: 0; top: 0; width: 800px; height: 600px; transform-origin: 0 0; background: linear-gradient(180deg, #f9ecd8, #f5e8d2); pointer-events: none; }
+#croc .cr-easel canvas { display: block; width: 100%; height: 100%; }
+#croc .cr-board { display: flex; flex-direction: column; gap: 8px; width: 500px; padding: 10px 10px 12px; }
+#croc .cr-board-head { display: flex; align-items: center; gap: 10px; min-height: 34px; }
+#croc .cr-av { flex: none; width: 34px; height: 34px; }
+#croc .cr-av svg { display: block; }
+#croc .cr-who { min-width: 0; overflow: hidden; font: 600 var(--fs-16)/1.1 var(--font-text); text-overflow: ellipsis; white-space: nowrap; }
+#croc .cr-who b { font-weight: 800; }
+#croc .cr-time { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; font: 800 var(--fs-22)/1 var(--font-text); }
+#croc .cr-time .k-ic { width: 26px; height: 26px; }
+#croc .cr-time.is-hurry { color: var(--bad-text); animation: k-hurry .9s ease-in-out infinite; }
+#croc .cr-letters { display: flex; justify-content: center; gap: 6px; min-height: 42px; }
+#croc .cr-l { flex: 0 1 34px; display: grid; place-items: center; height: 42px; border-radius: var(--r-sm) var(--r-sm) 0 0; background: var(--surf-3); box-shadow: inset 0 -3px 0 var(--line-strong); color: var(--gold-text); font: 800 var(--fs-28)/1 var(--font-text); }
+#croc .cr-l.is-open { animation: k-bump .4s var(--ease-pop); }
+#croc .cr-l.is-end { color: var(--good-text); box-shadow: inset 0 -3px 0 var(--good); }
+
+/* строка «В игру» — док чата кита */
+#croc .cr-chat .k-chat-list { justify-content: flex-end; max-height: 250px; overflow: hidden; }
+#croc .cr-chat .k-chat-line { animation: k-toast-in .25s var(--ease-out) both, cr-old .01s 9s forwards; }
+#croc .cr-voice img { width: 30px; height: 30px; object-fit: contain; filter: drop-shadow(0 2px 2px rgba(20, 10, 12, .3)); }
+#croc .cr-caret { margin-left: -4px; }
+#croc .cr-only { margin-left: 6px; color: var(--surf-faint); font-size: var(--fs-13); font-style: normal; }
+#croc .cr-quiet { font-style: italic; }
+@keyframes cr-old { to { opacity: var(--chat-old, .72); } }
+
+/* кнопка-подсказка «Хочу рисовать» */
+#croc button.k-prompt { cursor: pointer; }
+#croc button.k-prompt:hover { filter: brightness(1.04); }
+
+@media (prefers-reduced-motion: reduce) {
+  #croc .cr-clock.is-hurry, #croc .cr-time.is-hurry, #croc .cr-g, #croc .cr-chat .k-chat-line, #croc .cr-l.is-open, #croc .cr-foot .k-pill.is-bump { animation: none !important; }
+}

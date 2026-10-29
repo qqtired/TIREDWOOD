@@ -1,0 +1,149 @@
+/* «Загадка» — живой макет (раздел #riddle). Свои классы — rd-, правила — только под корнем раздела.
+   Цвета, тени, радиусы — токены кита (tokens.css); ничего своего. Раскладка слотов — kit.css (.k-slot). */
+
+#riddle [hidden] { display: none !important; }
+
+/* ---------------------------------------------------------------- карточка «кто загадал» и цепочка «Тепло» (слот tl) */
+#riddle .rd-card, #riddle .rd-chain { width: 340px; }
+#riddle .rd-card { display: flex; flex-direction: column; gap: 8px; padding: 10px 14px 12px; }
+#riddle .rd-card-head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; }
+#riddle .rd-card-av { display: grid; place-items: center; width: 40px; height: 40px; }
+#riddle .rd-card-av .k-ic { width: 38px; height: 38px; }
+#riddle .rd-card-av .qz-jelly { display: block; }
+#riddle .rd-card-who { min-width: 0; }
+#riddle .rd-card-who .k-eyebrow { font-size: var(--fs-13); }
+#riddle .rd-word { display: block; overflow: hidden; font: 800 var(--fs-22)/1.15 var(--font-text); text-overflow: ellipsis; white-space: nowrap; }
+#riddle .rd-word.is-own { color: var(--gold-text); }
+#riddle .rd-time { font: 800 var(--fs-22)/1 var(--font-text); font-variant-numeric: tabular-nums; }
+#riddle .rd-time.is-hurry { color: var(--bad-text); animation: k-hurry .9s ease-in-out infinite; }
+#riddle .rd-card .k-meter { margin-top: -2px; }
+#riddle .rd-card-meta { display: flex; align-items: center; gap: 10px; min-height: 40px; }
+#riddle .rd-hint-n { color: var(--surf-dim); font: 600 var(--fs-14)/1 var(--font-text); white-space: nowrap; }
+#riddle .rd-hint-n b { color: var(--plate-text); font-weight: 800; }
+#riddle .rd-hint-btn { margin-left: auto; min-height: 36px; padding: 4px 12px 5px; font-size: var(--fs-14); }
+#riddle .rd-story { margin: 0; color: var(--plate-text); font: 500 var(--fs-14)/1.4 var(--font-text); }
+#riddle .rd-solution { padding: 8px 10px 9px; border-radius: var(--r-sm); background: var(--gold-soft); box-shadow: inset 0 0 0 1.5px var(--gold); }
+#riddle .rd-solution p { margin: 2px 0 0; color: var(--plate-text); font: 600 var(--fs-14)/1.35 var(--font-text); }
+#riddle .rd-hints { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; }
+#riddle .rd-hints:empty { display: none; }
+#riddle .rd-hint { display: flex; align-items: baseline; gap: 8px; padding: 4px 10px 5px; border-radius: var(--r-sm); background: var(--surf-2); font: 600 var(--fs-14)/1.25 var(--font-text); }
+#riddle .rd-hint b { color: var(--gold-text); font-weight: 800; }
+#riddle .rd-hint.is-new { animation: rd-hint-in .5s var(--ease-spring) both; }
+
+#riddle .rd-chain { display: flex; flex-direction: column; gap: 6px; padding: 8px 12px 10px; }
+#riddle .rd-chain-head { display: flex; align-items: center; justify-content: space-between; }
+#riddle .rd-chain-head .k-eyebrow { color: var(--gold-text); font-size: var(--fs-13); }
+#riddle .rd-chain-list { position: relative; display: flex; flex-direction: column; gap: 3px; margin: 0; padding: 0 0 0 16px; list-style: none; }
+#riddle .rd-chain-list:empty { display: none; }
+#riddle .rd-chain-list::before { content: ''; position: absolute; left: 5px; top: 10px; bottom: 10px; width: 3px; border-radius: 3px; background: var(--gold); opacity: .7; }
+#riddle .rd-link { position: relative; display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; align-items: center; gap: 8px; min-height: 30px; padding: 2px 8px 2px 4px; border-radius: var(--r-sm); background: var(--gold-soft); }
+#riddle .rd-link::before { content: ''; position: absolute; left: -15px; top: 50%; width: 11px; height: 11px; margin-top: -5.5px; border: 2px solid var(--plate-bg); border-radius: 50%; background: var(--gold); box-shadow: 0 0 0 1px var(--gold-lo); }
+#riddle .rd-link-av .qz-jelly { display: block; }
+#riddle .rd-link-t { overflow: hidden; font: 800 var(--fs-15)/1.15 var(--font-text); text-overflow: ellipsis; white-space: nowrap; }
+#riddle .rd-link-n { max-width: 120px; overflow: hidden; color: var(--surf-dim); font: 600 var(--fs-13)/1 var(--font-text); text-overflow: ellipsis; white-space: nowrap; }
+#riddle .rd-link.is-hid { visibility: hidden; }
+#riddle .rd-link.is-new { animation: rd-link-in .7s var(--ease-pop) both; }
+#riddle .rd-empty { margin: 0; color: var(--surf-faint); font: 500 var(--fs-14)/1.3 var(--font-text); }
+#riddle .rd-empty[hidden] { display: none; }
+#riddle .rd-cold { width: 340px; padding: 5px 12px 6px; color: var(--surf-dim); font: 600 var(--fs-13)/1.4 var(--font-text); }
+#riddle .rd-cold[hidden] { display: none; }
+#riddle .rd-cold s { margin-right: 8px; opacity: .75; text-decoration-thickness: 1.5px; }
+
+/* ---------------------------------------------------------------- лента догадок (слот br) */
+#riddle .rd-feed { display: flex; flex-direction: column; gap: 8px; width: 340px; padding: 10px 10px 12px; }
+#riddle .rd-feed.is-set { width: 372px; }
+#riddle .rd-feed.is-empty { padding-bottom: 10px; }
+#riddle .rd-feed-head { display: flex; align-items: center; justify-content: space-between; padding: 0 4px; }
+#riddle .rd-feed-head .k-eyebrow { font-size: var(--fs-13); }
+#riddle .rd-feed-list { display: flex; flex-direction: column; gap: 6px; }
+#riddle .rd-feed-list:empty { display: none; }
+#riddle .rd-feed .rd-empty { padding: 4px; }
+#riddle .rd-line { position: relative; display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; align-items: center; gap: 2px 10px; padding: 8px 10px 9px; border: var(--surf-2-border); border-radius: var(--r-md); background: var(--surf-2); overflow: hidden; transition: opacity .6s, background .2s; }
+#riddle .rd-feed:not(.is-set) .rd-line { padding: 6px 10px 7px; }
+#riddle .rd-line.is-new { animation: rd-line-in .35s var(--ease-out) both; }
+#riddle .rd-line.is-own { box-shadow: inset 3px 0 0 var(--gold); }
+#riddle .rd-line.is-next { background: var(--gold-soft); box-shadow: inset 0 0 0 2px var(--gold); overflow: visible; }
+#riddle .rd-line.is-next.is-own { box-shadow: inset 0 0 0 2px var(--gold); }
+#riddle .rd-line.is-close:not(.is-next) { box-shadow: inset 0 0 0 1.5px var(--good); }
+#riddle .rd-line.is-old { opacity: .55; }
+#riddle .rd-line.is-warm { background: var(--gold-soft); }
+#riddle .rd-line.is-cold { opacity: .6; }
+#riddle .rd-line.is-cold .rd-text { text-decoration: line-through; text-decoration-thickness: 1.5px; }
+#riddle .rd-line.is-hit { background: var(--gold-soft); box-shadow: inset 0 0 0 2px var(--gold), 0 0 16px var(--gold-soft); opacity: 1; }
+#riddle .rd-av .qz-jelly { display: block; }
+#riddle .rd-line-body { min-width: 0; }
+#riddle .rd-nick { display: block; overflow: hidden; color: var(--surf-dim); font: 600 var(--fs-13)/1.15 var(--font-text); text-overflow: ellipsis; white-space: nowrap; }
+#riddle .rd-line.is-own .rd-nick { color: var(--gold-text); }
+#riddle .rd-text { margin: 1px 0 0; overflow-wrap: anywhere; font: 800 var(--fs-16)/1.2 var(--font-text); }
+#riddle .rd-mark { display: flex; align-items: center; justify-content: flex-end; min-width: 0; }
+#riddle .rd-mark:empty { display: none; }
+#riddle .rd-acts { grid-column: 1 / -1; display: flex; gap: 10px; margin-top: 6px; }
+#riddle .rd-acts[hidden] { display: none; }
+#riddle .rd-act { flex: 1 1 auto; min-width: 0; min-height: 36px; padding: 5px 8px 6px; font-size: var(--fs-14); letter-spacing: 0; }
+#riddle .rd-line:not(.is-next) .rd-act .k-key { display: none; }
+#riddle .rd-act .k-key--sm.k-key--tr { top: -10px; right: -7px; }
+#riddle .rd-feed.is-over .rd-acts { display: none; }
+
+/* ---------------------------------------------------------------- облачка над зрителями (слой .k-world) */
+#riddle .rd-bub { position: absolute; left: var(--x); top: var(--y); transform: translate(-50%, -100%); }
+#riddle .rd-bub .k-world-in { transform-origin: 50% 100%; }
+#riddle .rd-bub-in { position: relative; max-width: 190px; padding: 5px 12px 6px; border-radius: 14px; font: 700 var(--fs-15)/1.2 var(--font-text); text-align: center; overflow-wrap: anywhere; animation: rd-bub-in .35s var(--ease-pop) both; transition: opacity .4s, box-shadow .2s; }
+#riddle .rd-bub-in::after { content: ''; position: absolute; left: 50%; bottom: -6px; width: 10px; height: 10px; margin-left: -5px; border: var(--plate-border); border-top: 0; border-left: 0; background: var(--plate-bg); transform: rotate(45deg); }
+#riddle .rd-bub-in.is-own { box-shadow: var(--plate-shadow), inset 0 0 0 2px var(--gold); }
+#riddle .rd-bub.is-warm .rd-bub-in { box-shadow: var(--plate-shadow), inset 0 0 0 2px var(--gold); background: var(--gold-soft); }
+#riddle .rd-bub.is-warm .rd-bub-in::after { background: var(--plate-bg); }
+#riddle .rd-bub.is-cold .rd-bub-in { opacity: .5; text-decoration: line-through; text-decoration-thickness: 1.5px; }
+#riddle .rd-bub.is-hit .rd-bub-in { box-shadow: var(--plate-shadow), inset 0 0 0 2.5px var(--gold), 0 0 22px var(--gold-soft); font-size: var(--fs-18); }
+#riddle .rd-bub.is-out { opacity: 0; transition: opacity .4s; }
+#riddle .rd-bub.is-hit.is-out { opacity: 1; }
+
+/* ---------------------------------------------------------------- улетающая строка и конфетти */
+#riddle .rd-fly-layer, #riddle .rd-conf { position: absolute; inset: 0; z-index: 40; overflow: hidden; pointer-events: none; }
+#riddle .rd-conf { z-index: 45; }
+#riddle .rd-chip { position: absolute; max-width: 220px; overflow: hidden; border: 1.5px solid var(--gold); box-shadow: var(--plate-shadow); text-overflow: ellipsis; will-change: transform; }
+#riddle .rd-conf i { position: absolute; top: -24px; left: var(--x); width: var(--w); height: calc(var(--w) * 1.5); border-radius: 2px; background: var(--c); transform: rotate(var(--r)); animation: rd-fall var(--t) var(--d) cubic-bezier(.3, .1, .6, 1) both; }
+
+/* ---------------------------------------------------------------- герой: ответ крупно */
+#riddle .rd-hero .k-hero-sub { padding: 8px 24px; font-size: var(--fs-22); }
+#riddle .rd-hero .rd-ans { margin-left: 4px; color: var(--gold-text); font-size: var(--fs-28); font-weight: 900; }
+
+/* ---------------------------------------------------------------- чат «В игру / Всем» (слот bl) */
+#riddle .rd-chat .k-voice > img { width: 26px; height: 26px; object-fit: contain; }
+#riddle .rd-chat .k-chat-list:empty { display: none; }
+#riddle .rd-chat .k-chat-input > span { cursor: pointer; }
+#riddle .rd-chat.is-all .k-chat-input > span { color: var(--info-text); }
+#riddle .rd-chat .k-chat-input { min-height: 44px; }
+#riddle .rd-tab { align-self: flex-start; border: var(--plate-border); cursor: pointer; }
+#riddle .rd-tab.is-static { cursor: default; opacity: 1; filter: none; color: var(--surf-dim); font-weight: 600; }
+#riddle .rd-tab.is-warn { box-shadow: var(--plate-shadow), inset 0 0 0 1.5px var(--bad); color: var(--bad-text); }
+
+/* ---------------------------------------------------------------- окно «Что загадал?»
+   Окна кита — 70% размера; на странице сцена уменьшена до ~84%, поэтому окну даём ещё +25% (одна переменная --rd-win-k) */
+#riddle .k-scrim { --ui-base-k: var(--rd-win-k, 1.25); }
+#riddle .rd-field { margin-bottom: 14px; }
+#riddle .rd-lab { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 6px; color: var(--surf-text); font: 700 var(--fs-14)/1.2 var(--font-text); }
+#riddle .rd-lab .k-faint { font-weight: 500; }
+#riddle .rd-field .k-input { width: 100%; }
+#riddle .rd-cats { display: flex; flex-wrap: wrap; gap: 6px; }
+#riddle .rd-cat { min-height: 34px; padding: 4px 12px; font-weight: 600; cursor: pointer; }
+#riddle .rd-cat:hover { background: var(--surf-3); }
+#riddle .rd-cat.is-on { box-shadow: inset 0 0 0 1.5px var(--gold); font-weight: 800; }
+#riddle .rd-dan { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+#riddle .rd-dan[hidden], #riddle .rd-plain[hidden] { display: none; }
+#riddle .rd-dan-ic { width: 44px; height: 44px; flex: none; }
+#riddle .rd-dan p { margin: 2px 0 0; font-size: var(--fs-14); line-height: 1.35; }
+#riddle .rd-sw { margin-top: 2px; }
+#riddle .rd-err { margin: 10px 0 0; color: var(--bad-text); font: 700 var(--fs-14)/1.2 var(--font-text); }
+#riddle .rd-err[hidden] { display: none; }
+#riddle .k-scrim .k-win-foot { justify-content: flex-end; }
+
+/* ---------------------------------------------------------------- движение */
+@keyframes rd-line-in { from { opacity: 0; transform: translateX(26px); } to { opacity: 1; transform: none; } }
+@keyframes rd-link-in { 0% { opacity: 0; transform: scale(.6); } 55% { opacity: 1; transform: scale(1.06); background: var(--gold); } 100% { transform: none; } }
+@keyframes rd-hint-in { from { opacity: 0; transform: translateY(-6px) scale(.96); } to { opacity: 1; transform: none; } }
+@keyframes rd-bub-in { from { opacity: 0; transform: translateY(8px) scale(.75); } to { opacity: 1; transform: none; } }
+@keyframes rd-fall { from { opacity: 1; } to { opacity: .9; transform: translate3d(var(--dx), 940px, 0) rotate(calc(var(--r) + 720deg)); } }
+@media (prefers-reduced-motion: reduce) {
+  #riddle .rd-line.is-new, #riddle .rd-link.is-new, #riddle .rd-hint.is-new, #riddle .rd-bub-in, #riddle .rd-conf i, #riddle .rd-time.is-hurry { animation: none !important; }
+  #riddle .rd-conf { display: none; }
+}

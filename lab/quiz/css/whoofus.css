@@ -1,0 +1,105 @@
+/* «Кто из нас?» — живой макет (раздел #whoofus). Свои классы — wo-, правила — только под корнем раздела.
+   Цвета, тени, радиусы — токены кита (tokens.css); ничего своего. Карточка раунда — .mo-stand из modes.css. */
+
+#whoofus [hidden] { display: none !important; }
+
+/* ---------------------------------------------------------------- слева сверху: раунд и «в теме» */
+#whoofus .wo-stand { position: relative; }
+#whoofus .wo-stand .mo-time b { color: var(--gold-text); }
+
+/* ---------------------------------------------------------------- вопрос крупно сверху по центру */
+#whoofus .wo-ask { display: flex; flex-direction: column; align-items: center; gap: 3px; width: 760px; padding: 10px 26px 14px; text-align: center; }
+#whoofus .wo-ask .k-eyebrow { font-size: var(--fs-13); }
+#whoofus .wo-q { margin: 0; font: 800 var(--fs-28)/1.15 var(--font-text); }
+#whoofus .wo-ask-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; padding-top: 6px; color: var(--surf-dim); font: 600 var(--fs-14)/1 var(--font-text); }
+#whoofus .wo-time { color: var(--plate-text); font-weight: 800; font-variant-numeric: tabular-nums; }
+#whoofus .wo-time.is-hurry { color: var(--bad-text); animation: k-hurry .9s ease-in-out infinite; }
+#whoofus .wo-ask .k-meter { width: 100%; margin-top: 5px; }
+
+/* ---------------------------------------------------------------- ряд из шести карточек */
+#whoofus .wo-row { position: absolute; left: 0; right: 0; top: 300px; z-index: 12; display: flex; align-items: flex-start; justify-content: center; gap: 22px; pointer-events: none; }
+#whoofus .wo-col { position: relative; width: 170px; translate: 0 var(--up, 0px); transition: translate .6s var(--ease-spring); animation: wo-in .4s var(--ease-spring) both; animation-delay: calc(var(--i, 0) * 60ms); }
+#whoofus .wo-card { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; width: 100%; padding: 12px 10px 10px; border-radius: var(--r-lg); font: inherit; text-align: center; cursor: pointer; transition: transform .12s, box-shadow .15s; }
+#whoofus .wo-card:hover:not(.is-locked) { transform: translateY(-4px); }
+#whoofus .wo-card:active:not(.is-locked) { transform: translateY(-1px); }
+#whoofus .wo-card:focus-visible { outline: none; box-shadow: var(--plate-shadow), var(--focus); }
+#whoofus .wo-card.is-me:not(.is-locked) { cursor: not-allowed; }
+#whoofus .wo-card.is-me:not(.is-locked):hover { transform: none; }
+#whoofus .wo-card.is-locked { cursor: default; }
+#whoofus .wo-card.is-mine { box-shadow: var(--plate-shadow), inset 0 0 0 3px var(--gold), 0 0 22px var(--gold-soft); }
+#whoofus .wo-jelly { display: block; height: 104px; margin-bottom: 6px; }
+#whoofus .wo-jelly .qz-jelly { display: block; }
+#whoofus .wo-plaques { position: relative; z-index: 2; width: 100%; height: 0; }
+#whoofus .wo-plaques > .wo-title { position: absolute; left: 50%; bottom: 2px; width: max-content; max-width: 192px; translate: -50% 0; }
+#whoofus .wo-title { display: block; max-width: 100%; overflow: hidden; padding: 4px 9px 5px; border-radius: var(--r-sm); font: 800 var(--fs-14)/1.2 var(--font-text); text-align: center; text-overflow: ellipsis; white-space: nowrap; }
+#whoofus .wo-title.is-new { animation: wo-title-in .7s var(--ease-pop) both; }
+#whoofus .wo-more { position: absolute; right: -4px; bottom: 30px; }
+#whoofus .wo-nick { max-width: 100%; overflow: hidden; font: 800 var(--fs-16)/1.2 var(--font-text); text-overflow: ellipsis; white-space: nowrap; }
+#whoofus .wo-note { display: flex; align-items: center; justify-content: center; height: 24px; }
+#whoofus .wo-mine { color: var(--gold-text); font: 800 var(--fs-14)/1 var(--font-text); }
+#whoofus .wo-no { color: var(--bad-text); font: 800 var(--fs-14)/1 var(--font-text); }
+#whoofus .wo-col.is-shake .wo-card { animation: wo-shake .4s; }
+#whoofus .wo-col.is-lead .wo-card { box-shadow: var(--plate-shadow), inset 0 0 0 3px var(--gold), 0 0 28px var(--gold-soft); }
+#whoofus .wo-col.is-lead { z-index: 2; }
+
+/* голоса: число на углу, фишки стопкой над карточкой */
+#whoofus .wo-n { position: absolute; top: -13px; right: -11px; z-index: 3; justify-content: center; min-width: 32px; height: 32px; padding: 0 8px; font: 900 var(--fs-18)/1 var(--font-text); }
+#whoofus .wo-n.is-bump { animation: k-bump .4s var(--ease-pop); }
+#whoofus .wo-tally { position: absolute; left: 0; right: 0; bottom: 100%; display: flex; flex-wrap: wrap-reverse; justify-content: center; gap: 3px; padding-bottom: 8px; }
+#whoofus .wo-pip, #whoofus .wo-chip { display: block; border-radius: 50%; background: radial-gradient(circle at 35% 30%, var(--gold-hi), var(--gold) 58%, var(--gold-lo)); box-shadow: 0 2px 0 var(--gold-lo), inset 0 0 0 2px var(--surf-solid); }
+#whoofus .wo-pip { width: 16px; height: 16px; animation: k-bump .35s var(--ease-pop); }
+#whoofus .wo-chip { position: absolute; width: 22px; height: 22px; will-change: transform; }
+
+/* свет над лидером: мягкое золотое сияние без резких краёв */
+#whoofus .wo-beam { position: absolute; left: -58px; right: -58px; bottom: calc(100% - 40px); z-index: -1; height: 300px; background: radial-gradient(ellipse 50% 100% at 50% 100%, color-mix(in srgb, var(--gold-hi) 85%, transparent) 0%, color-mix(in srgb, var(--gold-hi) 38%, transparent) 55%, transparent 100%); opacity: 0; transition: opacity .6s; pointer-events: none; }
+#whoofus .wo-col.is-lead .wo-beam { opacity: 1; }
+
+#whoofus .wo-fly-layer, #whoofus .wo-conf { position: absolute; inset: 0; z-index: 40; overflow: hidden; pointer-events: none; }
+#whoofus .wo-conf { z-index: 45; }
+#whoofus .wo-conf i { position: absolute; top: -24px; left: var(--x); width: var(--w); height: calc(var(--w) * 1.5); border-radius: 2px; background: var(--c); transform: rotate(var(--r)); animation: wo-fall var(--t) var(--d) cubic-bezier(.3, .1, .6, 1) both; }
+
+/* ---------------------------------------------------------------- чат (слот bl) */
+#whoofus .wo-chat .k-voice > img { width: 26px; height: 26px; object-fit: contain; }
+#whoofus .wo-chat .k-chat-list:empty { display: none; }
+#whoofus .wo-chat .k-chat-input { min-height: 44px; }
+
+/* ---------------------------------------------------------------- окно «Свои вопросы» и итоги
+   Окна кита — 70% размера; на странице сцена уменьшена до ~84%, поэтому окну даём ещё +25% (одна переменная --wo-win-k) */
+#whoofus .k-scrim { --ui-base-k: var(--wo-win-k, 1.25); }
+#whoofus .wo-lab { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 6px; font: 700 var(--fs-14)/1.2 var(--font-text); }
+#whoofus .wo-lab .k-faint { font-weight: 500; }
+#whoofus .wo-add { display: flex; gap: 10px; }
+#whoofus .wo-add .k-input { flex: 1; min-width: 0; }
+#whoofus .wo-add .k-input:disabled { opacity: .55; }
+#whoofus .wo-parse { margin: 8px 0 0; color: var(--surf-dim); font: 500 var(--fs-14)/1.3 var(--font-text); }
+#whoofus .wo-parse b { color: var(--gold-text); font-weight: 800; }
+#whoofus .wo-list { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+#whoofus .wo-qrow { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 8px 10px; }
+#whoofus .wo-qrow.is-own { border-color: var(--gold); box-shadow: inset 0 0 0 1px var(--gold); }
+#whoofus .wo-qav .qz-jelly { display: block; }
+#whoofus .wo-qhead { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+#whoofus .wo-qhead b { font: 700 var(--fs-14)/1.2 var(--font-text); }
+#whoofus .wo-qrow.is-own .wo-qhead b { color: var(--gold-text); }
+#whoofus .wo-t { max-width: 190px; font-size: var(--fs-13); text-align: right; white-space: normal; line-height: 1.1; }
+#whoofus .wo-qbody p { margin: 3px 0 0; font: 500 var(--fs-14)/1.3 var(--font-text); }
+#whoofus .wo-del { width: 34px; height: 34px; min-height: 0; font-size: var(--fs-14); }
+
+#whoofus .wo-res-titles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; margin: 0 0 12px; }
+#whoofus .wo-res-t { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 10px; border-radius: var(--r-sm); background: var(--surf-2); }
+#whoofus .wo-res-t .wo-title { min-width: 0; text-align: left; }
+#whoofus .wo-res-who { color: var(--surf-dim); font: 700 var(--fs-14)/1.1 var(--font-text); white-space: nowrap; }
+#whoofus .wo-res-who.is-own { color: var(--gold-text); }
+#whoofus .wo-who { display: flex; align-items: center; gap: 10px; }
+#whoofus .wo-who .qz-jelly { display: block; flex: none; }
+#whoofus .wo-who-n { max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---------------------------------------------------------------- движение */
+@keyframes wo-in { from { opacity: 0; transform: translateY(22px) scale(.92); } to { opacity: 1; transform: none; } }
+@keyframes wo-title-in { 0% { opacity: 0; transform: scale(.3) rotate(-6deg); } 60% { opacity: 1; transform: scale(1.12) rotate(2deg); } 100% { transform: none; } }
+@keyframes wo-shake { 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
+@keyframes wo-fall { from { opacity: 1; } to { opacity: .9; transform: translate3d(var(--dx), 940px, 0) rotate(calc(var(--r) + 720deg)); } }
+@media (prefers-reduced-motion: reduce) {
+  #whoofus .wo-col, #whoofus .wo-title.is-new, #whoofus .wo-pip, #whoofus .wo-n.is-bump, #whoofus .wo-conf i, #whoofus .wo-time.is-hurry, #whoofus .wo-col.is-shake .wo-card { animation: none !important; }
+  #whoofus .wo-col { transition: none; }
+  #whoofus .wo-conf { display: none; }
+}

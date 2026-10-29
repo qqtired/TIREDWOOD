@@ -1,0 +1,136 @@
+/* Раздел «Где это» (js/venue.js, js/venue3d.js). Всё — под #venue и с префиксом vn-. Палитра «Ретро-парк 2.0». */
+#venue {
+  --vn-sea: #4fb3c9; --vn-sea-d: #2f93ad; --vn-land: #f2e6c9; --vn-land-s: #d8c39b;
+  --vn-lawn: #b6d88e; --vn-lawn-d: #9cc576; --vn-walk: #fbf3df; --vn-walk-s: #dcc8a2;
+  --vn-bld: #d9d0c1; --vn-bld-s: #9d927f; --vn-ink: #2b231c;
+  --vn-wood: #c98a4f; --vn-wood-s: #8f5a2c; --vn-shell: #fffaf0; --vn-coral: #ff7a5c; --vn-teal: #1f8f86; --vn-teal-d: #0f5e58;
+  --vn-cream: #fff4dc; --vn-gold: #ffd665; --vn-bench: #2f7a5e; --vn-cyp: #2f6b3e; --vn-ole: #ef7aa3; --vn-route: #e2483d;
+}
+#venue .vn { display: grid; gap: 34px; }
+#venue .vn-block .qz-cap { margin-bottom: 12px; }
+#venue .vn-block .qz-cap-n b { color: var(--pg-text); }
+
+/* ------------------------------------------------ схемы */
+#venue .vn-map { position: relative; border-radius: 18px; overflow: hidden; box-shadow: var(--pg-frame); background: var(--vn-sea); line-height: 0; }
+#venue .vn-svg { display: block; width: 100%; height: auto; font-family: var(--font-text); }
+#venue .vn-garden-grid { display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(260px, 1fr); gap: 18px; align-items: start; }
+
+#venue .vn-sea { fill: var(--vn-sea); }
+#venue .vn-wave { fill: none; stroke: rgba(255, 255, 255, .22); stroke-width: .12; }
+#venue .vn-water { fill: var(--vn-sea); stroke: #fff; stroke-width: .25; }
+#venue .vn-land { fill: var(--vn-land); stroke: var(--vn-land-s); stroke-width: .3; }
+#venue .vn-garden { fill: var(--vn-lawn); stroke: var(--vn-lawn-d); stroke-width: .25; stroke-dasharray: 1 .6; }
+#venue .vn-lawn { fill: var(--vn-lawn); }
+#venue .vn-lawn2 { fill: var(--vn-lawn-d); opacity: .55; }
+#venue .vn-hub { fill: #efd9b0; stroke: var(--vn-land-s); stroke-width: .25; }
+#venue .vn-rose { fill: #e8c58f; stroke: #c99c5b; stroke-width: .25; }
+#venue .vn-bld { fill: var(--vn-bld); stroke: var(--vn-bld-s); stroke-width: .25; }
+#venue .vn-poster { fill: var(--vn-coral); }
+#venue .vn-walk { fill: none; stroke: var(--vn-walk); stroke-linecap: round; stroke-linejoin: round; }
+#venue .vn-rail { stroke: #fff; stroke-width: .25; stroke-dasharray: .5 .3; }
+
+#venue .vn-yard { fill: #f7ecd4; stroke: none; }
+#venue .vn-voice { fill: rgba(255, 122, 92, .1); stroke: var(--vn-coral); stroke-width: .28; stroke-dasharray: .9 .55; }
+#venue .vn-stage { fill: var(--vn-wood); stroke: var(--vn-wood-s); stroke-width: .2; }
+#venue .vn-shell { fill: var(--vn-shell); stroke: var(--vn-teal); stroke-width: .45; }
+#venue .vn-rib { fill: none; stroke: var(--vn-coral); stroke-width: .16; opacity: .8; }
+#venue .vn-board { stroke: var(--vn-teal-d); stroke-width: .55; stroke-linecap: round; }
+#venue .vn-ramp { fill: #e3b27c; stroke: var(--vn-wood-s); stroke-width: .15; }
+#venue .vn-chev { fill: none; stroke: var(--vn-wood-s); stroke-width: .16; }
+#venue .vn-bench { fill: var(--vn-bench); }
+#venue .vn-pult { fill: var(--vn-cream); stroke: var(--vn-teal); stroke-width: .14; }
+#venue .vn-lamp { fill: #7d6f62; }
+#venue .vn-lamp--on { fill: var(--vn-gold); stroke: #e08a00; stroke-width: .08; }
+#venue .vn-podium { fill: #a8703f; stroke: #6f4520; stroke-width: .12; }
+#venue .vn-host { fill: #6ee7b7; stroke: #1f8f6a; stroke-width: .12; }
+#venue .vn-easel { fill: #fff; stroke: var(--vn-wood-s); stroke-width: .14; }
+#venue .vn-easel--show { stroke-dasharray: .3 .2; opacity: .85; }
+#venue .vn-move { fill: none; stroke: var(--vn-teal-d); stroke-width: .14; stroke-dasharray: .35 .25; }
+#venue .vn-arrhead { fill: var(--vn-teal-d); }
+#venue .vn-arrhead-r { fill: var(--vn-route); }
+#venue .vn-fence { fill: none; stroke: #fff; stroke-width: .34; stroke-linejoin: round; filter: drop-shadow(0 0 .12px rgba(60, 40, 20, .9)); }
+#venue .vn-arch { fill: var(--vn-cream); stroke: var(--vn-teal); stroke-width: .12; }
+#venue .vn-archtop { stroke: var(--vn-teal); stroke-width: .3; stroke-dasharray: .2 .2; }
+#venue .vn-cyp { fill: var(--vn-cyp); stroke: #1f4b2a; stroke-width: .12; }
+#venue .vn-ole { fill: var(--vn-ole); stroke: #3f7d4a; stroke-width: .22; }
+#venue .vn-lampost { fill: var(--vn-gold); stroke: #6b5a3a; stroke-width: .1; }
+
+#venue .vn-route { fill: none; stroke: var(--vn-route); stroke-width: .7; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1.4 .9; }
+#venue .vn-spawn { fill: var(--vn-route); stroke: #fff; stroke-width: .4; }
+#venue .vn-sight { stroke: #e6a700; stroke-width: .3; stroke-dasharray: .7 .45; }
+#venue .vn-eye { fill: #fff; stroke: #e6a700; stroke-width: .25; }
+#venue .vn-eye--cam { fill: #e6a700; stroke: #fff; }
+#venue .vn-lead { stroke: var(--vn-ink); stroke-width: .08; opacity: .55; }
+#venue .vn-lead--voice { stroke: var(--vn-coral); stroke-width: .16; opacity: 1; }
+
+/* подписи: размеры — в метрах схемы */
+#venue .vn-t { fill: var(--vn-ink); font-weight: 700; font-size: 1.5px; paint-order: stroke; stroke: rgba(255, 250, 240, .92); stroke-width: .38px; stroke-linejoin: round; }
+#venue .vn-t--b { font-size: 1.45px; }
+#venue .vn-t--big { font-size: 2.1px; font-weight: 800; }
+#venue .vn-t--mid { font-size: 1.15px; font-weight: 800; }
+#venue .vn-t--sm { font-size: .82px; stroke-width: .26px; }
+#venue .vn-t--xs { font-size: .7px; stroke-width: .2px; }
+#venue .vn-t--q { fill: #4b6a2c; }
+#venue .vn-t--note { font-size: .78px; fill: #5b4a36; font-weight: 700; stroke-width: .22px; }
+#venue .vn-t--sea { fill: #fff; stroke: none; font-size: 1.5px; font-weight: 800; letter-spacing: .15px; opacity: .85; }
+#venue .vn-t--spawn { font-size: 1.5px; fill: var(--vn-route); }
+#venue .vn-t--venue { font-size: 1.9px; font-weight: 800; fill: var(--vn-teal-d); }
+#venue .vn-t--onstage { fill: #3a2410; stroke: rgba(255, 236, 205, .95); }
+#venue .vn-svg .vn-t--tag { font-weight: 800; }
+#venue .vn-pill rect { fill: var(--vn-ink); }
+#venue .vn-pill--voice rect { fill: var(--vn-coral); }
+#venue .vn-pill--sight rect { fill: #c98d00; }
+#venue .vn-t--pill { fill: #fff8ec; stroke: none; font-size: 1.45px; font-weight: 800; }
+#venue .vn-t--pillsm { font-size: .82px; }
+#venue .vn-scale rect { fill: var(--vn-ink); }
+#venue .vn-scale .vn-scale-b { fill: #fff; stroke: var(--vn-ink); stroke-width: .08; }
+
+/* ------------------------------------------------ легенда и цифры */
+#venue .vn-side { display: grid; gap: 14px; }
+#venue .vn-legend { margin: 0; padding: 16px 18px; list-style: none; display: grid; gap: 9px; border-radius: 16px; background: var(--pg-card); border: var(--pg-card-border); }
+#venue .vn-legend li { display: flex; align-items: center; gap: 11px; color: var(--pg-dim); font-size: 15px; line-height: 1.3; }
+#venue .vn-sw { flex: none; width: 26px; height: 16px; border-radius: 5px; background: #ccc; }
+#venue .vn-sw--stage { background: var(--vn-wood); box-shadow: inset 0 0 0 2px var(--vn-wood-s); }
+#venue .vn-sw--shell { background: var(--vn-shell); box-shadow: inset 0 0 0 3px var(--vn-teal); border-radius: 13px 13px 4px 4px; }
+#venue .vn-sw--board { height: 6px; border-radius: 3px; background: var(--vn-teal-d); box-shadow: 0 0 0 2px #fff4dc; }
+#venue .vn-sw--pult { width: 16px; background: var(--vn-cream); box-shadow: inset 0 0 0 2px var(--vn-teal); position: relative; }
+#venue .vn-sw--pult::after { content: ''; position: absolute; left: 4px; top: 4px; width: 8px; height: 8px; border-radius: 50%; background: var(--vn-gold); }
+#venue .vn-sw--bench { height: 8px; background: var(--vn-bench); }
+#venue .vn-sw--fence { height: 4px; background: #fff; box-shadow: 0 0 0 1px #8d7b64; }
+#venue .vn-sw--voice { background: rgba(255, 122, 92, .18); border: 2px dashed var(--vn-coral); }
+#venue .vn-sw--route { height: 0; border-top: 4px dashed var(--vn-route); background: none; border-radius: 0; }
+#venue .vn-sw--sight { height: 0; border-top: 3px dashed #e6a700; background: none; border-radius: 0; }
+#venue .vn-sw--green { background: radial-gradient(circle at 25% 50%, var(--vn-cyp) 0 4px, transparent 5px), radial-gradient(circle at 58% 50%, var(--vn-ole) 0 4px, transparent 5px), radial-gradient(circle at 88% 50%, var(--vn-gold) 0 3px, transparent 4px); }
+#venue .vn-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+#venue .vn-facts div { display: grid; gap: 4px; padding: 12px 12px 11px; border-radius: 14px; background: var(--pg-card); border: var(--pg-card-border); }
+#venue .vn-facts b { color: var(--pg-gold); font: 800 21px/1.05 var(--font-text); }
+#venue .vn-facts span { color: var(--pg-dim); font-size: 13.5px; line-height: 1.25; }
+#venue .vn-side-note { margin: 0; color: var(--pg-faint); font-size: 14px; }
+
+/* ------------------------------------------------ 3D */
+#venue .vn-bar { display: flex; flex-wrap: wrap; gap: 10px 22px; margin: 0 0 12px; }
+#venue .vn-group { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+#venue .vn-group-cap { margin-right: 4px; color: var(--pg-faint); font: 800 12.5px/1 var(--font-text); text-transform: uppercase; letter-spacing: .05em; }
+#venue .vn-3d { background: linear-gradient(180deg, #a9dcef, #d9f0f4); cursor: grab; touch-action: none; }
+#venue .vn-3d:active { cursor: grabbing; }
+#venue .vn-3d canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#venue .vn-3d-hint { position: absolute; right: 14px; bottom: 14px; z-index: 5; padding: 6px 12px; border-radius: 999px; background: rgba(8, 45, 43, .72); color: #fff4dc; font: 700 13px/1 var(--font-text); pointer-events: none; }
+#venue .vn-3d-wait { position: absolute; inset: 0; display: grid; place-items: center; padding: 20px; color: #0a3b37; font: 800 17px/1.3 var(--font-text); text-align: center; }
+
+#venue .vn-cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+#venue .vn-cards .pg-card { padding: 16px 18px; }
+#venue .vn-list { margin: 0; padding: 0 0 0 18px; display: grid; gap: 7px; }
+#venue .vn-list li { font-size: 14.5px; line-height: 1.38; }
+
+@media (max-width: 1100px) {
+  #venue .vn-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 900px) {
+  #venue .vn-garden-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 640px) {
+  #venue .vn-cards { grid-template-columns: minmax(0, 1fr); }
+  #venue .vn-facts b { font-size: 18px; }
+  #venue .vn-map { border-radius: 12px; }
+}
+#venue .vn-field { fill: #dfe6b8; stroke: var(--vn-land-s); stroke-width: .3; }
