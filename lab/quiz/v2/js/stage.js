@@ -3,6 +3,7 @@
 // Только для страницы-обзора: в игре всё это делают three.js (CanvasTexture и спрайты).
 import { BOARD_H, BOARD_W } from './world/board.js';
 import { BUBBLE_H, BUBBLE_W, TAG_H, TAG_W, drawBubble, drawTag } from './world/bubble.js';
+import { nickTone as nickToneOf } from './world/paint.js';
 
 export const SW = 1440;
 export const SH = 900;
@@ -103,6 +104,12 @@ export class Stage {
     this.boards = document.createElement('div');
     this.boards.className = 'st-boards';
     this.world.before(this.boards);
+    // верхний слой над HUD — только для полёта строк HUD (док → карточка «Тепло»); конфетти — в .st-fx под HUD
+    this.top = document.createElement('div');
+    this.top.className = 'st-top';
+    root.appendChild(this.top);
+    this.nicks = new Map();
+    this.nickEls = [];
     this.frame = null;
     this.heads = new Map();
     this.quads = [];
@@ -166,7 +173,10 @@ export class Stage {
     this.quads = [];
     this.world.replaceChildren();
     this.fx.replaceChildren();
+    this.top.replaceChildren();
     this.heads.clear();
+    this.nicks.clear();
+    this.showNicks(false);
   }
 
   /** Холст в перспективу по углам кадра */
@@ -323,7 +333,7 @@ export class Stage {
     c.classList.add('st-flyer');
     Object.assign(c.style, { position: 'absolute', left: `${from.x}px`, top: `${from.y}px`, width: `${from.w}px`, margin: 0, transformOrigin: '0 0' });
     for (const b of c.querySelectorAll('.qz-markbtns, .qz-near')) b.remove();
-    this.fx.appendChild(c);
+    this.top.appendChild(c);
     const dx = to.x - from.x, dy = to.y - from.y, sc = Math.max(0.6, Math.min(1.3, to.w / from.w));
     return c.animate([
       { transform: 'translate(0,0) scale(1)', opacity: 1 },
@@ -365,6 +375,27 @@ export class Stage {
         { transform: 'translate(-50%,-50%) scale(.2)', opacity: 0.95 },
         { transform: `translate(calc(-50% + ${Math.cos(a) * r}px), calc(-50% + ${Math.sin(a) * r * 0.6}px)) scale(1)`, opacity: 0 },
       ], { duration: 700, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'forwards' }).finished.then(() => p.remove());
+    }
+  }
+
+  /** Ник головы для показа по Alt (над собой не регистрировать) */
+  nick(id, nick) { if (this.heads.has(id)) this.nicks.set(id, nick); }
+
+  /** Alt: короткие ники над всеми сидящими; отпустил — спрятать */
+  showNicks(on) {
+    for (const e of this.nickEls) e.remove();
+    this.nickEls = [];
+    if (!on) return;
+    for (const [id, nick] of this.nicks) {
+      const hd = this.heads.get(id);
+      if (!hd) continue;
+      const e = document.createElement('span');
+      e.className = `st-nick k-nick-${(nickToneOf(nick)) + 1}`;
+      e.textContent = nick.length > 9 ? `${nick.slice(0, 8)}…` : nick;
+      const k = this.sizeK(hd);
+      Object.assign(e.style, { left: `${hd.x}px`, top: `${hd.y - 4 * k}px`, fontSize: `${15 * k}px` });
+      this.world.appendChild(e);
+      this.nickEls.push(e);
     }
   }
 

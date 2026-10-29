@@ -40,7 +40,9 @@ html.is-shot .pg-head, html.is-shot .pg-foot { display: none; }
 .st-bg-img { position: absolute; inset: 0; width: 100%; height: 100%; }
 .st-world { pointer-events: none; }
 .st-boards { position: absolute; inset: 0; pointer-events: none; -webkit-mask-size: 100% 100%; mask-size: 100% 100%; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; }
-.st-fx { z-index: 12; pointer-events: none; overflow: hidden; }
+.st-fx { z-index: 6; pointer-events: none; overflow: hidden; }
+.st-top { position: absolute; inset: 0; z-index: 28; pointer-events: none; }
+.st-nick { position: absolute; z-index: 4; transform: translate(-50%, -100%); padding: 1px 7px 2px; border-radius: 999px; background: rgba(255, 252, 246, .92); color: var(--nick); font: 800 15px/1.2 var(--font-text); white-space: nowrap; box-shadow: 0 1px 3px rgba(10, 40, 56, .25); pointer-events: none; }
 .st-inner > .k-hud { z-index: 10; }
 .st-layer { z-index: 30; pointer-events: none; }
 .st-layer > * { pointer-events: auto; }
@@ -82,7 +84,8 @@ html.is-shot .pg-head, html.is-shot .pg-foot { display: none; }
 .qz-event .k-event-actions .k-btn { margin-bottom: 2px; }
 
 /* док чата: строки «В игру» с отметками */
-.qz-chat .k-chat-list { max-height: 320px; overflow: hidden; justify-content: flex-end; }
+.qz-chat .k-chat-list { max-height: 186px; overflow: hidden; justify-content: flex-end; }
+.qz-wait { padding: 0 4px 2px; font: 600 var(--fs-13)/1.2 var(--font-text); }
 .qz-line { display: flex; align-items: center; gap: 0; }
 .qz-line .qz-mark:empty { display: none; }
 .qz-line .qz-mark { display: inline-grid; place-items: center; width: 20px; height: 20px; margin: 0 6px 0 -2px; flex: none; }
@@ -178,48 +181,28 @@ html.is-shot .pg-head, html.is-shot .pg-foot { display: none; }
 .qz-warm-head { display: flex; align-items: center; gap: 8px; font: 800 var(--fs-16)/1 var(--font-text); }
 .qz-warm-head img { width: 26px; height: 26px; object-fit: contain; }
 .qz-warm-head b { color: var(--good-text); letter-spacing: .02em; }
-.qz-warm-more { margin: -2px 0 0 30px; color: var(--surf-faint); font: 600 var(--fs-13)/1.2 var(--font-text); }
+.qz-warm-more { margin: -2px 0 0 34px; color: var(--surf-faint); font: 600 var(--fs-13)/1.2 var(--font-text); }
 .qz-warm-more[hidden], .qz-warm-hints[hidden] { display: none; }
 .qz-warm-list { display: grid; gap: 4px; }
-.qz-warm-row { display: grid; grid-template-columns: 20px minmax(0, 1fr); align-items: center; gap: 6px; padding: 3px 8px 3px 4px; border-radius: var(--r-sm); background: var(--good-soft); transition: background .6s, box-shadow .6s; }
+.qz-warm-row { display: block; padding: 3px 8px 4px; border-radius: var(--r-sm); background: var(--good-soft); transition: background .6s, box-shadow .6s; }
 .qz-warm-row[hidden] { display: none; }
-.qz-warm-row > img { width: 20px; height: 20px; object-fit: contain; }
-.qz-warm-txt { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
-.qz-warm-txt small { flex: none; max-width: 96px; overflow: hidden; color: var(--nick); font: 700 var(--fs-13)/1.15 var(--font-text); text-overflow: ellipsis; white-space: nowrap; }
-.qz-warm-txt b { min-width: 0; overflow: hidden; color: var(--surf-text); font: 800 var(--fs-16)/1.25 var(--font-text); text-overflow: ellipsis; white-space: nowrap; }
+.qz-warm-txt { display: -webkit-box; overflow: hidden; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
+.qz-warm-txt small { display: inline-block; max-width: 100px; overflow: hidden; color: var(--nick); font: 700 var(--fs-13)/1.15 var(--font-text); text-overflow: ellipsis; white-space: nowrap; vertical-align: -1px; }
+.qz-warm-txt b { color: var(--surf-text); font: 800 var(--fs-16)/1.25 var(--font-text); }
 .qz-warm-row.is-new { background: var(--gold-soft); box-shadow: inset 0 0 0 1.5px var(--gold); animation: qz-row-in .4s var(--ease-pop) both; }
 .qz-warm-row.is-wait { visibility: hidden; animation: none; }
 .qz-warm-empty { padding: 4px 2px; font-size: var(--fs-14); }
 @keyframes qz-row-in { from { transform: scale(.9); } to { transform: none; } }
 .qz-warm-hints { display: grid; gap: 4px; padding-top: 6px; border-top: 1px solid var(--line); }
-.qz-warm-hint { display: flex; align-items: center; gap: 6px; padding: 2px 8px 2px 3px; border-radius: var(--r-sm); font: 700 var(--fs-15)/1.2 var(--font-text); }
-.qz-warm-hint span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qz-warm-hint { display: flex; align-items: center; gap: 6px; padding: 2px 8px 2px 4px; border-radius: var(--r-sm); font: 700 var(--fs-15)/1.2 var(--font-text); }
+.qz-warm-hint span { min-width: 0; }
+.qz-warm-hl { margin: 0; color: var(--gold-text); font: 800 var(--fs-13)/1.2 var(--font-text); letter-spacing: .06em; text-transform: uppercase; }
 .qz-warm-hint i { display: inline-grid; place-items: center; flex: none; width: 22px; height: 22px; border-radius: 50%; background: linear-gradient(180deg, var(--gold-hi), var(--gold)); color: var(--gold-ink); font: 800 var(--fs-13)/1 var(--font-text); font-style: normal; }
 .qz-warm-hint.is-new { background: var(--gold-soft); }
 .qz-line.is-gone { opacity: 0; transform: translateX(-12px); transition: opacity .5s, transform .5s; }
 .st-flyer { z-index: 20; box-shadow: 0 8px 18px rgba(10, 40, 56, .3) !important; }
 
-/* ---------------------------------------------------------------- «Во что играем?» — плашка голосования сверху */
-.qz-vote { display: grid; gap: 7px; width: max-content; padding: 8px 10px 10px; border-radius: var(--r-lg); }
-.qz-vote-head { display: flex; align-items: center; gap: 10px; padding-left: 4px; }
-.qz-vote-head > b { font: 800 var(--fs-16)/1.2 var(--font-text); }
-.qz-vote-sub { margin-right: auto; color: var(--surf-dim); font: 600 var(--fs-13)/1.2 var(--font-text); }
-.qz-vote-opts { display: flex; gap: 8px; }
-.qz-vopt { position: relative; display: flex; align-items: center; gap: 6px; height: 42px; padding: 0 10px 0 14px; border: 1.5px solid var(--line); border-radius: var(--r-md); background: var(--surf-2); color: var(--surf-text); font: 700 var(--fs-14)/1 var(--font-text); white-space: nowrap; cursor: pointer; transition: background var(--dur-1), border-color var(--dur-1), transform var(--dur-1); }
-.qz-vopt:hover:not(:disabled) { border-color: var(--gold); background: var(--gold-soft); }
-.qz-vopt > .k-key { position: absolute; top: -7px; left: -6px; }
-.qz-vopt-ic { width: 26px; height: 26px; object-fit: contain; }
-.qz-vopt-n { min-width: 22px; padding: 2px 6px; border-radius: 999px; background: var(--good-soft); color: var(--good-text); font: 800 var(--fs-14)/1.2 var(--font-text); text-align: center; }
-.qz-vopt-check { position: absolute; top: -7px; right: -7px; display: none; width: 20px; height: 20px; border: 2px solid #fff; border-radius: 50%; background: var(--good); box-shadow: 0 1px 2px rgba(10, 40, 56, .3); }
-.qz-vopt-check::after { content: ''; position: absolute; left: 5px; top: 2px; width: 5px; height: 9px; border: solid #fff; border-width: 0 2.5px 2.5px 0; transform: rotate(45deg); }
-.qz-vopt.is-mine { border-color: var(--good); background: var(--good-soft); box-shadow: inset 0 0 0 1.5px var(--good); }
-.qz-vopt.is-mine .qz-vopt-check { display: block; }
-.qz-vopt.is-mine .qz-vopt-n { background: var(--good); color: #fff; }
-.qz-vopt:disabled { cursor: not-allowed; opacity: .55; filter: grayscale(1); }
-.qz-vopt:disabled .qz-vopt-n { background: transparent; color: var(--surf-dim); font-weight: 700; }
-.qz-vopt.is-pick { animation: qz-pick .32s var(--ease-pop); }
-.qz-vopt.is-shake { animation: qz-shake .3s ease; }
-.qz-vopt.is-unlock { animation: qz-unlock 1.1s ease; }
+/* ---------------------------------------------------------------- «Во что играем?»: анимации кнопок (плашка — в v2-vote.css) */
 @keyframes qz-pick { 40% { transform: scale(1.08); } }
 @keyframes qz-shake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
 @keyframes qz-unlock { 0%, 100% { box-shadow: none; } 30% { box-shadow: 0 0 0 4px var(--gold-soft), inset 0 0 0 1.5px var(--gold); } }
@@ -228,3 +211,22 @@ html.is-shot .pg-head, html.is-shot .pg-foot { display: none; }
 /* значок выбора над головой проголосовавшего (2 с) */
 .st-pin { position: absolute; z-index: 3; display: grid; place-items: center; border: 2.5px solid #fff; border-radius: 50%; background: #fff4dc; box-shadow: 0 2px 6px rgba(10, 40, 56, .35); pointer-events: none; }
 .st-pin > img { width: 82%; height: 82%; object-fit: contain; }
+
+/* ---------------------------------------------------------------- второй круг: общие части */
+/* эмоции — игровой ряд как есть (client/styles.css .pz-emotes) */
+.qz-seat .pz-emotes { display: grid; grid-template-columns: repeat(var(--emote-count, 6), 32px); gap: 6px; padding: 6px 8px; width: max-content; background: none; box-shadow: none; border: 0; }
+.qz-seat .pz-emote { display: flex; flex-direction: column; align-items: center; gap: 3px; margin: 0; padding: 0; border: 0; background: none; color: inherit; cursor: pointer; }
+.qz-seat .pz-emote-face { position: relative; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; }
+.qz-seat .pz-emote-face .k-ic { width: 32px; height: 32px; object-fit: contain; }
+.qz-seat .pz-emote-five .k-ic { position: absolute; width: 23px; height: 30px; }
+.qz-seat .pz-emote-five .k-ic:first-child { left: -1px; transform: rotate(18deg); }
+.qz-seat .pz-emote-five .k-ic:last-child { right: -1px; transform: scaleX(-1) rotate(18deg); }
+.qz-seat .pz-emotes[hidden] { display: none; }
+/* «Сменить игру?» на плашке */
+.k-event.has-swap { grid-template-columns: 32px minmax(0, 1fr) auto auto; }
+.k-event > .qz-swap { grid-column: 4; grid-row: 1 / span 2; align-self: center; margin: 0 0 0 10px; padding-inline: 10px; font-size: var(--fs-13); }
+.qz-swap b { margin-left: 4px; color: var(--good-text); }
+.qz-swap.is-on { box-shadow: inset 0 0 0 1.5px var(--good); }
+/* третья отметка «Угадал» (мишень, клавиша 3); у «похоже на ответ» — первой и крупной */
+.qz-mb--win:hover { box-shadow: 0 0 0 2px var(--gold); }
+.qz-mb--win.is-big { display: inline-flex; gap: 6px; width: auto; padding: 0 12px 0 6px; border-radius: 999px; background: linear-gradient(180deg, var(--gold-hi), var(--gold)); color: var(--gold-ink); font: 800 var(--fs-14)/1 var(--font-text); box-shadow: 0 1.5px 0 var(--gold-lo); }

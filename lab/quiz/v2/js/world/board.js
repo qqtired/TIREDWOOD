@@ -79,9 +79,10 @@ export function pill(ctx, text, x, y, h, { fill = C.cream, ink = C.ink, px = 42,
 }
 
 // ---------------------------------------------------------------- «Загадка»
-// Из зала табло ~400–550 px в ширину: главное (цепочка «тепло», слово) — 80–90 px холста, второстепенное — 50–64.
+// Из зала табло ~480 px в ширину. Цепочки «тепло» на табло нет — она в карточке «Тепло» у каждого (слово владельца).
+// Крупно и мало: тема, число «тепло», подсказки, «мимо», время, номер загадки. Внизу по центру ничего важного.
 
-/** Где на табло встанет карточка цепочки «тепло» номер i (из видимых) — для полёта облачка на табло */
+/** Старый адрес слота цепочки — оставлен для совместимости, табло цепочку больше не рисует */
 export function riddleChainRect(i) {
   const top = 200, ch = 172, gap = 24;
   const y = top + i * (ch + gap);
@@ -89,150 +90,109 @@ export function riddleChainRect(i) {
 }
 
 /**
- * s: { phase: 'idle' | 'round' | 'solved' | 'timeout', category, left, total, chain: [{ text, nick, fresh }],
- *      hints: [string | { text, fresh }], misses: [string], answer, solver, solvedIn, warmBy: [nick], next, nextLeft, icons }
- * icons: { warm, miss, win, scroll, chat, cat } — картинки (HTMLImageElement)
+ * s: { phase: 'round' | 'solved' | 'timeout' | 'left', category, left, total, warmN, warmAt, hints: [string | { text, fresh }],
+ *      misses: [string], num, of, answer, solver, riddler, evening: [[nick, pts]], icons }
+ * icons: { warm, miss, win, scroll } — картинки (HTMLImageElement)
  */
 export function paintRiddle(ctx, s, t = 0) {
   const W = ctx.canvas.width, H = ctx.canvas.height;
   boardBase(ctx, W, H);
   if (s.phase === 'idle') return riddleIdle(ctx, s, W, H);
-  if (s.phase === 'solved' || s.phase === 'timeout') return riddleEnd(ctx, s, t, W, H);
+  if (s.phase === 'solved' || s.phase === 'timeout' || s.phase === 'left') return riddleEnd(ctx, s, t, W, H);
   const hurry = s.left <= 60;
-  // шапка: «ЗАГАДКА» + тема; справа — «Осталась минута!» (мигает) или как играть
+  // шапка: «ЗАГАДКА · тема» слева, время крупно справа
   title(ctx, 'ЗАГАДКА', PAD, 104, 80, C.cream, 'left', 6);
   ctx.save();
   ctx.font = font(400, 80, DISPLAY);
   const tw = ctx.measureText('ЗАГАДКА').width;
   if (s.category) {
     ctx.font = font(800, 84); ctx.textBaseline = 'middle'; ctx.fillStyle = C.goldText;
-    ctx.fillText(clip(ctx, `·  ${s.category}`, 1300 - tw), PAD + tw + 36, 108);
+    ctx.fillText(clip(ctx, `·  ${s.category}`, 1180 - tw), PAD + tw + 36, 108);
   }
+  ctx.font = font(400, 96, DISPLAY); ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = hurry && Math.floor(t / 500) % 2 === 0 ? C.coral : C.cream;
+  ctx.fillText(mmss(s.left), W - PAD, 112);
   ctx.restore();
-  if (hurry && Math.floor(t / 500) % 2 === 0) pill(ctx, 'Осталась минута!', W - PAD, 56, 100, { fill: C.coral, ink: '#ffffff', px: 54, align: 'right' });
-  // слева — цепочка «тепло»: последние 3, новая внизу, без ников (ники — в карточке «Тепло» на экране)
-  const chain = s.chain ?? [];
-  const shown = chain.slice(-3);
-  if (shown.length > 1) {
-    const a = riddleChainRect(0).badge, b = riddleChainRect(shown.length - 1).badge;
-    ctx.save(); ctx.setLineDash([2, 20]); ctx.lineCap = 'round'; ctx.lineWidth = 12; ctx.strokeStyle = 'rgba(158, 236, 182, .75)';
-    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); ctx.restore();
-  }
-  if (!shown.length) {
-    const r = riddleChainRect(0);
-    ctx.save(); rr(ctx, PAD, r.y, r.x + r.w - PAD, r.h, 26); ctx.setLineDash([16, 14]); ctx.lineWidth = 5;
-    ctx.strokeStyle = 'rgba(255, 244, 220, .35)'; ctx.stroke();
-    ctx.font = font(700, 64); ctx.fillStyle = C.creamFaint; ctx.textBaseline = 'middle';
-    ctx.fillText(clip(ctx, 'Здесь встанут тёплые догадки', r.x + r.w - PAD - 80), PAD + 40, r.y + r.h / 2 + 2); ctx.restore();
-  }
-  shown.forEach((c, i) => chainCard(ctx, c, riddleChainRect(i), s.icons?.warm, t));
-  // справа — подсказки
-  const rx = 1470, rw = W - PAD - rx;
-  for (let i = 0; i < (s.hints?.length ?? 0); i++) {
-    const y = 196 + i * 190, hv = s.hints?.[i], h = typeof hv === 'string' ? hv : hv?.text, fresh = hv?.fresh;
-    ctx.save();
-    ctx.beginPath(); ctx.arc(rx + 46, y + 80, 46, 0, Math.PI * 2);
-    if (h) { ctx.fillStyle = C.gold; ctx.fill(); if (fresh) { ctx.lineWidth = 8; ctx.strokeStyle = `rgba(255,255,255,${0.5 + 0.5 * Math.sin(t / 160)})`; ctx.stroke(); } }
-    else { ctx.setLineDash([9, 9]); ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(255, 244, 220, .35)'; ctx.stroke(); }
-    ctx.font = font(800, 54); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillStyle = h ? C.goldInk : C.creamFaint; ctx.fillText(String(i + 1), rx + 46, y + 83);
-    ctx.textAlign = 'left';
-    if (h) { ctx.font = font(800, 76); const ls = wrap(ctx, h, rw - 116, 2); ctx.fillStyle = C.cream; ls.forEach((l, k) => ctx.fillText(l, rx + 116, y + 82 + (k - (ls.length - 1) / 2) * 80)); }
-    ctx.restore();
-  }
-  // «мимо» — одна строка из последних, серым и зачёркнуто: чтобы не повторяться
+  // слева — «тепло»: сколько тёплых догадок (сами догадки — в карточке у каждого)
+  const bx = PAD, by = 200, bw = 620, bh = 560;
+  ctx.save();
+  rr(ctx, bx, by + 9, bw, bh, 34); ctx.fillStyle = C.ink; ctx.fill();
+  rr(ctx, bx, by, bw, bh, 34); ctx.fillStyle = C.cream; ctx.fill();
+  const fresh = s.warmAt != null && t - s.warmAt < 1800;
+  if (fresh) { ctx.lineWidth = 14; ctx.strokeStyle = `rgba(255, 205, 74, ${0.6 + 0.4 * Math.sin(t / 150)})`; ctx.stroke(); }
+  badge(ctx, s.icons?.warm, bx + bw / 2, by + 130, 92, C.good);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = font(800, 70); ctx.fillStyle = C.goodLo; ctx.fillText('ТЕПЛО', bx + bw / 2, by + 284);
+  ctx.font = font(400, 210, DISPLAY); ctx.fillStyle = (s.warmN ?? 0) ? C.enamelSolid : 'rgba(14, 85, 80, .28)';
+  ctx.fillText(String(s.warmN ?? 0), bx + bw / 2, by + 436);
+  ctx.restore();
+  // справа — подсказки, без номеров (цифры путают с клавишами 1/2/3)
+  const rx = bx + bw + 70, rw = W - PAD - rx;
+  ctx.save();
+  ctx.font = font(800, 54); ctx.letterSpacing = '6px'; ctx.textBaseline = 'middle'; ctx.fillStyle = C.goldText;
+  ctx.fillText('ПОДСКАЗКИ', rx, 236); ctx.letterSpacing = '0px';
+  const hints = s.hints ?? [];
+  if (!hints.length) { ctx.font = font(700, 72); ctx.fillStyle = C.creamFaint; ctx.fillText('пока нет', rx, 350); }
+  hints.slice(-3).forEach((hv, i) => {
+    const h = typeof hv === 'string' ? hv : hv.text, y = 350 + i * 150;
+    ctx.beginPath(); ctx.arc(rx + 22, y, 22, 0, Math.PI * 2);
+    ctx.fillStyle = C.gold; ctx.fill();
+    if (hv?.fresh) { ctx.lineWidth = 8; ctx.strokeStyle = `rgba(255,255,255,${0.5 + 0.5 * Math.sin(t / 160)})`; ctx.stroke(); }
+    const px = fit(ctx, h, 800, 100, rw - 80, TEXT, 64);
+    ctx.font = font(800, px); ctx.fillStyle = C.cream; ctx.fillText(clip(ctx, h, rw - 80), rx + 72, y + 4);
+  });
+  ctx.restore();
+  // внизу слева — «мимо» одной строкой (по центру снизу — макушка загадывающего), справа — номер загадки
   const misses = (s.misses ?? []).slice(-3).reverse();
+  ctx.save();
+  ctx.textBaseline = 'middle';
   if (misses.length) {
-    ctx.save();
-    icon(ctx, s.icons?.miss, PAD + 36, 866, 70);
-    ctx.font = font(700, 66); ctx.textBaseline = 'middle';
+    icon(ctx, s.icons?.miss, PAD + 36, 862, 70);
+    ctx.font = font(700, 66);
     let mx = PAD + 96;
     for (const m of misses) {
-      const tm = clip(ctx, m, 420), w = ctx.measureText(tm).width;
-      if (mx + w > 1060) break;
-      ctx.fillStyle = 'rgba(255, 244, 220, .6)'; ctx.fillText(tm, mx, 868);
-      ctx.fillRect(mx - 4, 870, w + 8, 6);
+      const tm = clip(ctx, m, 380), w = ctx.measureText(tm).width;
+      if (mx + w > 1000) break;
+      ctx.fillStyle = 'rgba(255, 244, 220, .6)'; ctx.fillText(tm, mx, 864);
+      ctx.fillRect(mx - 4, 866, w + 8, 6);
       mx += w + 54;
     }
-    ctx.restore();
   }
+  if (s.num) {
+    ctx.font = font(800, 62); ctx.textAlign = 'right'; ctx.fillStyle = C.creamDim;
+    ctx.fillText(`загадка ${s.num} из ${s.of ?? 5}`, W - PAD, 864);
+  }
+  ctx.restore();
   timeBar(ctx, s.left / s.total, hurry, W, H);
 }
 
-function chainCard(ctx, c, r, warmImg, t) {
-  ctx.save();
-  badge(ctx, warmImg, r.badge.x, r.badge.y, 48, C.good);
-  rr(ctx, r.x, r.y + 7, r.w, r.h, 28);
-  ctx.fillStyle = C.ink;
-  ctx.fill();
-  rr(ctx, r.x, r.y, r.w, r.h, 28);
-  ctx.fillStyle = C.cream;
-  ctx.fill();
-  if (c.fresh) {
-    ctx.lineWidth = 10;
-    ctx.strokeStyle = `rgba(255, 205, 74, ${0.6 + 0.4 * Math.sin(t / 180)})`;
-    ctx.stroke();
-  }
-  ctx.textBaseline = 'middle';
-  const maxT = r.w - 72;
-  const px = fit(ctx, c.text, 800, 112, maxT, TEXT, 64);
-  ctx.font = font(800, px);
-  ctx.fillStyle = C.plateInk;
-  ctx.fillText(clip(ctx, c.text, maxT), r.x + 36, r.y + r.h / 2 + 4);
-  ctx.restore();
-}
-
+/** Табло у входа в простое: «Во что играем?» */
 function riddleIdle(ctx, s, W, H) {
-  title(ctx, 'ЗАГАДКА', W / 2, 190, 132, C.cream, 'center', 9);
+  title(ctx, 'ВО ЧТО ИГРАЕМ?', W / 2, 220, 124, C.cream, 'center', 8);
   ctx.save();
-  ctx.font = font(700, 60);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
+  ctx.font = font(800, 76);
+  ctx.fillStyle = C.goldText;
+  ctx.fillText('Загадка · Своя игра · Крокодил · Кто из нас?', W / 2, 470, W - PAD * 2);
+  ctx.font = font(700, 66);
   ctx.fillStyle = C.creamDim;
-  ctx.fillText('Загадай что угодно — угадают в чате', W / 2, 318);
-  ctx.restore();
-  const steps = [
-    [s.icons?.scroll, 'У трибуны', 'E — загадать'],
-    [s.icons?.chat, 'Угадывай', 'пиши в чат'],
-    [s.icons?.warm, 'Тепло / мимо', 'отмечает загадавший'],
-  ];
-  const cw = 586, gap = 40, x0 = (W - (cw * 3 + gap * 2)) / 2, y = 410, h = 420;
-  steps.forEach(([img, a, b], i) => {
-    const x = x0 + i * (cw + gap);
-    ctx.save();
-    rr(ctx, x, y, cw, h, 30);
-    ctx.fillStyle = 'rgba(255, 244, 220, .07)';
-    ctx.fill();
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = 'rgba(255, 244, 220, .16)';
-    ctx.stroke();
-    badge(ctx, img, x + cw / 2, y + 128, 92, C.cream2, C.ink);
-    ctx.beginPath(); ctx.arc(x + 58, y + 58, 34, 0, Math.PI * 2); ctx.fillStyle = C.gold; ctx.fill();
-    ctx.font = font(800, 42); ctx.fillStyle = C.goldInk; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(String(i + 1), x + 58, y + 61);
-    ctx.font = font(800, 64); ctx.fillStyle = C.cream; ctx.fillText(a, x + cw / 2, y + 290);
-    ctx.font = font(600, 46); ctx.fillStyle = C.creamDim; ctx.fillText(b, x + cw / 2, y + 362);
-    ctx.restore();
-  });
-  ctx.save();
-  ctx.font = font(700, 42);
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillStyle = C.creamFaint;
-  ctx.fillText('Ещё: Своя игра · Крокодил · Кто из нас?', W / 2, H - 100);
+  ctx.fillText(s.hint ?? 'Садись — голосуем, во что играть', W / 2, 640);
   ctx.restore();
 }
 
+/** Итог загадки: слово во всё табло, кто угадал (или кто ушёл), «счёт вечера». «Дальше загадывает…» — только на плашке */
 function riddleEnd(ctx, s, t, W, H) {
   const win = s.phase === 'solved';
   if (win) confetti(ctx, W, H, t, 120, 11);
-  title(ctx, win ? 'РАЗГАДАЛИ!' : 'НЕ УГАДАЛИ', W / 2, 140, 96, win ? C.gold : C.coral, 'center', 7);
+  const head = win ? 'РАЗГАДАЛИ!' : s.phase === 'left' ? `${(s.riddler ?? '').toUpperCase()} УШЁЛ` : 'НЕ УГАДАЛИ';
+  title(ctx, clip(ctx, head, 1800), W / 2, 130, 96, win ? C.gold : C.coral, 'center', 7);
   ctx.save();
   const word = (s.answer ?? '').toUpperCase();
-  const px = fit(ctx, word, 400, 190, 1640, DISPLAY, 80);
+  const px = fit(ctx, word, 400, 180, 1640, DISPLAY, 80);
   ctx.font = font(400, px, DISPLAY);
   const ww = Math.max(760, ctx.measureText(word).width + 200);
-  const bx = (W - ww) / 2, by = 236, bh = 300;
+  const bx = (W - ww) / 2, by = 220, bh = 280;
   rr(ctx, bx, by + 12, ww, bh, 44); ctx.fillStyle = C.ink; ctx.fill();
   rr(ctx, bx, by, ww, bh, 44); ctx.fillStyle = win ? C.cream : C.cream2; ctx.fill();
   if (win) { ctx.lineWidth = 12; ctx.strokeStyle = C.gold; ctx.stroke(); }
@@ -243,27 +203,38 @@ function riddleEnd(ctx, s, t, W, H) {
   ctx.save();
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  if (win) {
-    ctx.font = font(800, 96); ctx.fillStyle = C.cream;
-    ctx.fillText(clip(ctx, `${s.solver} угадал!`, 1800), W / 2, 668);
-  } else {
-    ctx.font = font(800, 80); ctx.fillStyle = C.creamDim;
-    ctx.fillText('Время вышло', W / 2, 668);
-  }
-  if (s.next) {
-    const line = `Дальше загадывает ${s.next}`;
-    const tm = mmss(s.nextLeft ?? 0);
-    ctx.font = font(800, 72);
-    const lw = Math.min(ctx.measureText(line).width, 1500);
-    const tw2 = ctx.measureText(tm).width;
-    const nx = W / 2 - (lw + 36 + tw2) / 2;
-    ctx.textAlign = 'left';
-    ctx.fillStyle = C.goldText;
-    ctx.fillText(clip(ctx, line, 1500), nx, 840);
+  if (win) { ctx.font = font(800, 92); ctx.fillStyle = C.cream; ctx.fillText(clip(ctx, `${s.solver} угадал!`, 1800), W / 2, 610); }
+  else { ctx.font = font(800, 80); ctx.fillStyle = C.creamDim; ctx.fillText(s.phase === 'left' ? 'без жетонов · ход следующему' : 'Время вышло', W / 2, 610); }
+  // счёт вечера — очки раундов, не жетоны
+  const ev = (s.evening ?? []).slice(0, 4);
+  if (ev.length) {
+    ctx.font = font(800, 50); ctx.letterSpacing = '6px'; ctx.fillStyle = C.goldText;
+    ctx.fillText('СЧЁТ ВЕЧЕРА', W / 2, 736); ctx.letterSpacing = '0px';
+    ctx.font = font(800, 70);
+    const parts = ev.map(([n, p]) => `${n} ${p}`);
+    let line = parts.join('   ·   ');
     ctx.fillStyle = C.cream;
-    ctx.fillText(tm, nx + lw + 36, 840);
-    timeBar(ctx, (s.nextLeft ?? 0) / 10, false, W, H);
+    ctx.fillText(clip(ctx, line, W - PAD * 2 - 40), W / 2, 840);
   }
+  ctx.restore();
+}
+
+/** Вывеска над аркой (sign_face 1024×256): «РАКУШКА» и строка статуса */
+export function paintSign(ctx, s) {
+  const W = ctx.canvas.width, H = ctx.canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = C.deep; ctx.fillRect(0, 0, W, H);
+  enamel(ctx, 6, 6, W - 12, H - 12, 22);
+  ctx.save();
+  rr(ctx, 14, 14, W - 28, H - 28, 18); ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(243, 230, 201, .6)'; ctx.stroke();
+  ctx.restore();
+  title(ctx, 'РАКУШКА', W / 2, 104, 92, C.cream, 'center', 6);
+  ctx.save();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const st = s.status ?? 'Во что играем?';
+  ctx.font = font(800, fit(ctx, st, 800, 52, W - 80, TEXT, 30));
+  ctx.fillStyle = s.live ? C.goldText : C.creamDim;
+  ctx.fillText(st, W / 2, 196);
   ctx.restore();
 }
 

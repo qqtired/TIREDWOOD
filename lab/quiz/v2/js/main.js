@@ -97,6 +97,11 @@ async function go(i) {
   step.run(x);
 }
 
+// Alt — короткие ники над всеми сидящими (над собой — никогда)
+document.addEventListener('keydown', (e) => { if (e.key === 'Alt') { e.preventDefault(); stage.showNicks(true); } });
+document.addEventListener('keyup', (e) => { if (e.key === 'Alt') { e.preventDefault(); stage.showNicks(false); } });
+window.addEventListener('blur', () => stage.showNicks(false));
+
 document.addEventListener('keydown', (e) => {
   if (e.target.closest?.('input, textarea')) return;
   if (run?.x?.key?.(e)) { e.preventDefault(); return; }
@@ -112,10 +117,10 @@ snd?.addEventListener('click', () => { sfx.on = !sfx.on; snd.classList.toggle('i
 await document.fonts.load('800 40px Rubik');
 await document.fonts.load('400 40px "Rubik Mono One"');
 await document.fonts.ready;
-tabs();
-fit();
 const m0 = MODES.find((m) => m.id === q.get('m'));
 if (m0) mode = m0;
+tabs();
+fit();
 const s0 = mode.steps.findIndex((s) => s.id === q.get('s'));
 go(s0 >= 0 ? s0 : 0);
 window.__v2 = { go, stage, get run() { return run; } };
