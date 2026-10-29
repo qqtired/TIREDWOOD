@@ -1,0 +1,9 @@
+/* «Загадка» (второй круг). */
+/* окно «Что загадал?»: слово и «Подкинь идею» в одну строку, идеи — пилюлями под полем */
+.qz-wordrow { display: flex; align-items: center; gap: 10px; }
+.qz-wordrow .qz-word { flex: 1; min-width: 0; }
+.qz-wordrow .qz-idea { flex: none; margin: 0 0 3px; }
+.qz-ideas { display: flex; flex-wrap: wrap; gap: 8px; margin-top: -6px; }
+.qz-ideas[hidden] { display: none; }
+.qz-idea-w { cursor: pointer; font-weight: 700; }
+.qz-idea-w:hover { border-color: var(--gold); background: var(--gold-soft); }

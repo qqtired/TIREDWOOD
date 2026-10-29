@@ -1,0 +1,30 @@
+/* «Во что играем?» и итоги (второй круг). Только токены кита UI 2.0. */
+
+/* плашка голосования — одна строка ≤ 520 px: «Во что играем? · 0:14» и 4 маленькие кнопки (значок + колпачок) */
+.qz-vline { display: flex; align-items: center; gap: 8px; width: max-content; max-width: 520px; padding: 6px 8px 6px 14px; border-radius: var(--r-lg); }
+.qz-vline-t { font: 800 var(--fs-16)/1.2 var(--font-text); white-space: nowrap; }
+.qz-vline-time { color: var(--gold-text); font: 800 var(--fs-16)/1.2 var(--font-text); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.qz-vline-time.is-hurry { color: var(--bad-text); }
+.qz-vline-opts { display: flex; gap: 6px; margin-left: 6px; }
+.qz-vbtn { position: relative; display: grid; place-items: center; width: 40px; height: 36px; padding: 0; border: 1.5px solid var(--line); border-radius: var(--r-md); background: var(--surf-2); cursor: pointer; transition: background var(--dur-1), border-color var(--dur-1), transform var(--dur-1); }
+.qz-vbtn > .k-key { position: absolute; top: -7px; left: -7px; }
+.qz-vbtn-ic { width: 26px; height: 26px; object-fit: contain; }
+.qz-vbtn:hover:not(:disabled) { border-color: var(--gold); background: var(--gold-soft); }
+.qz-vbtn.is-mine { border-color: var(--good); background: var(--good-soft); box-shadow: inset 0 0 0 1.5px var(--good); }
+.qz-vbtn:disabled { cursor: not-allowed; opacity: .45; filter: grayscale(1); }
+.qz-vbtn.is-pick { animation: qz-pick .32s var(--ease-pop); }
+.qz-vbtn.is-shake { animation: qz-shake .3s ease; }
+.qz-vbtn.is-unlock { animation: qz-unlock 1.1s ease; }
+
+/* невидимые кнопки поверх карточек 3D-табло */
+.qz-vhit { position: absolute; padding: 0; border: 0; background: transparent; cursor: pointer; }
+.qz-vhit:disabled { cursor: not-allowed; }
+
+/* строка ролей: отсчёт 10 с до того, как Затейник назначит сам */
+.qz-roles-time { min-width: 34px; color: var(--gold-text); font: 800 var(--fs-16)/1 var(--font-text); font-variant-numeric: tabular-nums; text-align: right; }
+.qz-roles-time.is-hurry { color: var(--bad-text); }
+.qz-assigned { box-shadow: var(--plate-shadow), inset 0 0 0 1.5px var(--gold); }
+
+/* итоги: короткое окно ModeResults слева от табло, без затемнения сцены */
+/* итоги: монета в строке плашки */
+.qz-event .k-event-title .k-coin { width: 18px; height: 18px; margin-left: 3px; vertical-align: -3px; }
