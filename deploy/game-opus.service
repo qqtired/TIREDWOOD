@@ -51,6 +51,8 @@ Environment=PLAZA3=1
 Environment=FORTRESS_SIEGE=1
 Environment=SKILL_TOWER2=1
 Environment=KITE=1
+# «Ракушка» у пирса вместо катера «Ласточка»: игры с ведущим и паки — «да» владельца 2026-10-30
+Environment=QUIZ=1
 StateDirectory=game-opus
 StateDirectoryMode=0700
 Restart=always
