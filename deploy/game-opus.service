@@ -53,6 +53,8 @@ Environment=SKILL_TOWER2=1
 Environment=KITE=1
 # «Ракушка» у пирса вместо катера «Ласточка»: игры с ведущим и паки — «да» владельца 2026-10-30
 Environment=QUIZ=1
+# «Ракушка»: загружать свои паки может только Tired — слово владельца 2026-10-30 («пока разреши только моему персонажу»)
+Environment=QUIZ_UPLOADERS=Tired
 StateDirectory=game-opus
 StateDirectoryMode=0700
 Restart=always
