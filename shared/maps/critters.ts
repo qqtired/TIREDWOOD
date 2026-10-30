@@ -157,10 +157,10 @@ const CRITTERS_3_ROUTES: Readonly<Record<number, readonly CritterStop[]>> = {
     stop(22.6, 5.5, 'sleep', 23, 'veranda-shade'), stop(22.4, 8.5, 'groom', 17, 'wheel-path'),
     stop(21.3, 12.8, 'sit', 17, 'wheel-corner'), stop(22.4, 8.5, 'sit', 6, 'wheel-path'),
   ],
-  // собака: круг по набережной к югу от ротонды и колеса — старое кафе и «плаца-восток» теперь внутри ротонды
+  // собака: круг по набережной у колеса и за спиной «Ракушки» (с 30.10 «Ракушка» на месте «Ласточки», прогулка — у воды за ракушкой)
   14: [
-    stop(22.4, 15, 'sleep', 21, 'wheel-lee'), stop(19.6, 19.2, 'sniff', 9, 'promenade-east'), stop(11, 18.4, 'sit', 6, 'shore-corner'),
-    stop(3.4, 18.4, 'sniff', 11, 'shore-walk'), stop(11, 18.4, 'sniff', 4, 'shore-corner'), stop(10.5, 14, 'sniff', 5, 'rotunda-south'),
+    stop(22.4, 15, 'sleep', 21, 'wheel-lee'), stop(19.6, 19.2, 'sniff', 9, 'promenade-east'), stop(13.4, 19.9, 'sit', 6, 'shore-corner'),
+    stop(2.6, 20.2, 'sniff', 11, 'shore-walk'), stop(13.4, 19.9, 'sniff', 4, 'shore-corner'), stop(14.4, 13.8, 'sniff', 5, 'rotunda-south'),
   ],
 };
 

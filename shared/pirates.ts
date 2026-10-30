@@ -72,8 +72,8 @@ export const PIRATE_PARTICIPATE = 3;
 
 /** Корабль на якоре: середина корпуса и курс (нос на запад: yaw как у игроков, 0 смотрит на −Z); бортом к набережной */
 export const PIRATE_SHIP = { x: 8, z: 50, yaw: Math.PI / 2, ax: 9.5, az: 3.4 } as const;
-/** Куча ящиков и бочек: центр и места четырёх вещей (чётный номер — ящик, нечётный — бочка) */
-export const PIRATE_PILES: ReadonlyArray<{ x: number; z: number }> = [{ x: -1.0, z: 16.0 }, { x: 12.0, z: 16.0 }, { x: 20.0, z: 16.0 }];
+/** Куча ящиков и бочек: центр и места четырёх вещей (чётный номер — ящик, нечётный — бочка); plaza3: куча 1 — восточнее «Ракушки» у пирса */
+export const PIRATE_PILES: ReadonlyArray<{ x: number; z: number }> = [{ x: -1.0, z: 16.0 }, PLAZA3 ? { x: 15.2, z: 15.4 } : { x: 12.0, z: 16.0 }, { x: 20.0, z: 16.0 }];
 const PILE_AT: ReadonlyArray<readonly [number, number]> = [[-0.65, -0.35], [0.55, -0.55], [-0.45, 0.6], [0.65, 0.5]];
 export interface LootHome { x: number; z: number; pile: number }
 // После разворота Рыбного двора вещи1/2 попадали в лодку/стойку ворот; сами кучи и номера прежние.

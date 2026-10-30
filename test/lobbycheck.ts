@@ -48,7 +48,7 @@ export function spotProblems(map: LobbyMap, world: CollisionWorld, rules: SpotRu
     // Высота позы сидящего якоря выше земли; физическую опору проверяем отдельно, не подменяем ею anchorY.
     const floor = it?.kind === 'seat' && it.arg >= 24 ? 0 : it?.kind === 'wheel' ? 0.15 : it?.kind === 'juke' && it.arg === 1 ? rules.bakY : it?.kind === 'oboat' ? rules.parkDeckY : it?.y ?? 0;
     const name = it ? `точка ${it.id} ${it.kind}` : 'место появления';
-    if (Math.abs(world.groundBelow(s.x, 0.5, s.z) - floor) > 1e-9) out.push(`${name}: нет опоры в (${s.x}; ${s.z})`);
+    if (Math.abs(world.groundBelow(s.x, Math.max(0.5, floor + 0.5), s.z) - floor) > 1e-9) out.push(`${name}: нет опоры в (${s.x}; ${s.z})`);
     if (it && (it.kind === 'seat' || it.kind === 'durak' || it.kind === 'blackjack' || it.kind === 'billiards')) continue;
     const H = PLAYER_HALF;
     if (world.overlaps(s.x - H, floor + 0.01, s.z - H, s.x + H, floor + PLAYER_HEIGHT, s.z + H)) out.push(`${name}: в стене (${s.x}; ${s.z})`);

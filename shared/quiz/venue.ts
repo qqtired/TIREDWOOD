@@ -349,9 +349,9 @@ export function chairPlace(n: number, v: QuizVenue = QUIZ_VENUE): number {
   return v.first.chair + n;
 }
 
-/** Зрительская камера кресла (seatCam): со стула на центр табло, своя желейка не рисуется */
+/** Зрительская камера кресла (seatCam): со стула на seatCam.target (нет — центр табло), своя желейка не рисуется */
 export function seatCamera(chair: VenueSpot, v: QuizVenue = QUIZ_VENUE): QuizCam {
-  const c = v.data.seatCam, t = v.board.center;
+  const c = v.data.seatCam, t = c.target ? toWorld(v.world, c.target[0], c.target[1], c.target[2]) : v.board.center;
   const hx = t[0] - chair.x, hz = t[2] - chair.z, hl = Math.hypot(hx, hz) || 1;
   const y = chair.y + v.chairSeatY + c.pivotAboveSeat + c.up;
   return { pos: [r3(chair.x - (hx / hl) * c.back), r3(y), r3(chair.z - (hz / hl) * c.back)], target: t, fovV: c.fovV, look: (c.lookYawDeg * Math.PI) / 180 };

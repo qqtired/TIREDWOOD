@@ -93,15 +93,15 @@ test('бильярд: «крыша» карты для дождя — на ло�
   }
 });
 
-test('музыкальный автомат: в ротонде (15; 10,2), лицом на север, на подиуме 0,36; место заказа — с севера', () => {
-  assert.deepEqual([jb.JUKEBOX.x, jb.JUKEBOX.z, jb.JUKEBOX.yaw], [15, 10.2, 0]);
+test('музыкальный автомат: в ротонде (20,5; 3,2) — восточнее Розы ветров (30.10), лицом на север, на подиуме 0,36; место заказа — с севера', () => {
+  assert.deepEqual([jb.JUKEBOX.x, jb.JUKEBOX.z, jb.JUKEBOX.yaw], [20.5, 3.2, 0]);
   assert.equal(jb.JUKEBOX_Y, 0.36);
   const use = jb.JUKE_USE;
-  assert.equal(use.x, 15);
-  assert.ok(near(use.z, 10.2 - jb.JUKE_D / 2 - 0.85), `JUKE_USE.z ${use.z}`);
+  assert.equal(use.x, 20.5);
+  assert.ok(near(use.z, 3.2 - jb.JUKE_D / 2 - 0.85), `JUKE_USE.z ${use.z}`);
   assert.ok(use.z < jb.JUKEBOX.z, 'игрок стоит севернее автомата, лицом к его лицу');
   const [plaza, barkas] = jb.JUKE_SPOTS;
-  assert.deepEqual([plaza.x, plaza.y, plaza.z, plaza.yaw, plaza.use], [15, 0.36, 10.2, 0, use]);
+  assert.deepEqual([plaza.x, plaza.y, plaza.z, plaza.yaw, plaza.use], [20.5, 0.36, 3.2, 0, use]);
   assert.equal(barkas.yaw, 0);
   assert.equal(jb.jukeNearest(use.x, use.z), 0);
   // точка «juke» на карте — на месте заказа; корпус твёрдый, рядом с колоннами ротонды не пересекается, место заказа свободно
@@ -110,7 +110,7 @@ test('музыкальный автомат: в ротонде (15; 10,2), ли�
   // пол ротонды — подиум 0,36 (боксы pav.rotunda.floor_* по модели, WP9)
   assert.ok(standFree(use.x, use.z, jb.JUKEBOX_Y), 'у автомата можно стоять');
   const body = map.boxes[map.jukeBoxes[0]];
-  assert.deepEqual([body.min[0], body.max[0], body.min[2], body.max[2]], [15 - jb.JUKE_W / 2, 15 + jb.JUKE_W / 2, 10.2 - jb.JUKE_D / 2, 10.2 + jb.JUKE_D / 2]);
+  assert.deepEqual([body.min[0], body.max[0], body.min[2], body.max[2]], [20.5 - jb.JUKE_W / 2, 20.5 + jb.JUKE_W / 2, 3.2 - jb.JUKE_D / 2, 3.2 + jb.JUKE_D / 2]);
   assert.deepEqual(overlapProblems(map, map.jukeBoxes), []);
 });
 

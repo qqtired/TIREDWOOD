@@ -27,8 +27,8 @@ export const P3: Plaza3Layout = {
       "rot": 0
     },
     "jukebox": {
-      "dx": 23.6,
-      "dz": 13.4,
+      "dx": 29.1,
+      "dz": 6.4,
       "rot": 2,
       "cx": -8.6,
       "cz": -3.2
@@ -2360,14 +2360,14 @@ export const P3: Plaza3Layout = {
       "q": "hub",
       "pav": "rotunda",
       "min": [
-        11.7,
+        17.2,
         3.96,
-        5.2
+        -1.8
       ],
       "max": [
-        18.3,
+        23.8,
         9,
-        11.8
+        4.8
       ],
       "mat": "concrete",
       "color": 15921128
@@ -2377,14 +2377,14 @@ export const P3: Plaza3Layout = {
       "q": "hub",
       "pav": "rotunda",
       "min": [
-        12.09,
+        17.59,
         0,
-        7.29
+        0.29
       ],
       "max": [
-        17.91,
+        23.41,
         0.36,
-        9.71
+        2.71
       ],
       "mat": "concrete",
       "color": 15921128
@@ -2394,14 +2394,14 @@ export const P3: Plaza3Layout = {
       "q": "hub",
       "pav": "rotunda",
       "min": [
-        13.79,
+        19.29,
         0,
-        5.59
+        -1.41
       ],
       "max": [
-        16.21,
+        21.71,
         0.36,
-        7.29
+        0.29
       ],
       "mat": "concrete",
       "color": 15921128
@@ -2411,14 +2411,14 @@ export const P3: Plaza3Layout = {
       "q": "hub",
       "pav": "rotunda",
       "min": [
-        13.79,
+        19.29,
         0,
-        10.59
+        3.59
       ],
       "max": [
-        16.21,
+        21.71,
         0.36,
-        11.41
+        4.41
       ],
       "mat": "concrete",
       "color": 15921128
@@ -2428,14 +2428,14 @@ export const P3: Plaza3Layout = {
       "q": "hub",
       "pav": "rotunda",
       "min": [
-        12.07,
+        17.57,
         0.36,
-        9.29
+        2.29
       ],
       "max": [
-        12.67,
+        18.17,
         3.96,
-        9.89
+        2.89
       ],
       "mat": "concrete",
       "color": 15921128
@@ -2445,14 +2445,14 @@ export const P3: Plaza3Layout = {
       "q": "hub",
       "pav": "rotunda",
       "min": [
-        13.61,
+        19.11,
         0.36,
-        10.83
+        3.83
       ],
       "max": [
-        14.21,
+        19.71,
         3.96,
-        11.43
+        4.43
       ],
       "mat": "concrete",
       "color": 15921128
@@ -2462,14 +2462,14 @@ export const P3: Plaza3Layout = {
       "q": "hub",
       "pav": "rotunda",
       "min": [
-        15.79,
+        21.29,
         0.36,
-        10.83
+        3.83
       ],
       "max": [
-        16.39,
+        21.89,
         3.96,
-        11.43
+        4.43
       ],
       "mat": "concrete",
       "color": 15921128
@@ -2479,14 +2479,14 @@ export const P3: Plaza3Layout = {
       "q": "hub",
       "pav": "rotunda",
       "min": [
-        17.33,
+        22.83,
         0.36,
-        9.29
+        2.29
       ],
       "max": [
-        17.93,
+        23.43,
         3.96,
-        9.89
+        2.89
       ],
       "mat": "concrete",
       "color": 15921128
@@ -2496,14 +2496,14 @@ export const P3: Plaza3Layout = {
       "q": "hub",
       "pav": "rotunda",
       "min": [
-        17.33,
+        22.83,
         0.36,
-        7.11
+        0.11
       ],
       "max": [
-        17.93,
+        23.43,
         3.96,
-        7.71
+        0.71
       ],
       "mat": "concrete",
       "color": 15921128
@@ -2513,14 +2513,14 @@ export const P3: Plaza3Layout = {
       "q": "hub",
       "pav": "rotunda",
       "min": [
-        15.79,
+        21.29,
         0.36,
-        5.57
+        -1.43
       ],
       "max": [
-        16.39,
+        21.89,
         3.96,
-        6.17
+        -0.83
       ],
       "mat": "concrete",
       "color": 15921128
@@ -2530,14 +2530,14 @@ export const P3: Plaza3Layout = {
       "q": "hub",
       "pav": "rotunda",
       "min": [
-        13.61,
+        19.11,
         0.36,
-        5.57
+        -1.43
       ],
       "max": [
-        14.21,
+        19.71,
         3.96,
-        6.17
+        -0.83
       ],
       "mat": "concrete",
       "color": 15921128
@@ -2547,14 +2547,14 @@ export const P3: Plaza3Layout = {
       "q": "hub",
       "pav": "rotunda",
       "min": [
-        12.07,
+        17.57,
         0.36,
-        7.11
+        0.11
       ],
       "max": [
-        12.67,
+        18.17,
         3.96,
-        7.71
+        0.71
       ],
       "mat": "concrete",
       "color": 15921128
@@ -2564,14 +2564,14 @@ export const P3: Plaza3Layout = {
       "q": "hub",
       "pav": "rotunda",
       "min": [
-        12.82,
+        18.32,
         0,
-        6.32
+        -0.68
       ],
       "max": [
-        13.79,
+        19.29,
         0.36,
-        7.29
+        0.29
       ],
       "mat": "concrete",
       "color": 15921128
@@ -2581,14 +2581,14 @@ export const P3: Plaza3Layout = {
       "q": "hub",
       "pav": "rotunda",
       "min": [
-        16.21,
+        21.71,
         0,
-        6.32
+        -0.68
       ],
       "max": [
-        17.18,
+        22.68,
         0.36,
-        7.29
+        0.29
       ],
       "mat": "concrete",
       "color": 15921128
@@ -2598,14 +2598,14 @@ export const P3: Plaza3Layout = {
       "q": "hub",
       "pav": "rotunda",
       "min": [
-        12.82,
+        18.32,
         0,
-        9.71
+        2.71
       ],
       "max": [
-        13.79,
+        19.29,
         0.36,
-        10.68
+        3.68
       ],
       "mat": "concrete",
       "color": 15921128
@@ -2615,14 +2615,14 @@ export const P3: Plaza3Layout = {
       "q": "hub",
       "pav": "rotunda",
       "min": [
-        16.21,
+        21.71,
         0,
-        9.71
+        2.71
       ],
       "max": [
-        17.18,
+        22.68,
         0.36,
-        10.68
+        3.68
       ],
       "mat": "concrete",
       "color": 15921128
@@ -2632,14 +2632,14 @@ export const P3: Plaza3Layout = {
       "q": "hub",
       "pav": "rotunda",
       "min": [
-        13.79,
+        19.29,
         0,
-        9.71
+        2.71
       ],
       "max": [
-        14.32,
+        19.82,
         0.36,
-        10.59
+        3.59
       ],
       "mat": "concrete",
       "color": 15921128
@@ -2649,14 +2649,14 @@ export const P3: Plaza3Layout = {
       "q": "hub",
       "pav": "rotunda",
       "min": [
-        15.68,
+        21.18,
         0,
-        9.71
+        2.71
       ],
       "max": [
-        16.21,
+        21.71,
         0.36,
-        10.59
+        3.59
       ],
       "mat": "concrete",
       "color": 15921128
@@ -5387,9 +5387,9 @@ export const P3: Plaza3Layout = {
       "pav": "rotunda",
       "t": "cyl",
       "c": [
-        15,
+        20.5,
         4.6,
-        8.5
+        1.5
       ],
       "r": 3.75,
       "h": 0.5,
@@ -5400,9 +5400,9 @@ export const P3: Plaza3Layout = {
       "pav": "rotunda",
       "t": "cone",
       "c": [
-        15,
+        20.5,
         5.1,
-        8.5
+        1.5
       ],
       "r": 3.9,
       "h": 3.2,
@@ -5413,9 +5413,9 @@ export const P3: Plaza3Layout = {
       "pav": "rotunda",
       "t": "cyl",
       "c": [
-        15,
+        20.5,
         8.3,
-        8.5
+        1.5
       ],
       "r": 0.12,
       "h": 1.6,
@@ -6557,10 +6557,10 @@ export const P3: Plaza3Layout = {
       "q": "hub",
       "name": "Музыкальная ротонда (музыкальный автомат)",
       "box": {
-        "x0": 11.25,
-        "z0": 4.75,
-        "x1": 18.75,
-        "z1": 12.25
+        "x0": 16.75,
+        "z0": -2.25,
+        "x1": 24.25,
+        "z1": 5.25
       },
       "h": 9,
       "face": 0

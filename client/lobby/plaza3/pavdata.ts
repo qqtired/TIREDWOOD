@@ -55,7 +55,7 @@ export const PAVILIONS: readonly PavPlace[] = [
   // фонтан Бульварного сквера (≤ 2,4 м — в коридоре вида на TIREDWOOD), вода пульсирует
   { id: 'fountain', file: 'pav_fountain.glb', x: 38, z: 7.3, yaw: 0, group: 'games', solid: 'layout', live: ['live_water'] },
   // Центр: ротонда и доски у площади (лицом на юг, к точке появления)
-  { id: 'rotunda', file: 'pav_rotunda.glb', x: 15, z: 8.5, yaw: 0, group: 'hub', solid: 'layout' },
+  { id: 'rotunda', file: 'pav_rotunda.glb', x: 20.5, z: 1.5, yaw: 0, group: 'hub', solid: 'layout' },
   { id: 'honor', file: 'pav_honor.glb', x: 4, z: -16.8, yaw: PI, group: 'hub', solid: 'layout' },
   { id: 'online', file: 'pav_online.glb', x: 17, z: -16.8, yaw: PI, group: 'hub', solid: 'layout', live: ['live_clock_hour', 'live_clock_minute'] },
   // Порт B «Маячный мол» (README-pb.md)
