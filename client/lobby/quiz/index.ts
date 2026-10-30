@@ -44,6 +44,8 @@ export interface QuizDeps {
   hudKit?: QuizHudKitArg;
   /** Громкость звука вопросов «Своей игры» (общая × эффекты), 0…1 */
   volume?: () => number;
+  /** Окно «Ракушки» открылось (мышь — окну) / закрылось (мышь — обратно игре), как у регаты */
+  freeMouse?: (free: boolean) => void;
   /** Вывески plaza3: строка «Ракушки» на афише кафе */
   signs: { setExtras(x: Partial<SignExtras>): void } | null;
 }
@@ -63,6 +65,8 @@ const LOOK_K = 0.0035;
 
 export class QuizClient {
   private readonly d: QuizDeps;
+  /** Открыто окно «Ракушки» (трибуна, вопрос загадывающего): мышь свободна, пауза не нужна */
+  private winOpen = false;
   readonly state: QuizState;
   private venue: QuizVenue3D | null = null;
   private zat: Zatejnik | null = null;
@@ -314,6 +318,10 @@ export class QuizClient {
     if (!this.on) return;
     this.venue?.update(dt, camPos);
     this.zat?.update(dt, camPos);
+    // звук вопроса следует за громкостью и выключателем из Esc прямо во время вопроса
+    if (this.audio) this.audio.volume = Math.max(0, Math.min(1, this.d.volume?.() ?? 0.7));
+    const win = !!document.querySelector('dialog.qz-scrim[open]');
+    if (win !== this.winOpen) { this.winOpen = win; this.d.freeMouse?.(win); }
     this.heads.update();
     // HUD: отсчёты — раз в секунду (снимки — сразу, pushView)
     const sec = Math.floor(performance.now() / 1000);
@@ -359,7 +367,7 @@ export class QuizClient {
 
   /** На месте «Ракушки» мышь свободна: кнопки плашки и строки дока нажимаются мышью */
   freesPointer(act: number, arg: number): boolean {
-    return !!this.placeOf(act, arg);
+    return this.winOpen || !!this.placeOf(act, arg);
   }
 
   /** Своя желейка — точно на месте и лицом, куда смотрит место (сервер держит её там же) */
@@ -400,6 +408,8 @@ export class QuizClient {
     const p = quizPlace(arg);
     // трибуна: E — окно «Ракушки» в любой шаг (встать за неё как ведущий сервер даст только в шаге «Веду я»)
     if (p?.kind === 'podium') return [['E'], 'окно «Ракушки» · игры, паки, рекорды'];
+    // пульт: встать за него можно только посреди «Своей игры» (сервер: jeopardy.use); вне игры он в люке — без подсказки
+    if (p?.kind === 'pult') return this.state.board?.jp ? [['E'], 'встать за пульт · играть'] : [null, ''];
     const busy = !!p && p.kind === 'chair' && !!this.state.view?.people.some((x) => x.chair === p.n && x.slot !== this.d.mySlot());
     return busy ? [[], 'Место занято'] : [['E'], 'сесть · смотреть на сцену и играть'];
   }
