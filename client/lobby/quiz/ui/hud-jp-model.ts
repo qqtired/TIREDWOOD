@@ -31,7 +31,7 @@ export function contentText(parts: readonly QzContent[]): string {
 
 /** Карточки выбора пака (до трёх): клавиши 1–3, мой выбор подсвечен (mine — по моему последнему клику, сервер его не присылает); длинные названия обрезает CSS */
 export function packButtons(jp: QzJpBoard, mine: number): string {
-  return (jp.packs ?? []).map((p, i) => `<button type="button" class="qz-vopt${mine === i ? ' is-mine' : ''}" data-qz="pv" data-i="${i}" title="${esc(`${p.title} · ${p.sub}`)}">${keyCap(String(i + 1), 'tl')}<span>${esc(p.title)}</span>${p.n ? `<i>${p.n}</i>` : ''}</button>`).join('');
+  return (jp.packs ?? []).map((p, i) => `<button type="button" class="qz-vopt${mine === i ? ' is-mine' : ''}" data-qz="pv" data-i="${i}" title="${esc([p.title, p.by ? `заказал ${p.by}` : p.fresh ? 'новый' : p.sub].filter(Boolean).join(' · '))}">${keyCap(String(i + 1), 'tl')}<span>${esc(p.title)}</span>${p.n ? `<i>${p.n}</i>` : ''}</button>`).join('');
 }
 
 /** «Кот в мешке»: кнопка на каждого другого игрока */

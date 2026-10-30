@@ -93,7 +93,9 @@ export class QuizHttp {
   uploadCheck(nick: string, level: number): { ok: boolean; why: string } {
     if (!this.enabled) return { ok: false, why: 'Паки пока недоступны.' };
     const key = nick.trim().toLowerCase();
-    if (this.uploaders.length && !this.uploaders.some(n => n.toLowerCase() === key)) return { ok: false, why: `Загружать паки пока может только ${this.uploaders.join(', ')}` };
+    // Список QUIZ_UPLOADERS заменяет порог уровня: можно только этим никам, с любого уровня
+    if (this.uploaders.length) return this.uploaders.some(n => n.toLowerCase() === key) ? { ok: true, why: '' }
+      : { ok: false, why: `Загружать паки пока может только ${this.uploaders.join(', ')}` };
     if (!Number.isFinite(level) || level < QZ_PACK.MIN_LEVEL) return { ok: false, why: 'Загружать паки можно с 3-го уровня' };
     return { ok: true, why: '' };
   }
@@ -104,7 +106,7 @@ export class QuizHttp {
     const check = this.uploadCheck(nick, level);
     if (!check.ok) throw new PackError(check.why, 403);
     for (const [ticket, t] of this.tickets) if (t.pid === pid) return { ticket, exp: t.exp, left: this.packs.uploadsLeft(pid, this.now()) };
-    this.packs.checkUpload(pid, level, this.now());
+    this.packs.checkUpload(pid, this.uploaders.length ? QZ_PACK.MIN_LEVEL : level, this.now());
     const ticket = randomBytes(32).toString('hex'), exp = this.now() + QZ_PACK.TICKET_MS;
     this.tickets.set(ticket, { pid, exp, id: null, busy: false });
     return { ticket, exp, left: this.packs.uploadsLeft(pid, this.now()) };

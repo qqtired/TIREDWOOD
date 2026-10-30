@@ -80,9 +80,21 @@ function jpPacks(ctx: CanvasRenderingContext2D, jp: QzJpBoard, nowMs: number, W:
     ctx.font = font(800, fit(ctx, p.title, 800, 72, r.w - 60, TEXT, 40));
     ctx.fillStyle = C.plateInk;
     ctx.fillText(clip(ctx, p.title, r.w - 60), r.x + r.w / 2, r.y + 320);
-    ctx.font = font(700, 44);
-    ctx.fillStyle = C.plateDim;
-    ctx.fillText(clip(ctx, p.sub, r.w - 50), r.x + r.w / 2, r.y + 392);
+    // Заказанный «Сыграть» — плашка «заказал Ник», свежий загруженный — «новый», остальные — автор
+    const tag = p.by ? `заказал ${p.by}` : p.fresh ? 'новый' : '';
+    if (tag) {
+      ctx.font = font(800, 42);
+      const w = Math.min(r.w - 40, ctx.measureText(tag).width + 56);
+      rr(ctx, r.x + (r.w - w) / 2, r.y + 360, w, 66, 33);
+      ctx.fillStyle = p.by ? C.gold : C.goodLo;
+      ctx.fill();
+      ctx.fillStyle = p.by ? C.goldInk : C.cream;
+      ctx.fillText(clip(ctx, tag, w - 40), r.x + r.w / 2, r.y + 395);
+    } else {
+      ctx.font = font(700, 44);
+      ctx.fillStyle = C.plateDim;
+      ctx.fillText(clip(ctx, p.sub, r.w - 50), r.x + r.w / 2, r.y + 392);
+    }
     ctx.font = font(400, 120, DISPLAY);
     ctx.fillStyle = p.n ? C.enamelSolid : 'rgba(14, 85, 80, .28)';
     ctx.fillText(String(p.n), r.x + r.w / 2, r.y + 510);

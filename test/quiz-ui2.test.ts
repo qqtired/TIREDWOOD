@@ -64,6 +64,9 @@ describe('«Своя игра»: плашка сверху', () => {
     assert.doesNotMatch(p.html, /qz-side/);
     const long = packButtons(jp({ packs: [{ id: 'p', title: 'Очень длинное название пака, которое не лезет в плашку', sub: 'Автор', n: 0 }] }), -1);
     assert.match(long, /<span>Очень длинное название пака, которое не лезет в плашку<\/span>/, 'название целиком — обрезает CSS, а не текст');
+    // 1.1: в подсказке — кто заказал «Сыграть» или что пак новый (как плашка на карточке табло)
+    assert.match(packButtons(jp({ packs: [{ id: 'p', title: 'Мой', sub: '', n: 0, by: 'Tired', fresh: true }] }), -1), /title="Мой · заказал Tired"/);
+    assert.match(packButtons(jp({ packs: [{ id: 'p', title: 'Мой', sub: '', n: 0, fresh: true }] }), -1), /title="Мой · новый"/);
   });
 
   it('«Кот в мешке»: кнопки только у отдающего и только на тех, кто за пультом', () => {

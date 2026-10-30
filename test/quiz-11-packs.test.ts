@@ -230,6 +230,9 @@ test('1.1: билеты на загрузку только для QUIZ_UPLOADERS
   const g = setup(t), http = new QuizHttp({ packs: g.packs, uploaders: ['Tired'] }); t.after(() => http.close());
   assert.throws(() => http.ticket(101, 5, 'Петя'), e => e instanceof PackError && e.status === 403 && e.message === 'Загружать паки пока может только Tired');
   assert.ok(http.ticket(101, 5, 'tired').ticket);
+  // список заменяет порог уровня: Tired с 1-го уровня тоже может, остальным — нет и на 9-м
+  assert.ok(http.ticket(102, 1, 'Tired').ticket);
+  assert.equal(http.uploadCheck('Петя', 9).ok, false);
 });
 
 test('1.1: /quiz/fetch — contentUri, разрешённый redirect, предел переходов и ошибки библиотеки', async t => {
