@@ -17,13 +17,13 @@ test('голоса: передумал, серая карточка, ушедш�
   assert.equal(finishVote(s, people.slice(1), {}, () => 0, ready).nobody, true);
 });
 
-test('все проголосовали: последние 3 с, новый человек не отменяет закрытие', () => {
+test('все проголосовали: последняя 1 с, новый человек не отменяет закрытие', () => {
   let s = castVote(castVote(createVote(0), 1, 0, people), 2, 0, people);
   s = syncVote(s, people, 1000);
   assert.equal(s.endsAt, 1000 + QZ.VOTE_ALL_MS);
   assert.equal(s.closing, true);
   s = syncVote(s, [...people, { slot: 3, nick: 'Вася' }], 1500);
-  assert.equal(s.endsAt, 4000);
+  assert.equal(s.endsAt, 2000);
 });
 
 test('ничья: дольше не играли, среди не игравших — rand; ноль голосов', () => {

@@ -3,7 +3,7 @@ import { sanitizeChat } from '../../../shared/text.ts';
 import type { QuizClientMsg } from '../../../shared/quiz/net.ts';
 import { newRiddle, reduceRiddle, riddleView, nearLines, validateWord, visibleLines,
   type RiddleAction, type RiddleError, type RiddleResult, type RiddleState, type RiddleWho } from '../../../shared/quiz/riddle.ts';
-import { QZ, type QzLine, type QzRiddleView, type QzRiddleStep } from '../../../shared/quiz/types.ts';
+import { QZ, type QzLine, type QzMe, type QzRiddleView, type QzRiddleStep } from '../../../shared/quiz/types.ts';
 import type { QuizController } from './controller.ts';
 
 export class RiddleGame implements QuizController {
@@ -23,10 +23,13 @@ export class RiddleGame implements QuizController {
   private lines: QzLine[] = [];
   private gaps: Record<number, number> = {};
   private hurry = false;
+  private queue: RiddleWho[] = [];
+  private preps = new Map<number, NonNullable<QzMe['prep']>>();
 
   constructor(nextId = 1) { this.nextId = nextId; }
 
   beginAsk(who: RiddleWho, now: number): void {
+    this.leaveQueue(who.pid); this.round = null; this.lines = [];
     this.startedAt ??= now;
     this.riddler = { ...who }; this.step = 'ask'; this.deadline = now + QZ.ASK_MS;
   }
@@ -35,15 +38,47 @@ export class RiddleGame implements QuizController {
     this.round = null; this.riddler = null; this.step = 'call'; this.deadline = 0; this.lines = [];
   }
 
+  joinQueue(who: RiddleWho): boolean {
+    if (this.roleOf(who.slot) || this.queue.some(p => p.pid === who.pid) || this.queue.length >= QZ.QUEUE_MAX) return false;
+    this.queue.push({ ...who }); return true;
+  }
+
+  leaveQueue(pid: number): void {
+    this.queue = this.queue.filter(p => p.pid !== pid); this.preps.delete(pid);
+  }
+
+  syncQueue(people: readonly RiddleWho[]): void {
+    for (const p of this.queue) if (!people.some(w => w.pid === p.pid)) this.leaveQueue(p.pid);
+    this.queue = this.queue.map(p => ({ ...people.find(w => w.pid === p.pid)! }));
+  }
+
+  firstInQueue(pid: number): void {
+    const i = this.queue.findIndex(p => p.pid === pid);
+    if (i > 0) this.queue.unshift(...this.queue.splice(i, 1));
+  }
+
+  takeQueued(): { who: RiddleWho; prep: QzMe['prep'] } | null {
+    const who = this.queue[0];
+    if (!who) return null;
+    const prep = this.preps.get(who.pid) ?? null;
+    this.leaveQueue(who.pid); return { who, prep };
+  }
+
   message(who: RiddleWho, msg: QuizClientMsg, guessers: number, now: number): RiddleError | undefined {
-    const before = JSON.stringify([this.step, this.round, this.lines, this.gaps]);
+    const before = JSON.stringify([this.step, this.round, this.lines, this.gaps, [...this.preps]]);
     const error = this.receive(who, msg, guessers, now);
-    this.accepted = !error && before !== JSON.stringify([this.step, this.round, this.lines, this.gaps]);
+    this.accepted = !error && before !== JSON.stringify([this.step, this.round, this.lines, this.gaps, [...this.preps]]);
     if (this.accepted && msg.a === 'say' && this.round && who.pid !== this.riddler?.pid && (this.step === 'round' || this.step === 'check')) this.guessers.add(who.pid);
     return error;
   }
 
   private receive(who: RiddleWho, msg: QuizClientMsg, guessers: number, now: number): RiddleError | undefined {
+    if (msg.a === 'prep') {
+      if (!this.queue.some(p => p.pid === who.pid)) return;
+      const word = validateWord(msg.word, msg.cat, msg.hint);
+      if (word.error) return word.error;
+      this.preps.set(who.pid, { word: word.word, cat: word.cat, hint: word.hint }); return;
+    }
     if (msg.a === 'ask') {
       if (this.step !== 'ask' || who.slot !== this.riddler?.slot) return;
       const word = validateWord(msg.word, msg.cat, msg.hint);
@@ -57,7 +92,7 @@ export class RiddleGame implements QuizController {
       let action: RiddleAction;
       switch (msg.a) {
         case 'say': action = { a: 'say', who, text: msg.text, guessers }; break;
-        case 'mark': if (msg.m === 'hot') return; action = { a: 'mark', slot: who.slot, id: msg.id, m: msg.m }; break; // C1 «Горячо!» — S1
+        case 'mark': action = { a: 'mark', slot: who.slot, id: msg.id, m: msg.m }; break;
         case 'unmark': action = { a: 'unmark', slot: who.slot, id: msg.id }; break;
         case 'undo': case 'giveup': action = { a: msg.a, slot: who.slot }; break;
         case 'hint': action = { a: 'hint', slot: who.slot, text: msg.text }; break;
@@ -105,7 +140,9 @@ export class RiddleGame implements QuizController {
   boardFields() { const { lines: _lines, ...riddle } = this.view(); return { riddle }; }
   viewFields() { return { riddle: this.view() }; }
   meFields(slot: number) {
-    return this.roleOf(slot) && this.round ? { word: this.round.word, near: this.near(), hintsLeft: QZ.HINTS - this.round.hints.length } : {};
+    const i = this.queue.findIndex(p => p.slot === slot), prep = i >= 0 ? this.preps.get(this.queue[i].pid) : null;
+    return { queuePos: i + 1, prep: prep ? { ...prep } : null,
+      ...(this.roleOf(slot) && this.round ? { word: this.round.word, near: this.near(), hintsLeft: QZ.HINTS - this.round.hints.length } : {}) };
   }
   roleOf(slot: number) { return this.riddler?.slot === slot && ['ask', 'round', 'check'].includes(this.step) ? 'riddler' as const : '' as const; }
   close(): void {}
@@ -121,13 +158,14 @@ export class RiddleGame implements QuizController {
   }
 
   view(): QzRiddleView {
+    const queue = this.queue.map(({ slot, nick }) => ({ slot, nick }));
     if (this.round) {
       const v = riddleView(this.round, this.played + (this.round.result?.counted ? 0 : 1));
-      return { ...v, lines: visibleLines([...v.lines, ...this.lines].sort((a, b) => a.id - b.id)) };
+      return { ...v, queue, lines: visibleLines([...v.lines, ...this.lines].sort((a, b) => a.id - b.id)) };
     }
     return { step: this.step, num: this.played + 1, of: QZ.RIDDLES,
       riddler: this.riddler ? { slot: this.riddler.slot, nick: this.riddler.nick } : null,
-      category: '', hints: [], misses: [], warm: 0, endsAt: 0, total: QZ.ROUND_MS, checking: null,
+      category: '', hints: [], misses: [], warm: 0, hot: 0, hotText: '', queue, endsAt: 0, total: QZ.ROUND_MS, checking: null,
       last: this.last, lines: this.lines.map(l => ({ ...l })) };
   }
 

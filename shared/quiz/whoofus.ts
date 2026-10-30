@@ -6,7 +6,7 @@ export interface WhoOfUsPerson extends QzWho { pid: number; seatedAt: number }
 interface Question { q: string; title: string; by: WhoOfUsPerson | null }
 export interface WhoOfUsState {
   step: QzWhoBoard['step']; seated: WhoOfUsPerson[]; players: WhoOfUsPerson[]; own: Question[];
-  asked: Record<number, number>; pool: Question[]; queue: Question[]; current: Question | null;
+  asked: Record<number, number>; pool: Question[]; ordered: Question[]; queue: Question[]; current: Question | null;
   votes: Record<number, number>; skips: number[]; scores: Record<number, number>;
   titles: Array<QzTitle & { pid: number }>; tally: QzWhoBoard['tally']; leaders: QzWho[];
   rounds: number; endsAt: number; total: number; lines: QzLine[]; nextId: number; gaps: Record<number, number>;
@@ -32,14 +32,17 @@ function phase(s: WhoOfUsState, step: WhoOfUsState['step'], now: number, ms: num
 function finish(s: WhoOfUsState, completed: boolean): void {
   s.done = true; s.result = { scores: { ...s.scores }, titles: structuredClone(s.titles), completed };
 }
-export function newWhoOfUs(seated: WhoOfUsPerson[], packs: readonly QzPack[], now: number): WhoOfUsState {
-  const pool: Question[] = [];
+export function newWhoOfUs(seated: WhoOfUsPerson[], packs: readonly QzPack[], now: number, ordered?: QzPack): WhoOfUsState {
+  const pool: Question[] = [], first: Question[] = [];
   for (const p of packs) if (p.kind === 'whoofus' && !p.adult) for (const q of p.who ?? []) {
     const value = parseWhoQuestion(q.title ? `${q.q} = ${q.title}` : q.q);
-    if (value) pool.push({ ...value, by: null });
+    if (value) {
+      const question = { ...value, by: null };
+      pool.push(question); if (p === ordered) first.push(question);
+    }
   }
   const players = firstSeated(seated);
-  const s: WhoOfUsState = { step: 'ask', seated: players, players, own: [], asked: {}, pool, queue: [], current: null,
+  const s: WhoOfUsState = { step: 'ask', seated: players, players, own: [], asked: {}, pool, ordered: first, queue: [], current: null,
     votes: {}, skips: [], scores: {}, titles: [], tally: null, leaders: [], rounds: 0,
     endsAt: now + WHO.ASK_MS, total: WHO.ASK_MS, lines: [], nextId: 1, gaps: {}, done: false, result: null };
   if (players.length < WHO.MIN) finish(s, false);
@@ -57,7 +60,9 @@ function next(s: WhoOfUsState, now: number, rand: () => number): void {
   phase(s, 'vote', now, WHO.VOTE_MS);
 }
 function prepare(s: WhoOfUsState, now: number, rand: () => number): void {
-  const own = s.own.slice(0, WHO.ROUNDS), pool = shuffled(s.pool, rand);
+  // Свои вопросы игроков — всегда; свободные места сначала из заказанного пака («Сыграть»), потом из общего
+  const rest = s.pool.filter(q => !s.ordered.some(o => o.q === q.q && o.title === q.title));
+  const own = s.own.slice(0, WHO.ROUNDS), pool = [...shuffled(s.ordered, rand), ...shuffled(rest, rand)];
   const questions = [...own];
   for (let i = 0; questions.length < WHO.ROUNDS && pool.length; i++) questions.push(pool[i % pool.length]);
   s.queue = [...shuffled(questions, rand), ...pool.slice(Math.max(0, WHO.ROUNDS - own.length))];

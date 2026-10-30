@@ -17,11 +17,12 @@ test('минуты: +8 при действии за две минуты, без 
   q.endGame(); q.action(1, at + 300_000); assert.deepEqual(q.minute([1, 2, 3], at + 300_000), []);
   assert.equal(q.gameCoins(1), 16);
 });
-test('меньше трёх людей — ни минут, ни бонусов; дубликаты pid не увеличивают число людей', () => {
+test('вдвоём — половина минутных без бонусов, один — ничего; дубликаты pid не увеличивают число людей', () => {
   const q = new QuizTokens(); q.startGame(at); q.action(1, at);
-  assert.deepEqual(q.minute([1, 2, 2], at + 60_000), []);
+  assert.deepEqual(q.minute([1, 2, 2], at + 60_000).map(a => [a.pid, a.n]), [[1, 4]]);
   assert.deepEqual(q.event({ kind: 'croc', id: 'end', players: [{ pid: 1, score: 8 }, { pid: 2, score: 4 }], completed: true }, [1, 2], at + 60_000), []);
-  assert.equal(q.stats(1, at).qzDayCoins, 0);
+  assert.equal(q.stats(1, at).qzDayCoins, 4);
+  q.action(1, at + 110_000); assert.deepEqual(q.minute([1, 1], at + 120_000), []);
 });
 test('общий потолок 400, остаток выплаты, сброс ровно в полночь Москвы', () => {
   const q = new QuizTokens([{ pid: 1, stats: { qzDay: arcDay(at), qzDayCoins: 396 } }]); q.startGame(at); q.action(1, at);

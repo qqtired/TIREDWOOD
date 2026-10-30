@@ -36,7 +36,7 @@ export interface RiddleState {
 }
 export type RiddleAction =
   | { a: 'say'; who: RiddleWho; text: string; guessers: number }
-  | { a: 'mark'; slot: number; id: number; m: 'warm' | 'miss' | 'win' }
+  | { a: 'mark'; slot: number; id: number; m: 'warm' | 'hot' | 'miss' | 'win' }
   | { a: 'unmark'; slot: number; id: number }
   | { a: 'undo'; slot: number }
   | { a: 'giveup'; slot: number }
@@ -69,7 +69,9 @@ function finish(s: RiddleState, end: QzRiddleEnd): void {
   const solver = solverLine ? { slot: solverLine.slot, pid: solverLine.pid, nick: solverLine.nick } : null;
   const points: Record<number, number> = {};
   if (end === 'solved' || end === 'timeout') {
-    for (const l of s.lines) if (l.mark === 'warm') points[l.pid] = Math.min(QZ.PTS_WARM_CAP, (points[l.pid] ?? 0) + QZ.PTS_WARM);
+    for (const l of s.lines) if (l.mark === 'warm' || l.mark === 'hot') {
+      points[l.pid] = Math.min(QZ.PTS_WARM_CAP, (points[l.pid] ?? 0) + (l.mark === 'hot' ? QZ.PTS_HOT : QZ.PTS_WARM));
+    }
     if (solver) {
       points[solver.pid] = (points[solver.pid] ?? 0) + QZ.PTS_SOLVER;
       points[s.riddler.pid] = (points[s.riddler.pid] ?? 0) + QZ.PTS_RIDDLER;
@@ -140,15 +142,17 @@ export function reduceRiddle(before: RiddleState, a: RiddleAction, now: number):
         let line: Line | undefined;
         while (s.undo.length && !line) {
           const entry = s.undo.pop()!;
-          line = s.lines.find(l => l.id === entry.id && l.version === entry.version && (l.mark === 'warm' || l.mark === 'miss'));
+          line = s.lines.find(l => l.id === entry.id && l.version === entry.version && (l.mark === 'warm' || l.mark === 'hot' || l.mark === 'miss'));
         }
         if (!line) return unchanged();
-        unmark(line, now);
+        if (line.mark === 'hot') {
+          line.mark = 'warm'; line.markedAt = now; line.version++; s.undo.push({ id: line.id, version: line.version });
+        } else unmark(line, now);
       } else {
         const line = s.lines.find(l => l.id === a.id && l.kind === 'guess');
         if (!line) return unchanged();
         if (a.a === 'unmark') {
-          if (line.mark !== 'warm' && line.mark !== 'miss') return unchanged();
+          if (line.mark !== 'warm' && line.mark !== 'hot' && line.mark !== 'miss') return unchanged();
           unmark(line, now);
         } else {
           if (line.mark === a.m) return unchanged();
@@ -181,9 +185,11 @@ export function nearLines(s: RiddleState): number[] {
 
 export function riddleView(s: RiddleState, num = 1): QzRiddleView {
   const who = (p: QzWho): QzWho => ({ slot: p.slot, nick: p.nick });
+  const hot = s.lines.filter(l => l.mark === 'hot').sort((a, b) => a.markedAt - b.markedAt || a.id - b.id);
   return { step: s.step, num, of: QZ.RIDDLES, riddler: who(s.riddler), category: s.category, hints: [...s.hints],
     misses: s.lines.filter(l => l.mark === 'miss').sort((a, b) => a.markedAt - b.markedAt || a.id - b.id).slice(-QZ.BOARD_MISSES).map(l => l.text),
-    warm: s.lines.filter(l => l.mark === 'warm').length, endsAt: s.step === 'reveal' ? 0 : s.endsAt, total: QZ.ROUND_MS,
+    warm: s.lines.filter(l => l.mark === 'warm').length, hot: hot.length, hotText: hot.at(-1)?.text ?? '',
+    endsAt: s.step === 'reveal' ? 0 : s.endsAt, total: QZ.ROUND_MS,
     checking: s.checking ? { ...s.checking } : null, lines: visibleLines(s.lines),
     last: s.result ? { end: s.result.end, answer: s.result.answer, riddler: who(s.result.riddler), solver: s.result.solver ? who(s.result.solver) : null } : null };
 }

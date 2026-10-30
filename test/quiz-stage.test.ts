@@ -35,7 +35,9 @@ function setup(n = 3) {
       this.sit(1); this.sit(2); this.msg(1, { a: 'play' });
       for (const p of people) this.msg(p.slot, { a: 'vote', m: 0 } as Omit<QuizClientMsg, 't'>);
       this.advance(QZ.VOTE_ALL_MS); this.advance(QZ.WIN_MS);
-      assert.equal(q.board().phase, 'roles');
+      assert.equal(q.board().phase, 'game');
+      // Эти проверки — прежний вызов следующего загадывающего, без очереди добровольцев.
+      for (const p of people.slice(1)) q.message(p.slot, { t: 'qz', a: 'role', take: false, r: 'riddler' });
     },
     ask(slot = 1) {
       this.msg(slot, { a: 'role', take: true } as Omit<QuizClientMsg, 't'>);
@@ -64,15 +66,15 @@ test('двое сели: через 2 с vote; nobody блокирует пов�
   g.sit(3); g.advance(QZ.AUTO_VOTE_DELAY_MS); assert.equal(g.q.board().phase, 'vote');
 });
 
-test('Сыграем требует двоих; первый F берёт роль; Затейник и пропуск', () => {
+test('Сыграем требует двоих; не прислал слово — Затейник назначает следующего, пропуск и F', () => {
   const solo = setup(1); solo.sit(1); solo.msg(1, { a: 'play' });
   assert.equal(solo.sent.at(-1)?.msg.t, 'qzErr');
-  const g = setup(); g.vote(); g.advance(QZ.CALL_MS);
-  assert.equal(g.q.view().call?.by, 'zat'); assert.equal(g.q.view().call?.to?.slot, 1);
-  g.q.message(1, { t: 'qz', a: 'role', take: false });
-  assert.equal(g.q.view().call?.to?.slot, 2);
-  g.ask(2); g.q.message(1, { t: 'qz', a: 'role', take: true });
-  assert.equal(g.q.board().riddle?.riddler?.slot, 2);
+  const g = setup(); g.vote(); g.advance(QZ.ASK_MS);
+  assert.equal(g.q.view().call?.by, 'zat'); assert.equal(g.q.view().call?.to?.slot, 2);
+  g.q.message(2, { t: 'qz', a: 'role', take: false });
+  assert.equal(g.q.view().call?.to?.slot, 3);
+  g.ask(3); g.q.message(1, { t: 'qz', a: 'role', take: true });
+  assert.equal(g.q.board().riddle?.riddler?.slot, 3);
 });
 
 test('сцена держит кресло и возвращает загадывающего; стоявший — на back', () => {
@@ -140,13 +142,13 @@ test('общие объявления не чаще 2 мин; вечер сбр�
 test('мусор, посторонние поля, чужая роль и ephemeral не принимаются', () => {
   const g = setup(); g.vote();
   g.q.message(1, { t: 'qz', a: 'role', take: true, word: 'инъекция' });
-  assert.equal(g.q.board().phase, 'roles');
+  assert.equal(g.q.board().riddle?.step, 'ask');
   g.people[0].ephemeral = true; g.q.message(1, { t: 'qz', a: 'role', take: true });
-  assert.equal(g.q.board().phase, 'roles');
+  assert.equal(g.q.board().riddle?.step, 'call');
   g.q.message(2, { t: 'qz', a: 'role', take: 'yes' });
-  assert.equal(g.q.board().phase, 'roles');
+  assert.equal(g.q.board().riddle?.step, 'call');
   g.q.message(2, { t: 'qz', a: 'role', take: true, r: 'drawer' });
-  assert.equal(g.q.board().phase, 'roles');
+  assert.equal(g.q.board().riddle?.step, 'call');
   g.q.message(2, { t: 'qz', a: 'role', take: true, r: 'riddler' });
   assert.equal(g.q.board().riddle?.step, 'ask');
 });

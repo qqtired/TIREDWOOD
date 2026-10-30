@@ -2,14 +2,16 @@
 import { ACT_QUIZ } from '../../../shared/lobby.ts';
 import type { QuizClientMsg, QuizServerMsg, QzErrCode } from '../../../shared/quiz/net.ts';
 import type { RiddleResult, RiddleWho } from '../../../shared/quiz/riddle.ts';
-import { QZ, QZ_CROC, QZ_MODES, type QuizMode, type QzBoard, type QzCall, type QzMe, type QzPhase, type QzInkOp,
-  type QzScoreRow, type QzView, type QzVote, type QzZatClip, type QzZatSay, type QzOrder, type QzPackKind } from '../../../shared/quiz/types.ts';
+import { QZ, QZ_CROC, QZ_HALF, QZ_MODES, QZ_WHO, type QuizMode, type QzBoard, type QzCall, type QzMe, type QzPhase, type QzInkOp,
+  type QzScoreRow, type QzView, type QzVote, type QzZatClip, type QzZatSay, type QzOrder, type QzPackKind, type QzTitle } from '../../../shared/quiz/types.ts';
 import { QUIZ_VENUE, inQuizArea, placeAt, type VenueSpot } from '../../../shared/quiz/venue.ts';
 import { createVote, castVote, syncVote, voteView, finishVote, type VoteState } from '../../../shared/quiz/vote.ts';
 import { RiddleGame } from './riddle.ts';
 import { JeopardyGame } from './jeopardy.ts';
 import { CrocGame } from './croc.ts';
 import { WhoOfUsGame } from './whoofus.ts';
+import { WarmGame } from './warm.ts';
+import { zatLine, ZAT_RIDDLE_SOLVED, ZAT_RIDDLE_MISSED } from './zat-lines.ts';
 import { readMessage } from './input.ts';
 import type { ModeHost, QuizController } from './controller.ts';
 import { loadBuiltinPacks } from './builtin.ts';
@@ -53,6 +55,8 @@ export class QuizStage {
   private mode: QuizMode | null = null;
   private deadline = 0;
   private vote: VoteState | null = null;
+  private voteAt = new Map<number, number>();
+  private readonly again = new Map<number, number>();
   private decision: QzVote | null = null;
   private voteStep: 'ballot' | 'spin' | 'win' | 'nobody' = 'ballot';
   private readonly lastPlayed: Partial<Record<QuizMode, number>> = {};
@@ -61,6 +65,7 @@ export class QuizStage {
   private readonly skipped = new Set<number>();
   private lastRiddler = 0;
   private controller: QuizController | null = null;
+  private warm: WarmGame | null = null;
   private get game(): RiddleGame | null { return this.controller instanceof RiddleGame ? this.controller : null; }
   private tokens: QuizTokens;
   private seatedAt = new Map<number, number>();
@@ -81,6 +86,9 @@ export class QuizStage {
   private emptyAt: number | null;
   private readonly scores = new Map<number, QzScoreRow>();
   private readonly evening = new Map<number, QzScoreRow>();
+  private readonly eveningTitles = new Map<number, QzTitle>();
+  private bravo: Array<{ slot: number; at: number }> = [];
+  private readonly bravoAt = new Map<number, number>();
   private zatSay: QzZatSay | null = null;
   private zatId = 0;
   private greetAt = -Infinity;
@@ -101,11 +109,13 @@ export class QuizStage {
 
   /** Не дать хабу уснуть с незавершённой игрой или сроком очистки счёта вечера. */
   get active(): boolean {
-    return this.phase !== 'idle' || this.autoAt !== null || (this.evening.size > 0 && this.emptyAt !== null);
+    return this.phase !== 'idle' || this.autoAt !== null || !!this.warm || this.bravo.length > 0
+      || ((this.evening.size > 0 || this.eveningTitles.size > 0 || this.orders.size > 0) && this.emptyAt !== null);
   }
 
   step(): void {
     const now = this.h.now();
+    this.bravo = this.bravo.filter(b => now - b.at < QZ.BRAVO_SHOW_MS);
     this.refresh(now);
     this.advance(now);
     if (this.phase === 'game') this.pay(this.tokens.minute(this.insidePids(), now));
@@ -161,10 +171,28 @@ export class QuizStage {
         if (this.members.size < 2) this.error(slot, 'few', 'Нужно хотя бы двое');
         else this.startVote(now);
         break;
-      case 'vote':
+      case 'vote': {
         if (this.phase !== 'vote' || this.voteStep !== 'ballot' || !this.vote) return;
-        this.vote = syncVote(castVote(this.vote, slot, msg.m, [...this.members.values()], READY), [...this.members.values()], now, READY);
+        const voted = castVote(this.vote, slot, msg.m, [...this.members.values()], READY);
+        if (voted !== this.vote) { this.voteAt.delete(slot); this.voteAt.set(slot, now); }
+        this.vote = syncVote(voted, [...this.members.values()], now, READY);
         this.deadline = this.vote.endsAt;
+        break;
+      }
+      case 'again':
+        if (!this.canAgain(p)) return;
+        if (!msg.on) this.again.delete(slot); else if (!this.again.has(slot)) this.again.set(slot, now);
+        this.checkAgain(now);
+        break;
+      case 'bravo':
+        if (this.chair(p) < 0 || now - (this.bravoAt.get(p.pid) ?? -Infinity) < QZ.BRAVO_GAP_MS) return;
+        this.bravoAt.set(p.pid, now); this.bravo.push({ slot, at: now });
+        break;
+      case 'warm':
+        if (msg.on && this.canWarm(p)) {
+          const warm = new WarmGame({ ...this.modeHost(), toast: (who, text) => this.h.toast(who, text) }, p, now);
+          if (warm.board()) this.warm = warm;
+        } else if (!msg.on && this.warm?.who.pid === p.pid) this.warm = null;
         break;
       case 'swap':
         if (!this.canSwap(p)) return;
@@ -175,15 +203,24 @@ export class QuizStage {
       case 'role':
         if (this.controller && !this.game) { this.modeMessage(p, msg, now); break; }
         if (msg.r && msg.r !== 'riddler') return;
-        if (!this.canTake(p) || !this.call) return;
-        if (msg.take) {
+        if (this.swapPending) return;
+        if (this.canTake(p) && this.call) {
+          if (!msg.take) { this.game?.leaveQueue(p.pid); if (this.call.to) this.skip(p, this.call.by, now); break; }
           this.acceptedBy = this.call.by; this.call = null; this.deadline = 0;
           if (this.phase === 'roles') this.beginGame(now);
           this.game!.beginAsk(p, now); this.participant(p);
           this.tokens.action(p.pid, now);
-        } else if (this.call.to) this.skip(p, this.call.by, now);
+        } else if (this.phase === 'game' && this.game) {
+          if (!msg.take) this.game.leaveQueue(p.pid);
+          else if (this.game.joinQueue(p)) this.tokens.action(p.pid, now);
+        }
         break;
       default: {
+        if (this.phase === 'idle' && this.warm && msg.a === 'say') {
+          const error = this.warm.say(p, msg.text, now);
+          if (error) this.h.send(slot, { t: 'qzErr', ...error });
+          break;
+        }
         if (this.phase !== 'game' || !this.controller || this.swapPending) return;
         if (!this.game) { this.modeMessage(p, msg, now); break; }
         const before = this.game.step, oldId = this.game.nextId, hints = this.game.round?.hints.length ?? 0;
@@ -192,14 +229,7 @@ export class QuizStage {
         if (this.controller.accepted) this.tokens.action(p.pid, now);
         if (msg.a === 'say' && this.game.nextId !== oldId && (before === 'round' || before === 'check') && p.slot !== this.game.riddler?.slot) this.participant(p);
         if (msg.a === 'ask' && before === 'ask' && this.game.step === 'round') {
-          this.reserved = { slot, chair: this.chair(p) < 0 ? -1 : p.arg };
-          this.h.hold(slot, QUIZ_VENUE.first.riddler);
-          this.say(`${p.nick} загадал! Тема — ${this.game.round!.category}`, 'announce', now);
-          if (!this.announcedStart) {
-            this.announcedStart = true;
-            const names = [...this.members.values()].slice(0, 3).map(q => q.nick).join(', ');
-            this.announce(`🎤 На «Ракушке» «Загадка»: ${names}${this.members.size > 3 ? ` и ещё ${this.members.size - 3}` : ''} — приходите угадывать!`, now);
-          }
+          this.riddleStarted(p, now);
         }
         if (msg.a === 'hint' && (this.game.round?.hints.length ?? 0) > hints) this.say(`Подсказка: ${this.game.round!.hints.at(-1)}`, 'point', now);
         this.settle(now);
@@ -222,6 +252,7 @@ export class QuizStage {
       ...(this.mode === 'whoofus' ? { titles: this.controller?.titles?.(p.pid) ?? [] } : {}) })),
     call: this.call ? { ...this.call, to: this.call.to ? { ...this.call.to } : null } : null,
     swap: (this.phase === 'roles' || this.phase === 'game') && !this.swapPending ? { n: this.swaps.size, need: this.swapNeed() } : null,
+    again: this.againView(), bravo: this.bravo.map(b => ({ ...b })),
     riddle: fields?.riddle ?? null, jp: fields?.jp ?? null, croc: fields?.croc ?? null, who: fields?.who ?? null,
     orders: [...this.orders.values()].map(o => ({ ...o, by: { ...o.by } })) };
   }
@@ -231,7 +262,8 @@ export class QuizStage {
     if (!p) return null;
     const me: QzMe = { slot, place: p.action === ACT_QUIZ ? p.arg : -1, role: this.controller?.roleOf(slot) ?? '', vote: this.choice(slot),
       swap: this.swaps.has(slot), canSwap: this.canSwap(p), canPlay: this.phase === 'idle' && this.chair(p) >= 0 && this.members.size >= 2,
-      canTake: this.canTake(p), gapUntil: this.controller?.gapUntil(p.pid) ?? 0,
+      canTake: this.canTake(p), gapUntil: this.warm?.gapUntil(p.pid) ?? this.controller?.gapUntil(p.pid) ?? 0,
+      again: this.again.has(slot), canAgain: this.canAgain(p), canWarm: this.canWarm(p),
       ...this.controller?.meFields(slot, this.h.now()), dayCoins: this.tokens.stats(p.pid, this.h.now()).qzDayCoins };
     const up = this.h.http?.uploadCheck(p.nick, p.level ?? 1) ?? { ok: false, why: 'Паки пока недоступны.' };
     me.canUpload = up.ok; me.uploadWhy = up.why;
@@ -243,7 +275,7 @@ export class QuizStage {
   }
 
   private refresh(now: number): void {
-    if (this.emptyAt !== null && now - this.emptyAt >= QZ.EVENING_IDLE_MS) { this.evening.clear(); this.orders.clear(); }
+    if (this.emptyAt !== null && now - this.emptyAt >= QZ.EVENING_IDLE_MS) { this.evening.clear(); this.eveningTitles.clear(); this.orders.clear(); }
     const lobby = [...this.h.people()];
     const next = new Map(lobby.filter(p => !p.ephemeral && !p.riding && inQuizArea(p.x, p.y, p.z)).map(p => [p.slot, { ...p }]));
     const previous = this.members; this.members = next;
@@ -256,15 +288,22 @@ export class QuizStage {
     for (const p of this.h.profiles?.() ?? []) this.tokens.load(p.pid, p.stats);
     if ([...seated].some(pid => !this.seatedBefore.has(pid))) this.autoBlocked = false;
     this.seatedBefore = seated;
-    for (const scores of [this.scores, this.evening]) for (const [pid, row] of scores) {
+    for (const scores of [this.scores, this.evening, this.eveningTitles]) for (const [pid, row] of scores) {
       const live = lobby.find(p => p.pid === pid && !p.ephemeral);
       row.slot = live?.slot ?? 0; if (live) row.nick = live.nick;
+    }
+    this.game?.syncQueue([...next.values()]);
+    if (this.warm) {
+      const owner = [...next.values()].find(p => p.pid === this.warm!.who.pid);
+      if (!owner || this.chair(owner) < 0 || this.phase !== 'idle') this.warm = null;
+      else if (seated.size >= 2) { this.warm = null; this.say('О, нас двое — давайте играть!', 'cheer', now); }
+      else this.warm.who = { ...owner };
     }
     if (this.call?.to) {
       const p = next.get(this.call.to.slot);
       if (p) this.call.to = { slot: p.slot, nick: p.nick };
     }
-    if (entered && this.phase === 'idle' && now - this.greetAt >= QZ.ZAT_GREET_GAP_MS) {
+    if (entered && this.phase === 'idle' && !this.warm && now - this.greetAt >= QZ.ZAT_GREET_GAP_MS) {
       this.greetAt = now; this.idleAt = now; this.say('Заходи! Садись — сыграем!', 'greet', now);
     }
     if (this.controller && !this.game && (this.phase === 'roles' || this.phase === 'game')) {
@@ -272,12 +311,16 @@ export class QuizStage {
       for (const live of this.h.people()) if (next.get(live.slot)?.pid === live.pid) next.set(live.slot, { ...live });
     }
     for (const slot of this.swaps) { const p = next.get(slot); if (!p || !this.canSwap(p)) this.swaps.delete(slot); }
+    for (const slot of this.again.keys()) { const p = next.get(slot); if (!p || !this.canAgain(p)) this.again.delete(slot); }
   }
 
   private departed(p: QuizPerson, now: number): void {
     const replacement = this.members.get(p.slot);
     if (replacement && replacement.pid !== p.pid && this.reserved?.slot === p.slot) this.reserved = null;
     this.swaps.delete(p.slot);
+    this.again.delete(p.slot); this.voteAt.delete(p.slot); this.game?.leaveQueue(p.pid);
+    this.bravo = this.bravo.filter(b => b.slot !== p.slot);
+    if (this.warm?.who.pid === p.pid) this.warm = null;
     if (this.vote) {
       const votes = { ...this.vote.votes }; delete votes[p.slot]; this.vote = { ...this.vote, votes };
     }
@@ -291,11 +334,12 @@ export class QuizStage {
 
   private advance(now: number): void {
     if (this.phase === 'idle') {
+      this.warm?.tick(now);
       if (this.seatedBefore.size >= QZ.AUTO_VOTE_SEATED && !this.autoBlocked) {
         this.autoAt ??= now + QZ.AUTO_VOTE_DELAY_MS;
         if (now >= this.autoAt) this.startVote(now);
       } else this.autoAt = null;
-      if (this.phase === 'idle' && this.members.size && this.seatedBefore.size < 2 && now - this.idleAt >= QZ.ZAT_IDLE_GAP_MS) {
+      if (this.phase === 'idle' && !this.warm && this.members.size && this.seatedBefore.size < 2 && now - this.idleAt >= QZ.ZAT_IDLE_GAP_MS) {
         this.idleAt = now; this.say('Садитесь — сыграем!', 'talk', now);
       }
     } else if (this.phase === 'vote' && this.vote) {
@@ -313,14 +357,23 @@ export class QuizStage {
         if (this.voteStep === 'nobody') this.idle(true);
         else if (this.voteStep === 'spin') this.voteWinner(now);
         else {
-          const win = this.decision?.win ?? -1, voters = [...this.members.values()].filter(p => this.vote?.votes[p.slot] === win).map(p => p.pid);
+          const win = this.decision?.win ?? -1, voters = [...this.voteAt].sort((a, b) => a[1] - b[1])
+            .filter(([slot]) => this.members.has(slot) && this.vote?.votes[slot] === win).map(([slot]) => this.members.get(slot)!.pid);
           this.phase = 'roles'; this.deadline = 0; this.vote = null; this.decision = null;
+          this.voteAt.clear();
           this.skipped.clear(); this.lastRiddler = 0;
           const h = this.modeHost();
           if (this.mode === 'jeopardy') this.controller = new JeopardyGame(h, now, voters, this.lineSeq);
           else if (this.mode === 'croc') this.controller = new CrocGame(h, now, this.lineSeq, voters);
           else if (this.mode === 'whoofus') this.controller = new WhoOfUsGame(h, now, this.lineSeq);
-          else { this.controller = new RiddleGame(this.lineSeq); this.openCall(now); }
+          else {
+            const game = new RiddleGame(this.lineSeq); this.controller = game;
+            for (const pid of voters) {
+              const p = [...this.members.values()].find(p => p.pid === pid); if (p) game.joinQueue(p);
+              if (this.phase === 'roles') this.nextQueued(now);
+            }
+            if (this.phase === 'roles') this.openCall(now);
+          }
           this.syncMode(now);
         }
       }
@@ -352,7 +405,7 @@ export class QuizStage {
           const result = this.game!.round?.result;
           this.lastRiddler = result?.riddler.pid ?? 0; this.skipped.clear(); this.game!.beginCall();
           const solver = result?.solver ? [...this.members.values()].find(p => p.pid === result.solver!.pid) : undefined;
-          if (solver) this.setCall('solver', solver, now); else this.openCall(now);
+          if (!this.nextQueued(now)) { if (solver) this.setCall('solver', solver, now); else this.openCall(now); }
         }
         if (this.game?.takeHurry(now)) this.say('Осталась минута!', 'talk', now);
       }
@@ -360,18 +413,29 @@ export class QuizStage {
         const target = this.call.to ? this.members.get(this.call.to.slot) : undefined;
         if (target) this.skip(target, this.call.by, now); else this.assign(now);
       }
-    } else if (this.phase === 'results' && now >= this.deadline) {
-      if (this.members.size >= 2) this.startVote(now); else this.idle(false);
+    } else if (this.phase === 'results') {
+      this.checkAgain(now);
+      if (this.phase === 'results' && now >= this.deadline) {
+        if (this.members.size >= 2) this.startVote(now); else this.idle(false);
+      }
     }
   }
 
-  private startVote(now: number): void {
+  private startVote(now: number, repeat?: QuizMode): void {
+    const again = new Map(this.again); this.again.clear(); this.voteAt.clear(); this.warm = null;
     this.lineSeq = this.controller?.nextId ?? this.lineSeq;
     this.restore(); this.controller?.close(); this.controller = null; this.tokens.endGame(); this.inkPending = null; this.call = null; this.mode = null;
     this.phase = 'vote'; this.vote = createVote(now); this.deadline = this.vote.endsAt; this.voteStep = 'ballot'; this.decision = null;
     this.swaps.clear(); this.swapPending = false; this.autoAt = null; this.autoBlocked = false; this.aloneAt = null;
     this.scores.clear(); this.announcedStart = false;
-    this.say('Голосуем — жмите 1–4!', 'announce', now);
+    if (repeat) {
+      const win = QZ_MODES.findIndex(m => m.id === repeat);
+      this.mode = repeat; this.voteStep = 'win'; this.deadline = now + QZ.WIN_MS;
+      this.vote = { votes: Object.fromEntries([...again.keys()].map(slot => [slot, win])), endsAt: this.deadline, closing: true };
+      this.voteAt = again;
+      this.decision = { ...voteView(this.vote, [...this.members.values()], READY), win, again: true, why: 'Ещё раз!' };
+      this.say('Ещё разок!', 'cheer', now);
+    } else this.say('Голосуем — жмите 1–4!', 'announce', now);
   }
 
   private voteWinner(now: number): void {
@@ -385,6 +449,7 @@ export class QuizStage {
     this.restore(); this.phase = 'idle'; this.mode = null; this.deadline = 0; this.vote = null; this.decision = null;
     this.controller?.close(); this.controller = null; this.tokens.endGame(); this.inkPending = null;
     this.call = null; this.autoAt = null; this.autoBlocked = blocked; this.swaps.clear(); this.swapPending = false;
+    this.again.clear(); this.voteAt.clear(); this.warm = null;
   }
 
   private candidates(): QuizPerson[] {
@@ -415,7 +480,34 @@ export class QuizStage {
 
   private skip(p: RiddleWho, by: QzCall['by'], now: number): void {
     this.skipped.add(p.pid); this.call = null; this.game?.beginCall();
+    if (this.nextQueued(now)) return;
     if (by === 'solver') this.openCall(now); else this.assign(now);
+  }
+
+  private nextQueued(now: number): boolean {
+    const game = this.game; if (!game) return false;
+    game.syncQueue([...this.members.values()]);
+    const queued = game.takeQueued(); if (!queued) return false;
+    const p = [...this.members.values()].find(p => p.pid === queued.who.pid)!;
+    this.call = null; this.deadline = 0; this.acceptedBy = 'zat';
+    if (this.phase === 'roles') this.beginGame(now);
+    game.beginAsk(p, now); this.participant(p); this.tokens.action(p.pid, now);
+    if (queued.prep) {
+      game.message(p, { t: 'qz', a: 'ask', ...queued.prep }, this.members.size - 1, now);
+      if (game.step === 'round') this.riddleStarted(p, now);
+    }
+    return true;
+  }
+
+  private riddleStarted(p: QuizPerson, now: number): void {
+    this.reserved = { slot: p.slot, chair: this.chair(p) < 0 ? -1 : p.arg };
+    this.h.hold(p.slot, QUIZ_VENUE.first.riddler);
+    this.say(`${p.nick} загадал! Тема — ${this.game!.round!.category}`, 'announce', now);
+    if (!this.announcedStart) {
+      this.announcedStart = true;
+      const names = [...this.members.values()].slice(0, 3).map(q => q.nick).join(', ');
+      this.announce(`🎤 На «Ракушке» «Загадка»: ${names}${this.members.size > 3 ? ` и ещё ${this.members.size - 3}` : ''} — приходите угадывать!`, now);
+    }
   }
 
   private noVolunteers(now: number): void {
@@ -431,6 +523,20 @@ export class QuizStage {
   private chair(p: QuizPerson): number { const place = p.action === ACT_QUIZ ? placeAt(p.arg) : null; return place?.kind === 'chair' ? place.n : -1; }
   private canSwap(p: QuizPerson): boolean { return (this.phase === 'roles' || this.phase === 'game') && !this.swapPending && (this.chair(p) >= 0 || !!this.controller?.roleOf(p.slot)); }
   private swapNeed(): number { return Math.floor([...this.members.values()].filter(p => this.canSwap(p)).length / 2) + 1; }
+  private canWarm(p: QuizPerson): boolean { return this.phase === 'idle' && !this.warm && this.members.size === 1 && this.chair(p) >= 0; }
+  private canAgain(p: QuizPerson): boolean {
+    if (this.phase !== 'results' || !this.mode || this.members.size < QZ_MODES.find(m => m.id === this.mode)!.min) return false;
+    if (this.mode === 'whoofus' && this.seatedBefore.size < QZ_WHO.MIN) return false;
+    return this.chair(p) >= 0 || this.scores.has(p.pid);
+  }
+  private againView(): QzView['again'] {
+    const voters = [...this.members.values()].filter(p => this.canAgain(p));
+    return voters.length ? { n: voters.filter(p => this.again.has(p.slot)).length, need: Math.floor(voters.length / 2) + 1 } : null;
+  }
+  private checkAgain(now: number): void {
+    const again = this.againView();
+    if (again && again.n >= again.need) this.startVote(now, this.mode!);
+  }
 
   private checkSwap(now: number): void {
     if ((this.phase !== 'roles' && this.phase !== 'game') || this.swapPending || this.swaps.size < this.swapNeed()) return;
@@ -464,9 +570,10 @@ export class QuizStage {
     }
     this.restore(result);
     if (result.end === 'solved') {
-      this.say(`Угадал! Это был ${result.answer}`, 'cheer', now);
+      this.game!.firstInQueue(result.solver!.pid);
+      this.say(now - this.game!.roundStartedAt < 30_000 ? 'Вот это скорость!' : zatLine(ZAT_RIDDLE_SOLVED, () => this.h.rand()), 'cheer', now);
       this.announce(`🎤 «Ракушка»: ${result.solver!.nick} разгадал загадку ${result.riddler.nick} — «${result.answer}»!`, now);
-    } else if (result.end === 'timeout') this.say(`Не угадали: это был ${result.answer}`, 'shrug', now);
+    } else if (result.end === 'timeout') this.say(zatLine(ZAT_RIDDLE_MISSED, () => this.h.rand()), 'shrug', now);
     else if (result.end === 'left') this.say(`${result.riddler.nick} ушёл — загадка не в счёт`, 'shrug', now);
   }
 
@@ -483,6 +590,7 @@ export class QuizStage {
 
   private finishResults(now: number, cheer = true): void {
     this.restore(); this.phase = 'results'; this.call = null; this.deadline = now + QZ.RESULTS_MS; this.swaps.clear(); this.swapPending = false;
+    this.again.clear();
     this.tokens.endGame();
     const top = this.rows(this.scores)[0];
     if (top) {
@@ -511,7 +619,9 @@ export class QuizStage {
       results: this.phase === 'results' ? { mode: this.mode!, top: this.rows(this.scores).slice(0, 3), endsAt: this.deadline,
         ...(this.controller?.outcome?.pack ? { pack: this.controller.outcome.pack } : {}),
         ...(this.controller?.outcome?.titles ? { titles: this.controller.outcome.titles } : {}) } : null,
-      evening: this.rows(this.evening).slice(0, 8), noTokens: this.members.size < QZ.TOKENS_MIN_PEOPLE, zat: this.zatSay ? { ...this.zatSay } : null };
+      evening: this.rows(this.evening).slice(0, 8), titles: [...this.eveningTitles.values()].reverse().slice(0, QZ.TITLES_MAX).map(t => ({ ...t })),
+      noTokens: this.members.size < QZ_HALF.PEOPLE, halfTokens: this.members.size === QZ_HALF.PEOPLE,
+      warm: this.warm?.board() ?? null, zat: this.zatSay ? { ...this.zatSay } : null };
   }
 
   private say(text: string, clip: QzZatClip, now: number): void {
@@ -564,6 +674,9 @@ export class QuizStage {
     if (!c || this.game || (this.phase !== 'roles' && this.phase !== 'game')) return;
     if (c.phase === 'idle') { this.idle(true); return; }
     if (this.phase === 'roles' && c.phase === 'game') this.beginGame(now);
+    if (c instanceof WhoOfUsGame) for (const { pid, ...title } of c.takeTitles()) {
+      this.eveningTitles.delete(pid); this.eveningTitles.set(pid, title);
+    }
     this.call = c.call ?? null; this.deadline = c.deadline ?? 0;
     for (const event of c.rewards?.() ?? []) this.reward(event, now);
     if (!c.outcome) return;

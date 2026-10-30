@@ -2,9 +2,10 @@ import { newWhoOfUs, reduceWhoOfUs, whoOfUsBoard, whoOfUsView, whoOfUsMe, type W
 import { sanitizeChat } from '../../../shared/text.ts';
 import type { QuizClientMsg } from '../../../shared/quiz/net.ts';
 import type { RiddleWho } from '../../../shared/quiz/riddle.ts';
-import { QZ, QZ_WHO as WHO } from '../../../shared/quiz/types.ts';
+import { QZ, QZ_WHO as WHO, type QzTitle } from '../../../shared/quiz/types.ts';
 import type { ModeHost, ModeResult, ModeError, QuizController } from './controller.ts';
 import type { QuizRewardEvent } from './tokens.ts';
+import { zatLine, ZAT_WHO_TITLE } from './zat-lines.ts';
 
 export class WhoOfUsGame implements QuizController {
   readonly mode = 'whoofus';
@@ -20,9 +21,11 @@ export class WhoOfUsGame implements QuizController {
   private events: QuizRewardEvent[] = [];
   private presenceKey = '';
   private packs: string[] = [];
+  private newTitles: Array<QzTitle & { pid: number }> = [];
   constructor(h: ModeHost, now: number, nextId: number) {
     this.h = h; this.nextId = nextId; this.deadline = now + QZ.CALL_MS;
-    h.say('Садитесь — играют сидящие', 'announce', now);
+    if (this.seated().length >= WHO.MIN) this.start(now);
+    else h.say('Садитесь — играют сидящие', 'announce', now);
   }
   private seated() { return this.h.people().filter(p => p.chair >= 0).sort((a, b) => a.seatedAt - b.seatedAt).slice(0, WHO.MAX); }
   roleOf(slot: number) { return this.state?.players.some(p => p.slot === slot) ? 'player' as const : '' as const; }
@@ -32,6 +35,7 @@ export class WhoOfUsGame implements QuizController {
   meFields(slot: number) { return this.state ? { who: whoOfUsMe(this.state, slot) } : {}; }
   titles(pid: number): string[] { return this.state?.titles.filter(t => t.pid === pid).map(t => t.title) ?? []; }
   rewards(): QuizRewardEvent[] { const es = this.events; this.events = []; return es; }
+  takeTitles(): Array<QzTitle & { pid: number }> { const titles = this.newTitles; this.newTitles = []; return titles; }
   presence(now: number): void {
     const seated = this.seated(), key = JSON.stringify(seated.map(p => [p.pid, p.slot, p.nick, p.seatedAt]));
     if (key === this.presenceKey) return;
@@ -43,12 +47,19 @@ export class WhoOfUsGame implements QuizController {
     else if (now >= this.deadline && this.phase === 'roles') {
       const seated = this.seated();
       if (seated.length < WHO.MIN) { this.phase = 'idle'; this.h.say('Мало игроков', 'shrug', now); return null; }
-      const packs = this.h.packs('whoofus').filter(p => !p.pack.adult); this.packs = packs.map(p => p.id);
-      for (const id of this.packs) this.h.store?.setPlaying(id, true);
-      this.state = newWhoOfUs(seated, packs.map(p => p.pack), now); this.state.nextId = this.nextId;
-      this.phase = 'game'; this.remember(); this.h.say('Пишите свои вопросы — 30 секунд!', 'announce', now);
+      this.start(now);
     }
     return this.outcome ? 'done' : null;
+  }
+  private start(now: number): void {
+    const packs = this.h.packs('whoofus').filter(p => !p.pack.adult), order = this.h.order?.('whoofus');
+    const ordered = packs.find(p => p.id === order?.id);
+    this.packs = packs.map(p => p.id);
+    for (const id of this.packs) this.h.store?.setPlaying(id, true);
+    this.state = newWhoOfUs(this.seated(), packs.map(p => p.pack), now, ordered?.pack); this.state.nextId = this.nextId;
+    this.deadline = this.state.endsAt; this.phase = 'game'; this.remember();
+    if (ordered) this.h.orderUsed?.('whoofus', ordered.id);
+    this.h.say('Пишите свои вопросы — 30 секунд!', 'announce', now);
   }
   message(who: RiddleWho, msg: QuizClientMsg, _guessers: number, now: number): ModeError | undefined {
     this.accepted = false;
@@ -88,7 +99,11 @@ export class WhoOfUsGame implements QuizController {
       this.h.say(`Вопрос ${s.rounds + 1}!`, 'talk', now);
       this.h.say('Голосуем — клик по желейке!', 'point', now);
     }
-    if (s.step === 'reveal' && old.step !== 'reveal' && s.leaders.length) this.h.say(`Титул — ${s.leaders.map(p => p.nick).join(', ')}!`, 'cheer', now);
+    this.newTitles.push(...s.titles.slice(old.titles.length).map(t => ({ ...t })));
+    if (s.step === 'reveal' && old.step !== 'reveal' && s.leaders.length) {
+      const unanimous = new Set(Object.values(s.votes)).size === 1;
+      this.h.say(unanimous ? 'Единогласно!' : zatLine(ZAT_WHO_TITLE, () => this.h.rand()), 'cheer', now);
+    }
     if (s.done && !this.outcome) {
       const r = s.result!, players = [...this.actors.values()].map(p => ({ ...p, pts: r.scores[p.pid] ?? 0 }));
       this.outcome = { players, completed: r.completed, titles: r.titles.map(({ pid: _pid, ...t }) => t) };

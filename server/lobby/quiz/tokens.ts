@@ -1,5 +1,5 @@
 import { arcDay } from '../../../shared/arcade/rewards.ts';
-import { QZ_TOKENS as TOK, type QzMyRecs, type QzTopRecs, type QzWho } from '../../../shared/quiz/types.ts';
+import { QZ_HALF, QZ_TOKENS as TOK, type QzMyRecs, type QzTopRecs, type QzWho } from '../../../shared/quiz/types.ts';
 
 export interface QuizStats {
   qzDay: number; qzDayCoins: number; qzJpGames: number; qzJpWins: number; qzJpBest: number;
@@ -69,9 +69,10 @@ export class QuizTokens {
     if (!this.running || now < this.nextMinute) return [];
     this.nextMinute += (Math.floor((now - this.nextMinute) / 60_000) + 1) * 60_000;
     const people = [...new Set(inside)].filter(pid => pid > 0);
-    if (people.length < TOK.MIN_PEOPLE) return [];
+    if (people.length < QZ_HALF.PEOPLE) return [];
+    const perMinute = people.length === QZ_HALF.PEOPLE ? QZ_HALF.PER_MIN : TOK.PER_MIN;
     return people.filter(pid => { const t = this.actions.get(pid); return t !== undefined && t <= now && now - t <= TOK.ACTIVE_MS; })
-      .map(pid => this.award(pid, TOK.PER_MIN, now));
+      .map(pid => this.award(pid, perMinute, now));
   }
   /** id — стабильный номер результата/рисунка в текущей игре, чтобы повтор тика не удвоил награду и рекорды. */
   event(e: QuizRewardEvent, inside: readonly number[], now: number): QuizAward[] {
