@@ -50,6 +50,8 @@ const _one = new THREE.Vector3(1, 1, 1);
 const _up = new THREE.Vector3(0, 1, 0);
 const _c = new THREE.Color();
 const WARM = new THREE.Color(0xffe3a6);
+/** Голова бегущего огня в празднике — золото лампы пульта (pults.ts LAMP_LIT) */
+const CHASE = new THREE.Color(0xffc23a);
 
 export class QuizVenue3D {
   readonly group = new THREE.Group();
@@ -141,10 +143,11 @@ export class QuizVenue3D {
     // --- неподвижное: склейка по семейству (листва — матовое), лица табло и вывески — свои сетки с холстами
     const buckets: Record<Family, THREE.BufferGeometry[]> = { matte: [], gloss: [], glow: [] };
     const bulbAt: THREE.Vector3[] = [];
-    const frameAt: THREE.Vector3[] = [];
+    // рамка табло — по кругу (anchor_bulbs_board_000…043 идут вокруг рамки): бегущие огни идут по номерам
+    const frameNamed: Array<[string, THREE.Vector3]> = [];
     venue.traverse((o) => {
       const n = (typeof o.userData.name === 'string' ? o.userData.name : o.name) as string;
-      if (n.startsWith('anchor_bulbs_board_')) frameAt.push(new THREE.Vector3().setFromMatrixPosition(o.matrixWorld));
+      if (n.startsWith('anchor_bulbs_board_')) frameNamed.push([n, new THREE.Vector3().setFromMatrixPosition(o.matrixWorld)]);
       else if (n.startsWith('anchor_bulbs_') && !n.startsWith('anchor_bulbs_board')) bulbAt.push(new THREE.Vector3().setFromMatrixPosition(o.matrixWorld));
       const mesh = o as THREE.Mesh;
       if (!mesh.isMesh) return;
@@ -153,6 +156,7 @@ export class QuizVenue3D {
       const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
       buckets[familyOf(mats[0])].push(worldGeometry(mesh.geometry, mesh.matrixWorld));
     });
+    const frameAt = frameNamed.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0)).map((x) => x[1]);
     // кресла не двигаются — в ту же склейку (тень — общей программой статики, отдельной отрисовки нет)
     if (chair) {
       chair.updateMatrixWorld(true);
@@ -254,8 +258,8 @@ export class QuizVenue3D {
     const sec = Math.floor(now / 1000);
     // табло: изменился снимок — не чаще 4 раз в секунду; идёт отсчёт — раз в секунду
     const b = this.snap;
-    this.pults?.update(dt);
-    this.easel?.update(dt);
+    this.pults?.update(dt, now);
+    this.easel?.update(dt, now);
     const ends = Math.max(b?.endsAt ?? 0, b?.riddle?.endsAt ?? 0, b?.jp?.endsAt ?? 0, b?.croc?.endsAt ?? 0, b?.who?.endsAt ?? 0);
     if (this.board && b && (this.dirty || (sec !== this.paintedSec && ends > now)) && this.time - this.paintedAt >= BOARD_MIN_S) {
       this.paintedAt = this.time;
@@ -272,23 +276,41 @@ export class QuizVenue3D {
     this.updateBulbs(camPos);
   }
 
-  /** Бегущий свет: по раме табло идёт волна; в проверке — быстрее и ярче, в празднике — всё мигает */
+  /** Бегущий свет: по раме табло идёт волна; в проверке — быстрее и ярче. Праздник (верный ответ, итог — «Ракушка» 1.1, E3):
+   *  по раме бегут по кругу две яркие золотые «кометы», по кромке ракушки — три; только яркость и цвет экземпляров */
   private updateBulbs(camPos: THREE.Vector3): void {
     const inst = this.bulbs;
     if (!inst || !inst.instanceColor) return;
     if (camPos.distanceTo(this.root.position) > BULBS_FAR) return;
     const t = this.time;
     const party = t < this.partyUntil;
-    const speed = party ? 26 : this.checking ? 18 : 5;
+    const speed = this.checking ? 18 : 5;
     const n = this.frameBulbs;
+    if (party) {
+      const e = inst.count - n;
+      for (let i = 0; i < inst.count; i++) {
+        const frame = i < n;
+        const len = frame ? n : e, j = frame ? i : i - n;
+        // голова кометы и хвост в 5 лампочек; комет на круге — 2 (рама) и 3 (кромка)
+        const heads = frame ? 2 : 3;
+        const head = (t * (frame ? 24 : 18)) % len;
+        let d = len;
+        for (let h = 0; h < heads; h++) d = Math.min(d, (head + (h * len) / heads - j + len * 2) % len);
+        const k = d < 5 ? 1 - d / 5 : 0;
+        _c.copy(WARM).multiplyScalar(0.22).lerp(CHASE, k).multiplyScalar(1 + k * 1.4);
+        inst.setColorAt(i, _c);
+      }
+      inst.instanceColor.needsUpdate = true;
+      return;
+    }
     for (let i = 0; i < inst.count; i++) {
       let k: number;
       if (i < n) {
         const ph = ((i / Math.max(1, n)) * 16 - t * speed / 4) % 1;
         const wave = 0.5 + 0.5 * Math.cos((ph < 0 ? ph + 1 : ph) * Math.PI * 2);
-        k = party ? (Math.floor(t * 8 + i) % 2 ? 1.4 : 0.35) : 0.55 + 0.6 * wave * wave;
+        k = 0.55 + 0.6 * wave * wave;
       } else {
-        k = party ? (Math.floor(t * 6 + i) % 3 ? 1.2 : 0.4) : 0.9 + 0.1 * Math.sin(t * 1.3 + i);
+        k = 0.9 + 0.1 * Math.sin(t * 1.3 + i);
       }
       inst.setColorAt(i, _c.copy(WARM).multiplyScalar(k));
     }

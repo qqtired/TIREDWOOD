@@ -27,6 +27,7 @@ export class QuizSounds {
   private bus: GainNode | null = null;
   private readonly last = new Map<QuizSound, number>();
   private stopDrum: (() => void) | null = null;
+  private clapAt = -Infinity;
 
   constructor(audio?: () => AudioKit | null) {
     this.audio = audio;
@@ -59,6 +60,28 @@ export class QuizSounds {
     if (!this.attach() || !this.ctx || !this.out) return;
     if (this.ctx.state === 'suspended') this.ctx.resume().catch(() => {});
     try { this.synth(name); } catch { /* звук не важнее интерфейса */ }
+  }
+
+  /**
+   * «Ракушка» 1.1, E1: хлопки. Один «Браво!» (crowd = false) — три тихих хлопка в такт рукам (первый через 0,11 с, дальше
+   * через 0,23 с); зал (crowd) — россыпь из 14 хлопков за 1,4 с. Шина та же, что у звуков «Ракушки» (общий выключатель
+   * и громкость); без шины — тихий «поп» кита. Чаще раза в 120 мс одинаковое не звучит.
+   */
+  clap(crowd = false): void {
+    if (!sfx.enabled) return;
+    const now = performance.now();
+    if (now - this.clapAt < 120) return;
+    this.clapAt = now;
+    if (!this.audio) { sfx.play('pop'); return; }
+    if (!this.attach() || !this.ctx || !this.out) return;
+    if (this.ctx.state === 'suspended') this.ctx.resume().catch(() => {});
+    try {
+      if (crowd) {
+        for (let i = 0; i < 14; i++) this.noise(0.045, { vol: 0.12 + Math.random() * 0.14, at: 0.05 + Math.random() * 1.35, freq: 1100 + Math.random() * 900, q: 1.1 });
+      } else {
+        [0.5, 0.38, 0.26].forEach((vol, i) => this.noise(0.05, { vol, at: 0.11 + i * 0.23, freq: 1500, q: 1.2 }));
+      }
+    } catch { /* звук не важнее интерфейса */ }
   }
 
   /** Оборвать дробь «Проверяем…» (отмена, праздник, уход) */
