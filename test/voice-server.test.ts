@@ -4,7 +4,7 @@ import { VoiceRouter, type VoiceClient } from '../server/voice.ts';
 import { VOICE_TALK_LEASE_MS, type VoiceServerMsg } from '../shared/voice.ts';
 const SDP = ['v=0','o=- 1 2 IN IP4 127.0.0.1','s=-','t=0 0','a=group:BUNDLE 0','m=audio 9 UDP/TLS/RTP/SAVPF 111','c=IN IP4 0.0.0.0','a=mid:0','a=ice-ufrag:abcd','a=ice-pwd:abcdefghijklmnopqrstuvwxyz','a=fingerprint:sha-256 '+Array(32).fill('AA').join(':'),'a=setup:actpass','a=rtcp-mux','a=sendrecv','a=rtpmap:111 opus/48000/2',''].join('\r\n');
 function setup(entityId: (c: VoiceClient) => number | null = c => c.id){let now=1000;let configs=0;const router=new VoiceRouter({entityId,now:()=>now,ice:()=>{configs++;return{iceServers:[],expiresAt:now+10000,relayOnly:false};}});let id=0;const clients:Array<VoiceClient & {messages:VoiceServerMsg[]}> = [];
- function client(room:object={kind:'lobby'}){const messages:VoiceServerMsg[]=[];const i=++id;const c={id:i,pid:i,nick:`P${i}`,profile:{id:i},closed:false,ephemeral:false,room:room as {kind:string},sink:{sendJson:(m:VoiceServerMsg)=>messages.push(m)},messages};clients.push(c);router.connected(c);return c;}
+ function client(room:object={kind:'lobby'}){const messages:VoiceServerMsg[]=[];const i=++id;const c={id:i,pid:i,nick:`P${i}`,profile:{id:i},closed:false,ephemeral:false,spot:null,room:room as {kind:string},sink:{sendJson:(m:VoiceServerMsg)=>messages.push(m)},messages};clients.push(c);router.connected(c);return c;}
  return{router,client,clients,time:(v:number)=>now=v,configs:()=>configs};}
 const state=(c:{messages:VoiceServerMsg[]})=>c.messages.filter((m):m is Extract<VoiceServerMsg,{t:'voiceState'}>=>m.t==='voiceState').at(-1)!;
 const signals=(c:{messages:VoiceServerMsg[]})=>c.messages.filter(m=>m.t==='voiceSignal');

@@ -33,8 +33,6 @@ export class QuizPacks {
   constructor(opts: QuizPacksOptions) {
     this.dir = path.join(opts.dataDir, 'quiz'); this.now = opts.now ?? Date.now;
     this.admins = new Set(opts.admins); this.onError = opts.onError ?? (() => console.error('quiz: не удалось сохранить каталог паков'));
-    for (const name of ['packs', 'up', 'trash']) mkdirSync(path.join(this.dir, name), { recursive: true });
-    this.trashBytes = directoryBytes(path.join(this.dir, 'trash'));
     const catalog = path.join(this.dir, 'catalog.json');
     if (existsSync(catalog)) {
       const raw: unknown = JSON.parse(readFileSync(catalog, 'utf8'));
@@ -46,15 +44,20 @@ export class QuizPacks {
         this.entries.set(e.id, e);
       }
     }
-    // Билеты живут только в памяти. После перезапуска незаконченное сохраняем в корзине.
-    for (const id of readdirSync(path.join(this.dir, 'up'))) if (/^[a-f0-9]{12}$/.test(id)) this.trash('up', id);
-    // Перезапуск между переносом готового каталога файлов и flush каталога не теряет принятый пак.
-    for (const id of readdirSync(path.join(this.dir, 'packs'))) if (/^[a-f0-9]{12}$/.test(id) && !this.entries.has(id)) {
+    // Сначала проверяем весь каталог и записи восстановления. Ошибка чтения не меняет исходные данные.
+    const names = (dir: string): string[] => existsSync(path.join(this.dir, dir)) ? readdirSync(path.join(this.dir, dir)) : [];
+    const up = names('up'), stored = names('packs'), trashed = names('trash');
+    this.trashBytes = existsSync(path.join(this.dir, 'trash')) ? directoryBytes(path.join(this.dir, 'trash')) : 0;
+    let recovered = false;
+    for (const id of stored) if (/^[a-f0-9]{12}$/.test(id) && !this.entries.has(id)) {
       const meta = JSON.parse(readFileSync(path.join(this.dir, 'packs', id, 'meta.json'), 'utf8')) as { entry: Entry };
       if (meta.entry.id !== id) throw new Error('quiz: повреждена запись пака');
-      this.entries.set(id, meta.entry); this.changed();
+      this.entries.set(id, meta.entry); recovered = true;
     }
-    const trashed = readdirSync(path.join(this.dir, 'trash'));
+    for (const name of ['packs', 'up', 'trash']) mkdirSync(path.join(this.dir, name), { recursive: true });
+    // Билеты живут только в памяти. После перезапуска незаконченное сохраняем в корзине.
+    for (const id of up) if (/^[a-f0-9]{12}$/.test(id)) this.trash('up', id);
+    if (recovered) this.changed();
     for (const e of this.entries.values()) {
       if (e.pendingDelete && !e.builtin) this.remove(e);
       else if (!e.builtin && !e.deleted && !existsSync(path.join(this.dir, 'packs', e.id)) && trashed.some(n => n.startsWith(`${e.id}-`))) {

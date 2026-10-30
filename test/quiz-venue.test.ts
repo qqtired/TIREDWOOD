@@ -12,7 +12,6 @@ test('площадка: координаты, места, ограда, высо
   // v3: на площади восточнее Розы ветров, без ограды — граница зоны по клумбам, вывеска под кромкой ракушки
   assert.equal(V.chairs[0].x, 18.636); assert.equal(V.chairs[0].z, -3.862);
   assert.equal(V.arch, null); assert.ok(V.sign); assert.ok((QUIZ_VENUE_DATA.decorClear?.length ?? 0) >= 3);
-  if (V.arch) assert.equal(insideFence((V.arch.a[0] + V.arch.b[0]) / 2, (V.arch.a[1] + V.arch.b[1]) / 2), true);
   assert.equal(insideFence(60, 8), false); assert.equal(insideFence(15, 0.7), true);
   assert.equal(insideFence(13.6, 0.7), false); assert.equal(insideFence(13.6, 0.7, .5), true);
   assert.equal(inQuizArea(V.center[0], 20, V.center[1]), false);

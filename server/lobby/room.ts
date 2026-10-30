@@ -83,7 +83,8 @@ import { SlotHall } from './slots.ts';
 import { ArcadeHall } from './arcade.ts';
 import { QuizStage } from './quiz/stage.ts';
 import { ACT_QUIZ } from '../../shared/lobby.ts';
-import { placeAt as quizPlaceAt } from '../../shared/quiz/venue.ts';
+import { QUIZ_VENUE, placeAt as quizPlaceAt } from '../../shared/quiz/venue.ts';
+import { quizVoiceSpot } from './quiz/voice.ts';
 import { WheelRide } from './wheel.ts';
 import { FishHolds } from './fishhold.ts';
 import { ACT_KITE, KITE_REEL_FIRST, kiteReel, kiteTick } from '../../shared/kite.ts';
@@ -243,11 +244,23 @@ export class LobbyRoom implements Room {
     this.map = buildLobby();
     this.world = new CollisionWorld(this.map);
     if (!hub.quiz) for (const box of this.map.quizBoxes ?? []) this.world.setEnabled(box, false);
+    for (const box of this.map.quizPultBoxes ?? []) this.world.setEnabled(box, false);
     this.quiz = hub.quiz ? new QuizStage({
       now: () => this.now(), rand: Math.random,
+      packs: hub.quizHttp?.packs, http: hub.quizHttp,
+      profiles: () => hub.store.state.profiles.map(p => ({ pid: p.id, nick: p.nick, stats: p.stats })),
+      saveStats: (pid, stats) => {
+        const p = hub.profiles.byId(pid); if (!p) return;
+        Object.assign(p.stats, stats); hub.store.markDirty(); this.syncBlackjackBalance(pid);
+      },
+      credit: (slot, n, pid) => {
+        const p = pid ? hub.profiles.byId(pid) : this.players.get(slot)?.client.profile;
+        if (p) { hub.profiles.credit(p, n, 'mode'); this.syncBlackjackBalance(p.id); }
+      },
       people: () => [...this.players.values()].filter(p => !p.client.closed && !p.client.lostAt).map(p => ({
         slot: p.slot, pid: p.client.pid, nick: p.client.nick, x: p.state.x, y: p.state.y, z: p.state.z,
         action: p.action, arg: p.arg, ephemeral: p.client.ephemeral, riding: isRiding(p.action),
+        ping: p.client.ping, level: p.client.profile?.level ?? 1,
       })),
       hold: (slot, place) => {
         const p = this.players.get(slot), spot = quizPlaceAt(place);
@@ -763,6 +776,7 @@ export class LobbyRoom implements Room {
     const p = this.byClient.get(c);
     if (!p) return;
     this.quiz?.left(p.slot);
+    c.spot = null;
     this.release(p, true);
     this.plane?.drop(p);
     this.ownboats?.drop(p);
@@ -850,7 +864,7 @@ export class LobbyRoom implements Room {
         this.arcade?.message(p.slot, msg);
         return;
       case 'qz':
-        if (!c.closed && !c.lostAt && this.hub.limits.hit(`qz:${c.id}`, 10, 1000)) this.quiz?.message(p.slot, msg);
+        if (!c.closed && !c.lostAt && this.hub.limits.hit(`${msg.a === 'crInk' ? 'qzInk' : 'qz'}:${c.id}`, msg.a === 'crInk' ? 20 : 10, 1000)) this.quiz?.message(p.slot, msg);
         return;
       case 'ob':
         if (this.ownboats && this.hub.limits.hit(`ob:${c.id}`, 8, 1000)) this.ownboats.message(p, msg);
@@ -995,7 +1009,7 @@ export class LobbyRoom implements Room {
     if (isRiding(p.action) || this.ownboats?.aboard(p) || !this.hub.limits.hit(`use:${c.id}`, 4, 1000)) return;
     const it = typeof id === 'number' && Number.isInteger(id) ? this.map.interact[id] : undefined;
     if (!it) return;
-    if (p.action === ACT_QUIZ && this.quiz?.stood(p.slot) === false) return;
+    if (p.action === ACT_QUIZ && this.quiz?.stood(p.slot, false) === false) return;
     // Повторное E сохраняет своё место; дальнее место находится за радиусом основной точки.
     if (it.kind === 'kiosk' && p.action === ACT_WARDROBE) return;
     const s = p.state;
@@ -1813,7 +1827,19 @@ export class LobbyRoom implements Room {
     this.blackjack.step(this.tick);
     this.billiards?.step(this.tick);
     this.arcade?.step(this.tick);
-    if (this.tick % 6 === 0) this.quiz?.step();
+    if (this.tick % 6 === 0) {
+      this.quiz?.step();
+      const raised = this.quiz?.raisedPults() ?? [];
+      for (const [i, box] of (this.map.quizPultBoxes ?? []).entries()) {
+        const pult = QUIZ_VENUE.pults.findIndex(p => QUIZ_VENUE.pultSolid[i].name === `pult_${p.id}`);
+        this.world.setEnabled(box, raised.includes(pult));
+      }
+      for (const p of this.players.values()) {
+        const c = p.client, spot = quizVoiceSpot(!!this.quiz && !c.closed && !c.lostAt, c.spot,
+          { ...p.state, riding: isRiding(p.action), ephemeral: c.ephemeral });
+        if (spot !== c.spot) { c.spot = spot; this.hub.voice?.moved(c); }
+      }
+    }
     this.stepStartZones();
     this.stepFarmRoad();
     // «Топ проигравших»: итог вращения — на экран, когда докрутились барабаны (поменялся топ — всем)

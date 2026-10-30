@@ -125,6 +125,8 @@ export interface LobbyMap extends GameMap {
   ratBoxes: number[];
   /** «Ракушка»: без QUIZ выключены; только новая набережная. */
   quizBoxes?: number[];
+  /** Пульты «Ракушки»: выключены комнатой и клиентом, пока соответствующий пульт в люке. */
+  quizPultBoxes?: number[];
   /** Бильярдные столы и столбы навеса (флаг сервера BILLIARDS): без флага коллизию выключают */
   billiardsBoxes: number[];
   /** Столбик таблички гидроплана (флаг сервера PLANE): без флага коллизию выключают */
@@ -664,11 +666,17 @@ export function buildLobby(): LobbyMap {
     for (const [i, side] of [-1, 1].entries()) add('seat', bn.x + side * bn.offset * Math.cos(bn.yaw), bn.z - side * bn.offset * Math.sin(bn.yaw), bn.yaw, .7, 24 + i, 'сесть', bn.y);
   }
 
-  const quizBoxes: number[] = [];
+  const quizBoxes: number[] = [], quizPultBoxes: number[] = [];
   if (PLAZA3) {
     QUIZ_VENUE.chairs.forEach((c, i) => addAt('quiz', c, 0.9, chairPlace(i), 'сесть'));
+    QUIZ_VENUE.pults.forEach((p, i) => addAt('quiz', p.player, 0.9, QUIZ_VENUE.first.pult + i, 'встать за пульт'));
+    addAt('quiz', QUIZ_VENUE.host, 0.9, QUIZ_VENUE.first.podium, 'трибуна');
     for (const box of QUIZ_VENUE.solid) {
       quizBoxes.push(b.boxes.length);
+      b.box([...box.min], [...box.max], 'invisible', 0);
+    }
+    for (const box of QUIZ_VENUE.pultSolid) {
+      quizPultBoxes.push(b.boxes.length);
       b.box([...box.min], [...box.max], 'invisible', 0);
     }
   }
@@ -714,7 +722,7 @@ export function buildLobby(): LobbyMap {
     ferryAwayBoxes,
     jukeBoxes,
     ratBoxes,
-    ...(PLAZA3 ? { quizBoxes } : {}),
+    ...(PLAZA3 ? { quizBoxes, quizPultBoxes } : {}),
     billiardsBoxes,
     planeBoxes,
     parkBoxes,

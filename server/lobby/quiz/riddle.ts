@@ -4,8 +4,11 @@ import type { QuizClientMsg } from '../../../shared/quiz/net.ts';
 import { newRiddle, reduceRiddle, riddleView, nearLines, validateWord, visibleLines,
   type RiddleAction, type RiddleError, type RiddleResult, type RiddleState, type RiddleWho } from '../../../shared/quiz/riddle.ts';
 import { QZ, type QzLine, type QzRiddleView, type QzRiddleStep } from '../../../shared/quiz/types.ts';
+import type { QuizController } from './controller.ts';
 
-export class RiddleGame {
+export class RiddleGame implements QuizController {
+  readonly mode = 'riddle';
+  accepted = false;
   step: QzRiddleStep = 'call';
   riddler: RiddleWho | null = null;
   played = 0;
@@ -13,6 +16,8 @@ export class RiddleGame {
   deadline = 0;
   nextId: number;
   round: RiddleState | null = null;
+  readonly guessers = new Set<number>();
+  roundStartedAt = 0;
   last: QzRiddleView['last'] = null;
   private pending: RiddleResult | null = null;
   private lines: QzLine[] = [];
@@ -31,11 +36,20 @@ export class RiddleGame {
   }
 
   message(who: RiddleWho, msg: QuizClientMsg, guessers: number, now: number): RiddleError | undefined {
+    const before = JSON.stringify([this.step, this.round, this.lines, this.gaps]);
+    const error = this.receive(who, msg, guessers, now);
+    this.accepted = !error && before !== JSON.stringify([this.step, this.round, this.lines, this.gaps]);
+    if (this.accepted && msg.a === 'say' && this.round && who.pid !== this.riddler?.pid && (this.step === 'round' || this.step === 'check')) this.guessers.add(who.pid);
+    return error;
+  }
+
+  private receive(who: RiddleWho, msg: QuizClientMsg, guessers: number, now: number): RiddleError | undefined {
     if (msg.a === 'ask') {
       if (this.step !== 'ask' || who.slot !== this.riddler?.slot) return;
       const word = validateWord(msg.word, msg.cat, msg.hint);
       if (word.error) return word.error;
       this.round = { ...newRiddle(who, word.word, word.cat, word.hint, now, this.nextId), gaps: { ...this.gaps } };
+      this.roundStartedAt = now; this.guessers.clear();
       this.step = 'round'; this.deadline = this.round.endsAt; this.lines = []; this.hurry = false;
       return;
     }
@@ -87,6 +101,14 @@ export class RiddleGame {
   }
 
   gapUntil(pid: number): number { return this.gaps[pid] ?? 0; }
+
+  boardFields() { const { lines: _lines, ...riddle } = this.view(); return { riddle }; }
+  viewFields() { return { riddle: this.view() }; }
+  meFields(slot: number) {
+    return this.roleOf(slot) && this.round ? { word: this.round.word, near: this.near(), hintsLeft: QZ.HINTS - this.round.hints.length } : {};
+  }
+  roleOf(slot: number) { return this.riddler?.slot === slot && ['ask', 'round', 'check'].includes(this.step) ? 'riddler' as const : '' as const; }
+  close(): void {}
 
   near(): number[] { return this.round ? nearLines(this.round) : []; }
 

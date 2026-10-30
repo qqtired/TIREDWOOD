@@ -43,6 +43,16 @@ export const RC_PLACE = [40, 25, 15] as const;
 
 /** Статистика профиля (показывается в профиле и на доске почёта) */
 export interface Stats {
+  qzDay: number;
+  qzDayCoins: number;
+  qzJpGames: number;
+  qzJpWins: number;
+  qzJpBest: number;
+  qzRdSolved: number;
+  qzRdMade: number;
+  qzCrGuessed: number;
+  qzCrDrawn: number;
+  qzWhoTitles: number;
   pbRounds: number;
   pbWins: number;
   pbKills: number;
@@ -187,6 +197,8 @@ export interface Stats {
 
 export function emptyStats(): Stats {
   return {
+    qzDay: 0, qzDayCoins: 0, qzJpGames: 0, qzJpWins: 0, qzJpBest: 0,
+    qzRdSolved: 0, qzRdMade: 0, qzCrGuessed: 0, qzCrDrawn: 0, qzWhoTitles: 0,
     pbRounds: 0, pbWins: 0, pbKills: 0, pbMvp: 0, spins: 0, slotWon: 0, bestWin: 0, jackpots: 0, dkGames: 0, dkFools: 0, dkFirst: 0,
     rcRaces: 0, rcWins: 0, rcPodiums: 0, rcBestLap: 0, rcBestLapFoundry: 0, rcBestLapHarbor: 0, rcBestLapHills: 0,
     rcBestLapHarborV3: 0, rcBestLapHillsV3: 0, fsCaught: 0, fsSold: 0,

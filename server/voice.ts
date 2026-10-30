@@ -4,12 +4,15 @@ import { VOICE_BITRATE, VOICE_MAX_PEERS, VOICE_MAX_SDP, VOICE_MAX_SIGNAL_TEXT, V
 export interface VoiceClient {
   id: number; pid: number; nick: string; profile: { id: number } | null;
   room: { kind: string } | null; closed: boolean; ephemeral: boolean;
+  spot: 'stage' | null;
   sink: { sendJson(message: VoiceServerMsg): void };
 }
 /** Ключ голосовой зоны: внешний мир — одна строка на всех; инстанс — сам объект комнаты (у каждого экземпляра свой голос). */
 type ZoneKey = string | object;
-function zoneOf(room: { kind: string }): ZoneKey {
-  return voiceZoneName(room.kind) === VOICE_WORLD ? VOICE_WORLD : room;
+function zoneOf(c: VoiceClient): ZoneKey | null {
+  if (!c.room) return null;
+  if (c.room.kind === 'lobby' && c.spot === 'stage') return 'stage';
+  return voiceZoneName(c.room.kind) === VOICE_WORLD ? VOICE_WORLD : c.room;
 }
 interface Member { id: number; client: VoiceClient; room: { kind: string }; zone: ZoneKey; talkingUntil: number; mic: boolean }
 interface SignalBudget { messageTokens: number; byteTokens: number; at: number }
@@ -101,19 +104,19 @@ export class VoiceRouter {
     catch { this.error(c, 'invalid'); }
   }
   /** Участник ещё в своей зоне (клиент мог уйти в другую комнату, а переход ещё не разобран). */
-  private live(p: Member): boolean { return this.authenticated(p.client) && !!p.client.room && zoneOf(p.client.room) === p.zone; }
+  private live(p: Member): boolean { return this.authenticated(p.client) && !!p.client.room && zoneOf(p.client) === p.zone; }
   private state(c: VoiceClient): void {
     if (!this.authenticated(c)) return;
-    const zone = c.room ? zoneOf(c.room) : null;
+    const zone = zoneOf(c);
     const member = this.sessions.get(c)?.member;
     c.sink.sendJson({ t: 'voiceState', self: member && zone !== null && member.zone === zone ? member.id : null, room: c.room?.kind ?? '',
-      zone: c.room ? voiceZoneName(c.room.kind) : '',
+      zone: zone === 'stage' ? 'stage' : c.room ? voiceZoneName(c.room.kind) : '',
       peers: zone === null ? [] : [...this.members.values()].filter(p => p.client !== c && p.zone === zone && this.live(p))
         // значок над головой — только тем, кто в той же комнате: номера фигурок у каждой комнаты свои
         .map(p => { const entityId = p.client.room === c.room ? this.entityId(p.client) : null;
           return { id: p.id, entityId: integer(entityId, 1, Number.MAX_SAFE_INTEGER) ? entityId : null, pid: p.client.pid, nick: p.client.nick, talking: p.talkingUntil > this.now(), mic: p.mic }; }) });
   }
-  private changed(zone: ZoneKey): void { for (const c of this.sessions.keys()) if (c.room && zoneOf(c.room) === zone) this.state(c); }
+  private changed(zone: ZoneKey): void { for (const c of this.sessions.keys()) if (zoneOf(c) === zone) this.state(c); }
   private remove(c: VoiceClient): boolean {
     const session = this.sessions.get(c), m = session?.member; if (!session || !m) return false;
     this.members.delete(m.id); session.member = null; this.changed(m.zone); return true;
@@ -123,14 +126,14 @@ export class VoiceRouter {
     if (session.member) { this.state(c); return; }
     if (!c.room) { this.error(c,'not_joined'); this.state(c); return; }
     if (!Number.isSafeInteger(this.nextId)) { this.error(c,'invalid'); this.state(c); return; }
-    const member: Member = { id: this.nextId++, client: c, room: c.room, zone: zoneOf(c.room), talkingUntil: 0, mic: false };
+    const member: Member = { id: this.nextId++, client: c, room: c.room, zone: zoneOf(c)!, talkingUntil: 0, mic: false };
     session.member = member; this.members.set(member.id, member); this.changed(member.zone);
   }
   /** Переход в другую комнату. Та же зона (внешний мир) — номер в голосе и соединения сохраняются; другая — новый номер. */
   moved(c: VoiceClient): void {
     const session = this.sessions.get(c); if (!session) return;
     if (!this.authenticated(c)) { this.remove(c); this.clearPeerBudgets(c); this.sessions.delete(c); return; }
-    const m = session.member, zone = c.room ? zoneOf(c.room) : null;
+    const m = session.member, zone = zoneOf(c);
     if (m && zone !== null && m.zone === zone) {
       if (m.room !== c.room) { m.room = c.room!; this.changed(zone); } else this.state(c);
       return;
@@ -174,7 +177,7 @@ export class VoiceRouter {
   handle(c: VoiceClient, raw: unknown): void {
     if (!this.authenticated(c) || !this.sessions.has(c)) return;
     const session = this.sessions.get(c)!;
-    if (session.member && session.member.room !== c.room) this.moved(c);
+    if (session.member && (session.member.room !== c.room || session.member.zone !== zoneOf(c))) this.moved(c);
     if (!record(raw)) { if (this.budget(c,32,true)) this.error(c,'invalid'); return; }
     if (raw.t === 'voice') {
       // Privacy/cleanup controls may clear existing state even after a sender exhausts its budget.
@@ -221,7 +224,7 @@ export class VoiceRouter {
     catch { if (this.budget(c,128,false)) this.error(c,'invalid'); return; }
     if (bytes > VOICE_MAX_SIGNAL_TEXT) return this.rejectSignal(c,bytes,'invalid');
     if (!exact(raw,['t','self','to','signal']) || !integer(raw.self,1,Number.MAX_SAFE_INTEGER) || !integer(raw.to,1,Number.MAX_SAFE_INTEGER)) return this.rejectSignal(c,bytes,'invalid');
-    const from = session.member, to = this.members.get(raw.to), zone = c.room ? zoneOf(c.room) : null;
+    const from = session.member, to = this.members.get(raw.to), zone = zoneOf(c);
     if (!from) return this.rejectSignal(c,bytes,'not_joined');
     if (from.id !== raw.self || !to || to === from || !this.live(to) || zone === null || from.zone !== zone || to.zone !== zone) return this.rejectSignal(c,bytes,'stale');
     if (!this.budget(c,bytes,false,to.client)) return;
@@ -232,7 +235,7 @@ export class VoiceRouter {
     const now = this.now();
     for (const [c,s] of this.sessions) {
       if (!this.authenticated(c)) { this.disconnected(c); continue; }
-      if (s.member?.room !== c.room && s.member) { this.moved(c); continue; }
+      if (s.member && (s.member.room !== c.room || s.member.zone !== zoneOf(c))) { this.moved(c); continue; }
       if (s.member && s.member.talkingUntil > 0 && s.member.talkingUntil <= now) { s.member.talkingUntil = 0; this.changed(s.member.zone); }
     }
   }

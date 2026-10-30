@@ -65,6 +65,13 @@ export interface VenueData {
   readonly podium: VenueSpot & { readonly host: VenueSpot };
   readonly zatejnik: { readonly stand: VenueSpot };
   readonly pults: readonly VenuePult[];
+  /** Люки пультов «Своей игры»: размер и время подъёма (по желанию; нет — 1 с) */
+  readonly hatch?: { readonly w: number; readonly d: number; readonly ring?: number; readonly liftSec: number };
+  /** Таблички счёта пультов: размер и атлас — одна текстура на все таблички, клетка пульта — pults[i].plateCell */
+  readonly pultPlate?: {
+    readonly w: number; readonly h: number; readonly centerY: number;
+    readonly atlas: { readonly w: number; readonly h: number; readonly cell: readonly number[]; readonly pad?: number };
+  };
   readonly easel: {
     readonly park: VenueSpot; readonly show: VenueSpot; readonly drawer: VenueSpot;
     /** Холст на мольберте: ширина, высота, высота центра над полом и вынос вперёд от точки мольберта, м */

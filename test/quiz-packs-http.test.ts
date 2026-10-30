@@ -117,10 +117,19 @@ test('встроенные, поиск, лайк только игравшему
   assert.equal(afterDelete.uploadsToday(4), 1);
 });
 
-test('ограничение 60 HTTP-запросов; общий объём включает черновики и корзину', async t => {
+test('POST: 60, PUT: 600; GET/HEAD без лимита; общий объём включает черновики и корзину', async t => {
   const g = await setup(t);
-  for (let i = 0; i < 60; i++) assert.equal((await g.req('/quiz/m/no/file')).status, 404);
-  assert.equal((await g.req('/quiz/m/no/file')).status, 429);
+  for (let i = 0; i < 65; i++) assert.equal((await g.req('/quiz/m/no/file', i % 2 ? 'HEAD' : 'GET')).status, 404);
+  for (let i = 0; i < 60; i++) assert.equal((await g.req('/quiz/up', 'POST')).status, 401);
+  assert.equal((await g.req('/quiz/up', 'POST')).status, 429);
+  const route = `/quiz/up/aaaaaaaaaaaa/${fileName(file(png))}`;
+  for (let i = 0; i < 600; i++) assert.equal((await g.req(route, 'PUT')).status, 401);
+  assert.equal((await g.req(route, 'PUT')).status, 429);
+  assert.equal((await g.req('/quiz/m/no/file')).status, 404);
+  g.setNow(g.now() + 60_000);
+  const f = file(png), up = await g.start(1, [f]);
+  for (let i = 0; i < 300; i++) assert.equal((await g.req(`/quiz/up/${up.id}/${fileName(f)}`, 'PUT', up.ticket, png)).status, 200);
+  assert.equal((await g.req(`/quiz/up/${up.id}/done`, 'POST', up.ticket)).status, 200);
   const dir = mkdtempSync(path.join(tmpdir(), 'quiz-quota-test-')), store = new QuizPacks({ dataDir: dir });
   t.after(() => store.close());
   // Реальные гигабайты не создаём: лимит по каталогу.
@@ -128,6 +137,18 @@ test('ограничение 60 HTTP-запросов; общий объём в�
     rounds: 0, themes: 0, questions: 1, bytes: QZ_PACK.TOTAL_BYTES, at: Date.now(), plays: 0, likes: 0, builtin: false, authorPid: 8, likedBy: [] }]));
   const full = new QuizPacks({ dataDir: dir }); t.after(() => full.close());
   assert.throws(() => full.checkUpload(9, 3), (e: unknown) => e instanceof PackError && e.status === 413);
+});
+
+test('ошибка каталога не меняет исходные файлы; встроенные доступны при отключённой загрузке', async t => {
+  const g = await setup(t); g.packs.flush();
+  const file = path.join(g.dataDir, 'quiz', 'catalog.json'); writeFileSync(file, '{broken');
+  const before = readdirSync(path.join(g.dataDir, 'quiz'));
+  assert.throws(() => new QuizPacks({ dataDir: g.dataDir }));
+  assert.equal(readFileSync(file, 'utf8'), '{broken'); assert.deepEqual(readdirSync(path.join(g.dataDir, 'quiz')), before);
+  const fallback = new QuizPacks({ dataDir: mkdtempSync(path.join(tmpdir(), 'quiz-fallback-test-')) });
+  registerBuiltinPacks(fallback, new URL('./fixtures/quiz/', import.meta.url));
+  const disabled = new QuizHttp({ packs: fallback, enabled: false }); t.after(() => disabled.close());
+  assert.equal(fallback.list(1).total, 3); assert.throws(() => disabled.ticket(1, 3), /недоступны/);
 });
 
 test('сигнатуры всех разрешённых видов, SVG/HTML не подходят', () => {

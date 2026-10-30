@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import { QuizTokens, emptyQuizStats, normalizeQuizStats, quizMyRecords, quizTopRecords } from '../server/lobby/quiz/tokens.ts';
 import { arcDay } from '../shared/arcade/rewards.ts';
 import { QZ_TOKENS as TOK } from '../shared/quiz/types.ts';
+import { normalizeProfile } from '../server/store.ts';
 
 const at = Date.parse('2026-10-30T12:00:00Z');
 test('минуты: +8 при действии за две минуты, без AFK, повторов и выплат вне game', () => {
@@ -67,6 +68,11 @@ test('Крокодил и Кто из нас: места, рекорды рис�
   assert.equal(q.stats(1, at).qzWhoTitles, 4, 'уже раскрытый титул остаётся в рекордах при смене игры');
 });
 test('старые профили без qz-полей: нули, без изменения прежних полей; свои рекорды и top-5', () => {
+  const profile = normalizeProfile({ id: 1, nick: 'Tester7', tokens: 1234, xp: 1200, stats: { pbWins: 8, fsCaught: 19 } })!;
+  assert.equal(profile.tokens, 1234); assert.equal(profile.stats.pbWins, 8); assert.equal(profile.stats.fsCaught, 19);
+  for (const key of Object.keys(emptyQuizStats()) as Array<keyof ReturnType<typeof emptyQuizStats>>) assert.equal(profile.stats[key], 0, key);
+  const kept = normalizeProfile({ ...profile, stats: { ...profile.stats, qzJpWins: 7, qzDayCoins: 56 } })!;
+  assert.equal(kept.stats.qzJpWins, 7); assert.equal(kept.stats.qzDayCoins, 56); assert.equal(kept.stats.pbWins, 8);
   const old = { pbWins: 8, fishing: { level: 20 } }, copy = structuredClone(old);
   assert.deepEqual(normalizeQuizStats(old), emptyQuizStats()); assert.deepEqual(old, copy);
   assert.equal(normalizeQuizStats({ qzJpWins: -3, qzCrGuessed: NaN }).qzJpWins, 0);

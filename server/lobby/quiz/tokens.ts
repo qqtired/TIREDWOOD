@@ -42,6 +42,8 @@ export class QuizTokens {
   constructor(profiles: Iterable<{ pid: number; stats: unknown }> = []) {
     for (const p of profiles) this.accounts.set(p.pid, normalizeQuizStats(p.stats));
   }
+  /** Профиль мог впервые войти уже после создания сцены. Существующий счёт не перетираем. */
+  load(pid: number, stats: unknown): void { if (!this.accounts.has(pid)) this.accounts.set(pid, normalizeQuizStats(stats)); }
   startGame(now: number): void {
     this.actions.clear(); this.events.clear(); this.coins.clear(); this.nextMinute = now + 60_000; this.running = true;
   }

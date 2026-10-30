@@ -101,7 +101,6 @@ export class QuizHttp {
     return { key: key as string, ticket: t };
   }
   private async request(req: IncomingMessage, res: ServerResponse, pathname: string): Promise<void> {
-    if (!this.limiter.hit(this.ip(req), 60, 60_000)) throw new PackError('Не так быстро — попробуй через минуту.', 429);
     const media = /^\/quiz\/m\/([^/]+)\/([^/]+)$/.exec(pathname);
     if (media && (req.method === 'GET' || req.method === 'HEAD')) {
       const file = this.packs.media(media[1], media[2]); if (!file) throw new PackError('Файл не найден.', 404);
@@ -117,6 +116,8 @@ export class QuizHttp {
     const put = /^\/quiz\/up\/([a-f0-9]{12})\/([a-f0-9]{64}\.(?:webp|png|jpg|gif|mp3|ogg|m4a))$/.exec(pathname);
     const done = /^\/quiz\/up\/([a-f0-9]{12})\/done$/.exec(pathname);
     if (!(pathname === '/quiz/up' && req.method === 'POST') && !(put && req.method === 'PUT') && !(done && req.method === 'POST')) throw new PackError('Нет такого адреса.', 404);
+    const files = req.method === 'PUT';
+    if (!this.limiter.hit(`${files ? 'file' : 'post'}:${this.ip(req)}`, files ? 600 : 60, 60_000)) throw new PackError('Не так быстро — попробуй через минуту.', 429);
     const { key, ticket } = this.auth(req);
     if (ticket.busy) throw new PackError('Загрузка ещё идёт.', 409);
     ticket.busy = true;

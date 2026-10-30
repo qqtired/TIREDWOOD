@@ -19,6 +19,7 @@ const { buildLobby } = await import('../shared/maps/lobby.ts');
 const { P3 } = await import('../shared/plaza3/layout.ts');
 const { xfBox2, xfP, xfSpot } = await import('../shared/plaza3/xf.ts');
 const { CollisionWorld } = await import('../shared/world.ts');
+const { PLAYER_HALF, PLAYER_HEIGHT } = await import('../shared/constants.ts');
 const { BARKAS_BAK_Y } = await import('../shared/barkas.ts');
 const { PARK_DECK_Y } = await import('../shared/ownboat.ts');
 const { inIsleWaters } = await import('../shared/maps/isle.ts');
@@ -47,13 +48,23 @@ test('plaza3: точки 0–112 и аркады с №113 сохраняютс�
   const got = interactKinds(map);
   assert.deepEqual(got.slice(0, want.length), want);
   assert.deepEqual(got.slice(want.length), [...P3.arcade.map((_a, i) => ['arcade', i]), ['seat', 24], ['seat', 25],
-    ...QUIZ_VENUE.chairs.map((_c, i) => ['quiz', chairPlace(i)])]);
+    ...QUIZ_VENUE.chairs.map((_c, i) => ['quiz', chairPlace(i)]),
+    ...QUIZ_VENUE.pults.map((_p, i) => ['quiz', QUIZ_VENUE.first.pult + i]), ['quiz', QUIZ_VENUE.first.podium]]);
   map.interact.forEach((it, i) => assert.equal(it.id, i));
 });
 
 test('plaza3: точки и места появления на опоре и не в стене', () => {
   const world = new CollisionWorld(map);
-  assert.deepEqual(spotProblems(map, world, { bakY: BARKAS_BAK_Y, parkDeckY: PARK_DECK_Y, inIsle: inIsleWaters }), []);
+  for (const b of map.quizPultBoxes ?? []) world.setEnabled(b, false);
+  const raised = map.interact.filter(it => it.kind === 'quiz' && it.arg >= QUIZ_VENUE.first.pult);
+  // Эти точки на настиле: прежняя проверка ищет землю только ниже 0,5 м.
+  assert.deepEqual(spotProblems({ ...map, interact: map.interact.filter(it => !raised.includes(it)) }, world,
+    { bakY: BARKAS_BAK_Y, parkDeckY: PARK_DECK_Y, inIsle: inIsleWaters }), []);
+  for (const it of raised) {
+    assert.equal(world.groundBelow(it.x, it.y + 0.1, it.z), it.y, `quiz ${it.arg}: опора на высоте места`);
+    assert.ok(!world.overlaps(it.x - PLAYER_HALF, it.y + 0.01, it.z - PLAYER_HALF, it.x + PLAYER_HALF, it.y + PLAYER_HEIGHT, it.z + PLAYER_HALF),
+      `quiz ${it.arg}: место пересекается с твёрдым площадки`);
+  }
 });
 
 /** Предел «от центра до входа» для точки: квартал-исключение из maxFromCenter (games, farm) или default */

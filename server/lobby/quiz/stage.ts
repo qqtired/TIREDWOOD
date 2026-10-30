@@ -2,14 +2,26 @@
 import { ACT_QUIZ } from '../../../shared/lobby.ts';
 import type { QuizClientMsg, QuizServerMsg, QzErrCode } from '../../../shared/quiz/net.ts';
 import type { RiddleResult, RiddleWho } from '../../../shared/quiz/riddle.ts';
-import { QZ, QZ_CATEGORIES, QZ_MODES, type QuizMode, type QzBoard, type QzCall, type QzMe, type QzPhase,
+import { QZ, QZ_CROC, QZ_MODES, type QuizMode, type QzBoard, type QzCall, type QzMe, type QzPhase, type QzInkOp,
   type QzScoreRow, type QzView, type QzVote, type QzZatClip, type QzZatSay } from '../../../shared/quiz/types.ts';
 import { QUIZ_VENUE, inQuizArea, placeAt, type VenueSpot } from '../../../shared/quiz/venue.ts';
 import { createVote, castVote, syncVote, voteView, finishVote, type VoteState } from '../../../shared/quiz/vote.ts';
 import { RiddleGame } from './riddle.ts';
+import { JeopardyGame } from './jeopardy.ts';
+import { CrocGame } from './croc.ts';
+import { WhoOfUsGame } from './whoofus.ts';
+import { readMessage } from './input.ts';
+import type { ModeHost, QuizController } from './controller.ts';
+import { loadBuiltinPacks } from './builtin.ts';
+import type { QuizPacks } from './packs.ts';
+import type { QuizHttp } from './http.ts';
+import { PackError } from '../../../shared/quiz/pack.ts';
+import { QuizTokens, quizPlaces, quizMyRecords, quizTopRecords, type QuizStats, type QuizRewardEvent, type QuizAward } from './tokens.ts';
 
 export interface QuizPerson extends RiddleWho {
   x: number; y: number; z: number; action: number; arg: number; ephemeral: boolean; riding: boolean;
+  ping?: number;
+  level?: number;
 }
 export interface QuizHost {
   now(): number;
@@ -22,28 +34,15 @@ export interface QuizHost {
   announce(text: string): void;
   toast(slot: number, text: string): void;
   log(text: string): void;
+  packs?: QuizPacks;
+  http?: QuizHttp;
+  profiles?(): Array<{ pid: number; nick: string; stats: unknown }>;
+  saveStats?(pid: number, stats: QuizStats): void;
+  /** pid сохраняет получателя награды, если он уже ушёл с набережной или его slot заняли. */
+  credit?(slot: number, n: number, pid?: number): void;
 }
 
-function readMessage(raw: unknown): QuizClientMsg | null {
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
-  const m = raw as Record<string, unknown>;
-  if (m.t !== 'qz' || typeof m.a !== 'string') return null;
-  const exact = (...keys: string[]): boolean => Object.keys(m).every(k => k === 't' || k === 'a' || keys.includes(k));
-  const text = (x: unknown): x is string => typeof x === 'string';
-  const id = (x: unknown): boolean => Number.isSafeInteger(x) && (x as number) >= 0;
-  let ok = false;
-  switch (m.a) {
-    case 'vote': ok = exact('m') && id(m.m) && (m.m as number) < QZ_MODES.length; break;
-    case 'play': case 'undo': case 'giveup': ok = exact(); break;
-    case 'swap': ok = exact('on') && typeof m.on === 'boolean'; break;
-    case 'role': ok = exact('take', 'r') && typeof m.take === 'boolean' && (m.r === undefined || m.r === 'riddler'); break;
-    case 'ask': ok = exact('word', 'cat', 'hint') && text(m.word) && text(m.cat) && QZ_CATEGORIES.some(c => c === m.cat) && (m.hint === undefined || text(m.hint)); break;
-    case 'say': case 'hint': ok = exact('text') && text(m.text); break;
-    case 'mark': ok = exact('id', 'm') && id(m.id) && (m.m === 'warm' || m.m === 'miss' || m.m === 'win'); break;
-    case 'unmark': ok = exact('id') && id(m.id); break;
-  }
-  return ok ? raw as QuizClientMsg : null;
-}
+const READY = QZ_MODES.map(m => m.id);
 
 export class QuizStage {
   private readonly h: QuizHost;
@@ -59,7 +58,16 @@ export class QuizStage {
   private acceptedBy: QzCall['by'] = 'open';
   private readonly skipped = new Set<number>();
   private lastRiddler = 0;
-  private game: RiddleGame | null = null;
+  private controller: QuizController | null = null;
+  private get game(): RiddleGame | null { return this.controller instanceof RiddleGame ? this.controller : null; }
+  private tokens: QuizTokens;
+  private seatedAt = new Map<number, number>();
+  private seatSeq = 0;
+  private recsAt = new Map<number, number>();
+  private inkPending: { d: number; ops: QzInkOp[] } | null = null;
+  private inkAt = -Infinity;
+  private inkFull = new Map<number, { pid: number; d: number; skip: number }>();
+  private builtins: ReturnType<typeof loadBuiltinPacks> | null = null;
   private lineSeq = 1;
   private reserved: { slot: number; chair: number } | null = null;
   private readonly swaps = new Set<number>();
@@ -81,7 +89,11 @@ export class QuizStage {
   private stateKey = '';
   private readonly sent = new Map<number, { pid: number; inside: boolean; key: string; at: number }>();
 
-  constructor(host: QuizHost) { this.h = host; this.emptyAt = host.now(); }
+  constructor(host: QuizHost) {
+    this.h = host; this.emptyAt = host.now(); this.tokens = new QuizTokens(host.profiles?.());
+  }
+
+  raisedPults(): number[] { return this.phase === 'game' ? this.controller?.pults?.() ?? [] : []; }
 
   /** Не дать хабу уснуть с незавершённой игрой или сроком очистки счёта вечера. */
   get active(): boolean {
@@ -92,13 +104,21 @@ export class QuizStage {
     const now = this.h.now();
     this.refresh(now);
     this.advance(now);
+    if (this.phase === 'game') this.pay(this.tokens.minute(this.insidePids(), now));
+    this.flushInk(now);
     this.flush(now);
   }
 
   use(slot: number, place: number): void {
     this.step();
     const p = this.members.get(slot), spot = placeAt(place);
-    if (!p || !spot || spot.kind !== 'chair' || this.onStage(slot) || Math.hypot(p.x - spot.x, p.z - spot.z) > 1.4 || Math.abs(p.y - spot.y) >= 2) return;
+    if (!p || !spot || this.onStage(slot) || Math.hypot(p.x - spot.x, p.z - spot.z) > 1.4 || Math.abs(p.y - spot.y) >= 2) return;
+    if (spot.kind !== 'chair') {
+      const error = this.controller?.use?.(slot, place, this.h.now());
+      if (error) this.h.send(slot, { t: 'qzErr', ...error });
+      this.refresh(this.h.now()); this.flush(this.h.now()); return;
+    }
+    if (this.controller?.roleOf(slot) && this.controller.mode !== 'riddle') this.controller.stood?.(slot, this.h.now());
     const occupied = [...this.members.values()].some(q => q.slot !== slot && q.action === ACT_QUIZ && q.arg === place);
     if (occupied || (this.reserved?.chair === place && this.reserved.slot !== slot)) { this.h.toast(slot, 'Место занято'); return; }
     if (p.action === ACT_QUIZ && p.arg === place) return;
@@ -107,7 +127,7 @@ export class QuizStage {
   }
 
   /** Вызывается комнатой до снятия ACT_QUIZ: сцену покидают только завершением загадки или уходом. */
-  stood(slot: number): boolean { return !this.onStage(slot); }
+  stood(slot: number, apply = true): boolean { return !this.onStage(slot) && (!apply || (this.controller?.stood?.(slot, this.h.now()) ?? true)); }
 
   blocksEmotes(slot: number): boolean {
     const p = [...this.h.people()].find(p => p.slot === slot);
@@ -120,6 +140,7 @@ export class QuizStage {
     if (!p) return;
     this.members.delete(slot); this.sent.delete(slot);
     this.departed(p, this.h.now());
+    if (this.controller && !this.game) { this.controller.presence?.(this.h.now()); this.syncMode(this.h.now()); }
     if (!this.members.size) this.emptyAt ??= this.h.now();
   }
 
@@ -129,6 +150,7 @@ export class QuizStage {
     this.step();
     const p = this.members.get(slot), now = this.h.now();
     if (!p) return;
+    if (this.catalog(p, msg, now)) return;
     switch (msg.a) {
       case 'play':
         if (this.phase !== 'idle' || this.chair(p) < 0) return;
@@ -137,27 +159,33 @@ export class QuizStage {
         break;
       case 'vote':
         if (this.phase !== 'vote' || this.voteStep !== 'ballot' || !this.vote) return;
-        this.vote = syncVote(castVote(this.vote, slot, msg.m, [...this.members.values()]), [...this.members.values()], now);
+        this.vote = syncVote(castVote(this.vote, slot, msg.m, [...this.members.values()], READY), [...this.members.values()], now, READY);
         this.deadline = this.vote.endsAt;
         break;
       case 'swap':
         if (!this.canSwap(p)) return;
         if (msg.on) this.swaps.add(slot); else this.swaps.delete(slot);
+        if (this.phase === 'game') this.tokens.action(p.pid, now);
         this.checkSwap(now);
         break;
       case 'role':
+        if (this.controller && !this.game) { this.modeMessage(p, msg, now); break; }
+        if (msg.r && msg.r !== 'riddler') return;
         if (!this.canTake(p) || !this.call) return;
         if (msg.take) {
           this.acceptedBy = this.call.by; this.call = null; this.deadline = 0;
-          if (this.phase === 'roles') { this.phase = 'game'; this.lastPlayed.riddle = now; }
+          if (this.phase === 'roles') this.beginGame(now);
           this.game!.beginAsk(p, now); this.participant(p);
+          this.tokens.action(p.pid, now);
         } else if (this.call.to) this.skip(p, this.call.by, now);
         break;
       default: {
-        if (this.phase !== 'game' || !this.game || this.swapPending) return;
+        if (this.phase !== 'game' || !this.controller || this.swapPending) return;
+        if (!this.game) { this.modeMessage(p, msg, now); break; }
         const before = this.game.step, oldId = this.game.nextId, hints = this.game.round?.hints.length ?? 0;
-        const error = this.game.message(p, msg, this.members.size - 1, now);
+        const error = this.controller.message(p, msg, this.members.size - 1, now);
         if (error) this.h.send(slot, { t: 'qzErr', ...error });
+        if (this.controller.accepted) this.tokens.action(p.pid, now);
         if (msg.a === 'say' && this.game.nextId !== oldId && (before === 'round' || before === 'check') && p.slot !== this.game.riddler?.slot) this.participant(p);
         if (msg.a === 'ask' && before === 'ask' && this.game.step === 'round') {
           this.reserved = { slot, chair: this.chair(p) < 0 ? -1 : p.arg };
@@ -183,26 +211,27 @@ export class QuizStage {
     return b;
   }
 
-  view(): QzView {
+  view(slot = 0): QzView {
+    const fields = this.controller?.viewFields(slot);
     return { ...this.base(this.h.now()), people: [...this.members.values()].map(p => ({ slot: p.slot, nick: p.nick,
-      chair: this.chair(p), role: this.isRiddler(p.slot) ? 'riddler' : '', vote: this.choice(p.slot) })),
+      chair: this.chair(p), role: this.controller?.roleOf(p.slot) ?? '', vote: this.choice(p.slot),
+      ...(this.mode === 'whoofus' ? { titles: this.controller?.titles?.(p.pid) ?? [] } : {}) })),
     call: this.call ? { ...this.call, to: this.call.to ? { ...this.call.to } : null } : null,
     swap: (this.phase === 'roles' || this.phase === 'game') && !this.swapPending ? { n: this.swaps.size, need: this.swapNeed() } : null,
-    riddle: this.game?.view() ?? null };
+    riddle: fields?.riddle ?? null, jp: fields?.jp ?? null, croc: fields?.croc ?? null, who: fields?.who ?? null };
   }
 
   me(slot: number): QzMe | null {
     const p = this.members.get(slot);
     if (!p) return null;
-    const role = this.isRiddler(slot);
-    const me: QzMe = { slot, place: p.action === ACT_QUIZ ? p.arg : -1, role: role ? 'riddler' : '', vote: this.choice(slot),
+    const me: QzMe = { slot, place: p.action === ACT_QUIZ ? p.arg : -1, role: this.controller?.roleOf(slot) ?? '', vote: this.choice(slot),
       swap: this.swaps.has(slot), canSwap: this.canSwap(p), canPlay: this.phase === 'idle' && this.chair(p) >= 0 && this.members.size >= 2,
-      canTake: this.canTake(p), gapUntil: this.game?.gapUntil(p.pid) ?? 0 };
-    if (role && this.game?.round) {
-      me.word = this.game.round.word; me.near = this.game.near(); me.hintsLeft = QZ.HINTS - this.game.round.hints.length;
-    }
+      canTake: this.canTake(p), gapUntil: this.controller?.gapUntil(p.pid) ?? 0,
+      ...this.controller?.meFields(slot, this.h.now()), dayCoins: this.tokens.stats(p.pid, this.h.now()).qzDayCoins };
     const score = this.scores.get(p.pid);
-    if (this.phase === 'results' && score) me.result = { place: 1 + [...this.scores.values()].filter(s => s.pts > score.pts).length, pts: score.pts, tokens: 0 };
+    if (this.phase === 'results' && (score || this.tokens.gameCoins(p.pid))) me.result = {
+      place: score ? 1 + [...this.scores.values()].filter(s => s.pts > score.pts).length : 0,
+      pts: score?.pts ?? 0, tokens: this.tokens.gameCoins(p.pid) };
     return me;
   }
 
@@ -215,6 +244,9 @@ export class QuizStage {
     const entered = [...next.values()].some(p => previous.get(p.slot)?.pid !== p.pid);
     if (next.size) this.emptyAt = null; else this.emptyAt ??= now;
     const seated = new Set([...next.values()].filter(p => this.chair(p) >= 0).map(p => p.pid));
+    for (const pid of this.seatedAt.keys()) if (!seated.has(pid)) this.seatedAt.delete(pid);
+    for (const pid of seated) if (!this.seatedAt.has(pid)) this.seatedAt.set(pid, ++this.seatSeq);
+    for (const p of this.h.profiles?.() ?? []) this.tokens.load(p.pid, p.stats);
     if ([...seated].some(pid => !this.seatedBefore.has(pid))) this.autoBlocked = false;
     this.seatedBefore = seated;
     for (const scores of [this.scores, this.evening]) for (const [pid, row] of scores) {
@@ -228,6 +260,11 @@ export class QuizStage {
     if (entered && this.phase === 'idle' && now - this.greetAt >= QZ.ZAT_GREET_GAP_MS) {
       this.greetAt = now; this.idleAt = now; this.say('Заходи! Садись — сыграем!', 'greet', now);
     }
+    if (this.controller && !this.game && (this.phase === 'roles' || this.phase === 'game')) {
+      this.controller.presence?.(now); this.syncMode(now);
+      for (const live of this.h.people()) if (next.get(live.slot)?.pid === live.pid) next.set(live.slot, { ...live });
+    }
+    for (const slot of this.swaps) { const p = next.get(slot); if (!p || !this.canSwap(p)) this.swaps.delete(slot); }
   }
 
   private departed(p: QuizPerson, now: number): void {
@@ -240,7 +277,7 @@ export class QuizStage {
     if (this.game?.riddler?.slot === p.slot) {
       if (this.game.step === 'ask') this.skip(p, this.acceptedBy, now);
       else if (this.game.finish('left', now)) this.settle(now);
-    } else if (this.call?.to?.slot === p.slot) this.skip(p, this.call.by, now);
+    } else if (this.game && this.call?.to?.slot === p.slot) this.skip(p, this.call.by, now);
     if (this.reserved?.slot === p.slot) this.reserved = null;
     if (p.action === ACT_QUIZ && (!replacement || replacement.pid === p.pid)) this.h.release(p.slot);
   }
@@ -256,9 +293,9 @@ export class QuizStage {
       }
     } else if (this.phase === 'vote' && this.vote) {
       if (this.voteStep === 'ballot') {
-        this.vote = syncVote(this.vote, [...this.members.values()], now); this.deadline = this.vote.endsAt;
+        this.vote = syncVote(this.vote, [...this.members.values()], now, READY); this.deadline = this.vote.endsAt;
         if (now >= this.deadline) {
-          this.decision = finishVote(this.vote, [...this.members.values()], this.lastPlayed, () => this.h.rand());
+          this.decision = finishVote(this.vote, [...this.members.values()], this.lastPlayed, () => this.h.rand(), READY);
           if (this.decision.nobody) {
             this.voteStep = 'nobody'; this.deadline = now + QZ.NOBODY_MS; this.say('Ну, как надумаете!', 'shrug', now);
           } else if (this.decision.spin) {
@@ -269,14 +306,27 @@ export class QuizStage {
         if (this.voteStep === 'nobody') this.idle(true);
         else if (this.voteStep === 'spin') this.voteWinner(now);
         else {
+          const voters = [...this.members.values()].filter(p => this.vote?.votes[p.slot] === 1).map(p => p.pid);
           this.phase = 'roles'; this.deadline = 0; this.vote = null; this.decision = null;
-          this.game = new RiddleGame(this.lineSeq); this.skipped.clear(); this.lastRiddler = 0;
-          this.openCall(now);
+          this.skipped.clear(); this.lastRiddler = 0;
+          const h = this.modeHost();
+          if (this.mode === 'jeopardy') this.controller = new JeopardyGame(h, now, voters, this.lineSeq);
+          else if (this.mode === 'croc') this.controller = new CrocGame(h, now, this.lineSeq);
+          else if (this.mode === 'whoofus') this.controller = new WhoOfUsGame(h, now, this.lineSeq);
+          else { this.controller = new RiddleGame(this.lineSeq); this.openCall(now); }
+          this.syncMode(now);
         }
       }
     } else if (this.phase === 'roles' || this.phase === 'game') {
       this.checkSwap(now);
       if (this.phase !== 'roles' && this.phase !== 'game') return;
+      if (this.controller && !this.game) {
+        if (this.phase === 'game' && this.mode === 'croc') {
+          if (this.members.size < 2) this.aloneAt ??= now; else this.aloneAt = null;
+          if (this.aloneAt !== null && now - this.aloneAt >= QZ.ALONE_MS) this.controller.stop?.(now, 'empty');
+        }
+        this.controller.tick(now); this.syncMode(now); return;
+      }
       if (this.swapPending) {
         if (now >= this.game!.deadline) this.startVote(now);
         return;
@@ -288,7 +338,7 @@ export class QuizStage {
           if (this.game!.played) this.finishResults(now); else this.idle(false);
           return;
         }
-        const event = this.game!.tick(now); this.settle(now);
+        const event = this.controller!.tick(now); this.settle(now);
         if (event === 'askTimeout' && this.game!.riddler) this.skip(this.game!.riddler, this.acceptedBy, now);
         else if (event === 'done') { this.finishResults(now); return; }
         else if (event === 'next') {
@@ -309,8 +359,8 @@ export class QuizStage {
   }
 
   private startVote(now: number): void {
-    this.lineSeq = this.game?.nextId ?? this.lineSeq;
-    this.restore(); this.game = null; this.call = null; this.mode = null;
+    this.lineSeq = this.controller?.nextId ?? this.lineSeq;
+    this.restore(); this.controller?.close(); this.controller = null; this.tokens.endGame(); this.inkPending = null; this.call = null; this.mode = null;
     this.phase = 'vote'; this.vote = createVote(now); this.deadline = this.vote.endsAt; this.voteStep = 'ballot'; this.decision = null;
     this.swaps.clear(); this.swapPending = false; this.autoAt = null; this.autoBlocked = false; this.aloneAt = null;
     this.scores.clear(); this.announcedStart = false;
@@ -324,9 +374,10 @@ export class QuizStage {
   }
 
   private idle(blocked: boolean): void {
-    this.lineSeq = this.game?.nextId ?? this.lineSeq;
+    this.lineSeq = this.controller?.nextId ?? this.lineSeq;
     this.restore(); this.phase = 'idle'; this.mode = null; this.deadline = 0; this.vote = null; this.decision = null;
-    this.game = null; this.call = null; this.autoAt = null; this.autoBlocked = blocked; this.swaps.clear(); this.swapPending = false;
+    this.controller?.close(); this.controller = null; this.tokens.endGame(); this.inkPending = null;
+    this.call = null; this.autoAt = null; this.autoBlocked = blocked; this.swaps.clear(); this.swapPending = false;
   }
 
   private candidates(): QuizPerson[] {
@@ -334,6 +385,7 @@ export class QuizStage {
   }
 
   private canTake(p: QuizPerson): boolean {
+    if (this.controller && !this.game) return !this.swapPending && (this.controller.canTake?.(p.slot) ?? false);
     return !!this.call && !this.swapPending && (!this.call.to || this.call.to.slot === p.slot) && this.candidates().some(q => q.slot === p.slot);
   }
 
@@ -370,12 +422,17 @@ export class QuizStage {
 
   private onStage(slot: number): boolean { return this.reserved?.slot === slot; }
   private chair(p: QuizPerson): number { const place = p.action === ACT_QUIZ ? placeAt(p.arg) : null; return place?.kind === 'chair' ? place.n : -1; }
-  private canSwap(p: QuizPerson): boolean { return (this.phase === 'roles' || this.phase === 'game') && !this.swapPending && (this.chair(p) >= 0 || this.isRiddler(p.slot)); }
-  private swapNeed(): number { return Math.floor([...this.members.values()].filter(p => this.chair(p) >= 0 || this.isRiddler(p.slot)).length / 2) + 1; }
+  private canSwap(p: QuizPerson): boolean { return (this.phase === 'roles' || this.phase === 'game') && !this.swapPending && (this.chair(p) >= 0 || !!this.controller?.roleOf(p.slot)); }
+  private swapNeed(): number { return Math.floor([...this.members.values()].filter(p => this.canSwap(p)).length / 2) + 1; }
 
   private checkSwap(now: number): void {
     if ((this.phase !== 'roles' && this.phase !== 'game') || this.swapPending || this.swaps.size < this.swapNeed()) return;
     this.call = null;
+    if (this.controller && !this.game) {
+      this.controller.stop?.(now);
+      for (const event of this.controller.rewards?.() ?? []) this.reward(event, now);
+      this.say('Меняем игру!', 'talk', now); this.startVote(now); return;
+    }
     if (this.game?.finish('swap', now)) { this.swapPending = true; this.settle(now); this.say('Меняем игру!', 'talk', now); }
     else { this.say('Меняем игру!', 'talk', now); this.startVote(now); }
   }
@@ -388,6 +445,9 @@ export class QuizStage {
     const result = this.game?.takeResult();
     if (!result) return;
     this.lastRiddler = result.riddler.pid;
+    const round = this.game?.round;
+    if (round && result.solver) this.reward({ kind: 'riddle', id: String(this.game!.roundStartedAt), riddler: result.riddler.pid,
+      solver: result.solver.pid, duration: now - this.game!.roundStartedAt, guessers: [...this.game!.guessers], solved: result.end === 'solved' }, now);
     for (const [id, pts] of Object.entries(result.points)) {
       const pid = Number(id), player = this.scores.get(pid);
       if (!player) continue;
@@ -416,17 +476,20 @@ export class QuizStage {
 
   private finishResults(now: number, cheer = true): void {
     this.restore(); this.phase = 'results'; this.call = null; this.deadline = now + QZ.RESULTS_MS; this.swaps.clear(); this.swapPending = false;
+    this.tokens.endGame();
     const top = this.rows(this.scores)[0];
     if (top) {
-      if (cheer) this.say(`Молодцы! Лучший — ${top.nick}`, 'clap', now);
-      this.announce(`🏆 ${top.nick} выиграл «Загадку» на «Ракушке» — ${top.pts} очков`, now);
+      if (cheer) this.say(this.mode === 'jeopardy' ? `Победил ${top.nick} — ${top.pts}!` : `Молодцы! Лучший — ${top.nick}`, this.mode === 'jeopardy' ? 'cheer' : 'clap', now);
+      if (this.mode === 'jeopardy') this.announce(`🏆 ${top.nick} выиграл «Свою игру» (пак «${this.controller?.outcome?.pack?.title ?? ''}») — ${top.pts}`, now);
+      else if (this.mode === 'whoofus') this.announce(`🏆 Самый «в теме» на «Ракушке» — ${top.nick}: ${top.pts} из 10`, now);
+      else this.announce(`🏆 ${top.nick} выиграл «${QZ_MODES.find(m => m.id === this.mode)!.name}» на «Ракушке» — ${top.pts} очков`, now);
     }
   }
 
   private choice(slot: number): number {
     if (this.phase !== 'vote' || !this.vote) return -1;
     const m = this.vote.votes[slot];
-    return voteView(this.vote, [...this.members.values()]).options[m]?.off === null ? m : -1;
+    return voteView(this.vote, [...this.members.values()], READY).options[m]?.off === null ? m : -1;
   }
 
   private rows(scores: Map<number, QzScoreRow>): QzScoreRow[] { return [...scores.values()].map(p => ({ ...p })).sort((a, b) => b.pts - a.pts); }
@@ -434,17 +497,19 @@ export class QuizStage {
   private base(now: number) {
     const r = this.game?.view();
     const riddle = r ? (({ lines: _lines, ...board }) => board)(r) : null;
-    const vote = this.decision ?? (this.vote ? voteView(this.vote, [...this.members.values()]) : null);
+    const vote = this.decision ?? (this.vote ? voteView(this.vote, [...this.members.values()], READY) : null);
     return { rev: this.rev, now, phase: this.phase, endsAt: this.call?.endsAt ?? (this.game?.step === 'ask' ? this.game.deadline : this.deadline),
       mode: this.mode, count: this.members.size, seated: [...this.members.values()].filter(p => this.chair(p) >= 0).length,
-      vote: vote ? structuredClone(vote) : null, riddle,
-      results: this.phase === 'results' ? { mode: this.mode!, top: this.rows(this.scores).slice(0, 3), endsAt: this.deadline } : null,
+      vote: vote ? structuredClone(vote) : null, riddle, ...this.controller?.boardFields(),
+      results: this.phase === 'results' ? { mode: this.mode!, top: this.rows(this.scores).slice(0, 3), endsAt: this.deadline,
+        ...(this.controller?.outcome?.pack ? { pack: this.controller.outcome.pack } : {}),
+        ...(this.controller?.outcome?.titles ? { titles: this.controller.outcome.titles } : {}) } : null,
       evening: this.rows(this.evening).slice(0, 8), noTokens: this.members.size < QZ.TOKENS_MIN_PEOPLE, zat: this.zatSay ? { ...this.zatSay } : null };
   }
 
   private say(text: string, clip: QzZatClip, now: number): void {
     this.zatSay = { id: ++this.zatId, text, clip, at: now };
-    if (this.phase === 'game') this.game?.zat(text, now);
+    if (this.phase === 'game' || this.controller?.phase === 'game' && this.phase === 'roles') this.controller?.zat(text, now);
   }
 
   private announce(text: string, now: number): void {
@@ -454,20 +519,147 @@ export class QuizStage {
 
   private error(slot: number, code: QzErrCode, text: string): void { this.h.send(slot, { t: 'qzErr', code, text }); }
 
+  private modeHost(): ModeHost {
+    return {
+      people: () => [...this.members.values()].map(p => ({ ...p, chair: this.chair(p), seatedAt: this.seatedAt.get(p.pid) ?? Infinity })),
+      rand: () => this.h.rand(), hold: (slot, place) => this.h.hold(slot, place),
+      release: (slot, to) => { if (this.members.has(slot)) this.h.release(slot, to); },
+      say: (text, clip, now) => this.say(text, clip, now), ping: slot => this.members.get(slot)?.ping ?? 0,
+      packs: kind => {
+        if (this.h.packs) return this.h.packs.all(kind);
+        this.builtins ??= loadBuiltinPacks(undefined, text => this.h.log(text));
+        return this.builtins.filter(p => p.pack.kind === kind);
+      },
+      store: this.h.packs, ink: msg => this.ink(msg),
+    };
+  }
+
+  private beginGame(now: number): void {
+    this.phase = 'game'; this.lastPlayed[this.mode!] = now; this.tokens.startGame(now);
+    if (this.mode !== 'riddle') {
+      const names = [...this.members.values()].slice(0, 3).map(p => p.nick).join(', ');
+      this.announce(`🎤 На «Ракушке» «${QZ_MODES.find(m => m.id === this.mode)!.name}»: ${names}${this.members.size > 3 ? ` и ещё ${this.members.size - 3}` : ''} — приходите угадывать!`, now);
+    }
+  }
+
+  private modeMessage(p: QuizPerson, msg: QuizClientMsg, now: number): void {
+    const c = this.controller; if (!c || this.swapPending || (this.phase !== 'roles' && this.phase !== 'game')) return;
+    const error = c.message(p, msg, this.members.size - 1, now);
+    if (error) this.h.send(p.slot, { t: 'qzErr', ...error });
+    this.syncMode(now);
+    if (c.accepted && this.phase === 'game') this.tokens.action(p.pid, now);
+  }
+
+  private syncMode(now: number): void {
+    const c = this.controller;
+    if (!c || this.game || (this.phase !== 'roles' && this.phase !== 'game')) return;
+    if (c.phase === 'idle') { this.idle(true); return; }
+    if (this.phase === 'roles' && c.phase === 'game') this.beginGame(now);
+    this.call = c.call ?? null; this.deadline = c.deadline ?? 0;
+    for (const event of c.rewards?.() ?? []) this.reward(event, now);
+    if (!c.outcome) return;
+    this.scores.clear();
+    for (const p of c.outcome.players) this.scores.set(p.pid, { slot: p.slot, nick: p.nick, pts: p.pts });
+    if (c.outcome.completed) {
+      const ranked = quizPlaces(c.outcome.players.map(p => ({ pid: p.pid, score: p.pts })));
+      for (const p of ranked) {
+        const row = this.scores.get(p.pid)!, pts = this.mode === 'jeopardy' ? [5, 3, 2][p.place - 1] ?? 0 : p.score;
+        this.evening.set(p.pid, { ...row, pts: (this.evening.get(p.pid)?.pts ?? 0) + pts });
+      }
+    }
+    this.finishResults(now);
+  }
+
+  private insidePids(): number[] { return [...this.members.values()].map(p => p.pid); }
+  private pay(awards: QuizAward[]): void {
+    for (const a of awards) {
+      if (a.n) {
+        const p = [...this.h.people()].find(p => p.pid === a.pid);
+        this.h.credit?.(p?.slot ?? 0, a.n, a.pid);
+      }
+      this.h.saveStats?.(a.pid, a.stats);
+    }
+  }
+  private reward(event: QuizRewardEvent, now: number): void {
+    this.pay(this.tokens.event(event, this.insidePids(), now));
+    const pids = event.kind === 'riddle' ? [event.riddler, event.solver] : event.kind === 'crocTurn' ? [event.drawer, ...event.guessed]
+      : [...event.players.map(p => p.pid), ...(event.kind === 'jeopardy' && event.host ? [event.host] : []), ...(event.kind === 'whoofus' ? event.titles : [])];
+    for (const pid of new Set(pids)) this.h.saveStats?.(pid, this.tokens.stats(pid, now));
+  }
+
+  private catalog(p: QuizPerson, msg: QuizClientMsg, now: number): boolean {
+    if (!['packs', 'packOutline', 'packDel', 'packLike', 'upTicket', 'recs'].includes(msg.a)) return false;
+    try {
+      const packs = this.h.packs;
+      switch (msg.a) {
+        case 'packs': this.h.send(p.slot, { t: 'qzPacks', ...(packs?.list(p.pid, msg.q, msg.kind) ?? { list: [], total: 0, admin: false }) }); break;
+        case 'packOutline': {
+          const outline = packs?.outline(msg.id, p.pid);
+          if (!outline) throw new PackError('Пак не найден.', 404);
+          this.h.send(p.slot, { t: 'qzPackOutline', outline }); break;
+        }
+        case 'packDel':
+          if (!packs) throw new PackError('Паки пока недоступны.', 404);
+          packs.delete(msg.id, p.pid); this.h.send(p.slot, { t: 'qzPacks', ...packs.list(p.pid) }); break;
+        case 'packLike':
+          if (!packs) throw new PackError('Паки пока недоступны.', 404);
+          packs.like(msg.id, p.pid); this.h.send(p.slot, { t: 'qzPacks', ...packs.list(p.pid) }); break;
+        case 'upTicket':
+          if (!this.h.http) throw new PackError('Паки пока недоступны.', 404);
+          this.h.send(p.slot, { t: 'qzTicket', ...this.h.http.ticket(p.pid, p.level ?? 1) }); break;
+        case 'recs': {
+          if (now - (this.recsAt.get(p.pid) ?? -Infinity) < 2000) break;
+          this.recsAt.set(p.pid, now);
+          const profiles = (this.h.profiles?.() ?? []).map(pr => ({ slot: [...this.h.people()].find(w => w.pid === pr.pid)?.slot ?? 0, nick: pr.nick, stats: pr.stats }));
+          this.h.send(p.slot, { t: 'qzRecs', me: quizMyRecords(this.tokens.stats(p.pid, now), now), top: quizTopRecords(profiles) }); break;
+        }
+      }
+    } catch (e) {
+      const code: QzErrCode = msg.a === 'upTicket' && e instanceof PackError ? e.status === 403 ? 'level' : e.status === 429 || e.status === 413 ? 'limit' : 'pack' : 'pack';
+      this.error(p.slot, code, e instanceof PackError ? e.message : 'Паки пока недоступны.');
+      if (!(e instanceof PackError)) this.h.log('quiz: не удалось прочитать каталог паков');
+    }
+    return true;
+  }
+
+  private ink(msg: Extract<QuizServerMsg, { t: 'qzInk' }>): void {
+    if (msg.full) { this.inkPending = null; this.inkFull.clear(); this.inkAt = this.h.now(); this.h.sendLobby(msg); return; }
+    for (const p of this.members.values()) this.h.send(p.slot, msg);
+    if (!this.inkPending || this.inkPending.d !== msg.d) this.inkPending = { d: msg.d, ops: [] };
+    this.inkPending.ops.push(...msg.ops);
+  }
+  private flushInk(now: number): void {
+    if (!this.inkPending || now - this.inkAt < QZ_CROC.INK_OUTSIDE_MS) return;
+    const batch = this.inkPending;
+    for (const p of this.h.people()) if (!this.members.has(p.slot)) {
+      const full = this.inkFull.get(p.slot), skip = full?.pid === p.pid && full.d === batch.d ? full.skip : 0;
+      const ops = batch.ops.slice(skip);
+      if (ops.length) this.h.send(p.slot, { t: 'qzInk', d: batch.d, ops });
+    }
+    this.inkPending = null; this.inkFull.clear(); this.inkAt = now;
+  }
+
   private flush(now: number): void {
     const view = this.view(), board = this.board();
     const fullKey = JSON.stringify({ ...view, rev: 0, now: 0 }), boardKey = JSON.stringify({ ...board, rev: 0, now: 0 });
     const personal = new Map([...this.members.keys()].map(slot => [slot, this.me(slot)!]));
-    const stateKey = fullKey + JSON.stringify([...personal.values()]);
+    const views = new Map([...this.members.keys()].map(slot => [slot, this.view(slot)]));
+    const stateKey = fullKey + JSON.stringify([...personal.values()]) + JSON.stringify([...views.values()].map(v => ({ ...v, now: 0, rev: 0 })));
     if (stateKey !== this.stateKey) { this.stateKey = stateKey; this.rev++; }
     view.rev = board.rev = this.rev;
     const lobby = [...this.h.people()];
     for (const p of lobby) {
       const me = personal.get(p.slot), inside = !!me, old = this.sent.get(p.slot);
-      const key = inside ? fullKey + JSON.stringify(me) : boardKey;
+      const ownView = views.get(p.slot) ?? null;
+      if (ownView) ownView.rev = this.rev;
+      const key = inside ? JSON.stringify({ ...ownView, rev: 0, now: 0 }) + JSON.stringify(me) : boardKey;
       const transition = !old || old.pid !== p.pid || old.inside !== inside;
       if (!transition && (old.key === key || now - old.at < QZ.SNAP_MIN_MS)) continue;
-      this.h.send(p.slot, me ? { t: 'qz', v: view, me } : { t: 'qzBoard', b: board });
+      this.h.send(p.slot, me ? { t: 'qz', v: ownView!, me } : { t: 'qzBoard', b: board });
+      if (transition && this.controller?.fullInk) {
+        const full = this.controller.fullInk(); this.h.send(p.slot, full);
+        this.inkFull.set(p.slot, { pid: p.pid, d: full.d, skip: this.inkPending?.d === full.d ? this.inkPending.ops.length : 0 });
+      }
       this.sent.set(p.slot, { pid: p.pid, inside, key, at: now });
     }
     const slots = new Set(lobby.map(p => p.slot));

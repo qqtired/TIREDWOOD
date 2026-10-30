@@ -1,7 +1,8 @@
 // Точка входа сервера: HTTP (в разработке — Vite, в бою — готовая сборка из dist/),
 // WebSocket на /ws, хаб с комнатами (набережная, пейнтбол) и игровой цикл 60 тиков в секунду.
 import { createHash, randomBytes } from 'node:crypto';
-import { createReadStream, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { createReadStream, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { stat } from 'node:fs/promises';
 import http from 'node:http';
 import path from 'node:path';
@@ -21,6 +22,9 @@ import { regattaEnabled } from './lobby/regatta.ts';
 import { hideEnabled } from '../shared/hide.ts';
 import { farmEnabled } from '../shared/farmnet.ts';
 import { quizEnabled } from '../shared/quiz/net.ts';
+import { QuizPacks, quizAdmins } from './lobby/quiz/packs.ts';
+import { registerBuiltinPacks } from './lobby/quiz/builtin.ts';
+import { QuizHttp } from './lobby/quiz/http.ts';
 import { jukeboxEnabled } from '../shared/jukebox.ts';
 import { planeEnabled } from '../shared/plane.ts';
 import { Profiles } from './profiles.ts';
@@ -67,6 +71,18 @@ const hide = hideEnabled(process.env.HIDE, DEV);
 // «Ферма» до «да» владельца скрыта: FARM=1 — включить, FARM=0 — выключить, без переменной — только с --dev
 const farm = farmEnabled(process.env.FARM, DEV);
 const quiz = quizEnabled(process.env.QUIZ, DEV, PLAZA3);
+let quizHttp: QuizHttp | undefined;
+if (quiz) {
+  let packs: QuizPacks, enabled = true;
+  try { packs = new QuizPacks({ dataDir: DATA_DIR, admins: quizAdmins(process.env.QUIZ_ADMINS) }); }
+  catch {
+    console.error('QUIZ: каталог паков недоступен; загрузка выключена, играем встроенные паки');
+    enabled = false;
+    packs = new QuizPacks({ dataDir: mkdtempSync(path.join(tmpdir(), 'tiredwood-quiz-')) });
+  }
+  registerBuiltinPacks(packs);
+  quizHttp = new QuizHttp({ packs, enabled, ip: clientIp });
+}
 const voice = process.env.VOICE === undefined ? DEV : process.env.VOICE === '1';
 const voiceIce = voice ? voiceConfigFromEnv(process.env) : undefined;
 const gifts = process.env.GIFTS === undefined ? DEV : process.env.GIFTS === '1';
@@ -90,7 +106,7 @@ const plane = planeEnabled(process.env.PLANE, DEV);
 const kite = process.env.KITE === undefined ? DEV : process.env.KITE === '1';
 // Голосование «выгнать игрока» из меню Tab: VOTEKICK=1 — включить, VOTEKICK=0 — выключить, без переменной — только с --dev
 const votekick = process.env.VOTEKICK === undefined ? DEV : process.env.VOTEKICK === '1';
-const hub = new Hub({ store, profiles, smokeToken: smokeToken(), build, roll, weather, tg, fort, skill, boatrace, hide, farm, farmPond, fish2, isle, roulette, ratrace, quiz, storm, pirates, voice, voiceIce, jukebox, billiards, plane, kite, votekick, dungeon,
+const hub = new Hub({ store, profiles, smokeToken: smokeToken(), build, roll, weather, tg, fort, skill, boatrace, hide, farm, farmPond, fish2, isle, roulette, ratrace, quiz, quizHttp, storm, pirates, voice, voiceIce, jukebox, billiards, plane, kite, votekick, dungeon,
   giftCodeHash: gifts ? DEVIL_GIFT_CODE_HASH : null,
   devStorm: DEV && process.env.DEV_STORM === 'now', devPirates: DEV && process.env.DEV_PIRATES === 'now',
   // /wave, /event, /gate, /hp в чате крепости — только разработка или DEV_GO=1 (проверка собранного сервера)
@@ -209,6 +225,7 @@ server.on('request', (req, res) => {
     res.end(JSON.stringify({ ok: true, ...hub.health(), stepMs: Math.round(stepMs * 1000) / 1000 }));
     return;
   }
+  if (quizHttp?.handle(req, res, url.pathname)) return;
   if (lab.handle(req, res, url.pathname)) return;
   if (viteMiddleware) {
     viteMiddleware(req, res, () => {
@@ -439,6 +456,7 @@ function shutdown(): void {
   if (stopping) return;
   stopping = true;
   tg.stop();
+  try { quizHttp?.close(); } catch { console.error('QUIZ: не удалось сохранить каталог при остановке'); }
   if (!persistence.run(() => hub.shutdown())) return;
   server.close(() => process.exit(0));
   setTimeout(() => process.exit(0), 800).unref();

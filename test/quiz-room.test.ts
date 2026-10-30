@@ -39,8 +39,10 @@ test('комната: QUIZ включает приветствие и твёрд
   assert.ok(off.hub.lobby.world.groundBelow(x, 1, z) < V.stage.top);
   assert.equal(on.hub.lobby.world.groundBelow(x, 1, z), V.stage.top);
   off.sit(off.a.c, 0); assert.equal(off.hub.lobby.playerOf(off.a.c)!.action, ACT_NONE);
-  assert.ok(on.hub.lobby.map.interact.slice(-V.chairs.length).every(it => it.kind === 'quiz'));
-  assert.ok(on.hub.lobby.map.interact.slice(0, -V.chairs.length).every(it => it.kind !== 'quiz'));
+  // в конце списка — кресла, пульты и трибуна
+  const n = V.chairs.length + V.pults.length + 1;
+  assert.ok(on.hub.lobby.map.interact.slice(-n).every(it => it.kind === 'quiz'));
+  assert.ok(on.hub.lobby.map.interact.slice(0, -n).every(it => it.kind !== 'quiz'));
 });
 
 test('комната: кресло держит ввод; unuse встаёт, на сцене игнорируется; чат локален', () => {

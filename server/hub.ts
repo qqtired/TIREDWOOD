@@ -19,6 +19,7 @@ import { sanitizeChat } from '../shared/text.ts';
 import { FortRoom } from './fort/room.ts';
 import type { DurakResult } from './lobby/durak.ts';
 import { LobbyRoom } from './lobby/room.ts';
+import type { QuizHttp } from './lobby/quiz/http.ts';
 import type { WeatherMode } from './lobby/weather.ts';
 import type { Player, Sink } from './paintball/game.ts';
 import { PaintballRoom } from './paintball/room.ts';
@@ -75,6 +76,7 @@ export class Client {
   room: Room | null = null;
   epoch = 0;
   ping = 0;
+  spot: 'stage' | null = null;
   lastMove = -9999;
   helloTries = 0;
   closed = false;
@@ -148,6 +150,7 @@ export interface HubOptions {
   /** Крысиные бега на понтоне у набережной (ставка жетонами) — флаг сервера RATRACE, shared/ratrace.ts */
   ratrace?: boolean;
   quiz?: boolean;
+  quizHttp?: QuizHttp;
   /** Музыкальный автомат на площади (флаг сервера JUKEBOX, shared/jukebox.ts) */
   jukebox?: boolean;
   /** Бильярд в пристройке казино (флаг сервера BILLIARDS, shared/billiards.ts) */
@@ -261,7 +264,7 @@ export class Hub {
   readonly hide: HideRoom | null;
   /** «Ферма»: null — режим выключен флагом (калитки на площади не видно, вход закрыт, profile.farm хранится как есть) */
   readonly farm: FarmRoom | null;
-  private readonly voice: VoiceRouter | null;
+  readonly voice: VoiceRouter | null;
   private readonly gifts: GiftCodes;
   /** «Крепость»: null — режим выключен флагом (арки на набережной не видно, вход закрыт) */
   readonly fort: FortRoom | null;
@@ -278,6 +281,7 @@ export class Hub {
   /** Крысиные бега включены (флаг RATRACE) */
   readonly ratrace: boolean;
   readonly quiz: boolean;
+  readonly quizHttp?: QuizHttp;
   readonly clients = new Set<Client>();
   readonly limits: RateLimiter;
   /** Ожидание загрузки перед стартом раунда (server/readygate.ts) */
@@ -333,6 +337,7 @@ export class Hub {
     this.roulette = this.fish2 && (o.roulette ?? false);
     this.ratrace = o.ratrace ?? false;
     this.quiz = LAYOUT === 3 && (o.quiz ?? false);
+    this.quizHttp = this.quiz ? o.quizHttp : undefined;
     this.skill = o.skill ? new SkillRoom({ course: this.store.state.skillCourse, outfitOf: (p) => this.outfitOf(p), afk: (c) => this.onPaintballAfk(c), result: (c, ticks, falls) => this.onSkillResult(c, ticks, falls) }) : null;
     this.boatrace = !!o.boatrace;
     this.hide = o.hide ? new HideRoom({ outfitOf: p => this.outfitOf(p), finished: (pid,result) => this.onHideResult(pid,result), afk: c => this.onPaintballAfk(c) }) : null;
