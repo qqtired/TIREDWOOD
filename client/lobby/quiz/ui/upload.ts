@@ -2,8 +2,10 @@
 // Билет по WebSocket (upTicket → qzTicket, 5 минут на один пак) → POST /quiz/up (пак и список файлов) → PUT каждого файла
 // строго по одному (параллельные сервер отклоняет с 409) → POST /quiz/up/<id>/done. 429 — ждём и повторяем; билет истёк
 // (401) — новый билет и заново с начала. Сеть и ожидание передаются снаружи (UploadDeps) — тесты идут в Node с заглушкой.
-import { QZ_TICKET_HEADER, type QzUpBody, type QzUpStart } from '../../../../shared/quiz/net.ts';
-import type { QzPack, QzPackInfo, QzUpFile } from '../../../../shared/quiz/types.ts';
+// «Ракушка» 1.1, F5: fetchPack — скачать .siq по ссылке из библиотеки SIGame (POST /quiz/fetch с тем же билетом); байты дальше
+// разбирает siq.ts, как перетащенный файл.
+import { QZ_TICKET_HEADER, type QzFetchBody, type QzUpBody, type QzUpStart } from '../../../../shared/quiz/net.ts';
+import { QZ_PACK, type QzPack, type QzPackInfo, type QzUpFile } from '../../../../shared/quiz/types.ts';
 import { fileName } from '../../../../shared/quiz/pack.ts';
 
 /** Что делаем сейчас — для подписи и полоски */
@@ -83,6 +85,29 @@ async function body(res: Response): Promise<Record<string, unknown>> {
   try { const j: unknown = await res.json(); return j && typeof j === 'object' ? j as Record<string, unknown> : {}; } catch { return {}; }
 }
 
+/** Один запрос с билетом: 429 — ждём Retry-After и повторяем (wait — сколько секунд ждём), 401 — Expired («начни с нового билета»),
+ *  нет связи — UploadError; остальное (в том числе отказы 4xx и 5xx) отдаём как есть — разбирает вызвавший */
+async function ask(deps: UploadDeps, wait: (s: number) => void, method: string, path: string, ticket: string, init: { body?: BodyInit; type?: string } = {}): Promise<Response> {
+  for (let attempt = 0; ; attempt++) {
+    let res: Response;
+    try {
+      res = await deps.fetch(path, { method, headers: { [QZ_TICKET_HEADER]: ticket, ...(init.type ? { 'content-type': init.type } : {}) }, body: init.body });
+    } catch {
+      throw new UploadError('net', 'Нет связи с сервером — попробуй ещё раз.');
+    }
+    if (res.status === 429) {
+      if (attempt >= RETRY_429) throw new UploadError('busy', 'Сервер занят — попробуй чуть позже.');
+      const s = waitSeconds(res.headers.get('retry-after'), attempt);
+      wait(s);
+      await deps.sleep(s * 1000);
+      wait(0);
+      continue;
+    }
+    if (res.status === 401) throw new Expired();
+    return res;
+  }
+}
+
 /** Отправить пак. Возвращает строку каталога (QzPackInfo). Ошибка — UploadError (текст — для игрока) */
 export async function uploadPack(job: UploadJob, deps: UploadDeps, onProgress: (p: UploadProgress) => void = () => {}): Promise<QzPackInfo> {
   const total = job.files.reduce((n, f) => n + f.size, 0);
@@ -91,26 +116,10 @@ export async function uploadPack(job: UploadJob, deps: UploadDeps, onProgress: (
 
   /** Один запрос: 429 — ждём и повторяем, 401 — Expired, остальные отказы — UploadError */
   async function call(method: string, path: string, ticket: string, init: { body?: BodyInit; type?: string } = {}): Promise<Record<string, unknown>> {
-    for (let attempt = 0; ; attempt++) {
-      let res: Response;
-      try {
-        res = await deps.fetch(path, { method, headers: { [QZ_TICKET_HEADER]: ticket, ...(init.type ? { 'content-type': init.type } : {}) }, body: init.body });
-      } catch {
-        throw new UploadError('net', 'Нет связи с сервером — попробуй ещё раз.');
-      }
-      if (res.status === 429) {
-        if (attempt >= RETRY_429) throw new UploadError('busy', 'Сервер занят — попробуй чуть позже.');
-        const s = waitSeconds(res.headers.get('retry-after'), attempt);
-        tell({ wait: s });
-        await deps.sleep(s * 1000);
-        tell({ wait: 0 });
-        continue;
-      }
-      if (res.status === 401) throw new Expired();
-      const j = await body(res);
-      if (!res.ok || j.ok === false) throw new UploadError('bad', typeof j.error === 'string' && j.error ? j.error : `Сервер отказал (${res.status}).`, res.status);
-      return j;
-    }
+    const res = await ask(deps, (s) => tell({ wait: s }), method, path, ticket, init);
+    const j = await body(res);
+    if (!res.ok || j.ok === false) throw new UploadError('bad', typeof j.error === 'string' && j.error ? j.error : `Сервер отказал (${res.status}).`, res.status);
+    return j;
   }
 
   async function once(): Promise<QzPackInfo> {
@@ -160,6 +169,70 @@ export async function uploadPack(job: UploadJob, deps: UploadDeps, onProgress: (
       if (!(e instanceof Expired)) throw e;
       if (deps.memo) deps.memo.cur = null;
       if (restarts >= RESTARTS) throw new UploadError('ticket', 'Время загрузки вышло — нажми «Сохранить» ещё раз.');
+    }
+  }
+}
+
+/** Скачивание пака по ссылке (F5): что делаем сейчас — для строки «Скачиваю пак…» */
+export interface FetchProgress {
+  phase: 'ticket' | 'download';
+  /** получено байт и сколько всего (0 — сервер размер не назвал: он присылает пак по кускам) */
+  got: number;
+  total: number;
+  /** сколько секунд ждём перед повтором (429); 0 — не ждём */
+  wait: number;
+}
+
+/** F5: скачать .siq из библиотеки SIGame через сервер (POST /quiz/fetch, билет тот же, что у загрузки; сервер берёт файл только с
+ *  vladimirkhil.com). Возвращает байты пака — дальше их разбирает parseSiq, как файл, который игрок перетащил в окно.
+ *  Отказ — UploadError со строкой сервера для игрока («Библиотека не ответила — попробуй ещё раз» и т. п.). */
+export async function fetchPack(url: string, deps: UploadDeps, onProgress: (p: FetchProgress) => void = () => {}): Promise<Blob> {
+  const state: FetchProgress = { phase: 'ticket', got: 0, total: 0, wait: 0 };
+  const tell = (p: Partial<FetchProgress>): void => { Object.assign(state, p); onProgress({ ...state }); };
+
+  async function once(): Promise<Blob> {
+    tell({ phase: 'ticket', got: 0, total: 0 });
+    const t = await deps.ticket();
+    tell({ phase: 'download' });
+    const res = await ask(deps, (s) => tell({ wait: s }), 'POST', '/quiz/fetch', t.ticket, { body: JSON.stringify({ url } satisfies QzFetchBody), type: 'application/json' });
+    // ошибки сервера — JSON с готовой строкой; пак приходит байтами (если вместо них JSON или страница — это тоже отказ)
+    if (!res.ok || /json|html/i.test(res.headers.get('content-type') ?? '')) {
+      const j = await body(res);
+      throw new UploadError('bad', typeof j.error === 'string' && j.error ? j.error : `Сервер отказал (${res.status}).`, res.status);
+    }
+    tell({ total: Number(res.headers.get('content-length')) || 0 });
+    const parts: Uint8Array<ArrayBuffer>[] = [];
+    let got = 0;
+    try {
+      const reader = res.body?.getReader();
+      if (!reader) {
+        const all = new Uint8Array(await res.arrayBuffer());
+        parts.push(all);
+        got = all.byteLength;
+      } else {
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          got += value.byteLength;
+          if (got > QZ_PACK.FETCH_BYTES) { void reader.cancel().catch(() => {}); throw new UploadError('bad', 'Пак больше 100 МБ.', 413); }
+          parts.push(value as Uint8Array<ArrayBuffer>);
+          tell({ got });
+        }
+      }
+    } catch (e) {
+      throw e instanceof UploadError ? e : new UploadError('net', 'Связь оборвалась, пока качался пак — попробуй ещё раз.');
+    }
+    if (!got) throw new UploadError('bad', 'Библиотека не отдала пак.');
+    tell({ got });
+    return new Blob(parts, { type: 'application/octet-stream' });
+  }
+
+  for (let restarts = 0; ; restarts++) {
+    try {
+      return await once();
+    } catch (e) {
+      if (!(e instanceof Expired)) throw e;
+      if (restarts >= RESTARTS) throw new UploadError('ticket', 'Время загрузки вышло — нажми «Скачать» ещё раз.');
     }
   }
 }

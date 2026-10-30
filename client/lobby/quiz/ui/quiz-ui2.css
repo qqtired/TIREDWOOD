@@ -159,24 +159,46 @@
 .qw-heart { display: inline-flex; align-items: center; gap: 4px; }
 .qw-heart img { width: 18px; height: 18px; object-fit: contain; }
 .qw-row .k-btn { margin: 0 0 2px; flex: none; }
-/* «Загрузить» */
-.qw-up { display: grid; gap: 16px; }
+/* «Ракушка» 1.1: строка заказа вверху «Паков» — тост кита на всю ширину; «Заказан» и «Сыграть» справа в строке (раскладка, цвета даёт кит) */
+.qw-orders { display: grid; gap: 8px; }
+.qw-orders:not(:empty) { margin-bottom: 14px; }
+.qw-orders-hint { margin: 0 0 12px; }
+.qw-order { width: 100%; max-width: none; }
+.qw-row .qw-play, .qw-row .qw-ordered { min-width: 112px; justify-content: center; }
+/* «Загрузить»: три шага сверху вниз (номер — пилюля кита, линии между шагами — k-hr) */
+.qw-up { display: grid; gap: 0; }
+.qw-step { display: grid; gap: 12px; }
+.qw-step-h { display: flex; align-items: center; gap: 10px; }
+.qw-step-n { justify-content: center; min-width: 32px; padding: 0; }
+.qw-ways { justify-self: start; }
+.qw-way { display: grid; gap: 10px; }
+.qw-lead, .qw-hint { margin: 0; }
+.qw-hint { font-size: var(--fs-14); }
+.qw-linkrow { display: flex; align-items: flex-start; gap: 10px; }
+.qw-linkrow .k-input { flex: 1; min-width: 0; }
+.qw-linkrow .k-btn { flex: none; margin: 0 0 3px; }
+.qw-rounds { display: grid; gap: 6px; }
+.qw-round { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.qw-round > b { margin-right: 4px; }
+.qw-done { display: flex; align-items: center; gap: 12px; }
+.qw-done .k-toast { flex: 1; max-width: none; }
+.qw-done .k-btn { flex: none; margin: 0 0 2px; }
+/* плашка вместо формы, если сервер не пускает (QzMe.canUpload === false) */
+.qw-lock { display: grid; justify-items: center; gap: 12px; padding: 32px 24px; text-align: center; }
+.qw-lock-ic { width: 64px; height: 64px; object-fit: contain; }
+.qw-lock .k-btn { margin: 0 0 3px; }
 .qw-drop { display: flex; align-items: center; gap: 14px; padding: 16px 18px; border: 2px dashed var(--line-strong); border-radius: var(--r-md); transition: background .12s, border-color .12s; }
 .qw-drop.is-over { border-color: var(--gold); background: var(--gold-soft); }
 .qw-drop > div { display: grid; flex: 1; min-width: 0; }
 .qw-drop-ic { width: 44px; height: 44px; object-fit: contain; }
 .qw-drop .k-btn { margin: 0 0 2px; }
-.qw-new { display: grid; gap: 8px; }
 .qw-text { width: 100%; min-height: 150px; resize: vertical; font: 500 var(--fs-14)/1.4 var(--font-text); white-space: pre; }
-.qw-card { display: grid; gap: 10px; padding: 14px 16px; border: 1.5px solid var(--line); border-radius: var(--r-md); background: var(--surf-2); }
+.qw-card { display: grid; gap: 10px; }
 .qw-card-head { display: flex; align-items: center; gap: 12px; }
 .qw-card-t { display: grid; flex: 1; gap: 4px; min-width: 0; }
 .qw-stats { margin: 0; font: 700 var(--fs-15)/1.3 var(--font-text); }
 .qw-warns, .qw-errs { display: grid; gap: 2px; margin: 0; padding-left: 18px; font: 600 var(--fs-14)/1.35 var(--font-text); }
-.qw-warns { color: var(--gold-text); }
-.qw-errs { color: var(--bad-text); }
 .qw-busy, .qw-err-line { margin: 0; font: 700 var(--fs-15)/1.3 var(--font-text); }
-.qw-err-line { color: var(--bad-text); }
 .qw-prog { flex: none; width: 160px; }
 /* «Рекорды» */
 .qw-recs { display: grid; gap: 18px; }
@@ -187,3 +209,38 @@
 .qw-top-row span:nth-child(2) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .qw-window .k-win-foot .k-coin { width: 18px; height: 18px; }
 @media (max-width: 760px) { .qw-modes, .qw-tops { grid-template-columns: 1fr; } .qw-row { flex-wrap: wrap; } }
+
+/* ================================================================ «Ракушка» 1.1 (HUD, табло, клавиши): только раскладка и мелочи, цвета — токены кита */
+
+/* счёт справа в полосе («2 из 3») — пилюля кита, не голый текст */
+.k-pill.qz-roles-time { min-width: 0; text-align: center; }
+/* нажал «Ещё раз!» / стою в очереди — зелёная рамка плашки, как у «Играем» */
+.qz-again.is-on, .qz-queue2.is-on { box-shadow: var(--plate-shadow), inset 0 0 0 1.5px var(--good); }
+/* очередь «Хочу загадать»: слово или «приготовь слово» — первой строкой, кнопки под ним */
+.qz-queue2.is-on { flex-wrap: wrap; justify-content: center; row-gap: 8px; max-width: 560px; }
+.qz-queue2.is-on .qz-roles-t { flex: 1 0 100%; text-align: center; }
+.qz-queue2 .qz-roles-t kbd { margin-left: 6px; vertical-align: 1px; }
+.qz-word-t { display: inline-block; max-width: 200px; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; white-space: nowrap; color: var(--gold-text); }
+
+/* B2: строка «что мне делать» под полосой — ряд подсказок кита (.mo-keys), прячется настройкой «Подсказки клавиш» */
+.qz-todo { align-self: center; }
+
+/* C1 «Горячо!»: у загадывающего в доке четыре кнопки — док шире, ник короче, кнопка-слово ниже обычной */
+.qz-dock.is-marks { width: 440px; }
+.qz-dock.is-marks .qz-line > b { max-width: 110px; }
+.qz-markbtns { align-items: center; }
+.qz-markbtns .k-btn { margin: 0; }
+.qz-hotbtn { min-height: 30px; padding: 3px 11px 4px; font-size: var(--fs-14); color: var(--bad-text); }
+.qz-hotbtn:hover:not(:disabled) { box-shadow: 0 0 0 2px var(--bad); }
+/* в карточке «Тепло» «Горячо!» — первой строкой, красным и крупнее; у «тепло» при наведении кнопка «Горячо!» (рядом с «✕») */
+.qz-warm-row.is-hot { background: var(--bad-soft); box-shadow: inset 0 0 0 1.5px var(--bad); }
+.qz-warm-row.is-hot .qz-warm-txt b { font-size: var(--fs-18); }
+.qz-hot-pill { margin-right: 6px; vertical-align: 1px; font-style: normal; }
+.qz-hot-pill[hidden] { display: none; }
+.qz-warm-hot { position: absolute; top: 50%; right: 36px; display: none; min-height: 28px; margin: -14px 0 0; padding: 2px 10px 3px; font-size: var(--fs-14); color: var(--bad-text); opacity: 0; pointer-events: auto; transition: opacity .12s; }
+.qz-warm.is-editable .qz-warm-hot { display: inline-flex; }
+.qz-warm.is-editable .qz-warm-row.is-hot .qz-warm-hot { display: none; }
+.qz-warm-row:hover .qz-warm-hot, .qz-warm-hot:focus-visible { opacity: 1; }
+/* моя последняя догадка над чатом: «горячо!» — красный тон */
+.qz-me.is-hot { padding-left: 10px; background: linear-gradient(var(--bad-soft), var(--bad-soft)), var(--chat-bg); box-shadow: var(--chat-shadow), inset 0 0 0 1.5px var(--bad); }
+.qz-me.is-hot .qz-tag { color: var(--bad-text); }

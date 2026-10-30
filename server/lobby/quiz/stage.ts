@@ -729,8 +729,8 @@ export class QuizStage {
           const pack = packs?.get(msg.id), game = pack ? ORDER_GAME[pack.kind] : undefined;
           if (!pack) throw new PackError('Пак не найден.', 404);
           if (!game) throw new PackError('Этот пак нельзя заказать.');
-          this.orders.set(pack.kind, { id: msg.id, title: pack.title, kind: pack.kind, by: { slot: p.slot, nick: p.nick }, at: now });
-          this.h.toast(p.slot, `Заказан «${pack.title}» — будет в следующей игре «${game}»`); break;
+          // Подтверждение — строка заказа в окне «Паки» (снимок orders), без тоста поверх окна
+          this.orders.set(pack.kind, { id: msg.id, title: pack.title, kind: pack.kind, by: { slot: p.slot, nick: p.nick }, at: now }); break;
         }
         case 'packLike':
           if (!packs) throw new PackError('Паки пока недоступны.', 404);

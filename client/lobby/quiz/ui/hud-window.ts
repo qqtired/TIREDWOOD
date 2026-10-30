@@ -1,17 +1,21 @@
 // «Ракушка»: окно у трибуны (docs/quiz/tech.md §21) — вкладки «Играть» (или «Пак и темы» у ведущего «Своей игры» в шаге
 // setup), «Паки», «Загрузить», «Рекорды». Нативный <dialog class="k-scrim"> > section.k-window (820), ✕, Esc и клик мимо
 // закрывают (QDialog из hud-windows.ts). Игру отсюда не запускают. Сеть — через send; письма сервера (qzPacks, qzPackOutline,
-// qzTicket, qzRecs, qzErr) приходят в onMsg. Загрузка: siq.ts разбирает файл, upload.ts отправляет. Образец вида — lab/quiz/v2.
+// qzTicket, qzRecs, qzErr) приходят в onMsg. Загрузка: siq.ts разбирает файл, upload.ts отправляет и скачивает по ссылке.
+// «Ракушка» 1.1: «Паки» — «Сыграть» (заказ на следующую игру) и строка заказа из снимка; «Загрузить» — три шага (откуда → проверка →
+// сохранить) или плашка «загружать пока может только …», если сервер не пускает (QzMe.canUpload). Образец вида — lab/quiz/v2.
 import type { QuizClientMsg } from '../../../../shared/quiz/net.ts';
 import { PackError, validatePack } from '../../../../shared/quiz/pack.ts';
-import { QZ_PACK, type QzMe, type QzMyRecs, type QzPackInfo, type QzPackKind, type QzPackOutline, type QzTopRecs, type QzUpFile, type QzView } from '../../../../shared/quiz/types.ts';
+import { type QzMe, type QzMyRecs, type QzOrder, type QzPackInfo, type QzPackKind, type QzPackOutline, type QzTopRecs, type QzUpFile, type QzView, QZ_PACK } from '../../../../shared/quiz/types.ts';
+import { sfx } from '../../../ui/kit/sfx.ts';
 import { COIN_K, esc, pic } from './hud-model.ts';
 import { QDialog } from './hud-windows.ts';
 import { parseSiq, fmtSize } from './siq.ts';
-import { TicketDesk, UploadError, uploadPack, type UploadMemo, type UploadProgress, type UploadTicket } from './upload.ts';
+import { TicketDesk, UploadError, fetchPack, uploadPack, type FetchProgress, type UploadMemo, type UploadProgress, type UploadTicket } from './upload.ts';
 import {
-  KIND_NAME, checkDraft, defaultSetup, dayLine, draftFromText, hasFinal, kindIcon, modeCards, myRecs, packRow, packSummary, pickTab, playableRounds, saveReason,
-  setupReason, startMsg, tabsFor, toggleTheme, topLists, type Draft, type SetupSel, type WinTab,
+  KIND_NAME, UPLOAD_WAYS, canOrder, checkDraft, defaultSetup, dayLine, draftFromText, fetchText, hasFinal, kindIcon, lockHtml, modeCards, myRecs, orderRows, ordersHtml, packOutlineHtml,
+  packRow, packSummary, pickTab, playableRounds, savedHtml, saveGate, setupReason, sigameLink, sourceNote, startMsg, tabsFor, toggleTheme, topLists, uploadGate,
+  type Draft, type PackSource, type PlayState, type Saved, type SaveGate, type SetupSel, type UploadWay, type WinTab,
 } from './win-model.ts';
 
 const SEARCH_MS = 300;
@@ -24,15 +28,21 @@ interface Mine {
   top: QzTopRecs;
 }
 
-/** Пак, собранный в окне «Загрузить»: из .siq (есть файлы) или из текста / CSV */
+/** Пак, собранный в окне «Загрузить»: из .siq (есть файлы; свой или скачанный по ссылке) или из текста / CSV */
 interface Loaded {
   draft: Draft;
   files: QzUpFile[];
   blobs: Map<string, Blob>;
-  /** что за файл — подпись «из файла …» */
-  from: string;
+  /** откуда пак — подпись «из файла …» / «из библиотеки SIGame» */
+  from: PackSource;
   stats: string;
 }
+
+/** Сколько ждём подтверждение заказа: через столько мс — «Ждём подтверждение сервера…», ещё через столько — «не вышло» */
+const ORDER_SLOW_MS = 5000;
+const ORDER_GIVEUP_MS = 7000;
+/** Красная строка про заказ сама исчезает */
+const ORDER_NOTE_MS = 4000;
 
 export interface WinOpts {
   send: (m: QuizClientMsg) => void;
@@ -80,6 +90,24 @@ export class QuizWindow {
   private lagTimer = 0;
   private lagged = false;
   private failText = '';
+  /** «Сыграть»: заказы из снимка (по одному на вид), мой номер для «ты», пак, подтверждение которого жду, строка под списком */
+  private orders: QzOrder[] = [];
+  private ordersKey = '';
+  private mySlot = -1;
+  private ordering = '';
+  private orderTimer = 0;
+  private orderNote = '';
+  private orderBad = false;
+  /** «Загрузить»: можно ли мне (QzMe.canUpload; нет поля — решает уровень) и слова сервера, если нельзя */
+  private canUpload: boolean | undefined;
+  private uploadWhy = '';
+  /** шаг 1: способ, ссылка из поля, ход скачивания и красная строка под полем ссылки */
+  private way: UploadWay = 'link';
+  private link = '';
+  private linkErr = '';
+  private fetching: FetchProgress | null = null;
+  /** шаг 3: что только что сохранили и что с заказом */
+  private saved: Saved | null = null;
   private body!: HTMLElement;
   private foot!: HTMLElement;
   private tabs!: HTMLElement;
@@ -107,6 +135,8 @@ export class QuizWindow {
   /** Привести к снимку: ведущий в шаге setup — окно открывается само на «Пак и темы» (один раз за шаг) */
   sync(v: QzView | null, me: QzMe | null): void {
     if (me) this.dayCoins = me.dayCoins ?? this.dayCoins;
+    this.syncOrders(v, me);
+    this.syncGate(me);
     const jp = v?.phase === 'game' ? v.jp : null;
     const hosting = !!jp && !!me && jp.host?.slot === me.slot && jp.step === 'setup';
     if (hosting !== this.setup) {
@@ -125,6 +155,7 @@ export class QuizWindow {
     clearTimeout(this.lagTimer);
     clearTimeout(this.armTimer);
     clearTimeout(this.searchTimer);
+    clearTimeout(this.orderTimer);
     this.dlg?.destroy();
     this.dlg = null;
     this.armed = '';
@@ -160,6 +191,8 @@ export class QuizWindow {
         if (this.isOpen && this.tab === 'records') this.fillRecs();
         return true;
       case 'qzErr':
+        // «Сыграть» не вышло (пак удалили, такой вид не заказать): слова сервера под списком, список остаётся
+        if (this.ordering && a.code === 'pack') { this.orderFail(String(a.text ?? '') || 'Не получилось заказать — попробуй ещё раз'); return true; }
         // сбой каталога паков: вместо «Загружаю…» — слова сервера и «Ещё раз»
         if (a.code === 'pack' && this.isOpen && (this.tab === 'packs' || this.tab === 'setup' || this.tab === 'records')) {
           this.failText = String(a.text ?? '');
@@ -191,6 +224,9 @@ export class QuizWindow {
       if (t) this.click(t);
     });
     dlg.dlg.addEventListener('input', (e) => this.input(e.target as HTMLElement));
+    dlg.dlg.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && (e.target as HTMLElement).dataset?.w === 'link') { e.preventDefault(); void this.fetchLink(); }
+    });
     dlg.dlg.addEventListener('change', (e) => this.change(e.target as HTMLInputElement));
     dlg.dlg.addEventListener('dragover', (e) => { if ((e.target as Element).closest('.qw-drop')) { e.preventDefault(); (e.target as Element).closest('.qw-drop')?.classList.add('is-over'); } });
     dlg.dlg.addEventListener('dragleave', (e) => (e.target as Element).closest('.qw-drop')?.classList.remove('is-over'));
@@ -312,7 +348,8 @@ export class QuizWindow {
 
   private showPacks(): void {
     const kinds: Array<[QzPackKind | '', string]> = [['', 'Все'], ['jeopardy', 'Своя игра'], ['words', 'Слова'], ['whoofus', 'Кто из нас?']];
-    this.body.innerHTML = `<div class="qw-bar"><input class="k-input" type="search" placeholder="Найти по названию или автору" maxlength="60" value="${esc(this.packQ)}" data-w="q" autocomplete="off"><div class="k-seg">${kinds.map(([k, n]) => `<button type="button" class="${this.kind === k ? 'is-on' : ''}" data-w="kind" data-k="${k}">${n}</button>`).join('')}</div></div><div class="qw-list" data-w-list="packs"></div>`;
+    this.body.innerHTML = `<div class="qw-orders" data-w-orders></div><div class="qw-bar"><input class="k-input" type="search" placeholder="Найти по названию или автору" maxlength="60" value="${esc(this.packQ)}" data-w="q" autocomplete="off"><div class="k-seg">${kinds.map(([k, n]) => `<button type="button" class="${this.kind === k ? 'is-on' : ''}" data-w="kind" data-k="${k}">${n}</button>`).join('')}</div></div><div class="qw-list" data-w-list="packs"></div>`;
+    this.fillOrders();
     this.fillPacks();
     if (!this.catalog) this.askPacks();
   }
@@ -322,61 +359,221 @@ export class QuizWindow {
     this.o.send({ t: 'qz', a: 'packs', ...(this.packQ ? { q: this.packQ } : {}), ...(this.kind ? { kind: this.kind } : {}) });
   }
 
+  /** Строка заказа вверху «Паков»: заказы из снимка (по одному на вид) или подсказка, как заказать */
+  private fillOrders(): void {
+    const box = this.body.querySelector<HTMLElement>('[data-w-orders]');
+    if (box) box.innerHTML = ordersHtml(orderRows(this.orders, this.mySlot), pic);
+  }
+
+  /** У пака: можно заказать / отправил — жду подтверждения / уже заказан */
+  private playState(p: QzPackInfo): PlayState {
+    return this.orders.some((o) => o.id === p.id) ? 'done' : this.ordering === p.id ? 'wait' : '';
+  }
+
   private fillPacks(): void {
     const list = this.body.querySelector<HTMLElement>('[data-w-list=packs]');
     if (!list) return;
     const c = this.catalog;
-    list.innerHTML = !c ? this.loading('паки') : !c.list.length ? '<p class="k-faint">Ничего не нашлось</p>' : c.list.map((p) => packRow(p, this.armed === p.id, pic)).join('');
-    this.setFoot(c ? `Показано ${c.list.length} из ${c.total}` : '');
+    list.innerHTML = !c ? this.loading('паки') : !c.list.length ? '<p class="k-faint">Ничего не нашлось</p>' : c.list.map((p) => packRow(p, this.armed === p.id, pic, this.playState(p))).join('');
+    // под списком: ожидание или отказ заказа, иначе — сколько показано
+    this.setFoot(this.orderNote ? esc(this.orderNote) : c ? `Показано ${c.list.length} из ${c.total}` : '', '', this.orderBad ? 'bad' : '');
   }
 
-  // ---------------------------------------------------------------- «Загрузить»
+  // ---------------------------------------------------------------- «Сыграть»: заказ пака на следующую игру
+
+  /** Снимок: заказы по одному на вид; мой заказ появился — подтверждён, снимаем «Заказываю…» */
+  private syncOrders(v: QzView | null, me: QzMe | null): void {
+    const orders = v?.orders ?? [];
+    const slot = me?.slot ?? -1;
+    const key = `${slot}|${orders.map((o) => `${o.kind}:${o.id}:${o.by.slot}`).join(',')}`;
+    if (!v && this.ordering) { clearTimeout(this.orderTimer); this.ordering = ''; this.orderNote = ''; this.orderBad = false; }
+    if (key === this.ordersKey) return;
+    this.ordersKey = key;
+    this.orders = orders;
+    this.mySlot = slot;
+    if (this.ordering && orders.some((o) => o.id === this.ordering)) this.ordered(this.ordering);
+    else this.showOrders();
+  }
+
+  /** Перерисовать на открытой вкладке то, что зависит от заказов */
+  private showOrders(): void {
+    if (!this.isOpen) return;
+    if (this.tab === 'packs') { this.fillOrders(); this.fillPacks(); } else if (this.tab === 'upload') this.fillDone();
+  }
+
+  /** «Сыграть»: письмо серверу и «Заказываю…» на кнопке; через 5 с — «Ждём подтверждение сервера…», ещё через 7 с — не вышло */
+  private order(id: string): void {
+    if (!id) return;
+    this.ordering = id;
+    this.orderNote = '';
+    this.orderBad = false;
+    this.o.send({ t: 'qz', a: 'packPlay', id });
+    clearTimeout(this.orderTimer);
+    this.orderTimer = window.setTimeout(() => {
+      this.orderNote = 'Ждём подтверждение сервера…';
+      this.showOrders();
+      this.orderTimer = window.setTimeout(() => this.orderFail('Не получилось заказать — попробуй ещё раз'), ORDER_GIVEUP_MS);
+    }, ORDER_SLOW_MS);
+    this.showOrders();
+  }
+
+  /** Сервер подтвердил: заказ в снимке — строка вверху обновилась, у пака «Заказан» */
+  private ordered(id: string): void {
+    clearTimeout(this.orderTimer);
+    this.ordering = '';
+    this.orderNote = '';
+    this.orderBad = false;
+    if (this.saved?.id === id) this.saved.order = 'yes';
+    if (this.isOpen) sfx.play('pop');
+    this.showOrders();
+  }
+
+  /** Не вышло: слова сервера (или своя строка) под списком, через несколько секунд сами уходят */
+  private orderFail(text: string): void {
+    clearTimeout(this.orderTimer);
+    const id = this.ordering;
+    this.ordering = '';
+    this.orderNote = text;
+    this.orderBad = true;
+    if (this.saved?.id === id && this.saved.order === 'wait') this.saved.order = 'fail';
+    if (this.isOpen) sfx.play('error');
+    this.showOrders();
+    this.orderTimer = window.setTimeout(() => { this.orderNote = ''; this.orderBad = false; this.showOrders(); }, ORDER_NOTE_MS);
+  }
+
+  /** Снимок: можно ли мне загружать (QUIZ_UPLOADERS, уровень) и слова сервера, если нельзя */
+  private syncGate(me: QzMe | null): void {
+    if (!me || (me.canUpload === this.canUpload && (me.uploadWhy ?? '') === this.uploadWhy)) return;
+    this.canUpload = me.canUpload;
+    this.uploadWhy = me.uploadWhy ?? '';
+    if (this.isOpen && this.tab === 'upload') this.showUpload();
+  }
+
+  // ---------------------------------------------------------------- «Загрузить»: 1 откуда → 2 проверка → 3 сохранить
 
   private showUpload(): void {
-    this.body.innerHTML = `<div class="qw-up"><div class="qw-drop" data-w="drop">${pic('ticket', 'qw-drop-ic')}<div><b>Перетащи сюда файл пака</b><span class="k-faint">.siq из SIGame, .txt или .csv</span></div><button type="button" class="k-btn k-btn--ghost k-btn--sm" data-w="pick">Выбрать файл</button><input type="file" accept=".siq,.txt,.csv,text/plain,text/csv" hidden data-w="file"></div>`
-      + `<div class="qw-new"><p class="k-eyebrow">Или новый пак</p><textarea class="k-input qw-text" rows="7" spellcheck="false" placeholder="Пак: Набережная&#10;Раунд: Первый&#10;Тема: Рыбы&#10;100 Кому Дед Семён платит больше всех? = осётр / осетра&#10;Финал&#10;Тема: Маяк&#10;? Сколько метров каланча «Выше облаков»? = 185" data-w="text"></textarea></div>`
-      + '<div data-w-sum></div></div>';
-    const ta = this.body.querySelector<HTMLTextAreaElement>('textarea');
-    if (ta) ta.value = this.text;
+    const gate = uploadGate({ canUpload: this.canUpload, uploadWhy: this.uploadWhy });
+    if (!gate.open) {
+      // сервер не пускает: вместо шагов — его слова и дорога к «Сыграть»
+      this.body.innerHTML = lockHtml(gate.why, pic);
+      this.setFoot('');
+      return;
+    }
+    const head = (n: number, title: string): string => `<header class="qw-step-h"><span class="k-pill k-pill--solid qw-step-n">${n}</span><b class="k-row-title">${title}</b></header>`;
+    this.body.innerHTML = '<div class="qw-up">'
+      + `<section class="qw-step">${head(1, 'Откуда взять пак')}<div class="k-seg qw-ways">${UPLOAD_WAYS.map((w) => `<button type="button" data-w="way" data-way="${w.id}">${esc(w.label)}</button>`).join('')}</div><div class="qw-way" data-w-way></div></section>`
+      + `<hr class="k-hr"><section class="qw-step">${head(2, 'Проверка')}<div data-w-sum></div></section>`
+      + `<hr class="k-hr"><section class="qw-step">${head(3, 'Сохранить')}<div data-w-done></div></section></div>`;
+    this.fillWay();
     this.fillSum();
+    this.fillDone();
     this.upFoot();
   }
 
-  /** Разобрать файл: .siq — в браузере (siq.ts), .txt и .csv — в поле текста */
-  private async takeFile(f: File): Promise<void> {
-    if (this.busy) return;
+  /** Шаг 1: поле ссылки, зона для файла или текст — по выбранному способу */
+  private fillWay(): void {
+    const box = this.body.querySelector<HTMLElement>('[data-w-way]');
+    if (!box) return;
+    this.body.querySelectorAll<HTMLElement>('[data-w=way]').forEach((b) => b.classList.toggle('is-on', b.dataset.way === this.way));
+    const wait = this.fetching ? ' disabled' : '';
+    if (this.way === 'link') {
+      box.innerHTML = '<p class="k-dim qw-lead">Открой пак в библиотеке SIGame, скопируй адрес страницы и вставь сюда</p>'
+        + `<div class="qw-linkrow"><input class="k-input" type="text" inputmode="url" spellcheck="false" autocomplete="off" maxlength="600" placeholder="Ссылка на пак из библиотеки SIGame" aria-label="Ссылка на пак из библиотеки SIGame" value="${esc(this.link)}" data-w="link"${wait}><button type="button" class="k-btn k-btn--go" data-w="fetch"${wait}>Скачать</button></div>`
+        + `<p class="k-bad qw-err-line" data-w-linkerr${this.linkErr ? '' : ' hidden'}>${esc(this.linkErr)}</p>`;
+    } else if (this.way === 'file') {
+      box.innerHTML = `<div class="qw-drop" data-w="drop">${pic('ticket', 'qw-drop-ic')}<div><b>Перетащи сюда файл пака</b><span class="k-faint">.siq из SIGame, .txt или .csv</span></div><button type="button" class="k-btn k-btn--ghost k-btn--sm" data-w="pick">Выбрать файл</button><input type="file" accept=".siq,.txt,.csv,text/plain,text/csv" hidden data-w="file"></div>`;
+    } else {
+      box.innerHTML = '<p class="k-dim qw-lead">Свой пак текстом: образец формата — в поле</p>'
+        + '<textarea class="k-input qw-text" rows="7" spellcheck="false" placeholder="Пак: Набережная&#10;Раунд: Первый&#10;Тема: Рыбы&#10;100 Кому Дед Семён платит больше всех? = осётр / осетра&#10;Финал&#10;Тема: Маяк&#10;? Сколько метров каланча «Выше облаков»? = 185" data-w="text"></textarea>';
+      const ta = box.querySelector<HTMLTextAreaElement>('textarea');
+      if (ta) ta.value = this.text;
+    }
+  }
+
+  private setLinkErr(text: string): void {
+    this.linkErr = text;
+    const e = this.body.querySelector<HTMLElement>('[data-w-linkerr]');
+    if (!e) return;
+    e.textContent = text;
+    e.hidden = !text;
+  }
+
+  /** Новый пак из любого способа: старые строки и итог прошлого сохранения убираем */
+  private resetNotes(): void {
     this.note = '';
     this.tone = '';
-    const name = f.name.toLowerCase();
+    this.saved = null;
     this.titleEdit = this.adultEdit = null;
+  }
+
+  /** Файл из зоны «Файл»: .siq разбираем в браузере (siq.ts), .txt и .csv идут в «Текстом» — там их видно и можно поправить */
+  private async takeFile(f: File): Promise<void> {
+    if (this.busy || this.fetching) return;
+    this.resetNotes();
+    const name = f.name.toLowerCase();
     if (/\.(txt|csv|tsv)$/.test(name)) {
       this.text = await f.text();
-      const ta = this.body.querySelector<HTMLTextAreaElement>('textarea');
-      if (ta) ta.value = this.text;
+      this.way = 'text';
+      this.fillWay();
       this.fromText(f.name);
       return;
     }
     if (!name.endsWith('.siq')) { this.fail('Нужен файл .siq, .txt или .csv'); return; }
+    await this.takeSiq(f, { kind: 'file', name: f.name });
+  }
+
+  /** Разобрать .siq — свой файл или скачанный по ссылке: путь один */
+  private async takeSiq(blob: Blob, from: PackSource): Promise<void> {
     this.busy = true;
     this.loaded = null;
     this.progress = null;
     this.fillSum('Разбираю пак…');
     this.upFoot();
     try {
-      const r = await parseSiq(f, { onProgress: (p) => { this.fillSum(`Разбираю пак: файл ${Math.min(p.done + 1, p.total)} из ${p.total}`); } });
+      const r = await parseSiq(blob, { onProgress: (p) => { this.fillSum(`Разбираю пак: файл ${Math.min(p.done + 1, p.total)} из ${p.total}`); } });
       const parts = [packSummary(r.pack)];
       if (r.stats.images) parts.push(`картинок ${r.stats.images}`);
       if (r.stats.audio) parts.push(`звуков ${r.stats.audio}`);
       if (r.stats.bytes) parts.push(fmtSize(r.stats.bytes));
-      this.loaded = { draft: { pack: r.pack, warnings: r.warnings, errors: [], problem: '' }, files: r.files, blobs: r.blobs, from: f.name, stats: parts.join(' · ') };
+      this.loaded = { draft: { pack: r.pack, warnings: r.warnings, errors: [], problem: '' }, files: r.files, blobs: r.blobs, from, stats: parts.join(' · ') };
       this.note = '';
     } catch (e) {
-      this.fail(e instanceof PackError ? e.message : 'Не получилось открыть файл. Попробуй другой.');
+      this.fail(e instanceof PackError ? e.message : from.kind === 'sigame' ? 'Не получилось открыть пак из библиотеки. Попробуй другой.' : 'Не получилось открыть файл. Попробуй другой.');
     } finally {
       this.busy = false;
     }
     this.fillSum();
+    this.fillDone();
     this.upFoot();
+  }
+
+  /** «Скачать»: ссылка из библиотеки SIGame → билет → сервер скачивает .siq → те же байты разбираем, как перетащенный файл */
+  private async fetchLink(): Promise<void> {
+    if (this.busy || this.fetching) return;
+    const g = sigameLink(this.link);
+    if (!g.ok) { this.setLinkErr(g.why); return; }
+    this.resetNotes();
+    this.linkErr = '';
+    this.loaded = null;
+    this.fetching = { phase: 'ticket', got: 0, total: 0, wait: 0 };
+    this.fillWay();
+    this.fillSum(fetchText(this.fetching));
+    this.fillDone();
+    this.upFoot();
+    let blob: Blob | null = null;
+    try {
+      blob = await fetchPack(g.url, {
+        ticket: () => this.desk.ask(() => this.o.send({ t: 'qz', a: 'upTicket' })) as Promise<UploadTicket>,
+        fetch: (url, init) => fetch(url, init),
+        sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
+      }, (p) => { this.fetching = p; this.fillSum(fetchText(p)); });
+    } catch (e) {
+      this.linkErr = e instanceof UploadError ? e.message : 'Не получилось скачать пак. Попробуй ещё раз.';
+    }
+    this.fetching = null;
+    this.fillWay();
+    if (!blob) { this.fillSum(); this.upFoot(); return; }
+    await this.takeSiq(blob, { kind: 'sigame', name: g.name });
   }
 
   /** Живой вид текста: после каждого нажатия, не чаще раза в 150 мс */
@@ -384,13 +581,15 @@ export class QuizWindow {
     const d = draftFromText(this.text);
     this.note = '';
     this.tone = '';
+    this.saved = null;
     if (!d) { this.loaded = null; } else {
       // название и «18+», поправленные руками, не затираем разбором текста
       if (this.titleEdit !== null) d.pack.title = this.titleEdit;
       if (this.adultEdit !== null) d.pack.adult = this.adultEdit;
-      this.loaded = { draft: checkDraft(d), files: [], blobs: new Map(), from: from || 'text', stats: packSummary(d.pack) };
+      this.loaded = { draft: checkDraft(d), files: [], blobs: new Map(), from: from ? { kind: 'file', name: from } : { kind: 'text', name: '' }, stats: packSummary(d.pack) };
     }
     this.fillSum();
+    this.fillDone();
     this.upFoot();
   }
 
@@ -399,23 +598,30 @@ export class QuizWindow {
     this.tone = 'bad';
     this.loaded = null;
     this.fillSum();
+    this.fillDone();
     this.upFoot();
   }
 
+  /** Шаг 2: проверка — название, откуда, раунды и темы, сколько вопросов, ошибки и предупреждения; пока пусто — что тут будет */
   private fillSum(busyText = ''): void {
     const box = this.body.querySelector<HTMLElement>('[data-w-sum]');
     if (!box) return;
-    if (busyText) { box.innerHTML = `<p class="qw-busy">${esc(busyText)}</p>`; return; }
+    if (busyText) { box.innerHTML = `<p class="k-dim qw-busy">${esc(busyText)}</p>`; return; }
     const l = this.loaded;
-    if (!l) { box.innerHTML = this.note && this.tone === 'bad' ? `<p class="qw-err-line">${esc(this.note)}</p>` : ''; return; }
+    if (!l) {
+      box.innerHTML = this.note && this.tone === 'bad' ? `<p class="k-bad qw-err-line">${esc(this.note)}</p>`
+        : '<div class="k-well"><span class="k-faint">Тут появится проверка: название, раунды и темы, сколько вопросов</span></div>';
+      return;
+    }
     const p = l.draft.pack;
-    const kind = KIND_NAME[p.kind] ?? '';
-    box.innerHTML = `<div class="qw-card"><div class="qw-card-head"><span class="qw-ic">${pic(kindIcon(p.kind))}</span>`
-      + `<div class="qw-card-t"><input class="k-input qw-title" maxlength="${QZ_PACK.TITLE}" value="${esc(p.title)}" placeholder="Название пака" data-w="title" aria-label="Название пака"><span class="k-faint">${esc(kind)}${l.from && l.from !== 'text' ? ` · из файла ${esc(l.from)}` : ''}</span></div></div>`
+    const sub = [KIND_NAME[p.kind] ?? '', sourceNote(l.from)].filter(Boolean).join(' · ');
+    box.innerHTML = `<div class="k-cell qw-card"><div class="qw-card-head"><span class="qw-ic">${pic(kindIcon(p.kind))}</span>`
+      + `<div class="qw-card-t"><input class="k-input qw-title" maxlength="${QZ_PACK.TITLE}" value="${esc(p.title)}" placeholder="Название пака" data-w="title" aria-label="Название пака"><span class="k-faint">${esc(sub)}</span></div></div>`
       + `<p class="qw-stats">${esc(l.stats)}</p>`
+      + packOutlineHtml(p)
       + `<label class="k-switch"><input type="checkbox" data-w="adult"${p.adult ? ' checked' : ''}><span class="k-switch-track"></span><span>Для взрослых (18+)</span></label>`
-      + (l.draft.errors.length || l.draft.problem ? `<ul class="qw-errs">${l.draft.errors.slice(0, 4).map((e) => `<li>${esc(e)}</li>`).join('')}${l.draft.errors.length > 4 ? `<li>…и ещё ${l.draft.errors.length - 4}</li>` : ''}${!l.draft.errors.length && l.draft.problem ? `<li>${esc(l.draft.problem)}</li>` : ''}</ul>` : '')
-      + (l.draft.warnings.length ? `<ul class="qw-warns">${l.draft.warnings.slice(0, 5).map((e) => `<li>${esc(e)}</li>`).join('')}${l.draft.warnings.length > 5 ? `<li>…и ещё ${l.draft.warnings.length - 5}</li>` : ''}</ul>` : '')
+      + (l.draft.errors.length || l.draft.problem ? `<ul class="qw-errs k-bad">${l.draft.errors.slice(0, 4).map((e) => `<li>${esc(e)}</li>`).join('')}${l.draft.errors.length > 4 ? `<li>…и ещё ${l.draft.errors.length - 4}</li>` : ''}${!l.draft.errors.length && l.draft.problem ? `<li>${esc(l.draft.problem)}</li>` : ''}</ul>` : '')
+      + (l.draft.warnings.length ? `<ul class="qw-warns k-gold">${l.draft.warnings.slice(0, 5).map((e) => `<li>${esc(e)}</li>`).join('')}${l.draft.warnings.length > 5 ? `<li>…и ещё ${l.draft.warnings.length - 5}</li>` : ''}</ul>` : '')
       + '</div>';
   }
 
@@ -426,33 +632,48 @@ export class QuizWindow {
     if (!l || !box) return;
     box.querySelector('.qw-errs')?.remove();
     if (l.draft.errors.length || l.draft.problem) {
-      const ul = el(`<ul class="qw-errs">${l.draft.errors.slice(0, 4).map((e) => `<li>${esc(e)}</li>`).join('')}${!l.draft.errors.length && l.draft.problem ? `<li>${esc(l.draft.problem)}</li>` : ''}</ul>`);
+      const ul = el(`<ul class="qw-errs k-bad">${l.draft.errors.slice(0, 4).map((e) => `<li>${esc(e)}</li>`).join('')}${!l.draft.errors.length && l.draft.problem ? `<li>${esc(l.draft.problem)}</li>` : ''}</ul>`);
       const w = box.querySelector('.qw-warns');
       if (w) box.insertBefore(ul, w); else box.appendChild(ul);
     }
   }
 
-  /** Подвал «Загрузить»: причина серой кнопки, полоска загрузки или итог */
+  /** Что решают кнопки шага 3 сейчас: серые с причиной или нажимаются, подписи и подсказка */
+  private gate(): SaveGate {
+    return saveGate({ canUpload: this.canUpload, level: this.o.level?.() ?? null, draft: this.loaded?.draft ?? null, busy: this.busy ? (this.progress ? 'save' : 'parse') : '', fetching: !!this.fetching });
+  }
+
+  /** Шаг 3: что сделают кнопки внизу — или итог только что сохранённого пака и что с заказом */
+  private fillDone(): void {
+    const box = this.body.querySelector<HTMLElement>('[data-w-done]');
+    if (box) box.innerHTML = this.saved ? savedHtml(this.saved, pic) : `<p class="k-dim qw-hint">${esc(this.gate().hint)}</p>`;
+  }
+
+  /** Подвал «Загрузить»: причина серых кнопок, полоска загрузки или итог; справа кнопки шага 3 */
   private upFoot(): void {
-    const level = this.o.level?.() ?? null;
-    const why = saveReason(level, this.loaded?.draft ?? null, this.busy);
+    const g = this.gate();
     const pr = this.progress;
-    let note = esc(this.note || why || 'Готово к отправке');
+    // только что сохранили — предлагаем следующий пак, а не причину серых кнопок
+    let note = esc(this.note || (this.saved && !this.loaded ? 'Хочешь ещё пак — начни с шага 1' : g.why) || 'Готово к отправке');
     let bar = '';
     if (pr && this.busy) {
       const v = pr.total > 0 ? Math.min(1, pr.sent / pr.total) : pr.phase === 'files' ? 0 : 0.05;
       bar = `<span class="k-meter k-meter--thin qw-prog" style="--v:${Math.round(v * 1000) / 1000}"><i class="k-meter-ghost"></i><i class="k-meter-fill"></i></span>`;
       note = pr.wait ? `Сервер просит подождать — ${pr.wait} с` : pr.phase === 'ticket' ? 'Прошу билет на загрузку…' : pr.phase === 'pack' ? 'Отправляю пак…' : `Отправляю файлы: ${pr.file} из ${pr.files}`;
     }
-    this.setFoot(note, `${bar}<button type="button" class="k-btn k-btn--go" data-w="save"${why ? ' disabled' : ''} title="${esc(why)}">Сохранить на набережную</button>`, this.tone && !this.busy ? this.tone : '');
+    const off = g.why ? ' disabled' : '';
+    const title = esc(g.why);
+    const only = g.play ? `<button type="button" class="k-btn k-btn--ghost" data-w="save" data-play="0"${off} title="${title}">${esc(g.only)}</button>` : '';
+    this.setFoot(note, `${bar}${only}<button type="button" class="k-btn k-btn--go" data-w="save" data-play="${g.play ? 1 : 0}"${off} title="${title}">${esc(g.main)}</button>`, this.tone && !this.busy ? this.tone : '');
   }
 
-  private async save(): Promise<void> {
+  /** «Сохранить и сыграть» (play) — сохранить и сразу заказать; «Только сохранить» — просто положить в каталог */
+  private async save(play: boolean): Promise<void> {
     const l = this.loaded;
-    const level = this.o.level?.() ?? null;
-    if (!l || this.busy || saveReason(level, l.draft, false)) return;
+    if (!l || this.busy || this.gate().why) return;
     this.note = '';
     this.tone = '';
+    this.saved = null;
     let pack = l.draft.pack, files = l.files;
     try {
       const v = validatePack(pack, files);
@@ -461,11 +682,13 @@ export class QuizWindow {
     } catch (e) {
       this.note = e instanceof PackError ? e.message : 'Пак не прошёл проверку.';
       this.tone = 'bad';
+      this.fillDone();
       this.upFoot();
       return;
     }
     this.busy = true;
     this.progress = { phase: 'ticket', sent: 0, total: files.reduce((n, f) => n + f.size, 0), wait: 0, file: 0, files: files.length };
+    this.fillDone();
     this.upFoot();
     try {
       const info = await uploadPack({ pack, files, blobs: l.blobs }, {
@@ -474,15 +697,14 @@ export class QuizWindow {
         sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
         memo: this.upMemo,
       }, (p) => { this.progress = p; this.upFoot(); });
-      this.note = `Готово: «${info.title}» теперь на набережной`;
-      this.tone = 'good';
+      this.saved = { id: info.id, title: info.title, kind: info.kind, order: play && canOrder(info.kind) ? 'wait' : 'no' };
       this.loaded = null;
       this.text = '';
+      this.link = '';
       this.titleEdit = this.adultEdit = null;
       this.catalog = null;
       this.jpList = null;
-      const ta = this.body.querySelector<HTMLTextAreaElement>('textarea');
-      if (ta) ta.value = '';
+      if (this.saved.order === 'wait') this.order(info.id);
     } catch (e) {
       this.note = e instanceof UploadError || e instanceof PackError ? e.message : 'Не получилось отправить пак. Попробуй ещё раз.';
       this.tone = 'bad';
@@ -490,7 +712,7 @@ export class QuizWindow {
       this.busy = false;
       this.progress = null;
     }
-    if (this.tab === 'upload') { this.fillSum(); this.upFoot(); }
+    if (this.tab === 'upload') { this.fillWay(); this.fillSum(); this.fillDone(); this.upFoot(); }
   }
 
   // ---------------------------------------------------------------- «Рекорды»
@@ -550,8 +772,11 @@ export class QuizWindow {
         break;
       }
       case 'retry': this.retry(); break;
+      case 'play': this.order(d.id ?? ''); break;
+      case 'way': this.way = (d.way ?? 'link') as UploadWay; this.fillWay(); break;
+      case 'fetch': void this.fetchLink(); break;
       case 'pick': this.body.querySelector<HTMLInputElement>('input[type=file]')?.click(); break;
-      case 'save': void this.save(); break;
+      case 'save': void this.save(d.play === '1'); break;
       default: break;
     }
   }
@@ -562,6 +787,9 @@ export class QuizWindow {
       this.packQ = (t as HTMLInputElement).value.trim();
       clearTimeout(this.searchTimer);
       this.searchTimer = window.setTimeout(() => { this.catalog = null; this.fillPacks(); this.askPacks(); }, SEARCH_MS);
+    } else if (w === 'link') {
+      this.link = (t as HTMLInputElement).value;
+      if (this.linkErr) this.setLinkErr('');
     } else if (w === 'text') {
       this.text = (t as HTMLTextAreaElement).value;
       clearTimeout(this.searchTimer);
