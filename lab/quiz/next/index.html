@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="ru" data-skin="retro2" data-hud="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="img/q-win.png">
+<title>«Ракушка» — что улучшить</title>
+<link rel="stylesheet" href="../v2/v2-fonts.css">
+<link rel="stylesheet" href="../../../client/ui/kit/tokens.css">
+<link rel="stylesheet" href="../../../client/ui/kit/kit.css">
+<link rel="stylesheet" href="next.css">
+</head>
+<body>
+<header class="nx-head">
+  <img src="img/q-win.png" alt="">
+  <div>
+    <p class="k-eyebrow">TIREDWOOD · «Ракушка» · 30.10</p>
+    <h1>Что улучшить</h1>
+  </div>
+</header>
+
+<main class="nx-main">
+  <section class="nx-sec nx-sum">
+    <div class="nx-card">
+      <p class="k-eyebrow">Главное, что мешает</p>
+      <p><b>Паузы.</b> Между загадками — до минуты, между играми — около 40 с. В это время все сидят и ждут одного.</p>
+    </div>
+    <div class="nx-card">
+      <p class="k-eyebrow">Что предлагаю</p>
+      <p>Убрать паузы и лишние шаги, оживить четыре игры, дать дело зрителям. Первой новой игрой взять <b>«Смешнее всех»</b> — в ней играют все сразу.</p>
+    </div>
+    <div class="nx-card">
+      <p class="k-eyebrow">Что нужно от тебя</p>
+      <p>Отметь идеи кнопкой «Беру» (рекомендованные уже отмечены) и пришли список снизу. Или просто напиши «бери рекомендованное».</p>
+    </div>
+  </section>
+
+  <section class="nx-sec">
+    <h2>Как сейчас</h2>
+    <div class="nx-modes">
+      <article class="nx-mode">
+        <img src="img/riddle.jpg" alt="«Загадка» из кресла">
+        <h3>«Загадка»</h3>
+        <p class="nx-rule">Один загадал слово, остальные пишут догадки, он отмечает «тепло», «мимо» или «угадал». 5 загадок или 15 минут.</p>
+        <p class="nx-good">Живая: догадки облачками, «Тепло» слева сверху помогает угадывать.</p>
+        <p class="nx-bad">Между загадками до минуты ожидания. Загадывающий один разбирает все строки. Угадавший обязан загадывать сам.</p>
+      </article>
+      <article class="nx-mode">
+        <img src="img/jeopardy.jpg" alt="«Своя игра» за пультом">
+        <h3>«Своя игра»</h3>
+        <p class="nx-rule">Табло тем и цен, пульты, кнопка на Пробел. Ведёт Затейник или игрок. Один раунд пака и финал.</p>
+        <p class="nx-good">Настоящая телеигра: честная кнопка, паки SIGame, финал со ставками.</p>
+        <p class="nx-bad">25 вопросов — 15–20 минут. Зрителям нечего делать. Затейнику отвечают только текстом.</p>
+      </article>
+      <article class="nx-mode">
+        <img src="img/croc.jpg" alt="«Крокодил» из кресла">
+        <h3>«Крокодил»</h3>
+        <p class="nx-rule">Рисуешь слово на мольберте, остальные угадывают в чате. До 6 рисунков.</p>
+        <p class="nx-good">Лучший темп: угадывают все сразу, рисунок видно с набережной.</p>
+        <p class="nx-bad">Нет заливки — большие места закрашиваются штрихами. Рисунок пропадает сразу после итога.</p>
+      </article>
+      <article class="nx-mode">
+        <img src="img/whoofus.jpg" alt="«Кто из нас?» — раскрытие голосов">
+        <h3>«Кто из нас?»</h3>
+        <p class="nx-rule">Вопрос на табло, тайный голос кликом по желейке, лидер получает титул. 10 вопросов.</p>
+        <p class="nx-good">Играют все сразу, есть свои вопросы — самая «компанейская» игра.</p>
+        <p class="nx-bad">Только от 4 человек. Титул живёт до конца игры. 60 встроенных вопросов быстро начнут повторяться.</p>
+      </article>
+    </div>
+    <p class="nx-note">Снимки — из собранной игры на приёмке 30.10. «Кто из нас?» снят на прошлой, большой сцене: интерфейс тот же.</p>
+  </section>
+
+  <section class="nx-sec">
+    <h2>Где игроки ждут</h2>
+    <p class="nx-lead">Время по настоящим числам из кода. <span class="nx-key nx-key--p"></span> играешь, <span class="nx-key nx-key--w"></span> ждёшь — в том числе голосование и итоги. Сама игра на рисунке обрезана до 40 с.</p>
+    <div class="nx-lanes" id="lanes"></div>
+  </section>
+
+  <section class="nx-sec">
+    <h2>Что мешает</h2>
+    <div class="nx-why">
+      <figure class="nx-shot">
+        <img src="img/riddle.jpg" alt="Момент разгадки: одно и то же в пяти местах">
+        <span class="nx-mark" style="left:50%;top:4.5%">1</span>
+        <span class="nx-mark" style="left:44%;top:54%">2</span>
+        <span class="nx-mark" style="left:60.5%;top:72%">3</span>
+        <span class="nx-mark" style="left:86%;top:62%">4</span>
+        <span class="nx-mark" style="left:17%;top:77%">5</span>
+        <figcaption>Момент разгадки: «якорь» сразу в пяти местах — плашка, табло, облачко, Затейник и чат.</figcaption>
+      </figure>
+      <ol class="nx-list">
+        <li><b>Паузы.</b> Между загадками до 62 с, между играми ~40 с, перед «Своей игрой» с живым ведущим — до 90 с выбора пака.</li>
+        <li><b>Один делает — остальные ждут.</b> Загадывающий разбирает все строки сам; в «Своей игре» ход у одного, а зрители только смотрят.</li>
+        <li><b>Повторы на экране.</b> Одно и то же в пяти местах (на снимке) — правило игры «одна информация — в одном месте».</li>
+        <li><b>Мало своего.</b> 3 встроенных пака «Своей игры» (по раунду на игру), 60 вопросов «Кто из нас?», 310 слов «Крокодила» — компании хватит на несколько вечеров.</li>
+        <li><b>Малый состав.</b> Вдвоём нет жетонов, «Кто из нас?» — от 4 человек, одному делать нечего.</li>
+        <li><b>«Своя игра» долгая:</b> раунд — 15–20 минут.</li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="nx-sec">
+    <h2>Идеи</h2>
+    <p class="nx-lead">Нажми на карточку — она отметится «Беру». Часы — грубая оценка работы, без проверки.</p>
+    <div id="groups"></div>
+  </section>
+
+  <section class="nx-sec">
+    <h2>Как это будет выглядеть</h2>
+    <div class="nx-mocks">
+      <figure class="nx-mock">
+        <div class="nx-sky"><div class="k-hud nx-hud">
+          <div class="k-event nx-ev">
+            <span class="k-event-ic"><img src="img/q-win.png" alt=""></span>
+            <span class="k-event-title">Соня — 1-е место · 14 очков</span>
+            <span class="k-event-sub">«Крокодил» · ещё раз: 2 из 3</span>
+            <div class="k-event-actions">
+              <button class="k-btn k-btn--gold k-btn--sm" type="button">Ещё раз!<span class="k-key k-key--sm k-key--br">R</span></button>
+              <button class="k-btn k-btn--ghost k-btn--sm" type="button">Другая игра</button>
+            </div>
+          </div>
+        </div></div>
+        <figcaption><b>A1 «Ещё раз!».</b> На итогах — одна кнопка. Большинство нажало — та же игра сразу, без голосования и ролей.</figcaption>
+      </figure>
+
+      <figure class="nx-mock">
+        <div class="nx-sky"><div class="k-hud nx-hud">
+          <div class="k-plate nx-dock">
+            <p class="nx-dock-h">Строки зала</p>
+            <div class="nx-line"><b>Кузя</b><span>это едят?</span><span class="k-pill k-pill--sm k-pill--gold">Горячо!</span></div>
+            <div class="nx-line"><b>Петя</b><span>оно живёт в море?</span><span class="k-pill k-pill--sm k-pill--good"><img class="k-ic" src="img/q-warm.png" alt="">Тепло</span></div>
+            <div class="nx-line"><b>Соня</b><span>это рыба?</span>
+              <span class="nx-acts">
+                <button class="k-btn k-btn--ghost k-btn--sm" type="button">Тепло<span class="k-key k-key--sm k-key--br">1</span></button>
+                <button class="k-btn k-btn--ghost k-btn--sm" type="button">Мимо<span class="k-key k-key--sm k-key--br">2</span></button>
+                <button class="k-btn k-btn--gold k-btn--sm" type="button">Угадал<span class="k-key k-key--sm k-key--br">3</span></button>
+              </span>
+            </div>
+            <p class="nx-dock-hint"><span class="k-key k-key--sm">1</span> по «тёплой» строке ещё раз — «Горячо!»</p>
+          </div>
+        </div></div>
+        <figcaption><b>C1 «Горячо!».</b> Третья ступень между «тепло» и «угадал». Строка встаёт первой в «Тепло» и крупно на табло.</figcaption>
+      </figure>
+
+      <figure class="nx-mock">
+        <div class="nx-sky"><div class="k-hud nx-hud nx-hud--col">
+          <div class="k-event nx-ev">
+            <span class="k-event-ic"><img src="img/q-win.png" alt=""></span>
+            <span class="k-event-title">Отвечает Петя · «Моря и океаны», 300</span>
+            <span class="k-event-sub">Зал тоже отвечает — тайно</span>
+          </div>
+          <div class="k-prompt nx-prompt"><span class="k-key">Enter</span><span>Твой ответ залу</span></div>
+          <div class="k-event nx-ev">
+            <span class="k-event-ic"><img src="img/q-warm.png" alt=""></span>
+            <span class="k-event-title">Зал знал: 7 из 11</span>
+            <span class="k-event-sub">Ты тоже угадал — лучший зритель покажется в итогах</span>
+          </div>
+        </div></div>
+        <figcaption><b>C3 «Зал отвечает».</b> Зрители в креслах тоже играют: пишут ответ, пока отвечает игрок за пультом.</figcaption>
+      </figure>
+
+      <figure class="nx-mock">
+        <div class="nx-board"><div class="nx-board-in">
+          <div class="nx-board-head"><b>Смешнее всех</b><span>вопрос 2 из 5</span></div>
+          <p class="nx-board-q">Что Дед Семён делает с рыбой, которую никто не купил?</p>
+          <ol class="nx-board-a">
+            <li><span>Читает ей сказки на ночь</span><em>Кузя · 3</em></li>
+            <li class="is-top"><span>Продаёт её обратно Сане</span><em>Соня · 5</em></li>
+            <li><span>Отпускает и машет платочком</span><em>Петя · 1</em></li>
+            <li><span>Учит её ловить рыбаков</span><em>Оля · 2</em></li>
+          </ol>
+          <p class="nx-board-foot">голос — клик или 1–4 · за себя нельзя</p>
+        </div></div>
+        <figcaption><b>D1 «Смешнее всех».</b> Ответы приходят без имён, зал голосует, потом раскрываем авторов. На снимке — уже раскрытие.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="nx-sec">
+    <h2>Предлагаю по шагам</h2>
+    <ol class="nx-steps">
+      <li><b>«Без пауз»</b> — A1–A5. Паузы между загадками с минуты до ~10 с, между играми — с ~40 до ~12 с. <em>≈ 1,5 дня работы</em></li>
+      <li><b>«Живее»</b> — C1, C6, C7, C9, E1, E2: «Горячо!», заливка и повтор рисунка, титулы на вечер, аплодисменты, «Позвать». <em>≈ 1,5 дня</em></li>
+      <li><b>«Зрителям и компании»</b> — C3, F1, F2: «Зал отвечает», больше встроенных вопросов, «Пак компании». <em>≈ 1,5 дня</em></li>
+      <li><b>Новая игра «Смешнее всех»</b> — сначала страница-лаборатория, после твоего «да» — в игру. <em>≈ 2 дня</em></li>
+    </ol>
+    <p class="nx-note">Шаги 1–3 идут параллельно — около двух дней вместе с проверкой втроём. Интерфейс (группа B) — вместе с редизайном HUD. Всё — за флагом, на сайт только с твоего «да».</p>
+  </section>
+
+  <section class="nx-sec">
+    <h2>Вопросы</h2>
+    <ol class="nx-qs">
+      <li><b>Берём шаги 1–3?</b> <span>Да, все (рекомендую)</span> · <span>Выберу по номерам</span> · <span>Только «Без пауз»</span></li>
+      <li><b>Какую новую игру первой?</b> <span>«Смешнее всех» (рекомендую)</span> · <span>«Испорченный телефон»</span> · <span>«Угадай по силуэту»</span> · <span>Пока не надо</span></li>
+      <li><b>Жетоны вдвоём?</b> <span>Половину: 4 🪙 в минуту (рекомендую)</span> · <span>Оставить «от трёх»</span></li>
+      <li><b>Интерфейс «Ракушки»?</b> <span>Вместе с редизайном HUD (рекомендую)</span> · <span>Отдельно сейчас</span></li>
+    </ol>
+  </section>
+</main>
+
+<div class="nx-pick" id="pick">
+  <span class="nx-pick-l">Беру <b id="pickN">0</b>:</span>
+  <span class="nx-pick-list" id="pickList"></span>
+  <button class="k-btn k-btn--ghost k-btn--sm" id="pickReset" type="button">Рекомендованное</button>
+  <button class="k-btn k-btn--gold k-btn--sm" id="pickCopy" type="button">Скопировать</button>
+</div>
+<script type="module" src="next.js"></script>
+</body>
+</html>
