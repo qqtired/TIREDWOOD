@@ -69,7 +69,8 @@ export const REGATTA_BOATS: ReadonlyArray<{ x: number; z: number; hull: number; 
 ];
 /** Размеры лодки (длина, ширина, высота до палубы), м — для рисунка */
 export const REGATTA_BOAT_SIZE = { len: 4.7, beam: 1.9, h: 1.0 } as const;
-export const REGATTA_MASTS: ReadonlyArray<{ x: number; z: number }> = [{ x: 12.9, z: 21.3 }, { x: 19.4, z: 21.3 }];
+/** Мачты входа в регату; в plaza3 — вместе с кругом старта через якорь regatta (layout.json anchors) */
+export const REGATTA_MASTS: ReadonlyArray<{ x: number; z: number }> = [{ x: 12.9, z: 21.3 }, { x: 19.4, z: 21.3 }].map((m) => xfP(A.regatta, m));
 
 /**
  * Катер «Ласточка» (на воде у причала (8; 23,4)): портал-вывеска над местом посадки на краю набережной — две стойки.

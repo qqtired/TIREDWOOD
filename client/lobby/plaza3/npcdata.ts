@@ -196,8 +196,8 @@ export const NPCS: readonly NpcDef[] = [
   },
   {
     id: 'boris', ...tout('regatta'), mode: 'regatta', layout: 'regatta',
-    // у мачт старта, сбоку от круга сбора, лицом к променаду
-    x: 13.4, z: 16.2, y: 0, yaw: center(13.4, 16.2), wave: L,
+    // у мачт старта, сбоку от круга сбора, лицом к променаду; 30.10 — на 1,75 м восточнее вместе со входом (layout.json npcs.regatta)
+    x: 15.15, z: 16.2, y: 0, yaw: center(15.15, 16.2), wave: L,
     idle: {
       len: 4, moves: [
         { p: 'hand.R', t: 0.3, d: 0.35, e: 'arc', pos: [0, 0.06, -0.06] },

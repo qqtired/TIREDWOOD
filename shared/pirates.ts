@@ -73,7 +73,7 @@ export const PIRATE_PARTICIPATE = 3;
 /** Корабль на якоре: середина корпуса и курс (нос на запад: yaw как у игроков, 0 смотрит на −Z); бортом к набережной */
 export const PIRATE_SHIP = { x: 8, z: 50, yaw: Math.PI / 2, ax: 9.5, az: 3.4 } as const;
 /** Куча ящиков и бочек: центр и места четырёх вещей (чётный номер — ящик, нечётный — бочка); plaza3: куча 1 — восточнее «Ракушки» у пирса */
-export const PIRATE_PILES: ReadonlyArray<{ x: number; z: number }> = [{ x: -1.0, z: 16.0 }, PLAZA3 ? { x: 15.2, z: 15.4 } : { x: 12.0, z: 16.0 }, { x: 20.0, z: 16.0 }];
+export const PIRATE_PILES: ReadonlyArray<{ x: number; z: number }> = [{ x: -1.0, z: 16.0 }, PLAZA3 ? { x: 16.95, z: 15.1 } : { x: 12.0, z: 16.0 }, { x: 20.0, z: 16.0 }];
 const PILE_AT: ReadonlyArray<readonly [number, number]> = [[-0.65, -0.35], [0.55, -0.55], [-0.45, 0.6], [0.65, 0.5]];
 export interface LootHome { x: number; z: number; pile: number }
 // После разворота Рыбного двора вещи1/2 попадали в лодку/стойку ворот; сами кучи и номера прежние.
@@ -93,8 +93,8 @@ const ROUTES: ReadonlyArray<ReadonlyArray<readonly [number, number]>> = [
   [[9, 46], [13, 37], [16, 29], [16, 24.1]],
   [[14, 46], [20, 37.5], [23, 29], [23, 24.1]],
 ];
-/** Береговые пушки: на кромке между причалами, смотрят в море */
-export const PIRATE_CANNONS: ReadonlyArray<{ x: number; z: number }> = [{ x: -2.6, z: 20.6 }, { x: 6.0, z: 20.6 }, { x: 18.6, z: 20.6 }];
+/** Береговые пушки: на кромке между причалами, смотрят в море; plaza3: третья — восточнее круга регаты (между мачтой и причалом 23; на 18,6 стояла бы на круге после сдвига входа 30.10) */
+export const PIRATE_CANNONS: ReadonlyArray<{ x: number; z: number }> = [{ x: -2.6, z: 20.6 }, { x: 6.0, z: 20.6 }, PLAZA3 ? { x: 21.9, z: 20.6 } : { x: 18.6, z: 20.6 }];
 /** Рабочая полоса пиратов: к северу от неё и в кафе они не заходят; южнее z = 22 — вода */
 export const PIRATE_ZONE = { x0: -7, x1: 27, z0: 12.5, z1: 22 } as const;
 /** Скамейки на кромке: пираты их обходят (под ними сидят) */

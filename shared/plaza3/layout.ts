@@ -44,7 +44,7 @@ export const P3: Plaza3Layout = {
       "rot": 0
     },
     "regatta": {
-      "dx": 0,
+      "dx": 1.75,
       "dz": 0,
       "rot": 0
     },
@@ -6891,9 +6891,9 @@ export const P3: Plaza3Layout = {
       "q": "port",
       "name": "Портовая регата",
       "box": {
-        "x0": 12.7,
+        "x0": 14.45,
         "z0": 21.1,
-        "x1": 19.6,
+        "x1": 21.35,
         "z1": 21.5
       },
       "h": 10,
@@ -7133,14 +7133,14 @@ export const P3: Plaza3Layout = {
     {
       "id": "regatta",
       "text": "ПОРТОВАЯ РЕГАТА",
-      "x": 16.15,
+      "x": 17.9,
       "y": 3,
       "z": 21.215,
       "yaw": 0,
       "w": 4.5,
       "h": 0.8,
       "back": [
-        16.15,
+        17.9,
         3,
         21.385
       ]
@@ -7253,7 +7253,7 @@ export const P3: Plaza3Layout = {
     {
       "id": "regatta",
       "name": "Боцман Борис",
-      "x": 13.4,
+      "x": 15.15,
       "z": 16.2
     },
     {
