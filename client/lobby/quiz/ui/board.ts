@@ -5,11 +5,12 @@
 // стоит перерисовывать все 4 раза в секунду, а не раз в секунду.
 import { QZ_MODES, type QzBoard } from '../../../../shared/quiz/types.ts';
 import { BOARD_H, BOARD_W, PAD, boardBase, boardUi } from './board-base.ts';
+import { onQuizImages, quizImagesPending } from './paint.ts';
 import { paintJeopardyBoard, paintCrocBoard, paintWhoBoard, jpCellRect, packRect, crocRect } from './board-modes.ts';
 import { paintRiddleBoard, paintRoles } from './board-riddle.ts';
 import { cardRect, paintIdle, paintResults, paintVote, spinPos } from './board-vote.ts';
 
-export { BOARD_H, BOARD_W, PAD, boardUi, cardRect, crocRect, jpCellRect, packRect, spinPos };
+export { BOARD_H, BOARD_W, PAD, boardUi, cardRect, crocRect, jpCellRect, onQuizImages, packRect, spinPos, quizImagesPending };
 
 /** Нарисовать табло по снимку; nowMs — часы сервера (state.serverNow()), по ним считаются отсчёты и вспышки */
 export function paintBoard(ctx: CanvasRenderingContext2D, b: QzBoard, nowMs: number): void {
@@ -37,6 +38,8 @@ export function paintBoard(ctx: CanvasRenderingContext2D, b: QzBoard, nowMs: num
 
 /** Двигается ли что-то на табло само по себе (кроме секундного отсчёта): тогда перерисовка — 4 раза в секунду */
 export function boardAnimating(b: QzBoard): boolean {
+  // значок ещё грузится — табло надо перерисовать, когда он придёт
+  if (quizImagesPending() > 0) return true;
   if (b.phase === 'vote' && b.vote) return !!b.vote.spin || b.vote.win >= 0 || b.vote.nobody;
   if (b.phase === 'results') return true;
   if (b.phase === 'game') {

@@ -13,10 +13,14 @@ import type { QuizFx } from '../fx.ts';
 import { BottomBars } from './hud-bars.ts';
 import { DockView, Flyer, OwnView, WarmView } from './hud-dock.ts';
 import { resolveKit, type QuizHudKit, type ResolvedKit } from './hud-kit.ts';
-import { OWN_SHOW_MS, PLATE_KEY, dockModel, isRiddling, keyCap, ownGuess, plateSpec, playBar, rolesBar, warmModel, warmVisible } from './hud-model.ts';
+import { ModesHud } from './hud-modes.ts';
+import { digitsBusy, keyHit, lineMsg, modeLines, modePlate, plainDock } from './hud-modes-model.ts';
+import { OWN_SHOW_MS, PLATE_KEY, dockModel, isRiddling, keyCap, ownGuess, plateSpec, playBar, rolesBar, warmModel, warmVisible, type DockModel } from './hud-model.ts';
 import { QuizSounds } from './hud-sound.ts';
 import { QuizWindows } from './hud-windows.ts';
+import { QuizWindow } from './hud-window.ts';
 import './quiz-ui.css';
+import './quiz-ui2.css';
 
 export type { QuizHudKit };
 /** Что HUD шлёт: сообщения «Ракушки» и общий «встать» из кресла (общий unuse хаба) */
@@ -41,6 +45,8 @@ export class QuizHud {
   private readonly kitArg: QuizHudKit | undefined;
   private readonly sound: QuizSounds;
   private readonly windows: QuizWindows;
+  private readonly modes: ModesHud;
+  private readonly win: QuizWindow;
   private readonly bars = new BottomBars();
   private readonly dock = new DockView();
   private readonly warm = new WarmView();
@@ -58,6 +64,8 @@ export class QuizHud {
   private plateOn = false;
   private armed = false;
   private armTimer = 0;
+  /** паки, которым я уже поставил «Пак понравился» (сервер тоже считает один раз на пак) */
+  private readonly liked = new Set<string>();
   private used = false;
   private usedKey = '';
   private disposed = false;
@@ -75,6 +83,8 @@ export class QuizHud {
     this.kitArg = kit;
     this.sound = new QuizSounds(kit?.audio);
     this.windows = new QuizWindows((m) => this.send(m));
+    this.modes = new ModesHud((m) => this.send(m), this.sound, () => this.syncPlate());
+    this.win = new QuizWindow({ send: (m) => this.send(m), level: () => this.kitArg?.level?.() ?? null });
   }
 
   /** Снимок: внутри ограды — v и me (b — то же табло, отдельно не нужно); v === null — убрать всё */
@@ -87,14 +97,16 @@ export class QuizHud {
     this.me = me;
     this.now = nowMs;
     const riddling = isRiddling(v, me);
-    this.wantsDigits = v.phase === 'vote' || (riddling && v.riddle?.step === 'round');
+    this.wantsDigits = v.phase === 'vote' || (riddling && v.riddle?.step === 'round') || digitsBusy(v, me);
     this.syncPlate();
     this.syncBottom(kit, riddling);
+    this.syncModes(kit);
     this.syncDock(kit, riddling);
     this.syncOwn(kit);
     this.syncWarm(kit, riddling);
     this.syncStand(kit);
     this.windows.sync(v, me);
+    this.win.sync(v, me);
     this.land();
   }
 
@@ -109,6 +121,38 @@ export class QuizHud {
       case 'hint': if (this.v && this.me) this.windows.openHint(this.v, this.me); break;
       default: break;
     }
+  }
+
+  /**
+   * Клавиши части 2 (Пробел — «Жму!», 1 / 2 у ведущего, R, 1–3 — пак и слово, 1–5 — тема в финале, Z — отмена мазка, F —
+   * «Хочу рисовать»): true — клавишу съел HUD, игре её отдавать не надо (и `preventDefault`).
+   */
+  onKey(code: string): boolean {
+    if (this.disposed || !this.v || !this.me) return false;
+    const hit = keyHit(this.v, this.me, code);
+    if (!hit) return false;
+    this.modes.key(hit);
+    return true;
+  }
+
+  /** Текст из чата «В игру» (Enter): ответ отвечающему, ответ финала, иначе реплика — готовое письмо серверу */
+  lineMsg(text: string): QuizClientMsg {
+    return lineMsg(this.v, this.me, text);
+  }
+
+  /** Что выбрано на полосе инструментов рисующего (мазок мышью по мольберту читает это): цвет 0–7, ластик, толщина 0–2 */
+  crocTool(): { color: number; size: number; erase: boolean; width: number } {
+    return this.modes.tool();
+  }
+
+  /** Окно «Ракушка» (E у трибуны): вкладка 'play' | 'packs' | 'upload' | 'records'; у ведущего в шаге setup — 'setup' */
+  openWindow(tab?: string): void {
+    this.win.open(tab);
+  }
+
+  /** Письма окна «Ракушка»: паки, состав пака, билет загрузки, рекорды и отказы (qzErr) — интегратор пересылает сюда */
+  onMsg(m: { t: string }): boolean {
+    return this.disposed ? false : this.win.onMsg(m);
   }
 
   dispose(): void {
@@ -130,7 +174,7 @@ export class QuizHud {
     this.flyer = new Flyer(k.shell);
     // один обработчик на часть: кнопки находим по data-qz; мышь не забирает фокус у клавиш игры
     const down = (e: Event): void => { if ((e.target as Element | null)?.closest('button[data-qz]')) e.preventDefault(); };
-    for (const root of [k.top.root, this.bars.host, this.dock.root, this.warm.root]) {
+    for (const root of [k.top.root, this.bars.host, this.dock.root, this.warm.root, this.modes.bc, this.modes.br]) {
       root.addEventListener('click', this.onClick);
       root.addEventListener('mousedown', down);
       this.unbind.push(() => { root.removeEventListener('click', this.onClick); root.removeEventListener('mousedown', down); });
@@ -153,13 +197,25 @@ export class QuizHud {
       case 'role': {
         const first = v.call?.roles?.[0] ?? v.call?.role;
         const r = t.dataset.r as QzRole | undefined;
-        this.send({ t: 'qz', a: 'role', take: true, ...(r && r !== first ? { r } : {}) });
+        // «Передумал» (data-take="0") шлёт роль явно: сервер снимает именно её
+        const take = t.dataset.take !== '0';
+        this.send({ t: 'qz', a: 'role', take, ...(r && (r !== first || !take) ? { r } : {}) });
         break;
       }
       case 'skip': this.send({ t: 'qz', a: 'role', take: false }); break;
       case 'mark': if (Number.isFinite(id)) this.send({ t: 'qz', a: 'mark', id, m: t.dataset.m as 'warm' | 'miss' | 'win' }); break;
       case 'unmark': if (Number.isFinite(id)) this.send({ t: 'qz', a: 'unmark', id }); break;
       case 'undo': this.send({ t: 'qz', a: 'undo' }); break;
+      case 'like': {
+        const pid = t.dataset.pack;
+        if (pid && !this.liked.has(pid)) {
+          this.liked.add(pid);
+          this.send({ t: 'qz', a: 'packLike', id: pid });
+          this.sound.play('pop');
+          this.syncPlate();
+        }
+        break;
+      }
       case 'hint': this.windows.openHint(v, me); break;
       case 'askopen': this.windows.openAsk(v, me); break;
       case 'unuse': this.send({ t: 'unuse' }); break;
@@ -176,7 +232,11 @@ export class QuizHud {
           this.send({ t: 'qz', a: 'giveup' });
         }
         break;
-      default: break;
+      default:
+        // кнопки «Своей игры», «Крокодила» и «Кто из нас?» (hud-modes.ts); «Пак и темы» открывает окно
+        if (t.dataset.qz === 'winopen') this.openWindow('setup');
+        else this.modes.click(t);
+        break;
     }
   }
 
@@ -185,7 +245,7 @@ export class QuizHud {
   private syncPlate(): void {
     const kit = this.kit;
     if (!kit || !this.v || !this.me) return;
-    const spec = plateSpec(this.v, this.me, this.now, this.armed);
+    const spec = modePlate(this.v, this.me, this.now, { pvMine: this.modes.pvMine }) ?? plateSpec(this.v, this.me, this.now, this.armed, this.liked);
     if (spec) kit.top.event({ key: spec.key, prio: spec.prio, html: spec.html, tone: spec.tone, lamp: spec.lamp });
     else if (this.plateOn) kit.top.clear(PLATE_KEY);
     this.plateOn = !!spec;
@@ -209,17 +269,32 @@ export class QuizHud {
     else attach(this.bars.host, kit.slots.bc, true);
   }
 
+  /** Панели «Своей игры», «Крокодила» и «Кто из нас?»: внизу по центру и справа внизу (слоты bc и br) */
+  private syncModes(kit: ResolvedKit): void {
+    const v = this.v!, me = this.me!;
+    if (v.phase === 'game' && v.mode !== 'riddle') this.modes.update(v, me, this.now);
+    else this.modes.clear();
+    if (this.modes.bcEmpty) this.modes.bc.remove(); else attach(this.modes.bc, kit.slots.bc);
+    if (this.modes.brEmpty) this.modes.br.remove(); else attach(this.modes.br, kit.slots.br, true);
+  }
+
   private syncDock(kit: ResolvedKit, riddling: boolean): void {
     const v = this.v!, me = this.me!;
     const R = v.riddle;
-    if (v.phase !== 'game' || v.mode !== 'riddle' || !R) {
+    const riddle = v.phase === 'game' && v.mode === 'riddle' && !!R;
+    // чужие режимы: свои строки «В игру» без кнопок; «Загадка» — со своим доком отметок
+    if (!riddle && !(v.phase === 'game' && v.mode && v.mode !== 'riddle')) {
       this.dock.clear();
       this.dock.root.remove();
       return;
     }
-    const marked = new Set(R.lines.filter((l) => l.mark === 'warm').map((l) => l.id));
-    const m = dockModel(R.lines, me, this.now, riddling, !!R.checking);
-    this.dock.update(m, { riddler: riddling, checking: !!R.checking, marked });
+    let m: DockModel;
+    let marked = new Set<number>();
+    if (riddle) {
+      marked = new Set(R!.lines.filter((l) => l.mark === 'warm').map((l) => l.id));
+      m = dockModel(R!.lines, me, this.now, riddling, !!R!.checking);
+    } else m = plainDock(modeLines(v), me, this.now);
+    this.dock.update(m, { riddler: riddle && riddling, checking: riddle && !!R!.checking, marked });
     // правка отметки: строка вернулась в док — тихий звук «отмена» тому, кто правил
     if (riddling && this.dock.returned > 0) this.sound.play('undo');
     if (m.rows.length || m.waiting) attach(this.dock.root, kit.slots.bl, true);
@@ -344,6 +419,10 @@ export class QuizHud {
     this.plateOn = false;
     this.bars.clear();
     this.bars.host.remove();
+    this.modes.clear();
+    this.modes.bc.remove();
+    this.modes.br.remove();
+    this.win.sync(null, null);
     this.dock.clear();
     this.dock.root.remove();
     this.warm.clear();

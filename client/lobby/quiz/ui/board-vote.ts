@@ -323,11 +323,11 @@ export function paintResults(ctx: CanvasRenderingContext2D, b: QzBoard, nowMs: n
   ctx.textBaseline = 'middle';
   ctx.textAlign = 'left';
   ctx.fillStyle = C.creamDim;
-  if (res.pack) ctx.fillText(clip(ctx, `пак «${res.pack.title}»`, W - PAD * 2), PAD, 790);
+  if (res.pack) ctx.fillText(clip(ctx, `пак «${res.pack.title}»`, W - PAD * 2), PAD, 808);
   const lead = 'дальше — голосование · ';
-  ctx.fillText(lead, PAD, 868);
+  ctx.fillText(lead, PAD, 882);
   ctx.fillStyle = C.goldText;
-  ctx.fillText(`0:${String(Math.min(59, left)).padStart(2, '0')}`, PAD + ctx.measureText(lead).width, 868);
+  ctx.fillText(`0:${String(Math.min(59, left)).padStart(2, '0')}`, PAD + ctx.measureText(lead).width, 882);
   ctx.restore();
   timeBar(ctx, left / (QZ.RESULTS_MS / 1000), false, W, H);
 }

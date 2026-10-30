@@ -13,6 +13,7 @@
 .k-event-actions > [data-qz] { margin: 0 0 2px; }
 .qz-swap { padding-inline: 10px; font-size: var(--fs-13); }
 .qz-swap b { margin-left: 4px; color: var(--good-text); }
+.qz-swap .k-ic { width: 18px; height: 18px; margin: -3px 0 -2px; }
 .qz-swap.is-on { box-shadow: inset 0 0 0 1.5px var(--good); }
 
 /* «Во что играем?»: четыре маленькие кнопки — значок режима и колпачок с цифрой */

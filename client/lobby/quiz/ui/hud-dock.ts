@@ -14,6 +14,7 @@ const still = (): boolean => typeof matchMedia === 'function' && matchMedia('(pr
 
 /** «✕» и «↩» штрихами, как микрофон в чате: глифов в шрифте нет, а у ↩ на Маке бывает эмодзи-вид */
 const CROSS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+const CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>';
 const UNDO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 5.5L4 10l4.5 4.5"/><path d="M4 10h10a5 5 0 0 1 0 10H8"/></svg>';
 
 // ------------------------------------------------------------------ док
@@ -29,6 +30,10 @@ export function buildRow(r: DockRow): HTMLElement {
     if (r.mark === 'miss') m.innerHTML = pic('q-miss');
     else if (r.mark === 'win' || r.mark === 'check') m.innerHTML = pic('q-win');
     row.appendChild(el('b', '')).textContent = r.nick;
+  }
+  if (r.got) {
+    row.classList.add('is-got');
+    row.appendChild(el('span', 'qz-mark', CHECK));
   }
   row.appendChild(el('span', 'qz-text')).textContent = r.text;
   if (r.near) row.classList.add('is-near');

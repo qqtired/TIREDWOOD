@@ -23,7 +23,7 @@ const BUSY_MS = 2500;
 /** Окно подсказки открывает клавиша H: столько миллисекунд после открытия ввод в поле не принимаем (иначе в нём «h») */
 const KEY_LEAK_MS = 120;
 
-interface DlgSpec {
+export interface DlgSpec {
   /** подпись для скринридера и класс окна */
   label: string;
   cls: string;
@@ -35,7 +35,7 @@ interface DlgSpec {
 }
 
 /** Нативное окно кита: клавиши и мышь не уходят игре, Esc / ✕ / клик мимо закрывают */
-class QDialog {
+export class QDialog {
   readonly dlg: HTMLDialogElement;
   readonly win: HTMLElement;
   private readonly onClose: () => void;

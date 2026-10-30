@@ -10,6 +10,8 @@ export interface QuizHudKit {
   top: TopCenter;
   /** Шина «Интерфейс» игры: () => sound.kit. Без неё звуки идут через общий sfx кита (ближайшие по смыслу) */
   audio?: () => AudioKit | null;
+  /** Уровень игрока: ниже 3-го окно «Загрузить» держит кнопку серой с причиной (null — не знаем, ответит сервер) */
+  level?: () => number | null;
 }
 
 /** Что HUD берёт у слотов кита */
@@ -35,6 +37,7 @@ export interface ResolvedKit {
   /** оболочка HUD (#hud): в неё кладётся слой полёта строк */
   shell: HTMLElement;
   audio?: () => AudioKit | null;
+  level?: () => number | null;
 }
 
 /** Обновить плашку на месте: меняются только верхние узлы, что изменились (как в topcenter.ts) */
@@ -83,7 +86,7 @@ class DomPlate implements PlateHost {
 
 /** Слоты и верх-центр: переданные или найденные в странице; null — HUD кита ещё не построен */
 export function resolveKit(kit?: QuizHudKit): ResolvedKit | null {
-  if (kit) return { slots: kit.slots, top: kit.top, shell: kit.slots.root.parentElement ?? document.body, audio: kit.audio };
+  if (kit) return { slots: kit.slots, top: kit.top, shell: kit.slots.root.parentElement ?? document.body, audio: kit.audio, level: kit.level };
   const root = document.querySelector<HTMLElement>('.k-hud:not(.k-hud--top)');
   const topLayer = document.querySelector<HTMLElement>('.k-hud--top');
   if (!root) return null;

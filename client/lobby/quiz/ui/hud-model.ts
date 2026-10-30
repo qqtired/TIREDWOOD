@@ -66,7 +66,7 @@ export interface PlateSpec {
   lamp?: boolean;
 }
 
-interface EvOpts {
+export interface EvOpts {
   /** внутри кружка слева (готовая разметка <img>) */
   ic?: string;
   title: string;
@@ -80,7 +80,7 @@ interface EvOpts {
 }
 
 /** Содержимое .k-event: узлы верхнего уровня TopCenter обновляет по одному, так что кнопки живут между тиками таймера */
-function ev(o: EvOpts): string {
+export function ev(o: EvOpts): string {
   const p = Math.round(Math.min(1, Math.max(0, o.ring?.p ?? 0)) * 1000) / 1000;
   return `<span class="k-event-ic">${o.ic ?? ''}</span><span class="k-event-title">${o.title}</span>`
     + (o.sub ? `<span class="k-event-sub">${o.sub}</span>` : '')
@@ -94,6 +94,14 @@ export function swapBtn(v: QzView, me: QzMe): string {
   if (v.phase !== 'game' || !v.swap || !me.canSwap) return '';
   const n = v.swap.n;
   return `<button type="button" class="k-btn k-btn--ghost k-btn--sm qz-swap${me.swap ? ' is-on' : ''}" data-qz="swap" title="Большинство сидящих за — новое голосование">Сменить игру?${n ? ` <b>${n}/${v.swap.need}</b>` : ''}</button>`;
+}
+
+/** «Пак понравился» на итогах «Своей игры»: только у тех, кто играл (место больше нуля); один раз на пак (отметку держит HUD, сервер тоже считает один раз) */
+export function likeButton(v: QzView, me: QzMe, liked: ReadonlySet<string> = new Set()): string {
+  const pack = v.phase === 'results' ? v.results?.pack : undefined;
+  if (!pack || !me.result || me.result.place <= 0) return '';
+  const done = liked.has(pack.id);
+  return `<button type="button" class="k-btn k-btn--ghost k-btn--sm qz-swap${done ? ' is-on' : ''}" data-qz="like" data-pack="${esc(pack.id)}"${done ? ' disabled' : ''} title="Скажи спасибо автору пака">${pic('heart', 'k-ic')}${done ? 'Спасибо!' : 'Пак понравился'}</button>`;
 }
 
 /** Четыре кнопки голосования: значок режима и колпачок с цифрой; мой выбор подсвечен, серые не нажимаются */
@@ -113,7 +121,7 @@ const END_TEXT: Record<QzRiddleEnd, string> = {
 };
 
 /** Плашка сверху: одна на всю «Ракушку»; null — убрать. Время считается по часам сервера now */
-export function plateSpec(v: QzView, me: QzMe, now: number, armed = false): PlateSpec | null {
+export function plateSpec(v: QzView, me: QzMe, now: number, armed = false, liked?: ReadonlySet<string>): PlateSpec | null {
   const mode = QZ_MODES.find((m) => m.id === v.mode) ?? null;
   const modeIc = (): string => pic(mode?.icon ?? 'scroll');
   const mk = (html: string, extra: Partial<PlateSpec> = {}): PlateSpec => ({ key: PLATE_KEY, prio: PRIO.mode, html, ...extra });
@@ -200,9 +208,13 @@ export function plateSpec(v: QzView, me: QzMe, now: number, armed = false): Plat
   if (v.phase === 'results' && v.results) {
     const r = me.result;
     const ic = pic(QZ_MODES.find((m) => m.id === v.results?.mode)?.icon ?? 'scroll');
+    // place 0 — ведущий или зритель без места: в строке итога только жетоны, без места и очков
+    if (r && r.place <= 0) {
+      return mk(ev({ ic, title: r.tokens > 0 ? `Итоги: <b class="k-gold">+${r.tokens}</b> ${COIN_K}` : 'Игра окончена' }), { tone: r.tokens > 0 ? 'good' : undefined });
+    }
     if (r) {
       const coins = r.tokens > 0 ? ` · +${r.tokens} ${COIN_K}` : '';
-      return mk(ev({ ic, title: `Итоги: <b class="k-gold">${r.place}-е место</b>`, sub: `${r.pts} ${plural(r.pts, 'очко', 'очка', 'очков')}${coins}` }), { tone: 'good' });
+      return mk(ev({ ic, title: `Итоги: <b class="k-gold">${r.place}-е место</b>`, sub: `${r.pts} ${plural(r.pts, 'очко', 'очка', 'очков')}${coins}`, side: likeButton(v, me, liked) }), { tone: 'good' });
     }
     const top = v.results.top[0];
     return mk(ev({ ic, title: 'Игра окончена', sub: top ? `Больше всех у ${esc(top.nick)}` : undefined }));
@@ -241,16 +253,28 @@ export function playBar(v: QzView, me: QzMe): BarSpec | null {
 /** Вызов роли: «Загадываю!» (F) мышью или клавишей; назначенному Затейником и угадавшему — ещё «Пропустить»; отсчёт до конца вызова */
 export function rolesBar(v: QzView, me: QzMe, now: number): BarSpec | null {
   const call = v.call;
-  if (!call || !me.canTake || (v.phase !== 'roles' && v.phase !== 'game')) return null;
+  if (!call || (v.phase !== 'roles' && v.phase !== 'game')) return null;
+  // «Своя игра»: записавшийся «Играю» и ведущий остаются на полосе с «Передумал»; «Крокодил»: записавшийся — тоже
+  const taken = call.taken ?? [];
+  const queued = taken.some((t) => t.slot === me.slot);
+  const hosting = v.mode === 'jeopardy' && me.role === 'host';
+  if (!me.canTake && !queued && !hosting) return null;
   const toMe = call.to?.slot === me.slot;
   const roles = call.roles?.length ? call.roles : [call.role];
-  const q = call.by === 'open' ? ASK[v.mode ?? 'riddle'][v.phase === 'roles' ? 0 : 1]
+  let q = call.by === 'open' ? ASK[v.mode ?? 'riddle'][v.phase === 'roles' ? 0 : 1]
     : call.by === 'zat' ? 'Затейник выбрал тебя' : 'Твоя очередь';
-  const btns = roles.map((r, j) => `<button type="button" class="k-btn ${j === 0 ? 'k-btn--go' : 'k-btn--ghost'}" data-qz="role" data-r="${r}">${LABEL[r]}${j === 0 ? keyCap('F', 'tr') : ''}</button>`).join('');
+  if (call.by === 'open' && taken.length) q += ` записались ${taken.length}`;
+  // первая кнопка — «зелёная» с F; своя уже нажатая роль заменяется на «Передумал»
+  const btns = roles.map((r, j) => {
+    const mine = r === 'host' ? hosting : queued;
+    if (mine) return `<button type="button" class="k-btn k-btn--ghost" data-qz="role" data-r="${r}" data-take="0">${r === 'host' ? 'Не веду' : 'Передумал'}</button>`;
+    if (hosting || (queued && r === 'drawer')) return '';
+    return `<button type="button" class="k-btn ${j === 0 ? 'k-btn--go' : 'k-btn--ghost'}" data-qz="role" data-r="${r}">${LABEL[r]}${j === 0 ? keyCap('F', 'tr') : ''}</button>`;
+  }).join('');
   const skip = call.by !== 'open' && toMe ? `<button type="button" class="k-btn k-btn--ghost" data-qz="skip">Пропустить</button>` : '';
   const left = leftSec(call.endsAt, now);
   return {
-    sig: `roles|${call.by}|${roles.join()}|${q}`,
+    sig: `roles|${call.by}|${roles.join()}|${q}|${queued ? 1 : 0}${hosting ? 'h' : ''}`,
     time: call.endsAt > 0 ? mmss(left) : '',
     hurry: left <= 3,
     html: `<div class="k-plate qz-turn qz-roles${call.by === 'open' ? '' : ' qz-assigned'}"><span class="qz-roles-t">${esc(q)}</span>${btns}${skip}<span class="qz-roles-time"></span></div>`,
@@ -284,6 +308,8 @@ export interface DockRow {
   own: boolean;
   /** реплика Затейника — без ника, курсивом */
   sys: boolean;
+  /** «Крокодил»: «Петя угадал!» — строка без ника с галочкой */
+  got?: boolean;
   mark: QzMark;
   /** у загадывающего: кнопки 👍 👎 ✓ */
   buttons: boolean;

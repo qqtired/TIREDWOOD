@@ -226,15 +226,40 @@ export function quizImgUrl(id: string): string {
 }
 
 const cache = new Map<string, HTMLImageElement | null>();
+/** Сколько картинок ещё грузится и кто просил сообщить, когда одна догрузилась (табло перерисовывается только при смене снимка,
+ *  поэтому без этого значок, догрузившийся после первого кадра, остался бы пустым кругом, пока снимок не изменится) */
+let pending = 0;
+const listeners = new Set<() => void>();
 
 function load(key: string, url: string): HTMLImageElement | null {
   if (cache.has(key)) return cache.get(key) ?? null;
   if (!url || typeof Image !== 'function') { cache.set(key, null); return null; }
   const img = new Image();
   img.decoding = 'async';
+  pending++;
+  const settled = (): void => {
+    pending = Math.max(0, pending - 1);
+    for (const cb of [...listeners]) cb();
+  };
+  img.addEventListener('load', settled, { once: true });
+  img.addEventListener('error', settled, { once: true });
   img.src = url;
   cache.set(key, img);
   return img;
+}
+
+/** Сколько картинок табло ещё грузится (0 — все на месте) */
+export const quizImagesPending = (): number => pending;
+
+/** Позвать, когда очередная картинка догрузилась (или не нашлась): интегратор по этому сигналу перерисовывает табло. Возвращает отписку */
+export function onQuizImages(cb: () => void): () => void {
+  listeners.add(cb);
+  return () => { listeners.delete(cb); };
+}
+
+/** Заранее начать грузить значки: к первому кадру табло они уже готовы */
+export function preloadQuizImages(ids: readonly string[]): void {
+  for (const id of ids) quizImg(id);
 }
 
 /** Значок по id: ленивая загрузка, пока не загрузился — рисуется без него (табло перерисуется само ≤ 4 раз в секунду) */
@@ -251,3 +276,6 @@ export function remoteImg(url: string): HTMLImageElement | null {
   }
   return load(key, url);
 }
+
+/** Значки режимов на табло «Во что играем?» и отметки «Загадки»: грузятся при старте игры, не при первом кадре табло */
+preloadQuizImages(['scroll', 'bell', 'paint', 'online', 'q-warm', 'q-miss', 'q-win']);
