@@ -1,0 +1,188 @@
+/* «Ракушка», HUD (client/lobby/quiz/ui/hud*.ts): только классы и токены кита UI 2.0 (client/ui/kit); свои .qz-* — раскладка и мелочи.
+   Перенос lab/quiz/v2 (v2.css, v2-riddle.css, v2-vote.css). Размеры — в пикселях сцены 1440 × 900, масштаб даёт .k-hud / .k-scrim. */
+
+/* ---------------------------------------------------------------- плашка сверху */
+.qz-ring-wrap { display: grid; place-items: center; }
+.qz-ring { width: 46px; height: 46px; }
+.qz-ring::before { inset: 4px; }
+.qz-ring > b { font-size: var(--fs-14); font-weight: 800; letter-spacing: -.02em; color: var(--surf-text); }
+.qz-ring.is-hurry { background: conic-gradient(var(--bad) calc(var(--p) * 360deg), var(--track) 0); }
+.qz-ring.is-hurry > b { color: var(--bad-text); animation: k-hurry .9s ease-in-out infinite; }
+/* справа от заголовка: четыре кнопки голосования или «Сменить игру?» */
+.k-event > .qz-side { grid-column: 3; grid-row: 1 / span 2; display: flex; align-items: center; gap: 6px; margin-left: 8px; }
+.k-event-actions > [data-qz] { margin: 0 0 2px; }
+.qz-swap { padding-inline: 10px; font-size: var(--fs-13); }
+.qz-swap b { margin-left: 4px; color: var(--good-text); }
+.qz-swap.is-on { box-shadow: inset 0 0 0 1.5px var(--good); }
+
+/* «Во что играем?»: четыре маленькие кнопки — значок режима и колпачок с цифрой */
+.qz-vbtn { position: relative; display: grid; place-items: center; width: 40px; height: 36px; padding: 0; border: 1.5px solid var(--line); border-radius: var(--r-md); background: var(--surf-2); cursor: pointer; transition: background .12s, border-color .12s, transform .12s; }
+.qz-vbtn > .k-key { position: absolute; top: -7px; left: -7px; }
+.qz-vbtn-ic { width: 26px; height: 26px; object-fit: contain; }
+.qz-vbtn:hover:not(:disabled) { border-color: var(--gold); background: var(--gold-soft); }
+.qz-vbtn.is-mine { border-color: var(--good); background: var(--good-soft); box-shadow: inset 0 0 0 1.5px var(--good); }
+.qz-vbtn:disabled { cursor: not-allowed; opacity: .45; filter: grayscale(1); }
+
+/* ---------------------------------------------------------------- полосы внизу по центру */
+.qz-bc-host { display: flex; flex-direction: column; align-items: center; gap: var(--slot-gap); }
+.qz-turn { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: var(--r-lg); }
+.qz-turn .k-btn { margin: 0 0 3px; }
+.qz-roles { gap: 10px; }
+.qz-roles-t { font: 700 var(--fs-16)/1.2 var(--font-text); white-space: nowrap; }
+.qz-roles-time { min-width: 34px; color: var(--gold-text); font: 800 var(--fs-16)/1 var(--font-text); font-variant-numeric: tabular-nums; text-align: right; }
+.qz-roles-time:empty { display: none; }
+.qz-roles-time.is-hurry { color: var(--bad-text); }
+.qz-assigned { box-shadow: var(--plate-shadow), inset 0 0 0 1.5px var(--gold); }
+/* загадывающий: ряд клавиш и «Подсказка» */
+.qz-bc { display: flex; align-items: center; gap: 10px; }
+.qz-bc .k-btn { margin: 0; }
+.qz-hintbtn .k-faint { margin-left: 4px; }
+.mo-key.is-off { opacity: .45; }
+
+/* ---------------------------------------------------------------- док «В игру» (над чатом) */
+.qz-dock { display: flex; flex-direction: column; gap: 6px; width: 360px; }
+.qz-dock .k-chat-list { max-height: 186px; overflow: hidden; justify-content: flex-end; }
+/* у загадывающего до 5 неотмеченных строк с кнопками: список выше (≈ 1/4 экрана), иначе самая старая обрезается */
+.qz-dock.is-marks .k-chat-list { max-height: 226px; }
+.qz-wait { padding: 0 4px 2px; font: 600 var(--fs-13)/1.2 var(--font-text); }
+.qz-wait[hidden] { display: none; }
+.qz-line { display: flex; align-items: center; gap: 0; }
+.qz-line .qz-mark:empty { display: none; }
+.qz-line .qz-mark { display: inline-grid; place-items: center; width: 20px; height: 20px; margin: 0 6px 0 -2px; flex: none; }
+.qz-line .qz-mark img { width: 20px; height: 20px; object-fit: contain; }
+.qz-line > b { flex: none; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qz-line .qz-text { min-width: 0; overflow-wrap: anywhere; }
+.qz-line.is-miss { opacity: .62; }
+.qz-line.is-miss .qz-text { text-decoration: line-through; text-decoration-thickness: 1.5px; }
+.qz-line.is-win { background: linear-gradient(var(--gold-soft), var(--gold-soft)), var(--chat-bg); box-shadow: var(--chat-shadow), inset 0 0 0 1.5px var(--gold); }
+.qz-line.is-warm { box-shadow: var(--chat-shadow), inset 3px 0 0 var(--good); padding-left: 12px; }
+.qz-line.is-own:not(.is-win) { box-shadow: var(--chat-shadow), inset 3px 0 0 var(--gold); }
+/* «похоже на ответ»: в 360 пикселей ник, слово, подпись и три кнопки не помещаются — кнопки уходят на вторую строку */
+.qz-line.is-near { flex-wrap: wrap; row-gap: 6px; box-shadow: var(--chat-shadow), inset 0 0 0 1.5px var(--gold); }
+.qz-near { margin-left: 6px; flex: none; }
+.qz-line.is-gone { opacity: 0; transform: translateX(-12px); transition: opacity .5s, transform .5s; }
+.qz-line.is-new { animation: qz-line-in .28s var(--ease-pop) both; }
+@keyframes qz-line-in { from { opacity: 0; transform: translateX(-10px) scale(.96); } }
+/* строка вернулась в док (правка отметки): золотая вспышка */
+.qz-line.is-back { animation: qz-back 1.3s ease-out both; }
+@keyframes qz-back {
+  0% { transform: translateX(-12px) scale(.96); box-shadow: var(--chat-shadow), inset 0 0 0 2px var(--gold), 0 0 0 4px var(--gold-soft); }
+  55% { transform: none; box-shadow: var(--chat-shadow), inset 0 0 0 2px var(--gold), 0 0 0 4px var(--gold-soft); }
+  100% { transform: none; box-shadow: var(--chat-shadow); }
+}
+/* «Угадал» → 3 с «Проверяем…»: золотая рамка, остальные отметки замирают */
+.qz-line.is-check { --tint: color-mix(in srgb, var(--gold) 40%, transparent); background: linear-gradient(var(--tint), var(--tint)), var(--chat-bg); box-shadow: var(--chat-shadow), inset 0 0 0 1.5px var(--gold); animation: qz-check .75s ease-in-out infinite alternate; }
+@keyframes qz-check { to { box-shadow: var(--chat-shadow), inset 0 0 0 1.5px var(--gold), 0 0 0 4px var(--gold-soft); } }
+.qz-dock.is-checking .qz-markbtns { opacity: .35; pointer-events: none; }
+/* отметки загадывающего: 👍 👎 и «Угадал» (у «похоже на ответ» — первой и крупной) */
+.qz-markbtns { display: inline-flex; gap: 6px; margin-left: auto; padding-left: 10px; flex: none; }
+.qz-mb { position: relative; display: grid; place-items: center; width: 30px; height: 30px; padding: 0; border: var(--ghost-border); border-radius: 50%; background: var(--ghost-bg); box-shadow: var(--ghost-drop); cursor: pointer; transition: transform .08s, background .12s; }
+.qz-mb img { width: 22px; height: 22px; object-fit: contain; }
+.qz-mb:hover { background: var(--ghost-bg-hover); transform: translateY(-1px) scale(1.06); }
+.qz-mb--warm:hover { box-shadow: 0 0 0 2px var(--good); }
+.qz-mb--miss:hover { box-shadow: 0 0 0 2px var(--bad); }
+.qz-mb--win:hover { box-shadow: 0 0 0 2px var(--gold); }
+.qz-mb > .k-key--tr { top: -9px; right: -9px; }
+.qz-mb--win.is-big { display: inline-flex; gap: 6px; width: auto; padding: 0 12px 0 6px; border-radius: 999px; background: linear-gradient(180deg, var(--gold-hi), var(--gold)); color: var(--gold-ink); font: 800 var(--fs-14)/1 var(--font-text); box-shadow: 0 1.5px 0 var(--gold-lo); }
+/* «мимо» у загадывающего держится 5 с — зачёркнута, на ней «↩ Вернуть» */
+.qz-undo { display: inline-flex; align-items: center; flex: none; gap: 5px; height: 26px; margin-left: auto; padding: 0 10px 0 7px; border: var(--ghost-border); border-radius: var(--r-pill); background: var(--ghost-bg); box-shadow: var(--ghost-drop); color: var(--ghost-text); font: 700 var(--fs-14)/1 var(--font-text); cursor: pointer; transition: transform .08s, background .12s, box-shadow .12s; }
+.qz-undo svg { display: block; width: 15px; height: 15px; }
+.qz-undo:hover { background: var(--ghost-bg-hover); transform: translateY(-1px); box-shadow: 0 0 0 2px var(--gold); }
+.qz-line.has-undo .qz-text { margin-right: 10px; }
+.qz-line.is-miss.has-undo { opacity: 1; }
+.qz-line.is-miss.has-undo > :not(.qz-undo) { opacity: .62; }
+.qz-line.is-miss.has-undo.is-gone { opacity: 0; }
+
+/* моя последняя догадка над полем чата (сидящий в кресле не видит своё облачко): тон — как у облачка, цвета — токены кита */
+.qz-me { align-self: flex-start; gap: 6px; max-width: 100%; padding-right: 12px; }
+.qz-me .qz-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qz-me .qz-tag { flex: none; margin-left: 8px; color: var(--surf-dim); font: 800 var(--fs-13)/1 var(--font-text); letter-spacing: .02em; }
+.qz-me.is-warm { padding-left: 10px; background: linear-gradient(var(--good-soft), var(--good-soft)), var(--chat-bg); box-shadow: var(--chat-shadow), inset 0 0 0 1.5px var(--good); }
+.qz-me.is-warm .qz-tag { color: var(--good-text); }
+.qz-me.is-check .qz-tag { color: var(--gold-text); }
+.qz-me.is-win .qz-tag { color: var(--gold-ink); }
+.qz-me.is-pop { animation: qz-pop .32s var(--ease-pop); }
+@keyframes qz-pop { 40% { transform: scale(1.06); } }
+
+/* ---------------------------------------------------------------- карточка «Тепло» (слот tl) */
+.qz-warm { display: grid; gap: 5px; width: 300px; padding: 9px 10px 10px; }
+.qz-warm-head { display: flex; align-items: center; gap: 8px; font: 800 var(--fs-16)/1 var(--font-text); }
+.qz-warm-head img { width: 26px; height: 26px; object-fit: contain; }
+.qz-warm-head b { color: var(--good-text); letter-spacing: .02em; }
+.qz-warm-more { margin: -2px 0 0 34px; color: var(--surf-faint); font: 600 var(--fs-13)/1.2 var(--font-text); }
+.qz-warm-more[hidden], .qz-warm-hints[hidden] { display: none; }
+.qz-warm-list { display: grid; gap: 4px; }
+.qz-warm-row { position: relative; display: block; padding: 3px 8px 4px; border-radius: var(--r-sm); background: var(--good-soft); transition: background .6s, box-shadow .6s, max-height .3s ease, padding .3s ease, margin .3s ease, opacity .22s ease; }
+.qz-warm-row[hidden] { display: none; }
+.qz-warm-txt { display: -webkit-box; overflow: hidden; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
+.qz-warm-txt small { display: inline-block; max-width: 100px; overflow: hidden; color: var(--nick); font: 700 var(--fs-13)/1.15 var(--font-text); text-overflow: ellipsis; white-space: nowrap; vertical-align: -1px; }
+.qz-warm-txt b { color: var(--surf-text); font: 800 var(--fs-16)/1.25 var(--font-text); }
+.qz-warm-row.is-new { background: var(--gold-soft); box-shadow: inset 0 0 0 1.5px var(--gold); animation: qz-row-in .4s var(--ease-pop) both; }
+.qz-warm-row.is-wait { visibility: hidden; animation: none; }
+@keyframes qz-row-in { from { transform: scale(.9); } to { transform: none; } }
+.qz-warm-empty { padding: 4px 2px; font-size: var(--fs-14); }
+.qz-warm-hints { display: grid; gap: 4px; padding-top: 6px; border-top: 1px solid var(--line); }
+.qz-warm-hint { display: flex; align-items: center; gap: 6px; padding: 2px 8px 2px 4px; border-radius: var(--r-sm); font: 700 var(--fs-15)/1.2 var(--font-text); }
+.qz-warm-hint span { min-width: 0; overflow-wrap: anywhere; }
+.qz-warm-hint i { display: inline-grid; place-items: center; flex: none; width: 22px; height: 22px; border-radius: 50%; background: linear-gradient(180deg, var(--gold-hi), var(--gold)); color: var(--gold-ink); font: 800 var(--fs-13)/1 var(--font-text); font-style: normal; }
+.qz-warm-hint.is-new { background: var(--gold-soft); }
+.qz-warm-hl { margin: 0; color: var(--gold-text); font: 800 var(--fs-13)/1.2 var(--font-text); letter-spacing: .06em; text-transform: uppercase; }
+/* правка отметок: у загадывающего при наведении на строку справа «✕» с подсказкой «Убрать из «Тепло»»; строка уходит схлопыванием.
+   Слой HUD пропускает мышь в мир, поэтому строки загадывающего ловят её сами — иначе наведение не сработает */
+.qz-warm.is-editable .qz-warm-row { min-height: 32px; padding-right: 36px; pointer-events: auto; }
+.qz-warm-row.is-out { overflow: hidden; min-height: 0 !important; max-height: 0 !important; margin-bottom: -4px; padding-block: 0; opacity: 0; }
+.qz-warm-x { position: absolute; top: 50%; right: 4px; display: none; place-items: center; width: 26px; height: 26px; margin-top: -13px; padding: 0; border: var(--ghost-border); border-radius: 50%; background: var(--ghost-bg); box-shadow: var(--ghost-drop); color: var(--ghost-text); cursor: pointer; opacity: 0; transform: scale(.8); transition: opacity .12s, transform .12s, background .12s, box-shadow .12s, color .12s; }
+.qz-warm.is-editable .qz-warm-x { display: grid; }
+.qz-warm-x svg { display: block; width: 12px; height: 12px; }
+.qz-warm-row:hover .qz-warm-x, .qz-warm-x:focus-visible { opacity: 1; transform: none; }
+.qz-warm-x:hover { background: var(--bad-soft); color: var(--bad-text); box-shadow: 0 0 0 2px var(--bad); }
+/* подсказка у кнопки: мышь в игре ловит не каждое title */
+.qz-warm-x::after { content: attr(data-tip); position: absolute; top: 50%; left: calc(100% + 20px); z-index: 5; transform: translateY(-50%); padding: 4px 10px 5px; border-radius: var(--r-sm); background: var(--surf-text); color: var(--plate-bg); font: 600 var(--fs-14)/1.2 var(--font-text); white-space: nowrap; box-shadow: 0 2px 8px rgba(10, 40, 56, .3); opacity: 0; pointer-events: none; transition: opacity .12s; }
+.qz-warm-x:hover::after { opacity: 1; }
+.qz-warm.is-editable .qz-warm-row:hover { box-shadow: inset 0 0 0 1.5px var(--good); }
+
+/* ---------------------------------------------------------------- «Встать» (под рядом эмоций) */
+.qz-stand { margin: 0; }
+
+/* ---------------------------------------------------------------- окна «Что загадал?» и «Подсказка» */
+/* окна — нативные <dialog> в верхнем слое: сброс стиля браузера, остальное даёт кит (.k-scrim), как у окон фермы и автомата */
+dialog.k-scrim.qz-scrim { position: fixed; inset: 0; width: auto; height: auto; max-width: none; max-height: none; margin: 0; border: 0; overflow: hidden; color: inherit; pointer-events: auto; text-shadow: none; grid-template: minmax(0, 1fr) / minmax(0, 1fr); }
+dialog.k-scrim.qz-scrim:not([open]) { display: none; }
+dialog.k-scrim.qz-scrim::backdrop { background: transparent; }
+dialog.k-scrim.qz-scrim:focus, dialog.k-scrim.qz-scrim :focus:not(:focus-visible) { outline: none; }
+.qz-window .k-win-portrait img { width: 100%; height: 100%; object-fit: contain; }
+.qz-ask { display: grid; gap: 14px; }
+.qz-field { display: grid; gap: 8px; }
+.qz-label { color: var(--surf-dim); font: 700 var(--fs-14)/1 var(--font-text); letter-spacing: .06em; text-transform: uppercase; }
+.qz-label em { color: var(--surf-faint); font-style: normal; font-weight: 600; letter-spacing: 0; text-transform: none; }
+.qz-ask .qz-word { min-height: 62px; font-size: var(--fs-28); font-weight: 800; }
+.qz-window .qz-word { width: 100%; }
+.qz-wordrow { display: flex; align-items: center; gap: 10px; }
+.qz-wordrow .qz-word { flex: 1; min-width: 0; }
+.qz-wordrow .qz-idea { flex: none; margin: 0 0 3px; }
+.qz-ideas { display: flex; flex-wrap: wrap; gap: 8px; margin-top: -6px; }
+.qz-ideas[hidden] { display: none; }
+.qz-idea-w { cursor: pointer; font-weight: 700; }
+.qz-idea-w:hover { border-color: var(--gold); background: var(--gold-soft); }
+.qz-note { margin: -6px 0 0; }
+.qz-cats { display: flex; flex-wrap: wrap; }
+.qz-err { margin: 0; font: 700 var(--fs-15)/1.2 var(--font-text); }
+.qz-err[hidden] { display: none; }
+.qz-window .k-win-foot .k-note { display: inline-flex; align-items: center; gap: 6px; }
+.qz-window .k-coin { width: 18px; height: 18px; }
+
+/* ---------------------------------------------------------------- слой полёта: копия строки в «Тепло», конфетти (без zoom) */
+.qz-world { position: fixed; inset: 0; z-index: 40; overflow: hidden; pointer-events: none; }
+.qz-fly { position: absolute; left: 0; top: 0; transform-origin: 0 0; will-change: transform; }
+.qz-fly-in { zoom: var(--hud-k, 1); }
+.qz-fly .qz-line { box-shadow: var(--chat-shadow), inset 3px 0 0 var(--good); }
+.qz-conf { position: absolute; left: 0; top: 0; width: 9px; height: 13px; border-radius: 2px; will-change: transform, opacity; }
+
+/* части появляются мягко (поставили в слот — проявились) */
+@keyframes qz-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.qz-dock, .qz-warm, .qz-bc-host, .qz-stand { animation: qz-in .22s ease-out both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .qz-line.is-check, .qz-line.is-back, .qz-line.is-new, .qz-me.is-pop, .qz-warm-row.is-new, .qz-dock, .qz-warm, .qz-bc-host, .qz-stand { animation: none !important; }
+  .qz-warm-row, .qz-line.is-gone { transition: none; }
+}

@@ -362,6 +362,7 @@ function riddlerUi(x, r, word) {
   const paintKeys = () => {
     if (r.history.length) used = true;
     const can = r.history.length > 0 || !!r.s.check;
+    keys.style.display = r.s.check ? 'none' : ''; // пока идёт «Проверяем…», «Отменить Z» уже есть на плашке — повтор снизу не нужен
     keys.innerHTML = used
       ? `<span class="mo-key${can ? '' : ' is-off'}">${keyHtml('Z')}<em>отменить</em></span>`
       : `<span class="mo-key">${keyHtml('1')}<em>тепло</em></span><span class="mo-key">${keyHtml('2')}<em>мимо</em></span><span class="mo-key">${keyHtml('3')}<em>угадал</em></span>`;
