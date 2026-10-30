@@ -259,7 +259,8 @@ export class WarmView {
     // на виду «Горячо!» и свежие «тепло» (WARM_SHOWN строк), остальное — «ещё N» (какие видны, решает модель)
     this.more.hidden = m.more === 0;
     if (m.more) this.more.textContent = `ещё ${m.more}`;
-    this.count.textContent = String(m.rows.length);
+    // число — только «тепло», как карточка «Тепло» на табло; «Горячо!» отмечен своей плашкой в строке
+    this.count.textContent = String(m.rows.filter((r) => !r.hot).length);
     if (!m.rows.length && !this.empty.isConnected) this.list.appendChild(this.empty);
     // подсказки загадывающего: новая вспыхивает
     if (m.hints.length < this.shownHints) { this.hints.querySelectorAll('.qz-warm-hint').forEach((h) => h.remove()); this.shownHints = 0; }

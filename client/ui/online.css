@@ -52,7 +52,13 @@
   text-overflow: ellipsis;
 }
 
-/* титул «Кто из нас?» рядом с ником: в тесной строке сжимается титул, ник остаётся целым (пока сам не больше строки) */
+/* титул «Кто из нас?» рядом с ником: не влез в строку — переносится под ник целиком (сжимается, только если длиннее
+   всей строки); ник остаётся целым */
+.k-online-nick:has(.ol-qtitle) {
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+
 .ol-nick--t {
   flex: 0 0 auto;
   max-width: 100%;
@@ -61,7 +67,7 @@
 .ol-qtitle {
   flex: 0 1 auto;
   min-width: 2.4em;
-  max-width: 180px;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
 }
