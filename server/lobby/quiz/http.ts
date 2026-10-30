@@ -1,11 +1,13 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { createReadStream } from 'node:fs';
+import { once } from 'node:events';
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { QZ_TICKET_HEADER, type QzUpStart } from '../../../shared/quiz/net.ts';
+import { QZ_TICKET_HEADER, type QzFetchBody, type QzUpStart } from '../../../shared/quiz/net.ts';
 import { fileName, PackError, validatePack } from '../../../shared/quiz/pack.ts';
 import { QZ_PACK, type QzUpFile } from '../../../shared/quiz/types.ts';
 import { RateLimiter } from '../../ratelimit.ts';
 import { QuizPacks } from './packs.ts';
+import { fetchQuizPack, quizFetchTimeout } from './fetch.ts';
 
 interface Ticket { pid: number; exp: number; id: string | null; busy: boolean }
 export interface QuizHttpOptions {
@@ -15,6 +17,8 @@ export interface QuizHttpOptions {
   log?: (message: string) => void;
   /** «Ракушка» 1.1: ники, которым можно загружать паки (QUIZ_UPLOADERS, без учёта регистра); пусто — по уровню, как раньше */
   uploaders?: readonly string[];
+  /** F5: запросы библиотеки SIGame; в тестах без внешней сети. */
+  fetch?: typeof fetch;
 }
 /** QUIZ_UPLOADERS=Tired,Ник — ники через запятую */
 export function quizUploaders(raw: string | undefined): string[] {
@@ -24,11 +28,14 @@ const MIME: Record<string, string> = { webp: 'image/webp', png: 'image/png', jpg
 function json(res: ServerResponse, status: number, value: unknown): void {
   res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' }).end(JSON.stringify(value));
 }
-function readBody(req: IncomingMessage, max: number): Promise<Buffer> {
+function readBody(req: IncomingMessage, max: number, signal?: AbortSignal): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     let n = 0, settled = false;
     const chunks: Buffer[] = [];
-    const fail = (e: Error) => { if (!settled) { settled = true; chunks.length = 0; reject(e); } };
+    const abort = () => fail(quizFetchTimeout());
+    const fail = (e: Error) => { if (!settled) { settled = true; signal?.removeEventListener('abort', abort); chunks.length = 0; reject(e); } };
+    if (signal?.aborted) { abort(); return; }
+    signal?.addEventListener('abort', abort, { once: true });
     const length = Number(req.headers['content-length']);
     if (Number.isFinite(length) && length > max) { req.resume(); fail(new PackError('Файл слишком большой.', 413)); return; }
     req.on('data', (chunk: Buffer) => {
@@ -37,7 +44,7 @@ function readBody(req: IncomingMessage, max: number): Promise<Buffer> {
       if (n > max) { fail(new PackError('Файл слишком большой.', 413)); return; }
       chunks.push(chunk);
     });
-    req.on('end', () => { if (!settled) { settled = true; resolve(Buffer.concat(chunks)); } });
+    req.on('end', () => { if (!settled) { settled = true; signal?.removeEventListener('abort', abort); resolve(Buffer.concat(chunks)); } });
     req.on('aborted', () => fail(new PackError('Загрузка прервалась.')));
     req.on('error', () => fail(new PackError('Загрузка прервалась.')));
   });
@@ -63,6 +70,7 @@ export class QuizHttp {
   private ip: (req: IncomingMessage) => string;
   private log: (message: string) => void;
   private uploaders: string[];
+  private fetch: typeof fetch;
   private tickets = new Map<string, Ticket>();
   private limiter: RateLimiter;
   private sweepTimer: ReturnType<typeof setInterval>;
@@ -70,6 +78,7 @@ export class QuizHttp {
     this.packs = opts.packs; this.enabled = opts.enabled ?? true; this.now = opts.now ?? Date.now;
     this.ip = opts.ip ?? (req => req.socket.remoteAddress ?? 'local'); this.log = opts.log ?? console.error;
     this.uploaders = [...(opts.uploaders ?? [])];
+    this.fetch = opts.fetch ?? globalThis.fetch;
     this.limiter = new RateLimiter(this.now);
     this.sweepTimer = setInterval(() => { try { this.sweep(); } catch { this.log('quiz: не удалось убрать истёкшую загрузку'); } }, 30_000);
     this.sweepTimer.unref();
@@ -118,6 +127,34 @@ export class QuizHttp {
     return { key: key as string, ticket: t };
   }
   private async request(req: IncomingMessage, res: ServerResponse, pathname: string): Promise<void> {
+    if (pathname === '/quiz/fetch' && req.method === 'POST') {
+      const { ticket } = this.auth(req);
+      if (!this.limiter.hit(`fetch:${this.ip(req)}`, 10, 60_000)) throw new PackError('Не так быстро — попробуй через минуту.', 429);
+      if (ticket.busy) throw new PackError('Загрузка ещё идёт.', 409);
+      ticket.busy = true;
+      const closed = new AbortController(), signal = AbortSignal.any([closed.signal, AbortSignal.timeout(QZ_PACK.FETCH_MS)]);
+      const abort = () => closed.abort(); res.on('close', abort);
+      try {
+        const body = await readBody(req, 4 * 1024, signal);
+        this.auth(req);
+        let raw: unknown;
+        try { raw = JSON.parse(body.toString('utf8')); } catch { throw new PackError('Нужна ссылка на пак из библиотеки SIGame'); }
+        if (!raw || typeof raw !== 'object' || Array.isArray(raw) || typeof (raw as Record<string, unknown>).url !== 'string') {
+          throw new PackError('Нужна ссылка на пак из библиотеки SIGame');
+        }
+        const headers = { 'content-type': 'application/octet-stream', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' };
+        for await (const chunk of fetchQuizPack((raw as QzFetchBody).url, this.fetch, signal)) {
+          if (!res.headersSent) res.writeHead(200, headers);
+          if (!res.write(chunk)) await once(res, 'drain', { signal });
+        }
+        if (!res.headersSent) res.writeHead(200, headers);
+        res.end();
+      } catch (e) {
+        if (signal.aborted) throw quizFetchTimeout();
+        throw e;
+      } finally { ticket.busy = false; res.off('close', abort); closed.abort(); }
+      return;
+    }
     const media = /^\/quiz\/m\/([^/]+)\/([^/]+)$/.exec(pathname);
     if (media && (req.method === 'GET' || req.method === 'HEAD')) {
       const file = this.packs.media(media[1], media[2]); if (!file) throw new PackError('Файл не найден.', 404);

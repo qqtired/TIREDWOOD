@@ -2,7 +2,7 @@ import { sanitizeChat } from '../text.ts';
 import { checkAnswer } from './answer.ts';
 import type { QzErrCode } from './net.ts';
 import { QZ, QZ_JP as JP, type QzJpBoard, type QzJpMe, type QzJpPlayer, type QzJpView, type QzLine,
-  type QzPack, type QzQuestion, type QzRound, type QzWho } from './types.ts';
+  type QzOrder, type QzPack, type QzQuestion, type QzRound, type QzWho } from './types.ts';
 
 export interface JeopardyWho extends QzWho { pid: number }
 export interface JeopardyError { code: QzErrCode; text: string; wait?: number }
@@ -35,7 +35,7 @@ export function reduceJeopardyRoles(before: JeopardyRoles, a: { a: 'tick' } | { 
   return s;
 }
 
-export interface JeopardyPack { id: string; pack: QzPack; plays?: number }
+export interface JeopardyPack { id: string; pack: QzPack; plays?: number; fresh?: boolean; at?: number }
 interface Player extends QzJpPlayer { pid: number }
 interface FinalPlayer extends JeopardyWho { score: number; bet: number; text: string; answered: boolean; ok: boolean | null }
 interface Final {
@@ -45,6 +45,7 @@ interface Final {
 export interface JeopardyState {
   step: QzJpBoard['step']; host: JeopardyWho | null; players: Player[]; people: JeopardyWho[];
   pool: JeopardyPack[]; options: JeopardyPack[]; votes: Record<number, number>; pack: JeopardyPack | null;
+  order: QzOrder | null;
   round: QzRound | null; final: boolean; fin: Final | null; used: string[]; turn: number;
   current: { th: number; cell: number; question: QzQuestion; theme: string } | null;
   openAt: number; buzz: number; buzzes: Array<{ slot: number; t: number; arrived: number }>;
@@ -59,6 +60,7 @@ export type JeopardyAction =
   | { a: 'presence'; people: JeopardyWho[] }
   | { a: 'away'; slot: number }
   | { a: 'seat'; who: JeopardyWho; pult: number }
+  | { a: 'host'; who: JeopardyWho }
   | { a: 'stop' }
   | { a: 'jpStart'; slot: number; pack: string; round: number; themes: number[]; final: boolean }
   | { a: 'jpZat' | 'jpOpen' | 'jpMore' | 'jpShow' | 'jpEnd' | 'jpDispute'; slot: number }
@@ -80,9 +82,13 @@ function phase(s: JeopardyState, step: JeopardyState['step'], now: number, ms: n
 function finish(s: JeopardyState, completed = true): void {
   s.done = true; s.result = { players: s.players.map(p => ({ ...p })).sort((a, b) => b.score - a.score), host: s.host && { ...s.host }, completed };
 }
-function packOptions(pool: JeopardyPack[], rand: () => number): JeopardyPack[] {
+function packOptions(pool: JeopardyPack[], rand: () => number, order: QzOrder | null): JeopardyPack[] {
   const left = pool.filter(p => p.pack.kind === 'jeopardy' && !p.pack.adult && p.pack.rounds.some(r => !r.final && r.themes.length >= JP.THEMES_MIN));
   const result: JeopardyPack[] = [];
+  const fresh = left.filter(p => p.fresh).sort((a, b) => (b.at ?? 0) - (a.at ?? 0))[0];
+  const ordered = left.findIndex(p => p.id === order?.id);
+  if (ordered >= 0) result.push(left.splice(ordered, 1)[0]);
+  if (fresh && fresh.id !== order?.id && result.length < JP.PACKVOTE_OPTIONS) result.push(left.splice(left.indexOf(fresh), 1)[0]);
   while (left.length && result.length < JP.PACKVOTE_OPTIONS) {
     const weights = left.map(p => 1 / (Math.max(0, p.plays ?? 0) + 1));
     let r = rand() * weights.reduce((a, b) => a + b, 0), i = 0;
@@ -92,15 +98,15 @@ function packOptions(pool: JeopardyPack[], rand: () => number): JeopardyPack[] {
   return result;
 }
 function packVote(s: JeopardyState, now: number, rand: () => number): void {
-  s.host = null; s.options = packOptions(s.pool, rand); s.votes = {};
+  s.host = null; s.options = packOptions(s.pool, rand, s.order); s.votes = {};
   phase(s, 'packvote', now, JP.PACKVOTE_MS);
   if (!s.options.length) finish(s, false);
 }
-export function newJeopardy(input: { players: JeopardyWho[]; host: JeopardyWho | null; packs: JeopardyPack[]; people?: JeopardyWho[] }, now: number, rand: () => number): JeopardyState {
+export function newJeopardy(input: { players: JeopardyWho[]; host: JeopardyWho | null; packs: JeopardyPack[]; people?: JeopardyWho[]; order?: QzOrder | null }, now: number, rand: () => number): JeopardyState {
   const s: JeopardyState = { step: 'setup', host: input.host && { ...input.host },
     players: input.players.slice(0, JP.PLAYERS_MAX).map((p, pult) => ({ ...p, pult, score: 0, away: 0 })),
     people: structuredClone(input.people ?? [...input.players, ...(input.host ? [input.host] : [])]),
-    pool: structuredClone(input.packs), options: [], votes: {}, pack: null, round: null, final: false, fin: null,
+    pool: structuredClone(input.packs), options: [], votes: {}, pack: null, order: input.order ? structuredClone(input.order) : null, round: null, final: false, fin: null,
     used: [], turn: 0, current: null, openAt: 0, buzz: 0, buzzes: [], buzzUntil: 0, locks: {}, out: [], said: '', verdict: '',
     penalty: 0, disputeVotes: {}, more: 0, showAt: 0, endsAt: now + JP.SETUP_MS, total: JP.SETUP_MS, fewAt: null, asks: [],
     lines: [], nextId: 1, gaps: {}, played: false, endRound: false, done: false, result: null };
@@ -257,6 +263,14 @@ export function reduceJeopardy(before: JeopardyState, a: JeopardyAction, now: nu
     return reply();
   }
   if (a.a === 'away') { leave(s, a.slot, now, rand); return reply(); }
+  if (a.a === 'host') {
+    const person = s.people.find(p => p.pid === a.who.pid && p.slot === a.who.slot);
+    if (person && canHost(s, person.slot, now)) {
+      s.host = { ...person }; s.options = []; s.votes = {};
+      phase(s, 'setup', now, JP.SETUP_MS);
+    }
+    return reply();
+  }
   if (a.a === 'seat') {
     if (!Number.isInteger(a.pult) || a.pult < 0 || a.pult >= JP.PLAYERS_MAX || a.who.pid === s.host?.pid
       || !s.people.some(p => p.pid === a.who.pid)) return reply();
@@ -359,7 +373,8 @@ export function jeopardyBoard(s: JeopardyState): QzJpBoard {
   return structuredClone({ step: s.step, pack: s.pack && { id: s.pack.id, title: s.pack.pack.title }, round: s.round?.name ?? '', final: s.final,
     host: s.host && who(s.host), players: s.players.map(publicPlayer), turn: s.turn,
     themes: s.round?.themes.map((t, th) => ({ name: t.name, cells: t.questions.map((q, c) => s.used.includes(`${th}:${c}`) ? 0 : q.price) })) ?? [],
-    packs: s.step === 'packvote' ? s.options.map((p, i) => ({ id: p.id, title: p.pack.title, sub: p.pack.author, n: Object.values(s.votes).filter(v => v === i).length })) : null,
+    packs: s.step === 'packvote' ? s.options.map((p, i) => ({ id: p.id, title: p.pack.title, sub: p.pack.author, n: Object.values(s.votes).filter(v => v === i).length,
+      ...(p.id === s.order?.id ? { by: s.order.by.nick } : {}), ...(p.fresh ? { fresh: true } : {}) })) : null,
     q: finalQuestion ?? shownQuestion, openAt: s.openAt, buzz: by ? who(by) : null, out: [...s.out], said: s.said, verdict: s.verdict, answer,
     dispute: s.step === 'dispute' && by ? { by: who(by), yes: Object.values(s.disputeVotes).filter(Boolean).length, no: Object.values(s.disputeVotes).filter(v => !v).length } : null,
     fin: f ? { themes: f.remaining.map(i => f.round.themes[i].name), remover: s.step === 'fremove' ? f.order[f.removeIndex].slot : 0,
@@ -369,6 +384,10 @@ export function jeopardyBoard(s: JeopardyState): QzJpBoard {
 }
 export function jeopardyView(s: JeopardyState, slot: number): QzJpView {
   return { ...jeopardyBoard(s), lines: structuredClone(s.lines), asks: s.host?.slot === slot ? s.asks.map(who) : [] };
+}
+function canHost(s: JeopardyState, slot: number, now: number): boolean {
+  const person = s.people.find(p => p.slot === slot);
+  return !s.done && s.step === 'packvote' && now < s.endsAt && !s.host && !!person && !s.players.some(p => p.pid === person.pid);
 }
 export function jeopardyMe(s: JeopardyState, slot: number, now: number): QzJpMe {
   const p = player(s, slot), q = s.fin?.question ?? s.current?.question, fp = s.fin?.order.find(p => p.slot === slot);
@@ -380,5 +399,6 @@ export function jeopardyMe(s: JeopardyState, slot: number, now: number): QzJpMe 
   if (s.host?.slot === slot && s.step === 'fjudge') me.fanswers = s.fin!.order.map(p => ({ ...who(p), text: p.text, ok: p.ok === null ? '' : p.ok ? 'yes' : 'no' }));
   me.canDispute = s.step === 'wrong' && s.buzz === slot && !!p && !p.away;
   me.canJudgeDispute = s.step === 'dispute' && s.buzz !== slot && !!p && !p.away;
+  me.canHost = canHost(s, slot, now);
   return me;
 }

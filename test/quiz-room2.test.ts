@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { QuizClientMsg } from '../shared/quiz/net.ts';
 import { QUIZ_VENUE as V } from '../shared/quiz/venue.ts';
-import { QZ, QZ_JP as JP } from '../shared/quiz/types.ts';
+import { QZ } from '../shared/quiz/types.ts';
 import { arcDay } from '../shared/arcade/rewards.ts';
 
 process.env.PLAZA3 = '1';
@@ -46,14 +46,12 @@ test('комната: выплаты идут в Profiles.credit(mode), днев
 test('комната: твёрдое поднятых пультов включается и гаснет; кривое E не снимает роль', () => {
   const g = setup(4), world = g.hub.lobby.world, boxes = g.hub.lobby.map.quizPultBoxes!;
   assert.ok(boxes.every(i => world.minX[i] === world.maxX[i]));
-  g.choose(1); g.msg(0, { t: 'qz', a: 'role', take: true, r: 'host' });
-  for (const i of [1, 2, 3]) g.msg(i, { t: 'qz', a: 'role', take: true, r: 'player' });
-  g.advance(JP.CALL_MS);
-  assert.deepEqual(g.hub.lobby.quiz!.raisedPults(), [0, 1, 2]);
-  assert.ok(boxes.slice(0, 3).every(i => world.maxX[i] > world.minX[i]));
-  assert.ok(boxes.slice(3).every(i => world.minX[i] === world.maxX[i]));
+  g.choose(1); assert.equal(g.hub.lobby.quiz!.board().jp?.step, 'packvote');
+  assert.deepEqual(g.hub.lobby.quiz!.raisedPults(), [0, 1, 2, 3]);
+  assert.ok(boxes.slice(0, 4).every(i => world.maxX[i] > world.minX[i]));
+  assert.ok(boxes.slice(4).every(i => world.minX[i] === world.maxX[i]));
   g.hub.onJson(g.players[1].c, { t: 'use', id: 0 });
-  assert.equal(g.hub.lobby.quiz!.board().jp!.players[0].away, 0);
+  assert.equal(g.hub.lobby.quiz!.board().jp!.players[1].away, 0);
   for (const i of [0, 1, 2]) g.msg(i, { t: 'qz', a: 'swap', on: true }); g.advance(100);
   assert.ok(boxes.every(i => world.minX[i] === world.maxX[i]));
 });

@@ -26,7 +26,9 @@ export class JeopardyGame implements QuizController {
 
   constructor(h: ModeHost, now: number, voters: number[], nextId: number) {
     this.h = h; this.nextId = nextId; this.roles = newJeopardyRoles(now, voters);
-    h.say('Кто ведёт? Кто играет? Жмите!', 'announce', now);
+    const people = h.people(), players = [...new Set(voters)].flatMap(pid => people.filter(p => p.pid === pid)).slice(0, JP.PLAYERS_MAX);
+    if (players.length >= JP.PLAYERS_MIN) this.start(players, null, now);
+    else h.say('Кто ведёт? Кто играет? Жмите!', 'announce', now);
   }
   get deadline(): number { return this.state?.endsAt ?? this.roles.endsAt; }
   get call(): QzCall | null {
@@ -70,12 +72,7 @@ export class JeopardyGame implements QuizController {
       if (this.roles.step === 'idle') {
         this.phase = 'idle'; this.close(); this.h.say('Не набралось игроков', 'shrug', now);
       } else if (this.roles.step !== 'roles') {
-        this.phase = 'game';
-        this.state = newJeopardy({ players: this.roles.players, host: this.roles.host, packs: this.h.packs('jeopardy'), people: this.h.people() }, now, this.h.rand);
-        this.state.nextId = this.nextId;
-        this.lockOptions();
-        if (this.state.step === 'packvote') this.h.say('Выбираем пак — жмите 1–3!', 'announce', now);
-        this.syncPlaces(); this.finish();
+        this.start(this.roles.players, this.roles.host, now);
       }
     }
     return this.outcome ? 'done' : null;
@@ -92,6 +89,9 @@ export class JeopardyGame implements QuizController {
     let action: JeopardyAction;
     const slot = who.slot;
     switch (msg.a) {
+      case 'role':
+        if (msg.r !== 'host' || !msg.take) return;
+        action = { a: 'host', who }; break;
       case 'jpStart':
         if (this.state.host?.slot !== slot || this.state.step !== 'setup') return;
         this.state.pool = this.h.packs('jeopardy');
@@ -108,7 +108,7 @@ export class JeopardyGame implements QuizController {
   }
   use(slot: number, place: number, now: number): ModeError | undefined {
     const who = this.h.people().find(p => p.slot === slot); if (!who) return;
-    if (place === V.first.podium && this.phase === 'roles') return this.message(who, { t: 'qz', a: 'role', take: true, r: 'host' }, 0, now);
+    if (place === V.first.podium) return this.message(who, { t: 'qz', a: 'role', take: true, r: 'host' }, 0, now);
     if (this.state && !this.outcome && place >= V.first.pult && place < V.first.pult + V.pults.length) {
       const pult = place - V.first.pult, p = this.state.players.find(p => p.pult === pult);
       if (p && p.pid !== who.pid) return { code: 'seat', text: 'Место занято' };
@@ -139,22 +139,36 @@ export class JeopardyGame implements QuizController {
     const { pool: _pool, options: _options, pack: _pack, round: _round, ...rest } = s;
     return JSON.stringify(rest);
   }
+  private start(players: RiddleWho[], host: RiddleWho | null, now: number): void {
+    this.phase = 'game';
+    this.state = newJeopardy({ players, host, packs: this.h.packs('jeopardy'), people: this.h.people(), order: this.h.order?.('jeopardy') }, now, this.h.rand);
+    this.state.nextId = this.nextId; this.lockOptions();
+    if (this.state.step === 'packvote') this.h.say('Выбираем пак — жмите 1–3!', 'announce', now);
+    this.syncPlaces(); this.finish();
+  }
   private apply(action: JeopardyAction, now: number, input = false): ModeError | undefined {
     const old = this.state!;
+    if (old.step === 'setup' && (now >= old.endsAt || action.a === 'jpZat' || action.a === 'presence')) {
+      // В setup паки не заблокированы: перед новым голосованием перечитываем каталог и заказ.
+      old.pool = this.h.packs('jeopardy'); old.order = this.h.order?.('jeopardy') ?? null;
+    }
     const { state: s, error } = reduceJeopardy(old, action, now, this.h.rand);
     this.state = s; this.nextId = s.nextId;
     if (input) this.accepted = !error && this.key(old) !== this.key(s);
     if (s.pack && s.pack.id !== this.packId) { this.unlockPack(); this.packId = s.pack.id; this.h.store?.setPlaying(s.pack.id, true); }
     this.lockOptions();
-    if (s.played && !this.packPlayed && this.packId) { this.packPlayed = true; this.h.store?.played(this.packId); }
+    if (s.played && !this.packPlayed && this.packId) {
+      this.packPlayed = true; this.h.store?.played(this.packId); this.h.orderUsed?.('jeopardy', this.packId);
+    }
     this.syncPlaces();
+    if (!old.host && s.host) this.h.say(`${s.host.nick} ведёт!`, 'point', now);
     if (old.host && !s.host) this.h.say('Затейник подхватил игру!', 'cheer', now);
     if (s.step === 'packvote' && old.step !== s.step) this.h.say('Выбираем пак — жмите 1–3!', 'announce', now);
     if (!old.pack && s.pack) this.h.say(`Первый ход — ${s.players.find(p => p.slot === s.turn)?.nick ?? ''}!`, 'point', now);
     if (s.used.length > old.used.length && s.current) this.h.say(s.step === 'cat' ? 'Кот в мешке! Кому отдашь?' : `${s.current.theme} за ${s.current.question.price}!`, s.step === 'cat' ? 'point' : 'talk', now);
-    if (s.verdict === 'yes' && old.verdict !== 'yes') this.h.say(`Верно! Плюс ${s.current?.question.price ?? 0}`, 'clap', now);
-    else if (s.out.length > old.out.length) this.h.say('Неверно', 'shrug', now);
-    if (s.step === 'reveal' && old.step !== 'reveal' && !s.verdict) this.h.say(`Никто не знает: это ${s.current?.question.answers[0] ?? ''}`, 'shrug', now);
+    if (s.verdict === 'yes' && old.verdict !== 'yes') this.h.say(['Верно!', 'Браво!', 'Точно в цель!'][Math.min(2, Math.floor(this.h.rand() * 3))], 'clap', now);
+    else if (s.out.length > old.out.length) this.h.say(['Мимо!', 'Эх, нет'][Math.min(1, Math.floor(this.h.rand() * 2))], 'shrug', now);
+    if (s.step === 'reveal' && old.step !== 'reveal' && !s.verdict) this.h.say('Эх, никто не знает…', 'shrug', now);
     if (!old.fin && s.fin) this.h.say('Финал! Убираем темы', 'announce', now);
     this.finish(); return error;
   }

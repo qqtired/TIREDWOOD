@@ -19,14 +19,18 @@ export class CrocGame implements QuizController {
   private presenceKey = '';
   private hurryDrawing = -1;
   private packs: string[];
+  private ordered: string | null;
   /** voters — pid голосовавших за «Крокодил» по времени голоса: сразу очередь рисующих (A2, «Ракушка» 1.1) */
   constructor(h: ModeHost, now: number, nextId: number, voters: number[] = []) {
     this.h = h;
-    const packs = h.packs('words').filter(p => !p.pack.adult); this.packs = packs.map(p => p.id);
+    const pool = h.packs('words').filter(p => p.pack.kind === 'words' && !p.pack.adult), order = h.order?.('words');
+    const ordered = pool.find(p => p.id === order?.id && p.pack.words && (['easy', 'mid', 'hard'] as const).every(k => p.pack.words![k].length));
+    this.ordered = ordered?.id ?? null;
+    const packs = ordered ? [ordered] : pool; this.packs = packs.map(p => p.id);
     for (const id of this.packs) h.store?.setPlaying(id, true);
     const people = this.people(), queue = voters.flatMap(pid => people.filter(p => p.pid === pid));
     this.state = newCroc(people, packs.map(p => p.pack), now, queue); this.state.nextId = nextId;
-    h.say('Кто рисует? Жмите «Хочу рисовать»!', 'announce', now);
+    if (!queue.length) h.say('Кто рисует? Жмите «Хочу рисовать»!', 'announce', now);
   }
   get nextId(): number { return this.state.nextId; }
   set nextId(n: number) { this.state.nextId = n; }
@@ -110,11 +114,12 @@ export class CrocGame implements QuizController {
     for (const turn of s.turns.slice(old.turns.length)) {
       for (const p of [turn.drawer, ...turn.guessed]) this.actors.set(p.pid, { ...p });
       this.events.push({ kind: 'crocTurn', id: String(s.turns.indexOf(turn)), drawer: turn.drawer.pid, guessed: turn.guessed.map(p => p.pid), counted: turn.counted });
-      if (turn.end === 'all') this.h.say('Все угадали!', 'cheer', now);
-      else if (turn.end === 'timeout') this.h.say(`Это был ${s.last?.word ?? ''}`, 'shrug', now);
+      if (turn.end === 'all') this.h.say(['Все угадали!', 'Браво, художник!'][Math.min(1, Math.floor(this.h.rand() * 2))], 'cheer', now);
+      else if (turn.end === 'timeout') this.h.say('Эх, не угадали…', 'shrug', now);
       else if (turn.end === 'left') this.h.say(`${turn.drawer.nick} ушёл — рисунок не в счёт`, 'shrug', now);
     }
     if (s.done && !this.outcome) {
+      if (this.ordered && s.turns.some(t => t.counted)) this.h.orderUsed?.('words', this.ordered);
       if (this.phase === 'roles') this.phase = 'idle';
       const completed = !s.turns.some(t => t.end === 'swap' || t.end === 'empty') && s.turns.some(t => t.counted);
       const players = [...this.actors.values()].map(p => ({ ...p, pts: s.scores[p.pid] ?? 0 }));

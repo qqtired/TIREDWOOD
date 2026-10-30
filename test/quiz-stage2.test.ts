@@ -44,12 +44,15 @@ function setup(t: TestContext, n = 4, seed?: (profiles: Array<{ stats: ReturnTyp
     select(mode: number) {
       for (const p of people) this.sit(p.slot);
       this.msg(1, { a: 'play' }); for (const p of people) this.msg(p.slot, { a: 'vote', m: mode });
-      this.advance(QZ.VOTE_ALL_MS); this.advance(QZ.WIN_MS); assert.equal(q.board().phase, 'roles');
+      this.advance(QZ.VOTE_ALL_MS); this.advance(QZ.WIN_MS); assert.equal(q.board().phase, mode === 0 || mode === 3 ? 'game' : 'roles');
     },
     jp() {
-      this.select(1); this.msg(1, { a: 'role', take: true, r: 'host' });
-      for (const p of people.slice(1)) this.msg(p.slot, { a: 'role', take: true, r: 'player' });
-      this.advance(JP.CALL_MS); assert.equal(q.board().jp?.step, 'setup');
+      for (const p of people) this.sit(p.slot);
+      this.msg(1, { a: 'play' }); this.msg(1, { a: 'vote', m: 0 });
+      for (const p of people.slice(1)) this.msg(p.slot, { a: 'vote', m: 1 });
+      this.advance(QZ.VOTE_ALL_MS); this.advance(QZ.WIN_MS);
+      assert.equal(q.board().jp?.step, 'packvote');
+      this.msg(1, { a: 'role', take: true, r: 'host' }); assert.equal(q.board().jp?.step, 'setup');
       this.msg(1, { a: 'jpStart', pack: 'b-naberezhnaya', round: 0, themes: [0, 1, 2], final: false });
       assert.equal(q.board().jp?.step, 'pick');
     },
@@ -101,8 +104,9 @@ test('сцена: пинг берётся у соединения; отойти/
 });
 
 test('сцена: «Крокодил» — очередь, место, приватные догадки, мазки внутри/снаружи и итоги', t => {
-  const g = setup(t, 3); g.select(2); g.msg(1, { a: 'role', take: true, r: 'drawer' }); g.advance(QZ.CALL_MS);
+  const g = setup(t, 3); g.select(2); g.advance(0);
   assert.equal(g.q.board().phase, 'game'); assert.equal(g.people[0].arg, V.first.drawer);
+  assert.equal(g.q.board().croc?.step, 'words'); assert.deepEqual(g.q.board().croc?.queue.map(p => p.slot), [2, 3]);
   g.msg(1, { a: 'crWord', i: 0 }); const word = g.q.me(1)!.croc!.word!;
   assert.ok(word); assert.equal(g.q.me(2)?.croc?.word, undefined);
   g.people.push({ ...g.people[2], slot: 4, pid: 104, x: V.center[0] + 100, action: ACT_NONE }); g.q.step();
@@ -126,13 +130,15 @@ test('сцена: «Крокодил» — очередь, место, прив�
   assert.ok(last3.t === 'qz'); assert.ok(!last3.v.croc!.lines.some(l => l.only));
   g.msg(3, { a: 'say', text: word }); assert.equal(g.q.board().croc?.last?.end, 'all');
   assert.equal(g.profiles[0].stats.qzCrDrawn, 1); assert.equal(g.profiles[1].stats.qzCrGuessed, 1);
-  g.advance(CR.REVEAL_MS); g.advance(QZ.CALL_MS);
+  g.advance(CR.REVEAL_MS); assert.equal(g.q.board().croc?.drawer?.slot, 2);
+  g.msg(2, { a: 'role', take: false, r: 'drawer' }); assert.equal(g.q.board().croc?.drawer?.slot, 3);
+  g.msg(3, { a: 'role', take: false, r: 'drawer' }); g.advance(QZ.CALL_MS);
   assert.equal(g.q.board().phase, 'results'); assert.equal(g.q.me(2)?.result?.tokens, 60);
   assert.deepEqual(g.q.board().evening.map(p => p.pts), [5, 4, 4]);
 });
 
 test('сцена: «Кто из нас?» — сидящие, свои вопросы, тайность, десять раскрытий и титулы', t => {
-  const g = setup(t); g.select(3); assert.equal(g.q.view().call, null); g.advance(QZ.CALL_MS);
+  const g = setup(t); g.select(3); assert.equal(g.q.view().call, null);
   assert.equal(g.q.board().who?.step, 'ask');
   g.msg(1, { a: 'whoAsk', text: 'первым уснёт? = Соня' }); g.advance(WHO.ASK_MS);
   for (let round = 0; round < WHO.ROUNDS; round++) {
@@ -162,12 +168,12 @@ test('жетоны через хост: принятые действия, ми�
   g.msg(1, { a: 'recs' }); assert.equal(g.sent.filter(x => x.msg.t === 'qzRecs').length, count);
 });
 
-test('меньше трёх: ни минут, ни бонуса; swap не начисляет места за незаконченную игру', t => {
+test('вдвоём: 4 за активную минуту без бонуса; swap не начисляет места за незаконченную игру', t => {
   const g = setup(t, 2); g.select(0); g.msg(1, { a: 'role', take: true }); g.msg(1, { a: 'ask', word: 'пароход', cat: 'Предмет' });
-  g.advance(60_000); g.msg(2, { a: 'say', text: 'пароход' }); g.advance(QZ.CHECK_MS); assert.deepEqual(g.paid, []);
+  g.advance(60_000); g.msg(2, { a: 'say', text: 'пароход' }); g.advance(QZ.CHECK_MS); assert.deepEqual(g.paid, [{ pid: 101, n: 4 }]);
   const j = setup(t); j.jp(); j.msg(1, { a: 'swap', on: true }); j.msg(2, { a: 'swap', on: true }); j.msg(3, { a: 'swap', on: true });
   assert.equal(j.q.board().phase, 'vote'); assert.deepEqual(j.paid, []); assert.deepEqual(j.q.board().evening, []);
-  const w = setup(t); w.select(3); w.advance(QZ.CALL_MS); w.advance(WHO.ASK_MS);
+  const w = setup(t); w.select(3); w.advance(WHO.ASK_MS);
   for (const p of w.people) w.msg(p.slot, { a: 'whoVote', slot: p.slot === 1 ? 2 : 1 });
   w.advance(WHO.VOTE_ALL_MS);
   for (const slot of [1, 2, 3]) w.msg(slot, { a: 'swap', on: true });

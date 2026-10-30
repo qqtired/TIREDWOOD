@@ -6,7 +6,7 @@ import { QZ, QZ_CROC as CR, type QzCrocBoard, type QzCrocEnd, type QzCrocMe, typ
 
 export interface CrocWho extends QzWho { pid: number; seated?: boolean }
 export interface CrocError { code: QzErrCode; text: string; wait?: number }
-interface Stroke { id: number; color: number; width: number; points: number[] }
+type Stroke = { id: number; color: number; width: number; points: number[] } | { id: number; color: number; fill: [number, number] };
 export interface CrocTurnResult {
   id: number; end: QzCrocEnd; drawer: CrocWho; guessed: CrocWho[]; points: Record<number, number>; counted: boolean;
 }
@@ -40,10 +40,12 @@ export function crocWords(packs: readonly QzPack[]): NonNullable<QzPack['words']
 }
 export function newCroc(people: CrocWho[], packs: readonly QzPack[], now: number, queue: CrocWho[] = []): CrocState {
   const pool = crocWords(packs);
-  return { step: 'call', people: structuredClone(people), queue: structuredClone(queue).filter((p, i, xs) => xs.findIndex(w => w.pid === p.pid) === i && people.some(w => w.pid === p.pid)).slice(0, CR.TURNS_MAX),
+  queue = structuredClone(queue).filter((p, i, xs) => xs.findIndex(w => w.pid === p.pid) === i && people.some(w => w.pid === p.pid)).slice(0, CR.TURNS_MAX);
+  const callMs = queue.length ? 0 : QZ.CALL_MS;
+  return { step: 'call', people: structuredClone(people), queue,
     drew: [], skipped: [], drawer: null, assigned: null, initialCall: true, pool, choices: null, word: '', level: 0,
     revealed: [], letters: 0, guessed: [], scores: {}, turns: [], drawing: 0, strokes: [], inkPoints: 0, inkStrokes: 0,
-    maxStroke: -1, inkAt: null, lines: [], nextId: 1, gaps: {}, endsAt: now + QZ.CALL_MS, total: QZ.CALL_MS,
+    maxStroke: -1, inkAt: null, lines: [], nextId: 1, gaps: {}, endsAt: now + callMs, total: callMs,
     last: null, done: people.length < 2 || Object.values(pool).some(a => !a.length) };
 }
 function begin(s: CrocState, drawer: CrocWho, now: number, rand: () => number): void {
@@ -113,7 +115,13 @@ function ink(s: CrocState, ops: QzInkOp[], now: number): boolean {
     if (!Array.isArray(op)) return false;
     if (op[0] === 'x' && op.length === 1) strokes.length = 0;
     else if (op[0] === 'u' && op.length === 2 && Number.isSafeInteger(op[1]) && op[1] >= 0) {
-      const i = strokes.findIndex(st => st.id === op[1]); if (i >= 0) strokes.splice(i, 1);
+      for (let i = strokes.length - 1; i >= 0; i--) if (strokes[i].id === op[1]) strokes.splice(i, 1);
+    } else if (op[0] === 'f' && op.length === 5) {
+      const [, id, color, x, y] = op;
+      if (![id, color, x, y].every(Number.isSafeInteger) || id <= max || color < 0 || color > CR.ERASER
+        || x < 0 || x >= CR.W || y < 0 || y >= CR.H || ++count > CR.INK_STROKES
+        || ++points > CR.INK_PTS_MSG || s.inkPoints + points > CR.INK_PTS) return false;
+      max = id; strokes.push({ id, color, fill: [x, y] });
     } else if (op[0] === 's' && op.length >= 6 && op.length % 2 === 0) {
       const [, id, color, width, ...xy] = op;
       if (![id, color, width].every(Number.isSafeInteger) || id < 0 || color < 0 || color > CR.ERASER || width < 0 || width >= CR.WIDTHS.length
@@ -122,8 +130,11 @@ function ink(s: CrocState, ops: QzInkOp[], now: number): boolean {
       if (points > CR.INK_PTS_MSG || s.inkPoints + points > CR.INK_PTS) return false;
       const st = strokes.find(st => st.id === id);
       if (st) {
-        if (st.color !== color || st.width !== width) return false;
-        st.points = [...st.points, ...xy];
+        if ('fill' in st || st.color !== color || st.width !== width) return false;
+        const last = strokes.at(-1)!;
+        // Продолжение старого мазка после заливки остаётся после неё и в полном рисунке.
+        if (last.id === id && 'points' in last) last.points = [...last.points, ...xy];
+        else strokes.push({ id, color, width, points: xy });
       } else {
         if (id <= max || ++count > CR.INK_STROKES) return false;
         max = id; strokes.push({ id, color, width, points: xy });
@@ -195,7 +206,7 @@ export function reduceCroc(before: CrocState, a: CrocAction, now: number, rand: 
   return reply();
 }
 export function crocInk(s: CrocState): { d: number; ops: QzInkOp[]; full: true } {
-  return { d: s.drawing, full: true, ops: s.strokes.map(st => ['s', st.id, st.color, st.width, ...st.points]) };
+  return { d: s.drawing, full: true, ops: s.strokes.map(st => 'fill' in st ? ['f', st.id, st.color, ...st.fill] : ['s', st.id, st.color, st.width, ...st.points]) };
 }
 export function crocBoard(s: CrocState): QzCrocBoard {
   const chars = [...s.word].map((c, i) => /[\p{L}\p{N}]/u.test(c) && !s.revealed.includes(i) ? '_' : c);

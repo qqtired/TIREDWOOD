@@ -114,8 +114,8 @@ export class QuizPacks {
       .sort((a, b) => Number(b.builtin) - Number(a.builtin) || b.likedBy.length - a.likedBy.length || b.at - a.at || a.id.localeCompare(b.id));
     return { list: list.slice(0, 50).map(e => this.info(e, pid)), total: list.length, admin: this.isAdmin(pid) };
   }
-  all(kind?: QzPackKind): Array<{ id: string; pack: QzPack; plays: number }> {
-    return [...this.entries.values()].filter(e => this.present(e) && (!kind || kind === e.kind)).map(e => ({ id: e.id, pack: this.get(e.id)!, plays: e.plays }));
+  all(kind?: QzPackKind): Array<{ id: string; pack: QzPack; plays: number; fresh: boolean; at: number }> {
+    return [...this.entries.values()].filter(e => this.present(e) && (!kind || kind === e.kind)).map(e => ({ id: e.id, pack: this.get(e.id)!, plays: e.plays, fresh: !e.builtin && e.plays === 0, at: e.at }));
   }
   get(id: string): QzPack | null {
     const e = this.entries.get(id); if (!e || !this.present(e)) return null;
