@@ -408,7 +408,7 @@ export const OWN_SHOW_MS = 6000;
 /** Длина текста в статусе — как у облачка, до ~40 знаков */
 export const OWN_TEXT_MAX = 40;
 /** Подпись отметки: тон тот же, что у облачка (новое / тепло / мимо / проверка / угадал) */
-export const OWN_TAG: Record<QzMark, string> = { '': 'отправлено', warm: 'тепло', miss: 'мимо', check: 'проверяем…', win: 'угадал!' };
+export const OWN_TAG: Record<QzMark, string> = { '': 'отправлено', warm: 'тепло', hot: 'горячо!', miss: 'мимо', check: 'проверяем…', win: 'угадал!' };
 
 export interface OwnGuess {
   id: number;

@@ -25,8 +25,8 @@ export type QuizClientMsg =
   /** Строка «В игру» (до QZ.LINE_MAX): у угадывающих в раунде — догадка, иначе реплика */
   | { t: 'qz'; a: 'say'; text: string }
   /** Загадывающий: отметить строку id — тепло (1), мимо (2), угадал (3). Клавиши — на самую старую неотмеченную:
-   *  её id клиент берёт из снимка */
-  | { t: 'qz'; a: 'mark'; id: number; m: 'warm' | 'miss' | 'win' }
+   *  её id клиент берёт из снимка. «Ракушка» 1.1, C1: hot — «Горячо!» (1 ещё раз по тёплой строке или кнопка) */
+  | { t: 'qz'; a: 'mark'; id: number; m: 'warm' | 'hot' | 'miss' | 'win' }
   /** Загадывающий: снять отметку со строки id — «✕» в «Тепло», «↩ Вернуть» у «мимо»; строка снова неотмеченная */
   | { t: 'qz'; a: 'unmark'; id: number }
   /** Загадывающий: Z или «Отменить» — идёт проверка «угадал» → отменить её; иначе снять последнюю свою отметку
@@ -96,7 +96,23 @@ export type QuizClientMsg2 =
   /** Билет на загрузку: дальше HTTP (§20) */
   | { t: 'qz'; a: 'upTicket' }
   /** Вкладка «Рекорды» */
-  | { t: 'qz'; a: 'recs' };
+  | { t: 'qz'; a: 'recs' }
+  | QuizClientMsg3;
+
+/** «Ракушка» 1.1 (docs/quiz/brief.md «Ракушка 1.1»). Те же правила: только изнутри ограды, не по шагу — молча.
+ *  Смысл старых сообщений тоже расширен: role {take, r: 'riddler'} в игре «Загадка» — встать в очередь «Хочу
+ *  загадать» (take: false — выйти из неё); role {take: true, r: 'host'} в packvote «Своей игры» — «Веду я». */
+export type QuizClientMsg3 =
+  /** A1: «Ещё раз!» на итогах (R или кнопка) — нажал или передумал. Нажавшие — как проголосовавшие за этот режим */
+  | { t: 'qz'; a: 'again'; on: boolean }
+  /** A3: слово заранее — стоишь в очереди «Хочу загадать» (проверка как у ask). Повторно — заменить */
+  | { t: 'qz'; a: 'prep'; word: string; cat: QzCategory; hint?: string }
+  /** E1: «Браво!» (B) — хлопнуть; сервер раздаёт в снимке bravo, не чаще QZ.BRAVO_GAP_MS на человека */
+  | { t: 'qz'; a: 'bravo' }
+  /** F3: «Разминка с Затейником» (F) — начать (on) или закончить; только один сидящий в шаге idle */
+  | { t: 'qz'; a: 'warm'; on: boolean }
+  /** Паки: «Сыграть» — заказать пак на следующую игру его вида (любой игрок; новый заказ заменяет старый) */
+  | { t: 'qz'; a: 'packPlay'; id: string };
 
 /** Отказ с причиной — тост у игрока. code — для клиента (что подсветить), text — готовая строка для игрока */
 export type QzErrCode = 'rate' | 'answer' | 'word' | 'hints' | 'busy' | 'few'
@@ -134,11 +150,20 @@ export type QuizServerMsg2 =
 //   PUT  /quiz/up/<id>/<sha256>.<ext>  тело — байты файла               → {ok: true, left: число ещё не присланных}
 //   POST /quiz/up/<id>/done            без тела                         → {ok: true, info: QzPackInfo}
 //   GET  /quiz/m/<packId>/<sha256>.<ext> — файл пака (картинка, звук), без билета
+//   POST /quiz/fetch                   тело QzFetchBody (до 4 КБ)       → байты .siq (application/octet-stream)
+//        «Ракушка» 1.1, F5: ссылка из библиотеки SIGame. Сервер берёт файл только с QZ_PACK.FETCH_HOSTS по https:
+//        прямую ссылку на .siq или ссылку с номером пака (GUID) — тогда адрес файла из FETCH_API<GUID>
+//        (directContentUri, иначе contentUri). Не больше FETCH_BYTES, за FETCH_MS, без чужих заголовков; ошибки — JSON.
 export const QZ_TICKET_HEADER = 'x-quiz-ticket';
 
 export interface QzUpBody {
   pack: QzPack;
   files: QzUpFile[];
+}
+
+/** F5: тело POST /quiz/fetch */
+export interface QzFetchBody {
+  url: string;
 }
 
 export interface QzUpStart {

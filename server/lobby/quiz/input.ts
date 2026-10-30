@@ -15,13 +15,13 @@ export function readMessage(raw: unknown): QuizClientMsg | null {
   switch (m.a) {
     case 'vote': ok = exact('m') && int(m.m, 0, QZ_MODES.length - 1); break;
     case 'play': case 'undo': case 'giveup': case 'jpZat': case 'jpBuzz': case 'jpOpen': case 'jpMore': case 'jpShow':
-    case 'jpEnd': case 'jpDispute': case 'upTicket': case 'recs': ok = exact(); break;
-    case 'swap': case 'whoSkip': ok = exact('on') && typeof m.on === 'boolean'; break;
+    case 'jpEnd': case 'jpDispute': case 'upTicket': case 'recs': case 'bravo': ok = exact(); break;
+    case 'swap': case 'whoSkip': case 'again': case 'warm': ok = exact('on') && typeof m.on === 'boolean'; break;
     case 'role': ok = exact('take', 'r') && typeof m.take === 'boolean' && (m.r === undefined || ['riddler', 'host', 'player', 'drawer'].includes(m.r as string)); break;
-    case 'ask': ok = exact('word', 'cat', 'hint') && text(m.word, QZ.WORD_MAX) && QZ_CATEGORIES.some(c => c === m.cat) && (m.hint === undefined || text(m.hint, QZ.HINT_MAX)); break;
+    case 'ask': case 'prep': ok = exact('word', 'cat', 'hint') && text(m.word, QZ.WORD_MAX) && QZ_CATEGORIES.some(c => c === m.cat) && (m.hint === undefined || text(m.hint, QZ.HINT_MAX)); break;
     case 'say': ok = exact('text') && text(m.text, QZ.LINE_MAX); break;
     case 'hint': ok = exact('text') && text(m.text, QZ.HINT_MAX); break;
-    case 'mark': ok = exact('id', 'm') && int(m.id) && ['warm', 'miss', 'win'].includes(m.m as string); break;
+    case 'mark': ok = exact('id', 'm') && int(m.id) && ['warm', 'hot', 'miss', 'win'].includes(m.m as string); break;
     case 'unmark': ok = exact('id') && int(m.id); break;
     case 'jpStart': ok = exact('pack', 'round', 'themes', 'final') && pack(m.pack) && int(m.round, 0, PACK.QUESTIONS - 1)
       && typeof m.final === 'boolean' && Array.isArray(m.themes) && m.themes.length >= JP.THEMES_MIN && m.themes.length <= JP.THEMES_MAX
@@ -41,6 +41,7 @@ export function readMessage(raw: unknown): QuizClientMsg | null {
         if (!Array.isArray(op)) return false;
         if (op[0] === 'x') return op.length === 1;
         if (op[0] === 'u') return op.length === 2 && int(op[1]);
+        if (op[0] === 'f') return op.length === 5 && int(op[1]) && int(op[2], 0, CR.ERASER) && int(op[3], 0, CR.W - 1) && int(op[4], 0, CR.H - 1);
         if (op[0] !== 's' || op.length < 6 || op.length % 2 || !int(op[1]) || !int(op[2], 0, CR.ERASER) || !int(op[3], 0, CR.WIDTHS.length - 1)) return false;
         points += (op.length - 4) / 2;
         return points <= CR.INK_PTS_MSG && op.slice(4).every((n, i) => int(n, 0, (i % 2 ? CR.H : CR.W) - 1));
@@ -48,7 +49,7 @@ export function readMessage(raw: unknown): QuizClientMsg | null {
     }
     case 'packs': ok = exact('q', 'kind') && (m.q === undefined || text(m.q, PACK.TITLE * 2))
       && (m.kind === undefined || ['jeopardy', 'words', 'whoofus', 'riddles'].includes(m.kind as string)); break;
-    case 'packOutline': case 'packDel': case 'packLike': ok = exact('id') && pack(m.id); break;
+    case 'packOutline': case 'packDel': case 'packLike': case 'packPlay': ok = exact('id') && pack(m.id); break;
   }
   return ok ? raw as QuizClientMsg : null;
 }

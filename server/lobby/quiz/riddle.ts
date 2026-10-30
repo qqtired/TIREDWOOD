@@ -57,7 +57,7 @@ export class RiddleGame implements QuizController {
       let action: RiddleAction;
       switch (msg.a) {
         case 'say': action = { a: 'say', who, text: msg.text, guessers }; break;
-        case 'mark': action = { a: 'mark', slot: who.slot, id: msg.id, m: msg.m }; break;
+        case 'mark': if (msg.m === 'hot') return; action = { a: 'mark', slot: who.slot, id: msg.id, m: msg.m }; break; // C1 «Горячо!» — S1
         case 'unmark': action = { a: 'unmark', slot: who.slot, id: msg.id }; break;
         case 'undo': case 'giveup': action = { a: msg.a, slot: who.slot }; break;
         case 'hint': action = { a: 'hint', slot: who.slot, text: msg.text }; break;
