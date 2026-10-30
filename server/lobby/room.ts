@@ -81,6 +81,9 @@ import { PLANE_EXIT } from '../../shared/plane.ts';
 import { Weather, type WeatherMode } from './weather.ts';
 import { SlotHall } from './slots.ts';
 import { ArcadeHall } from './arcade.ts';
+import { QuizStage } from './quiz/stage.ts';
+import { ACT_QUIZ } from '../../shared/lobby.ts';
+import { placeAt as quizPlaceAt } from '../../shared/quiz/venue.ts';
 import { WheelRide } from './wheel.ts';
 import { FishHolds } from './fishhold.ts';
 import { ACT_KITE, KITE_REEL_FIRST, kiteReel, kiteTick } from '../../shared/kite.ts';
@@ -138,6 +141,7 @@ export class LobbyRoom implements Room {
   readonly slots: SlotHall;
   /** Аркада новой набережной (WP12, server/lobby/arcade.ts): null — в карте нет точек 'arcade' (без флага PLAZA3) */
   readonly arcade: ArcadeHall | null;
+  readonly quiz: QuizStage | null;
   readonly durak: DurakHall;
   readonly blackjack: BlackjackHall;
   readonly storm: Storm | null;
@@ -238,6 +242,30 @@ export class LobbyRoom implements Room {
     this.weather = new Weather(Math.random, weather, 0, this.now);
     this.map = buildLobby();
     this.world = new CollisionWorld(this.map);
+    if (!hub.quiz) for (const box of this.map.quizBoxes ?? []) this.world.setEnabled(box, false);
+    this.quiz = hub.quiz ? new QuizStage({
+      now: () => this.now(), rand: Math.random,
+      people: () => [...this.players.values()].filter(p => !p.client.closed && !p.client.lostAt).map(p => ({
+        slot: p.slot, pid: p.client.pid, nick: p.client.nick, x: p.state.x, y: p.state.y, z: p.state.z,
+        action: p.action, arg: p.arg, ephemeral: p.client.ephemeral, riding: isRiding(p.action),
+      })),
+      hold: (slot, place) => {
+        const p = this.players.get(slot), spot = quizPlaceAt(place);
+        if (!p || !spot) return;
+        if (p.action !== ACT_QUIZ) this.release(p);
+        this.hold(p, ACT_QUIZ, { ...spot, id: -1, kind: 'quiz', arg: place, r: .9, label: 'сесть' });
+      },
+      release: (slot, to) => {
+        const p = this.players.get(slot);
+        if (!p) return;
+        if (p.action === ACT_QUIZ) { p.action = ACT_NONE; p.arg = 0; }
+        if (to) { p.heldYaw = to.yaw; this.teleport(p, to.x, to.y, to.z); }
+      },
+      send: (slot, m) => this.players.get(slot)?.client.sink.sendJson(m),
+      sendLobby: (m, except = []) => { for (const p of this.players.values()) if (!except.includes(p.slot)) p.client.sink.sendJson(m); },
+      announce: text => hub.announce(text), toast: (slot, text) => { const p = this.players.get(slot); if (p) hub.toast(p.client, text); },
+      log: text => console.log(text),
+    }) : null;
     if (!hub.skill) for (const box of this.map.skillPortalBoxes) this.world.setEnabled(box, false);
     this.ferryBoxes();
     this.regatta = hub.boatrace ? new Regatta({
@@ -693,6 +721,7 @@ export class LobbyRoom implements Room {
       ...(this.ratrace ? { ratrace: this.ratrace.view() } : {}),
       ...(this.plane ? { plane: this.plane.view() } : {}),
       ...(this.kite ? { kite: true } : {}),
+      ...(this.quiz ? { quiz: this.quiz.board() } : {}),
       ...(this.hub.dungeon ? { dg: this.hub.dungeon.status() } : {}),
       ...(this.regatta && this.boatQueue ? { regatta: { v: this.regatta.view(), q: this.boatQueue.view(this.tick), top: this.hub.regattaTop() } } : {}),
       ...(this.hideQueue ? { hide: this.hideStatus()! } : {}),
@@ -733,6 +762,7 @@ export class LobbyRoom implements Room {
   leave(c: Client): void {
     const p = this.byClient.get(c);
     if (!p) return;
+    this.quiz?.left(p.slot);
     this.release(p, true);
     this.plane?.drop(p);
     this.ownboats?.drop(p);
@@ -818,6 +848,9 @@ export class LobbyRoom implements Room {
         return;
       case 'arc':
         this.arcade?.message(p.slot, msg);
+        return;
+      case 'qz':
+        if (!c.closed && !c.lostAt && this.hub.limits.hit(`qz:${c.id}`, 10, 1000)) this.quiz?.message(p.slot, msg);
         return;
       case 'ob':
         if (this.ownboats && this.hub.limits.hit(`ob:${c.id}`, 8, 1000)) this.ownboats.message(p, msg);
@@ -962,6 +995,7 @@ export class LobbyRoom implements Room {
     if (isRiding(p.action) || this.ownboats?.aboard(p) || !this.hub.limits.hit(`use:${c.id}`, 4, 1000)) return;
     const it = typeof id === 'number' && Number.isInteger(id) ? this.map.interact[id] : undefined;
     if (!it) return;
+    if (p.action === ACT_QUIZ && this.quiz?.stood(p.slot) === false) return;
     // Повторное E сохраняет своё место; дальнее место находится за радиусом основной точки.
     if (it.kind === 'kiosk' && p.action === ACT_WARDROBE) return;
     const s = p.state;
@@ -1122,6 +1156,9 @@ export class LobbyRoom implements Room {
       case 'arcade':
         // аркада (WP12): корпус занимает сервер, окно игры открывает ответ arcOpen
         this.arcade?.use(p.slot, it.arg);
+        return;
+      case 'quiz':
+        this.quiz?.use(p.slot, it.arg);
         return;
       case 'oboat':
         // своя лодка у берта: сесть (флаг ISLE выключен — точки как бы нет); свободный берт — окно вызова открывает клиент
@@ -1589,6 +1626,7 @@ export class LobbyRoom implements Room {
       if (p.arg < KITE_REEL_FIRST) p.arg = kiteReel(p.arg);
       return;
     }
+    if (this.quiz?.blocksEmotes(p.slot)) return;
     if (!this.hub.limits.hit(`emote:${p.client.id}`, 2, 1000)) return;
     if (e === ACT_KITE) {
       if (!this.kite || p.menuOpen || p.client.ephemeral || isHeld(p.action) || p.action === ACT_KITE) return;
@@ -1694,6 +1732,7 @@ export class LobbyRoom implements Room {
       return;
     }
     if (!isHeld(p.action) || (isRiding(p.action) && !force)) return;
+    if (p.action === ACT_QUIZ && !force && this.quiz?.stood(p.slot) === false) return;
     if (p.action === ACT_REGATTA) this.regatta?.drop(p, 'left');
     else if (p.action === ACT_PLANE) this.plane?.drop(p);
     else if (isAboard(p.action)) {
@@ -1774,6 +1813,7 @@ export class LobbyRoom implements Room {
     this.blackjack.step(this.tick);
     this.billiards?.step(this.tick);
     this.arcade?.step(this.tick);
+    if (this.tick % 6 === 0) this.quiz?.step();
     this.stepStartZones();
     this.stepFarmRoad();
     // «Топ проигравших»: итог вращения — на экран, когда докрутились барабаны (поменялся топ — всем)

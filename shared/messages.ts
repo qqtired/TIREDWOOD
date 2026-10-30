@@ -36,6 +36,8 @@ import type { ObClientMsg, ObServerMsg } from './ownboat.ts';
 import type { KickClientMsg, KickServerMsg } from './votekick.ts';
 import type { DgClientMsg, DgServerMsg, DgStatus } from './dungeon/api.ts';
 import type { ArcadeClientMsg, ArcadeServerMsg } from './arcade/net.ts';
+import type { QuizClientMsg, QuizServerMsg } from './quiz/net.ts';
+import type { QzBoard } from './quiz/types.ts';
 
 export type RoomKind = 'lobby' | 'paintball' | 'race' | 'fort' | 'skill' | 'hide' | 'dungeon' | 'farm';
 
@@ -191,6 +193,7 @@ export type ClientMsg =
   | KickClientMsg
   /** Аркада новой набережной (shared/arcade/net.ts) */
   | ArcadeClientMsg
+  | QuizClientMsg
   | DgClientMsg
   | RatClientMsg
   | BilliardsClientMsg
@@ -447,6 +450,7 @@ export type ServerMsg =
   | KickServerMsg
   /** Аркада новой набережной (shared/arcade/net.ts) */
   | ArcadeServerMsg
+  | QuizServerMsg
   | DgServerMsg
   /** «Подземелье»: табличка рекордов у входа в пещеру — когда поменялась (флаг DUNGEON) */
   | ({ t: 'dgSt' } & DgStatus)
@@ -496,6 +500,7 @@ export type ServerMsg =
   | {
     t: 'lobby'; id: number; tick: number; yaw: number; players: LobbyPlayerInfo[]; pool: number; pb: PbStatus; honor: HonorInfo; tables: DurakTableView[];
     blackjack?: BlackjackView;
+    quiz?: QzBoard;
     /** Общая игрушка набережной: воздушный змей на 7 (флаг KITE). */
     kite?: boolean;
     skill?: SkillStatus;

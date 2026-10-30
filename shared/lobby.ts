@@ -41,6 +41,8 @@ export const ACT_BILLIARDS = 19;
 export const ACT_PLANE = 20;
 /** В своей лодке (флаг ISLE, shared/ownboat.ts): аргумент — номер лодки × 4 + место (0 — штурвал); шагом не встать — выйти у причала */
 export const ACT_OWNBOAT = 21;
+/** На «Ракушке»: аргумент — место из shared/quiz/venue.ts; встать только через unuse. */
+export const ACT_QUIZ = 23;
 
 /** Помахать, «устал», смех — 3 с; танец — до первого шага */
 export const EMOTE_TICKS = 180;
@@ -79,7 +81,7 @@ export function isHeld(action: number): boolean {
   return (
     action === ACT_SIT || action === ACT_SLOT || action === ACT_WARDROBE || action === ACT_DURAK || action === ACT_FISH || action === ACT_BOAT ||
     action === ACT_RIDE || action === ACT_WHEEL || action === ACT_REGATTA || action === ACT_FERRY || action === ACT_FERRY_RIDE ||
-    action === ACT_BILLIARDS || action === ACT_PLANE || action === ACT_OWNBOAT
+    action === ACT_BILLIARDS || action === ACT_PLANE || action === ACT_OWNBOAT || action === ACT_QUIZ
   );
 }
 
@@ -111,7 +113,7 @@ export const RIDE_LOCK = 1 << 16;
 /** Маска клавиш, которыми встают из действия (0 — не сидит). */
 export function holdMask(action: number): number {
   if (action === ACT_SLOT || action === ACT_FISH) return LEAVE_SLOT;
-  if (isRiding(action)) return RIDE_LOCK;
+  if (isRiding(action) || action === ACT_QUIZ) return RIDE_LOCK;
   return isHeld(action) ? LEAVE_SEAT : 0;
 }
 

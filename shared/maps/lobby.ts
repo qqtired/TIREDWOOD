@@ -33,6 +33,7 @@ import { P3 } from '../plaza3/layout.ts';
 import { A, xfP, xfSpot } from '../plaza3/xf.ts';
 import { plaza3Interacts, plaza3Static } from '../plaza3/map.ts';
 import type { P3Rect, Plaza3Lobby } from '../plaza3/types.ts';
+import { QUIZ_VENUE, chairPlace } from '../quiz/venue.ts';
 
 // Позиционные константы площади: без флага — прежние литералы, с PLAZA3 — из docs/plaza3/level/layout.json (modes —
 // абсолютные точки, anchors — перенос группы через xf). Подключение — pick()/xf() прямо у константы (tech-foundation §1.5).
@@ -48,7 +49,7 @@ export const DUNGEON_RETURN: { readonly x: number; readonly z: number; readonly 
  * oboat — берт своей лодки (arg 0–9 — стоянка за домом Семёна, 10–15 — причал острова; флаг ISLE, shared/ownboat.ts);
  * farm — калитка фермы на восточном конце Улицы Аттракционов (флаг FARM, shared/farmlayout.ts plazaGate);
  * arcade — аркадный автомат новой набережной (флаг PLAZA3, shared/plaza3/map.ts): точки №113 и дальше, arg — номер автомата */
-export type InteractKind = 'slot' | 'pb_gate' | 'garage' | 'kiosk' | 'seat' | 'durak' | 'blackjack' | 'honor' | 'kboard' | 'photo' | 'fish' | 'recent' | 'boat' | 'wheel' | 'fort' | 'retired' | 'fisher' | 'skill' | 'boatrace' | 'hide' | 'juke' | 'ferry' | 'roulette' | 'ratrace' | 'billiards' | 'plane' | 'banner' | 'oboat' | 'dungeon' | 'farm' | 'arcade';
+export type InteractKind = 'slot' | 'pb_gate' | 'garage' | 'kiosk' | 'seat' | 'durak' | 'blackjack' | 'honor' | 'kboard' | 'photo' | 'fish' | 'recent' | 'boat' | 'wheel' | 'fort' | 'retired' | 'fisher' | 'skill' | 'boatrace' | 'hide' | 'juke' | 'ferry' | 'roulette' | 'ratrace' | 'billiards' | 'plane' | 'banner' | 'oboat' | 'dungeon' | 'farm' | 'arcade' | 'quiz';
 
 export interface Interactable {
   id: number;
@@ -122,6 +123,8 @@ export interface LobbyMap extends GameMap {
   jukeBoxes: number[];
   /** Понтон крысиных бегов: настил, бортик арены, столбы табло (флаг сервера RATRACE): без флага коллизию выключают */
   ratBoxes: number[];
+  /** «Ракушка»: без QUIZ выключены; только новая набережная. */
+  quizBoxes?: number[];
   /** Бильярдные столы и столбы навеса (флаг сервера BILLIARDS): без флага коллизию выключают */
   billiardsBoxes: number[];
   /** Столбик таблички гидроплана (флаг сервера PLANE): без флага коллизию выключают */
@@ -661,6 +664,14 @@ export function buildLobby(): LobbyMap {
     for (const [i, side] of [-1, 1].entries()) add('seat', bn.x + side * bn.offset * Math.cos(bn.yaw), bn.z - side * bn.offset * Math.sin(bn.yaw), bn.yaw, .7, 24 + i, 'сесть', bn.y);
   }
 
+  const quizBoxes: number[] = [];
+  if (PLAZA3) {
+    QUIZ_VENUE.chairs.forEach((c, i) => addAt('quiz', c, 0.9, chairPlace(i), 'сесть'));
+    for (const box of QUIZ_VENUE.solid) {
+      quizBoxes.push(b.boxes.length);
+      b.box([...box.min], [...box.max], 'invisible', 0);
+    }
+  }
   const spawn: Spot = { x: L.spawn.x, y: 0, z: L.spawn.z, yaw: L.spawn.yaw };
   return {
     name: 'Набережная',
@@ -703,6 +714,7 @@ export function buildLobby(): LobbyMap {
     ferryAwayBoxes,
     jukeBoxes,
     ratBoxes,
+    ...(PLAZA3 ? { quizBoxes } : {}),
     billiardsBoxes,
     planeBoxes,
     parkBoxes,

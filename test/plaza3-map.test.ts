@@ -11,6 +11,7 @@ import path from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { LEGACY_LOBBY_SHA, circleProblems, interactKinds, overlapProblems, sha, spotProblems } from './lobbycheck.ts';
+import { QUIZ_VENUE, chairPlace } from '../shared/quiz/venue.ts';
 
 process.env.PLAZA3 = '1';
 const { LAYOUT } = await import('../shared/layout.ts');
@@ -41,11 +42,12 @@ test('plaza3: layout.json проходит check.mjs, shared/plaza3/layout.ts с
   }
 });
 
-test('plaza3: точки 0–112 и аркады с №113 сохраняются, два места бельведера добавлены только в конец', () => {
+test('plaza3: точки 0–112 и аркады с №113 сохраняются, два места бельведера и кресла «Ракушки» добавлены только в конец', () => {
   const want = JSON.parse(readFileSync(new URL('./fixtures/lobby-interact-kinds.json', import.meta.url), 'utf8')) as Array<[string, number]>;
   const got = interactKinds(map);
   assert.deepEqual(got.slice(0, want.length), want);
-  assert.deepEqual(got.slice(want.length), [...P3.arcade.map((_a, i) => ['arcade', i]), ['seat', 24], ['seat', 25]]);
+  assert.deepEqual(got.slice(want.length), [...P3.arcade.map((_a, i) => ['arcade', i]), ['seat', 24], ['seat', 25],
+    ...QUIZ_VENUE.chairs.map((_c, i) => ['quiz', chairPlace(i)])]);
   map.interact.forEach((it, i) => assert.equal(it.id, i));
 });
 

@@ -147,6 +147,7 @@ export interface HubOptions {
   roulette?: boolean;
   /** Крысиные бега на понтоне у набережной (ставка жетонами) — флаг сервера RATRACE, shared/ratrace.ts */
   ratrace?: boolean;
+  quiz?: boolean;
   /** Музыкальный автомат на площади (флаг сервера JUKEBOX, shared/jukebox.ts) */
   jukebox?: boolean;
   /** Бильярд в пристройке казино (флаг сервера BILLIARDS, shared/billiards.ts) */
@@ -276,6 +277,7 @@ export class Hub {
   readonly roulette: boolean;
   /** Крысиные бега включены (флаг RATRACE) */
   readonly ratrace: boolean;
+  readonly quiz: boolean;
   readonly clients = new Set<Client>();
   readonly limits: RateLimiter;
   /** Ожидание загрузки перед стартом раунда (server/readygate.ts) */
@@ -330,6 +332,7 @@ export class Hub {
     setIsle(this.isle);
     this.roulette = this.fish2 && (o.roulette ?? false);
     this.ratrace = o.ratrace ?? false;
+    this.quiz = LAYOUT === 3 && (o.quiz ?? false);
     this.skill = o.skill ? new SkillRoom({ course: this.store.state.skillCourse, outfitOf: (p) => this.outfitOf(p), afk: (c) => this.onPaintballAfk(c), result: (c, ticks, falls) => this.onSkillResult(c, ticks, falls) }) : null;
     this.boatrace = !!o.boatrace;
     this.hide = o.hide ? new HideRoom({ outfitOf: p => this.outfitOf(p), finished: (pid,result) => this.onHideResult(pid,result), afk: c => this.onPaintballAfk(c) }) : null;
@@ -419,7 +422,7 @@ export class Hub {
 
   /** Есть ли игроки или незавершённые раунды (иначе цикл спит). */
   get active(): boolean {
-    return this.lobby.humans + this.paintball.humans + this.race.humans + (this.skill?.humans ?? 0) + (this.hide?.humans ?? 0) + (this.fort?.humans ?? 0) + (this.farm?.humans ?? 0) > 0 || !!this.hide?.active || this.lobby.blackjack.active || this.lobby.durak.active || this.lobby.director.active || !!this.lobby.roulette?.busy || !!this.lobby.ratrace?.busy || !!this.lobby.billiards?.busy || (this.dungeon?.rooms.size ?? 0) > 0 || this.delayed.length > 0;
+    return this.lobby.humans + this.paintball.humans + this.race.humans + (this.skill?.humans ?? 0) + (this.hide?.humans ?? 0) + (this.fort?.humans ?? 0) + (this.farm?.humans ?? 0) > 0 || !!this.hide?.active || this.lobby.blackjack.active || this.lobby.durak.active || this.lobby.director.active || !!this.lobby.roulette?.busy || !!this.lobby.ratrace?.busy || !!this.lobby.billiards?.busy || !!this.lobby.quiz?.active || (this.dungeon?.rooms.size ?? 0) > 0 || this.delayed.length > 0;
   }
 
   // ------------------------------------------------------------ соединения
@@ -1110,7 +1113,7 @@ export class Hub {
     // Погода не зависит от присутствия рыбаков на набережной и шагается только здесь.
     this.lobby.stepWeather();
     if (this.paintball.humans > 0) this.paintball.step();
-    if (this.lobby.humans > 0 || this.lobby.blackjack.active || this.lobby.durak.active || this.lobby.director.active || this.lobby.roulette?.busy || this.lobby.ratrace?.busy || this.lobby.billiards?.busy) this.lobby.step();
+    if (this.lobby.humans > 0 || this.lobby.blackjack.active || this.lobby.durak.active || this.lobby.director.active || this.lobby.roulette?.busy || this.lobby.ratrace?.busy || this.lobby.billiards?.busy || this.lobby.quiz?.active) this.lobby.step();
     if (this.race.humans > 0) this.race.step();
     if (this.skill && this.skill.humans > 0) this.skill.step();
     if (this.hide && (this.hide.humans > 0 || this.hide.active)) this.hide.step();
