@@ -14,14 +14,14 @@ function tone(f, dur, { type = 'sine', vol = 1, at = 0, to = null } = {}) {
   g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(vol, t0 + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
   o.connect(g).connect(out); o.start(t0); o.stop(t0 + dur + 0.02);
 }
-function noise(dur, { vol = 0.3, at = 0, freq = 900, q = 0.8 } = {}) {
+function noise(dur, { vol = 0.3, at = 0, freq = 900, q = 0.8, dest = null } = {}) {
   const t0 = ctx.currentTime + at, n = Math.floor(ctx.sampleRate * dur);
   const buf = ctx.createBuffer(1, n, ctx.sampleRate), d = buf.getChannelData(0);
   for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
   const s = ctx.createBufferSource(); s.buffer = buf;
   const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = freq; bp.Q.value = q;
   const g = ctx.createGain(); g.gain.setValueAtTime(vol, t0); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-  s.connect(bp).connect(g).connect(out); s.start(t0);
+  s.connect(bp).connect(g).connect(dest ?? out); s.start(t0);
 }
 const SOUNDS = {
   click() { tone(880, 0.05, { type: 'triangle', vol: 0.5 }); },
@@ -35,6 +35,8 @@ const SOUNDS = {
   close() { tone(660, 0.09, { type: 'triangle', vol: 0.4, to: 420 }); },
   puff() { noise(0.3, { vol: 0.35, freq: 700, q: 0.5 }); tone(300, 0.2, { vol: 0.25, to: 600 }); },
   tick() { tone(1320, 0.03, { type: 'square', vol: 0.1 }); },
+  // отмена отметки («✕», «Вернуть», Z): два коротких нисходящих «пип» — тихо, можно повторять
+  undo() { tone(740, 0.07, { type: 'triangle', vol: 0.32, to: 560 }); tone(560, 0.09, { vol: 0.22, at: 0.055, to: 400 }); },
 };
 export const sfx = {
   get on() { return on; },
@@ -46,5 +48,30 @@ export const sfx = {
     last.set(name, now);
     if (ctx.state === 'suspended') ctx.resume().catch(() => {});
     try { SOUNDS[name]?.(); } catch { /* звук не важнее */ }
+  },
+  /** Тихая дробь «Проверяем…» на ms: удары учащаются (150 → 45 мс) и крепнут. Возвращает stop() — оборвать при отмене */
+  roll(ms = 3000) {
+    if (!on || !ensure()) return () => {};
+    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+    let bus = null;
+    try {
+      bus = ctx.createGain();
+      bus.gain.value = 0.55;
+      bus.connect(out);
+      const end = ms / 1000 - 0.05;
+      let t = 0;
+      for (let i = 0; t < end; i++) {
+        const k = t / (ms / 1000);
+        noise(0.05, { vol: 0.07 + 0.2 * k, at: t, freq: 1700 + (i % 2) * 260, q: 0.7, dest: bus });
+        t += 0.15 - 0.105 * k;
+      }
+    } catch { /* звук не важнее */ }
+    return () => {
+      if (!bus) return;
+      const b = bus;
+      bus = null;
+      try { b.gain.cancelScheduledValues(ctx.currentTime); b.gain.setTargetAtTime(0, ctx.currentTime, 0.015); } catch { /* */ }
+      setTimeout(() => { try { b.disconnect(); } catch { /* */ } }, 250);
+    };
   },
 };

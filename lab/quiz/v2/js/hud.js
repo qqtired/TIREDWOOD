@@ -11,6 +11,11 @@ const COIN = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs>
 export const coinHtml = () => `<img class="k-coin" src="data:image/svg+xml,${encodeURIComponent(COIN)}" alt="" draggable="false">`;
 const NICK_N = (nick) => { let h = 0; for (const ch of nick) h = (h * 31 + ch.codePointAt(0)) >>> 0; return (h % 6) + 1; };
 const MIC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
+// правка отметок: «✕» у строки «Тепло» и «↩» у «мимо» — штрихами, как MIC (глифы ✕ ↩ в шрифте нет, у ↩ на Маке бывает эмодзи-вид)
+const CROSS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+const UNDO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 5.5L4 10l4.5 4.5"/><path d="M4 10h10a5 5 0 0 1 0 10H8"/></svg>';
+/** Неотмеченная строка «В игру» (проверяемая «Угадал» — тоже уже отмечена) */
+const UNMARKED = '.qz-line.is-game:not(.is-warm):not(.is-miss):not(.is-win):not(.is-check)';
 const JELLY = (color) => `<svg viewBox="0 0 64 64"><defs><radialGradient id="jsh" cx=".3" cy=".2" r=".9"><stop stop-color="#fff" stop-opacity=".6"/><stop offset=".4" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#16313a" stop-opacity=".28"/></radialGradient></defs><path d="M32 13C19 13 12 27 10 42C8 55 13 61 32 61S56 55 54 42C52 27 45 13 32 13Z" fill="${color}"/><path d="M32 13C19 13 12 27 10 42C8 55 13 61 32 61S56 55 54 42C52 27 45 13 32 13Z" fill="url(#jsh)"/><ellipse cx="24" cy="32" rx="5" ry="6" fill="#fffcf6"/><ellipse cx="40" cy="32" rx="5" ry="6" fill="#fffcf6"/><ellipse cx="25" cy="32" rx="2.3" ry="3.5" fill="#16313a"/><ellipse cx="39" cy="32" rx="2.3" ry="3.5" fill="#16313a"/><path d="M29 40Q32 43 35 40" stroke="#16313a" stroke-width="1.5" fill="none"/></svg>`;
 
 const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
@@ -184,6 +189,7 @@ export class Dock {
     this.onSend = () => {};
     this.onOpen = () => {};
     this.onMark = () => {};
+    this.onUndo = () => {};
     this.marks = false;
     this.setClosed();
     this.closed.addEventListener('mousedown', (e) => e.preventDefault());
@@ -233,18 +239,30 @@ export class Dock {
     this.onOpen(false);
   }
 
-  /** Строка: { id, nick, text, own, sys, game, mark: '' | 'warm' | 'miss' | 'win', near } */
+  /** Строка: { id, nick, text, own, sys, game, mark: '' | 'warm' | 'miss' | 'win', near, at } */
   add(line) {
+    line.at ??= performance.now();
     // одна живая догадка у игрока: новая заменяет его неотмеченную
     if (line.game && !line.sys && !line.mark) {
-      for (const o of this.list.querySelectorAll('.qz-line.is-game:not(.is-warm):not(.is-miss):not(.is-win)')) if (o.dataset.nick === line.nick) o.remove();
+      for (const o of this.list.querySelectorAll(UNMARKED)) if (o.dataset.nick === line.nick) o.remove();
       this.pending = (this.pending ?? []).filter((p) => p.nick !== line.nick);
     }
     // у загадывающего — не больше 5 неотмеченных, остальные ждут своей очереди
     if (this.marks && line.game && !line.own && !line.mark && this.unmarked() >= 5) { (this.pending ??= []).push(line); this.paintWait(); return null; }
+    const row = this.build(line);
+    this.list.appendChild(row);
+    this.prune();
+    this.refreshKeys();
+    return row;
+  }
+
+  /** Собрать строку (в список её кладёт add или restore) */
+  build(line) {
     const row = el('div', `k-chat-line qz-line${line.sys ? ' is-sys' : ''}${line.own ? ' is-own' : ''}`);
     row.dataset.id = line.id ?? '';
     row.dataset.nick = line.nick ?? '';
+    row.dataset.at = String(line.at ?? 0);
+    row._line = line;
     if (!line.sys) {
       row.classList.add(`k-nick-${NICK_N(line.nick)}`);
       row.appendChild(el('span', 'qz-mark'));
@@ -252,20 +270,53 @@ export class Dock {
     }
     const t = el('span', 'qz-text'); t.textContent = line.text; row.appendChild(t);
     if (line.game && !line.sys) row.classList.add('is-game');
-    this.list.appendChild(row);
-    // не выше 1/4 экрана: лишнее уходит сверху, но неотмеченные (с колпачками) остаются
-    while (this.list.childElementCount > 6) {
-      const old = [...this.list.children].find((c) => !c.matches('.qz-line.is-game:not(.is-warm):not(.is-miss):not(.is-win)')) ?? this.list.firstElementChild;
-      old.remove();
-    }
     line.row = row;
     if (this.marks && line.game && !line.own) this.addMarkButtons(line);
     if (line.mark) this.setMark(line, line.mark);
+    return row;
+  }
+
+  /** Не выше 1/4 экрана: лишнее уходит сверху, но неотмеченные (с колпачками) остаются */
+  prune() {
+    while (this.list.childElementCount > 6) {
+      const old = [...this.list.children].find((c) => !c.matches(UNMARKED)) ?? this.list.firstElementChild;
+      old.remove();
+    }
+  }
+
+  /** Исправление отметки: строка снова неотмеченная и встаёт на своё место по времени (line.at).
+   *  Неотмеченных не больше 5: самая новая уходит в «ещё N ждут отметки». wait — строка спрятана, пока не долетит копия (reveal). */
+  restore(line, { wait = false } = {}) {
+    line.row?.remove();
+    this.pending = (this.pending ?? []).filter((p) => p !== line); // не ждёт очереди и не дублируется
+    line.mark = '';
+    line.at ??= performance.now();
+    const row = this.build(line);
+    row.classList.add(wait ? 'is-wait' : 'is-back');
+    if (!wait) setTimeout(() => row.classList.remove('is-back'), 1400);
+    const next = [...this.list.children].find((c) => Number(c.dataset.at) > line.at);
+    this.list.insertBefore(row, next ?? null);
+    while (this.marks && this.unmarked() > 5) {
+      const others = [...this.list.querySelectorAll(UNMARKED)].filter((r) => r !== row);
+      const last = others[others.length - 1];
+      if (!last) break;
+      (this.pending ??= []).unshift(last._line);
+      last.remove();
+    }
+    this.prune();
+    this.paintWait();
     this.refreshKeys();
     return row;
   }
 
-  unmarked() { return this.list.querySelectorAll('.qz-line.is-game:not(.is-warm):not(.is-miss):not(.is-win) .qz-markbtns').length; }
+  /** Показать спрятанную строку (долетела копия из карточки «Тепло») */
+  reveal(row) {
+    row.classList.remove('is-wait');
+    row.classList.add('is-back');
+    setTimeout(() => row.classList.remove('is-back'), 1400);
+  }
+
+  unmarked() { return this.list.querySelectorAll(`${UNMARKED} .qz-markbtns`).length; }
   paintWait() {
     const n = this.pending?.length ?? 0;
     this.waitEl ??= el('div', 'qz-wait k-faint');
@@ -296,21 +347,52 @@ export class Dock {
     line.mark = mark;
     const r = line.row;
     if (!r) return;
-    r.classList.remove('is-warm', 'is-miss', 'is-win');
+    r.classList.remove('is-warm', 'is-miss', 'is-win', 'is-check', 'has-undo');
     r.classList.add(`is-${mark}`);
     r.querySelector('.qz-markbtns')?.remove();
+    r.querySelector('.qz-undo')?.remove();
     r.querySelector('.qz-near')?.remove();
     const m = r.querySelector('.qz-mark');
     if (m) m.innerHTML = `<img src="${QIMG(mark === 'warm' ? 'q-warm' : mark === 'miss' ? 'q-miss' : 'q-win')}" alt="">`;
+    if (mark === 'miss' && this.marks) this.addUndo(line);
     this.refreshKeys();
     if (this.marks) setTimeout(() => this.flushWait(), 0);
+  }
+
+  /** «мимо» у загадывающего: «↩ Вернуть» на строке, пока она не растаяла (5 с) — или клавиша Z */
+  addUndo(line) {
+    const b = el('button', 'qz-undo', `${UNDO}<span>Вернуть</span>`);
+    b.type = 'button';
+    b.title = 'Вернуть строку — Z';
+    b.setAttribute('aria-label', 'Вернуть строку');
+    b.addEventListener('mousedown', (e) => e.preventDefault());
+    b.addEventListener('click', () => this.onUndo(line));
+    line.row.appendChild(b);
+    line.row.classList.add('has-undo');
+  }
+
+  /** «Проверяем…» (3 с после «Угадал»): у строки золотая рамка и нет кнопок, остальные отметки замирают */
+  setCheck(line, on) {
+    this.root.classList.toggle('is-checking', on);
+    this.keysOff = on;
+    const r = line.row;
+    if (on && r) {
+      r.classList.remove('is-warm', 'is-miss', 'is-win', 'has-undo');
+      r.classList.add('is-check');
+      r.querySelector('.qz-markbtns')?.remove();
+      r.querySelector('.qz-undo')?.remove();
+      r.querySelector('.qz-near')?.remove();
+      const m = r.querySelector('.qz-mark');
+      if (m) m.innerHTML = `<img src="${QIMG('q-win')}" alt="">`;
+    } else r?.classList.remove('is-check');
+    this.refreshKeys();
   }
 
   /** Колпачки 1/2/3 — только у самой старой неотмеченной строки (1 тепло, 2 мимо, 3 угадал) */
   refreshKeys() {
     for (const k of this.list.querySelectorAll('.qz-mb .k-key')) k.remove();
     if (!this.marks || this.keysOff) return;
-    const first = this.list.querySelector('.qz-line.is-game:not(.is-warm):not(.is-miss):not(.is-win) .qz-markbtns');
+    const first = this.list.querySelector(`${UNMARKED} .qz-markbtns`);
     if (!first) return;
     first.querySelector('.qz-mb--warm').insertAdjacentHTML('beforeend', keyHtml('1', 'tr', 'sm'));
     first.querySelector('.qz-mb--miss').insertAdjacentHTML('beforeend', keyHtml('2', 'tr', 'sm'));
@@ -353,25 +435,53 @@ export class WarmCard {
     this.items = [];
     this.empty = el('div', 'qz-warm-empty k-faint', 'Пока ничего — ждём «тепло»');
     this.list.appendChild(this.empty);
+    this.onRemove = () => {};
     slot.appendChild(this.root);
   }
 
-  /** Добавить строку; hidden — пока летит отклик (потом show()) */
-  add(nick, text, { hidden = false, fresh = true } = {}) {
+  /** Правка отметок: у строки при наведении «✕» (подсказка «Убрать из «Тепло»») — только у загадывающего; у остальных строка уходит тихо */
+  set editable(on) { this.root.classList.toggle('is-editable', !!on); }
+  get editable() { return this.root.classList.contains('is-editable'); }
+
+  /** Добавить строку; hidden — пока летит отклик (потом show()); line — строка «В игру», которой она принадлежит */
+  add(nick, text, { hidden = false, fresh = true, line = null } = {}) {
     this.empty.remove();
     const row = el('div', `qz-warm-row k-nick-${NICK_N(nick)}${fresh ? ' is-new' : ''}${hidden ? ' is-wait' : ''}`);
-    row.innerHTML = `<span class="qz-warm-txt"><small></small> <b></b></span>`;
+    row.innerHTML = `<span class="qz-warm-txt"><small></small> <b></b></span><button class="qz-warm-x" type="button" aria-label="Убрать из «Тепло»" data-tip="Убрать из «Тепло»">${CROSS}</button>`;
     row.querySelector('small').textContent = nick;
     row.querySelector('b').textContent = text;
+    row._line = line;
+    const x = row.querySelector('.qz-warm-x');
+    x.addEventListener('mousedown', (e) => e.preventDefault());
+    x.addEventListener('click', () => this.onRemove(row._line, row));
     this.list.appendChild(row);
     this.items.push(row);
+    this.relayout();
+    if (fresh) setTimeout(() => row.classList.remove('is-new'), 1800);
+    return row;
+  }
+
+  /** Последние 5 строк на виду, старые — «ещё N»; число рядом с заголовком */
+  relayout() {
     const hiddenN = Math.max(0, this.items.length - 5);
     this.items.forEach((r, i) => { r.hidden = i < hiddenN; });
     this.more.hidden = !hiddenN;
     this.more.textContent = `ещё ${hiddenN}`;
     this.count.textContent = String(this.items.length);
-    if (fresh) setTimeout(() => row.classList.remove('is-new'), 1800);
-    return row;
+  }
+
+  /** Строка уходит из карточки: схлопывается за 0,3 с (по ✕, по Z — и тихо у остальных) */
+  drop(row) {
+    const i = this.items.indexOf(row);
+    if (i < 0) return;
+    this.items.splice(i, 1);
+    if (!row.hidden) {
+      row.style.maxHeight = `${row.offsetHeight}px`;
+      void row.offsetHeight;
+      row.classList.add('is-out');
+    }
+    this.relayout();
+    setTimeout(() => { row.remove(); if (!this.items.length) this.list.appendChild(this.empty); }, row.hidden ? 0 : 340);
   }
 
   show(row) { row.classList.remove('is-wait'); }
