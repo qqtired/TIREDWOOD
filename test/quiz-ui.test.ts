@@ -133,12 +133,12 @@ describe('табло: каждый шаг рисуется', () => {
 describe('табло: что написано', () => {
   const draw = (b: QzBoard): string => { const { ctx, texts } = stub(); paintBoard(ctx, b, NOW); return texts.join(' | '); };
 
-  it('голосование: заголовок, счёт, причина серой карточки и «без жетонов»', () => {
+  it('голосование: заголовок, счёт, причина серой карточки и «без жетонов» (один внутри)', () => {
     const t = draw(base({ phase: 'vote', endsAt: NOW + 12_000, vote: vote(), noTokens: true }));
     assert.match(t, /ВО ЧТО ИГРАЕМ\?/);
     assert.match(t, /голосов 2 из 4 · 0:12/);
     assert.match(t, /от 4/);
-    assert.match(t, /Меньше 3 человек — без жетонов/);
+    assert.match(t, /Один — без жетонов/);
     for (const m of QZ_MODES) assert.ok(t.includes(m.name), m.name);
   });
 
@@ -343,13 +343,13 @@ describe('HUD: плашка сверху', () => {
     assert.match(r.html, /<b>2<\/b>/);
   });
 
-  it('итог загадки: разгадали (ты / другой), не угадали, ушёл', () => {
+  it('итог загадки: плашка говорит, что дальше (слово и кто угадал — на табло)', () => {
     const rev = (end: 'solved' | 'timeout' | 'left', solver = 3): QzView => game({ step: 'reveal', endsAt: 0, last: { end, answer: 'пароход', riddler: who(5, 'Барон'), solver: end === 'solved' ? who(solver, 'Оля') : null } });
-    assert.match(plateSpec(rev('solved'), youMe(), NOW)!.html, /Разгадали! <b class="k-gold">Оля<\/b> угадал/);
-    assert.match(plateSpec(rev('solved', 2), youMe(), NOW)!.html, /Разгадали! Ты угадал/);
-    assert.match(plateSpec(rev('timeout'), youMe(), NOW)!.html, /Не угадали/);
-    assert.match(plateSpec(rev('timeout'), youMe(), NOW)!.html, /Слово: <b class="k-gold">пароход<\/b>/);
-    assert.match(plateSpec(rev('left'), youMe(), NOW)!.html, /<b>Барон<\/b> ушёл/);
+    assert.match(plateSpec(rev('solved'), youMe(), NOW)!.html, /Дальше загадывает <b>Оля<\/b>/);
+    assert.match(plateSpec(rev('solved', 2), youMe(), NOW)!.html, /Дальше загадываешь ты/);
+    assert.match(plateSpec(rev('timeout'), youMe(), NOW)!.html, /Дальше выберет Затейник/);
+    assert.match(plateSpec(rev('left'), youMe(), NOW)!.html, /Дальше выберет Затейник/);
+    assert.doesNotMatch(plateSpec(rev('solved'), youMe(), NOW)!.html, /пароход/);
   });
 
   it('итоги игры: строка участнику; без неё — кто больше всех', () => {

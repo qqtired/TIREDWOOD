@@ -4,6 +4,7 @@
 import type { QuizClientMsg } from '../../../../shared/quiz/net.ts';
 import { parseWhoQuestion } from '../../../../shared/quiz/text.ts';
 import { QZ, QZ_CROC, QZ_JP, QZ_WHO, type QzLine, type QzMe, type QzView } from '../../../../shared/quiz/types.ts';
+import { placeAt } from '../../../../shared/quiz/venue.ts';
 import { PRIO, escHtml as esc } from '../../../ui/kit/topcenter.ts';
 import { DOCK_ROWS, FADE_MS, PLATE_KEY, ev, keyCap, pic, swapBtn, type DockModel, type DockRow, type PlateSpec } from './hud-model.ts';
 import { betQuick, betModel, dropModel, hostPanel, isFinalist, isHost, isPlayer, jpPlate, showing } from './hud-jp-model.ts';
@@ -38,18 +39,30 @@ export function crocPlate(v: QzView, me: QzMe, now: number): PlateSpec | null {
     case 'draw':
       if (drawer) return mk(ev({ ic, title: `Ты рисуешь: <b class="k-gold">${esc(v.croc && me.croc?.word ? me.croc.word : '')}</b>`, sub: `угадали ${c.guessed.length}`, ring }));
       if (me.croc?.got) return mk(ev({ ic, title: 'Ты угадал!', sub: `рисует ${who} · пока угадали ${c.guessed.length}`, side: swap }), { tone: 'good' });
-      return mk(ev({ ic, title: `Рисует <b>${who}</b>`, sub: `слово: <span class="qz-mask">${esc(c.mask)}</span> · пиши в чат`, side: swap }));
+      return mk(ev({ ic, title: `Рисует <b>${who}</b>`, sub: `слово: <span class="qz-mask">${esc(c.mask)}</span>`, side: swap })); // «пиши догадки» — строкой todoRow под плашкой (B2)
     case 'reveal': {
+      // B1: итог рисунка (слово, кто угадал) — на табло; плашка говорит, что дальше
       const l = c.last;
       if (!l) return null;
-      const word = `Слово: <b class="k-gold">${esc(l.word)}</b>`;
-      if (l.end === 'left') return mk(ev({ ic, title: `<b>${esc(l.drawer.nick)}</b> ушёл`, sub: word }));
-      if (l.end === 'swap' || l.end === 'empty') return mk(ev({ ic, title: l.end === 'swap' ? 'Меняем игру' : 'Все ушли', sub: word }));
-      return mk(ev({ ic, title: l.end === 'all' ? 'Угадали все!' : l.guessed ? `Угадали: ${l.guessed}` : 'Время вышло', sub: word, side: swap }), l.guessed ? { tone: 'good' } : {});
+      const end = l.end === 'swap' || l.end === 'empty';
+      return mk(ev({ ic, title: crocNext(v, me), side: end ? undefined : swap }), l.guessed ? { tone: 'good' } : {});
     }
     default:
       return null;
   }
+}
+
+/** B1: что дальше после рисунка (одна строка для плашки): следующий рисующий из очереди, иначе вызов, после шестого — итоги */
+export function crocNext(v: QzView, me: QzMe): string {
+  const c = v.croc;
+  const l = c?.last;
+  if (!c || !l) return '';
+  if (l.end === 'swap') return 'Меняем игру';
+  if (l.end === 'empty') return 'Все ушли';
+  if (c.num >= QZ_CROC.TURNS_MAX) return 'Рисунки закончились — итоги';
+  const q = c.queue[0];
+  if (q) return q.slot === me.slot ? 'Дальше рисуешь ты' : `Дальше рисует <b>${esc(q.nick)}</b>`;
+  return 'Кто рисует дальше?';
 }
 
 export interface WordsModel {
@@ -97,21 +110,25 @@ export interface ToolSel {
   color: number;
   width: number;
   erase: boolean;
+  /** «Ракушка» 1.1, C6: ведёрко — клик по холсту заливает область выбранным цветом */
+  fill?: boolean;
 }
 
 /** Толщины и цвета — из контракта; номер 8 у цвета — ластик */
-export const toolOut = (s: ToolSel): { color: number; width: number; size: number; erase: boolean } => ({ color: s.erase ? QZ_CROC.ERASER : s.color, width: s.width, size: s.width, erase: s.erase });
+export const toolOut = (s: ToolSel): { color: number; width: number; size: number; erase: boolean; fill: boolean } => ({ color: s.erase ? QZ_CROC.ERASER : s.color, width: s.width, size: s.width, erase: s.erase, fill: !s.erase && !!s.fill });
 
 const ERASE_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 16.5 13.5 7l5 5L11 19.5H6.5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 11.5l5 5M11 19.5h9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
 const UNDO_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7 4.5 11.5 9 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 11.5h9a5 5 0 0 1 0 10h-3" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>';
+const FILL_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 11.5 11 5l7 7-6.5 6.5a2 2 0 0 1-2.8 0l-4.2-4.2a2 2 0 0 1 0-2.8z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M4.6 12.4h12.6" stroke="currentColor" stroke-width="1.8"/><path d="M11 5 8.6 2.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M21 17.6c0 1.3-.8 2.2-1.8 2.2s-1.8-.9-1.8-2.2c0-1.1 1.8-3.3 1.8-3.3s1.8 2.2 1.8 3.3z" fill="currentColor"/></svg>';
 const CLEAR_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 7h12M10 7V5h4v2M8 7l1 12h6l1-12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-/** Полоса инструментов рисующего: 8 цветов, 3 толщины, ластик, «Отмена» (Z), «Очистить». Узкая, вертикальная — справа у края */
+/** Полоса инструментов рисующего: 8 цветов, 3 толщины, ластик, ведёрко (G), «Отмена» (Z), «Очистить». Узкая, вертикальная — справа у края */
 export function toolsHtml(s: ToolSel): string {
   const colors = QZ_CROC.COLORS.map((c, i) => `<button type="button" class="qz-color${!s.erase && s.color === i ? ' is-on' : ''}" style="--c:${c}" data-qz="crColor" data-i="${i}" title="Цвет ${i + 1}" aria-label="Цвет ${i + 1}"></button>`).join('');
-  const widths = QZ_CROC.WIDTHS.map((w, i) => `<button type="button" class="qz-width${s.width === i ? ' is-on' : ''}" data-qz="crWidth" data-i="${i}" title="Толщина" aria-label="Толщина ${i + 1}"><i style="--d:${w / 2 + 4}px"></i></button>`).join('');
+  const widths = QZ_CROC.WIDTHS.map((w, i) => `<button type="button" class="qz-width${s.width === i && !s.fill ? ' is-on' : ''}" data-qz="crWidth" data-i="${i}" title="Толщина" aria-label="Толщина ${i + 1}"><i style="--d:${w / 2 + 4}px"></i></button>`).join('');
   return `<div class="k-plate qz-tools"><div class="qz-tools-colors">${colors}</div><i class="qz-sep"></i>${widths}<i class="qz-sep"></i>`
     + `<button type="button" class="qz-tool${s.erase ? ' is-on' : ''}" data-qz="crErase" title="Ластик" aria-label="Ластик">${ERASE_SVG}</button>`
+    + `<button type="button" class="qz-tool${s.fill && !s.erase ? ' is-on' : ''}" data-qz="crFill" title="Заливка — G" aria-label="Заливка">${FILL_SVG}${keyCap('G', 'tr')}</button>`
     + `<button type="button" class="qz-tool" data-qz="crUndo" title="Отмена — Z" aria-label="Отмена">${UNDO_SVG}${keyCap('Z', 'tr')}</button>`
     + `<button type="button" class="qz-tool" data-qz="crClear" title="Очистить холст" aria-label="Очистить">${CLEAR_SVG}</button>`
     + '<span class="qz-full" hidden>Холст полон</span></div>';
@@ -174,6 +191,40 @@ export const whoPreview = (raw: string): { q: string; title: string } | null => 
 /** «Кликни по желейке»: подсказка над полем чата в шаге vote */
 export const whoHint = (v: QzView, me: QzMe): boolean => v.phase === 'game' && v.who?.step === 'vote' && !!me.who?.in;
 
+// ------------------------------------------------------------------ B2: «что мне делать» — одна строка с клавишей
+
+/** Ряд подсказок под полосой внизу: [клавиша] что делать. Кто не играет сейчас, всё равно видит, что можно */
+export interface TodoSpec {
+  sig: string;
+  html: string;
+}
+
+const mo = (key: string, text: string): string => `<span class="mo-key">${keyCap(key, undefined, '')}<em>${esc(text)}</em></span>`;
+
+/**
+ * Что делать роли без своей полосы: угадывающему — писать догадки (Enter), зрителю «Своей игры» — смотреть или сесть за
+ * свободный пульт (E), сидящему зрителю — «Браво!» (B). queueBarOn — у угадывающего «Загадки» эту строку уже несёт полоса
+ * «Хочу загадать». null — нечего подсказывать.
+ */
+export function todoRow(v: QzView, me: QzMe, queueBarOn = false): TodoSpec | null {
+  if (v.phase !== 'game') return null;
+  const chair = me.place >= 0 && placeAt(me.place)?.kind === 'chair';
+  const bravo = chair ? mo('B', '«Браво!»') : '';
+  const row = (sig: string, ...parts: string[]): TodoSpec | null => {
+    const html = parts.filter(Boolean).join('');
+    return html ? { sig, html } : null;
+  };
+  const jp = v.jp;
+  if (v.mode === 'jeopardy' && jp && jp.step !== 'setup' && jp.step !== 'packvote' && !isHost(jp, me) && !isPlayer(me)) {
+    const free = jp.players.length < QZ_JP.PLAYERS_MAX;
+    return row(`jp|${chair ? 1 : 0}|${free ? 1 : 0}`, !chair && free ? mo('E', 'смотри или садись за свободный пульт') : '', bravo);
+  }
+  const s = v.riddle?.step;
+  if (v.mode === 'riddle' && v.riddle && me.role !== 'riddler' && !queueBarOn && (s === 'round' || s === 'check')) return row(`riddle|${chair ? 1 : 0}`, mo('Enter', 'пиши догадки'), bravo);
+  if (v.mode === 'croc' && v.croc && !isDrawer(v, me) && !me.croc?.got && v.croc.step === 'draw') return row(`croc|${chair ? 1 : 0}`, mo('Enter', 'пиши догадки'), bravo);
+  return null;
+}
+
 // ------------------------------------------------------------------ плашка режима: общий вход
 
 /** Плашка «Своей игры», «Крокодила» и «Кто из нас?» в игре; null — оставить прежней (вызов роли, «Загадка»…) */
@@ -182,7 +233,7 @@ export function modePlate(v: QzView, me: QzMe, now: number, ctx: { pvMine: numbe
     return mk(ev({ ic: pic('online'), title: 'Играют все, кто сидит', sub: `садись — нужно от ${QZ_WHO.MIN}, до ${QZ_WHO.MAX}` }), { tone: 'good' });
   }
   if (v.phase !== 'game' || v.call) return null;
-  if (v.mode === 'jeopardy') return jpPlate(v, me, ctx.pvMine);
+  if (v.mode === 'jeopardy') return jpPlate(v, me, ctx.pvMine, now);
   if (v.mode === 'croc') return crocPlate(v, me, now);
   if (v.mode === 'whoofus') return whoPlate(v, me, now);
   return null;
@@ -232,6 +283,8 @@ export interface KeyHit {
   msg?: QuizClientMsg;
   mine?: number;
   undo?: true;
+  /** C6: G — ведёрко вкл/выкл */
+  fill?: true;
 }
 
 const DIGIT: Record<string, number> = { Digit1: 0, Digit2: 1, Digit3: 2, Digit4: 3, Digit5: 4, Numpad1: 0, Numpad2: 1, Numpad3: 2, Numpad4: 3, Numpad5: 4 };
@@ -259,6 +312,7 @@ export function keyHit(v: QzView, me: QzMe, code: string): KeyHit | null {
     if (isDrawer(v, me)) {
       if (c.step === 'words' && n !== undefined && n < 3) return { msg: { t: 'qz', a: 'crWord', i: n } };
       if (c.step === 'draw' && code === 'KeyZ') return { undo: true };
+      if (c.step === 'draw' && code === 'KeyG') return { fill: true };
     } else if (code === 'KeyF' && queueModel(v, me) && !me.croc?.queued) return { msg: { t: 'qz', a: 'role', take: true, r: 'drawer' } };
   }
   return null;

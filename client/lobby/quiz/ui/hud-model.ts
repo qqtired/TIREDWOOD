@@ -5,7 +5,7 @@
 import { COIN_HTML } from '../../../ui/coin.ts';
 import { PRIO, escHtml as esc } from '../../../ui/kit/topcenter.ts';
 import {
-  QZ, QZ_MODES, type QuizMode, type QzLine, type QzMe, type QzMark, type QzRiddleEnd, type QzRole, type QzView,
+  QZ, QZ_MODES, type QuizMode, type QzLine, type QzMe, type QzMark, type QzRole, type QzView,
 } from '../../../../shared/quiz/types.ts';
 import { leftSec, mmss, nickTone, quizImgUrl } from './paint.ts';
 
@@ -116,10 +116,6 @@ export function voteButtons(v: QzView, me: QzMe): string {
   }).join('');
 }
 
-const END_TEXT: Record<QzRiddleEnd, string> = {
-  solved: 'Разгадали!', timeout: 'Не угадали', left: 'Загадывающий ушёл', swap: 'Меняем игру', empty: 'Все ушли',
-};
-
 /** Плашка сверху: одна на всю «Ракушку»; null — убрать. Время считается по часам сервера now */
 export function plateSpec(v: QzView, me: QzMe, now: number, armed = false, liked?: ReadonlySet<string>): PlateSpec | null {
   const mode = QZ_MODES.find((m) => m.id === v.mode) ?? null;
@@ -127,13 +123,19 @@ export function plateSpec(v: QzView, me: QzMe, now: number, armed = false, liked
   const mk = (html: string, extra: Partial<PlateSpec> = {}): PlateSpec => ({ key: PLATE_KEY, prio: PRIO.mode, html, ...extra });
   const swap = swapBtn(v, me);
 
+  // F3: разминка с Затейником — у того, кто разминается; «Хватит» прямо на плашке, ответы — в чат «В игру»
+  if (v.phase === 'idle' && v.warm && v.warm.who.slot === me.slot) {
+    return mk(ev({ ic: pic('horn'), title: 'Разминка с Затейником', sub: `отвечай в чат ${keyCap('Enter')}`, side: '<button type="button" class="k-btn k-btn--ghost k-btn--sm" data-qz="warm" data-on="0">Хватит</button>' }));
+  }
+
   if (v.phase === 'vote' && v.vote) {
     const vt = v.vote;
     if (vt.nobody) return mk(ev({ ic: pic('chat'), title: 'Никто не выбрал' }));
     if (vt.spin) return mk(ev({ ic: pic('roulette'), title: 'Ничья — колесо' }));
     if (vt.win >= 0) {
       const m = QZ_MODES[vt.win];
-      return mk(ev({ ic: pic(m?.icon ?? 'scroll'), title: `Играем: <b>${esc(m?.name ?? '')}</b>`, sub: vt.why ? esc(vt.why) : undefined }), { tone: 'good' });
+      // A1: победитель выбран кнопкой «Ещё раз!» — голосования не было, причины нет
+      return mk(ev({ ic: pic(m?.icon ?? 'scroll'), title: `${vt.again ? 'Играем снова' : 'Играем'}: <b>${esc(m?.name ?? '')}</b>`, sub: vt.why && !vt.again ? esc(vt.why) : undefined }), { tone: 'good' });
     }
     // голосование — важнее прочего: видно и на паузе, кнопки нажимаются мышью
     return { key: PLATE_KEY, prio: PRIO.vote, html: ev({ ic: pic('scroll'), title: 'Во что играем?', side: voteButtons(v, me) }) };
@@ -189,16 +191,10 @@ export function plateSpec(v: QzView, me: QzMe, now: number, armed = false, liked
         }), { lamp: true });
       }
       case 'reveal': {
+        // B1: итог (слово, кто угадал) — на табло; плашка говорит, что дальше
         const l = R.last;
         if (!l) return null;
-        const word = `Слово: <b class="k-gold">${esc(l.answer)}</b>`;
-        if (l.end === 'solved') {
-          const s = l.solver;
-          const name = s && s.slot === me.slot ? 'Ты угадал' : `<b class="k-gold">${esc(s?.nick ?? '')}</b> угадал`;
-          return mk(ev({ ic: pic('q-win'), title: `Разгадали! ${name}`, sub: word }), { tone: 'good', lamp: true });
-        }
-        if (l.end === 'left') return mk(ev({ ic: pic('scroll'), title: `<b>${esc(l.riddler.nick)}</b> ушёл`, sub: word }));
-        return mk(ev({ ic: pic('scroll'), title: END_TEXT[l.end], sub: l.end === 'empty' ? undefined : word }));
+        return mk(ev({ ic: pic(l.end === 'solved' ? 'q-win' : 'scroll'), title: riddleNext(v, me) }), l.end === 'solved' ? { tone: 'good', lamp: true } : {});
       }
       default:
         return null;
@@ -223,6 +219,30 @@ export function plateSpec(v: QzView, me: QzMe, now: number, armed = false, liked
   // «Своя игра», «Крокодил», «Кто из нас?»: их HUD — следующим заходом; здесь только название и «Сменить игру?»
   if (v.phase === 'game' && mode) return mk(ev({ ic: modeIc(), title: `<b>${esc(mode.name)}</b>`, side: swap }));
   return null;
+}
+
+/**
+ * B1: что дальше после итога загадки (одна строка для плашки): кто загадывает следующим или что будет. Итог (слово, кто
+ * угадал) показывает табло. Очередь «Хочу загадать» идёт первой, потом угадавший, иначе выбирает Затейник.
+ */
+/** Сыграна последняя загадка игры: дальше итоги, в очередь вставать поздно */
+function riddleOver(R: NonNullable<QzView['riddle']>): boolean {
+  const l = R.last;
+  return !!l && (l.end === 'solved' || l.end === 'timeout') && R.num >= R.of;
+}
+
+export function riddleNext(v: QzView, me: QzMe): string {
+  const R = v.riddle;
+  const l = R?.last;
+  if (!R || !l) return '';
+  if (l.end === 'swap') return 'Меняем игру';
+  if (l.end === 'empty') return 'Все ушли';
+  const who = (w: { slot: number; nick: string }): string => (w.slot === me.slot ? 'Дальше загадываешь ты' : `Дальше загадывает <b>${esc(w.nick)}</b>`);
+  if (riddleOver(R)) return 'Дальше — итоги игры';
+  const q = R.queue?.[0];
+  if (q) return who(q);
+  if (l.end === 'solved' && l.solver) return who(l.solver);
+  return 'Дальше выберет Затейник';
 }
 
 /** Текст строки по номеру — для подписи «Проверяем…» (в плашке: «Оля · «пароход»») */
@@ -281,12 +301,73 @@ export function rolesBar(v: QzView, me: QzMe, now: number): BarSpec | null {
   };
 }
 
+// ------------------------------------------------------------------ «Ракушка» 1.1: «Ещё раз!», «Веду я», «Хочу загадать», разминка
+
+/** A1: на итогах «Ещё раз!» (R) со счётом «2 из 3»; нажал — «Ждём остальных» и «Передумал» (тоже R) */
+export function againBar(v: QzView, me: QzMe): BarSpec | null {
+  const a = v.again;
+  if (v.phase !== 'results' || !a || !me.canAgain) return null;
+  const on = !!me.again;
+  return {
+    sig: `again|${on ? 1 : 0}`, time: `${a.n} из ${a.need}`, hurry: false,
+    html: `<div class="k-plate qz-turn qz-roles qz-again${on ? ' is-on' : ''}"><span class="qz-roles-t">${on ? 'Ждём остальных' : 'Сыграем ещё раз?'}</span>`
+      + `<button type="button" class="k-btn ${on ? 'k-btn--ghost' : 'k-btn--go'}" data-qz="again">${on ? 'Передумал' : 'Ещё раз!'}${keyCap('R', 'tr')}</button>`
+      + '<span class="k-pill k-pill--gold k-pill--sm qz-roles-time"></span></div>',
+  };
+}
+
+/** A2: «Своя игра», выбор пака залом: можно стать ведущим самому — «Веду я» (F; у трибуны — E) */
+export function hostBar(v: QzView, me: QzMe): BarSpec | null {
+  if (v.phase !== 'game' || v.mode !== 'jeopardy' || v.jp?.step !== 'packvote' || !me.jp?.canHost) return null;
+  return {
+    sig: 'host', time: '', hurry: false,
+    html: `<div class="k-plate qz-turn qz-roles"><span class="qz-roles-t">Хочешь вести сам?</span><button type="button" class="k-btn k-btn--go" data-qz="hostTake">Веду я${keyCap('F', 'tr')}</button></div>`,
+  };
+}
+
+/** F3: игры нет, я один сижу — «Разминка с Затейником» (F). Идёт разминка — «Хватит» на плашке сверху */
+export function warmBar(v: QzView, me: QzMe): BarSpec | null {
+  if (v.phase !== 'idle' || !me.canWarm || v.warm) return null;
+  return {
+    sig: 'warm', time: '', hurry: false,
+    html: `<div class="k-plate qz-turn qz-roles"><span class="qz-roles-t">Игры нет</span><button type="button" class="k-btn k-btn--go" data-qz="warm" data-on="1">Разминка с Затейником${keyCap('F', 'tr')}</button></div>`,
+  };
+}
+
+/** A3: «Загадка» у всех, кто не загадывает: «Хочу загадать» (F) → очередь → «приготовь слово» → «Слово готово». Вызов открыт мне — полоса ролей */
+export function queueBar(v: QzView, me: QzMe): BarSpec | null {
+  const R = v.riddle;
+  if (v.phase !== 'game' || v.mode !== 'riddle' || !R || me.role === 'riddler' || me.canTake) return null;
+  if (R.step === 'reveal' && riddleOver(R)) return null; // последняя загадка сыграна — очередь уже не нужна
+  const pos = me.queuePos ?? 0;
+  if (!pos) {
+    if ((R.queue?.length ?? 0) >= QZ.QUEUE_MAX) return null;
+    const guessing = R.step === 'round' || R.step === 'check';
+    return {
+      sig: `queue|0|${guessing ? 1 : 0}`, time: '', hurry: false,
+      html: `<div class="k-plate qz-turn qz-roles qz-queue2"><span class="qz-roles-t">${guessing ? `Пиши догадки${keyCap('Enter')}` : 'Хочешь загадать?'}</span>`
+        + `<button type="button" class="k-btn k-btn--ghost" data-qz="queue" data-take="1">Хочу загадать${keyCap('F', 'tr')}</button></div>`,
+    };
+  }
+  const prep = me.prep;
+  const lead = prep ? `Слово готово: <b class="qz-word-t">${esc(prep.word)}</b> <i class="k-pill k-pill--gold k-pill--xs">${pos === 1 ? 'следующий' : `${pos}-й`}</i>`
+    : pos === 1 ? 'Ты следующий — приготовь слово' : `Ты в очереди ${pos}-м — приготовь слово`;
+  return {
+    sig: `queue|${pos}|${prep ? prep.word : ''}`, time: '', hurry: false,
+    html: `<div class="k-plate qz-turn qz-roles qz-queue2 is-on"><span class="qz-roles-t">${lead}</span>`
+      + `<button type="button" class="k-btn ${prep ? 'k-btn--ghost' : 'k-btn--go'}" data-qz="prep">${prep ? 'Изменить' : 'Слово'}${keyCap('F', 'tr')}</button>`
+      + '<button type="button" class="k-btn k-btn--ghost" data-qz="queue" data-take="0">Выйти из очереди</button></div>',
+  };
+}
+
 // ------------------------------------------------------------------ загадывающий: ряд клавиш и «Подсказка»
 
 /** Ряд клавиш загадывающего: до первой отметки «1 тепло · 2 мимо · 3 угадал», потом «Z отменить» (тускнеет, когда нечего). Пока идёт проверка — нет ряда */
-export function keysRow(used: boolean, canUndo: boolean): string {
+export function keysRow(used: boolean, canUndo: boolean, hot = false): string {
+  // C1: неотмеченных нет, а «тепло» свежее — вторым нажатием 1 оно станет «Горячо!»
+  const hotKey = hot ? `<span class="mo-key">${keyCap('1', undefined, '')}<em>горячо</em></span>` : '';
   return used
-    ? `<span class="mo-key${canUndo ? '' : ' is-off'}">${keyCap('Z', undefined, '')}<em>отменить</em></span>`
+    ? `${hotKey}<span class="mo-key${canUndo ? '' : ' is-off'}">${keyCap('Z', undefined, '')}<em>отменить</em></span>`
     : `<span class="mo-key">${keyCap('1', undefined, '')}<em>тепло</em></span><span class="mo-key">${keyCap('2', undefined, '')}<em>мимо</em></span><span class="mo-key">${keyCap('3', undefined, '')}<em>угадал</em></span>`;
 }
 
@@ -344,7 +425,7 @@ export function dockModel(lines: readonly QzLine[], me: QzMe, now: number, riddl
   const withBtn = new Set(riddler ? unmarked.slice(0, QZ.DOCK_UNMARKED).map((l) => l.id) : []);
   const rows: DockRow[] = [];
   for (const l of sorted) {
-    if (l.only || l.kind === 'got' || l.mark === 'warm') continue;
+    if (l.only || l.kind === 'got' || l.mark === 'warm' || l.mark === 'hot') continue;
     if (!riddler && l.kind === 'guess' && l.slot === me.slot) continue;
     // неотмеченная сверх пяти — ждёт в очереди
     if (riddler && l.kind === 'guess' && l.mark === '' && !withBtn.has(l.id)) continue;
@@ -376,17 +457,24 @@ export function dockModel(lines: readonly QzLine[], me: QzMe, now: number, riddl
 // ------------------------------------------------------------------ карточка «Тепло»
 
 export interface WarmModel {
-  /** строки с «тепло» по времени отметки */
-  rows: Array<{ id: number; nick: string; text: string }>;
-  /** сколько скрыто сверху («ещё N») */
+  /** строки карточки: «Горячо!» первыми, потом «тепло» по времени отметки; shown — на виду, остальные «ещё N» */
+  rows: Array<{ id: number; nick: string; text: string; hot: boolean; shown: boolean }>;
+  /** сколько скрыто («ещё N») */
   more: number;
   hints: string[];
 }
 
 export function warmModel(v: QzView): WarmModel {
   const R = v.riddle;
-  const all = (R?.lines ?? []).filter((l) => l.mark === 'warm').sort((a, b) => a.markedAt - b.markedAt || a.id - b.id);
-  return { rows: all.map((l) => ({ id: l.id, nick: l.nick, text: l.text })), more: Math.max(0, all.length - WARM_SHOWN), hints: R?.hints ?? [] };
+  const byTime = (a: QzLine, b: QzLine): number => a.markedAt - b.markedAt || a.id - b.id;
+  const lines = R?.lines ?? [];
+  const hot = lines.filter((l) => l.mark === 'hot').sort(byTime);
+  const warm = lines.filter((l) => l.mark === 'warm').sort(byTime);
+  // на виду WARM_SHOWN строк: свежие «Горячо!», остальное место — свежие «тепло»
+  const showHot = new Set(hot.slice(-WARM_SHOWN).map((l) => l.id));
+  const showWarm = new Set(warm.slice(Math.max(0, warm.length - Math.max(0, WARM_SHOWN - showHot.size))).map((l) => l.id));
+  const rows = [...hot, ...warm].map((l) => ({ id: l.id, nick: l.nick, text: l.text, hot: l.mark === 'hot', shown: showHot.has(l.id) || showWarm.has(l.id) }));
+  return { rows, more: rows.filter((r) => !r.shown).length, hints: R?.hints ?? [] };
 }
 
 /** Карточка «Тепло» нужна всем внутри, пока угадывают (раунд и проверка) */

@@ -2,6 +2,7 @@
 // под ней у загадывающего — ряд клавиш «1 тепло · 2 мимо · 3 угадал» → «Z отменить» и кнопка «Подсказка». Образец —
 // lab/quiz/v2/js/vote.js (roles) и riddle.js (riddlerUi). Разметка меняется только когда поменялось содержимое (sig), время — отдельным узлом.
 import { hintLabel, keysRow, type BarSpec } from './hud-model.ts';
+import type { TodoSpec } from './hud-modes-model.ts';
 
 const el = (cls: string, html?: string): HTMLElement => {
   const e = document.createElement('div');
@@ -18,6 +19,8 @@ export interface RiddlerState {
   /** идёт «Проверяем…»: ряд клавиш прячется (отмена уже на плашке) */
   checking: boolean;
   hintsLeft: number;
+  /** C1: неотмеченных нет, а «тепло» свежее — в ряду клавиш «1 горячо» */
+  hot?: boolean;
 }
 
 export class BottomBars {
@@ -25,6 +28,9 @@ export class BottomBars {
   private bar: HTMLElement | null = null;
   private sig = '';
   private timeEl: HTMLElement | null = null;
+  /** B2: строка «что мне делать» под полосой (клавиша и действие) */
+  private todo: HTMLElement | null = null;
+  private todoSig = '';
   private rid: { root: HTMLElement; keys: HTMLElement; hint: HTMLButtonElement; keysSig: string; hintSig: string } | null = null;
 
   constructor() {
@@ -33,7 +39,7 @@ export class BottomBars {
 
   /** Есть ли что-то внизу (пустой узел в слоте добавил бы зазор) */
   get empty(): boolean {
-    return !this.bar && !this.rid;
+    return !this.bar && !this.rid && !this.todo;
   }
 
   /** «Сыграем?» / вызов роли; null — убрать */
@@ -59,6 +65,19 @@ export class BottomBars {
     }
   }
 
+  /** B2: строка «что мне делать» под полосой; null — убрать */
+  setTodo(spec: TodoSpec | null): void {
+    if (!spec) {
+      this.todo?.remove();
+      this.todo = null;
+      this.todoSig = '';
+      return;
+    }
+    if (!this.todo) this.todo = el('k-plate mo-keys key-hint qz-todo');
+    if (this.todoSig !== spec.sig) { this.todo.innerHTML = spec.html; this.todoSig = spec.sig; }
+    if (!this.todo.isConnected) this.host.append(this.todo);
+  }
+
   /** Ряд клавиш и «Подсказка» загадывающего; null — убрать */
   setRiddler(s: RiddlerState | null): void {
     if (!s) {
@@ -78,8 +97,8 @@ export class BottomBars {
       this.rid = { root, keys, hint, keysSig: '', hintSig: '' };
     }
     const r = this.rid;
-    const keysSig = `${s.used}|${s.canUndo}`;
-    if (r.keysSig !== keysSig) { r.keys.innerHTML = keysRow(s.used, s.canUndo); r.keysSig = keysSig; }
+    const keysSig = `${s.used}|${s.canUndo}|${!!s.hot}`;
+    if (r.keysSig !== keysSig) { r.keys.innerHTML = keysRow(s.used, s.canUndo, !!s.hot); r.keysSig = keysSig; }
     // пока идёт проверка, «Отменить Z» уже есть на плашке — повтор снизу не нужен
     r.keys.style.display = s.checking ? 'none' : '';
     const hintSig = String(s.hintsLeft);
@@ -91,5 +110,6 @@ export class BottomBars {
   clear(): void {
     this.setBar(null);
     this.setRiddler(null);
+    this.setTodo(null);
   }
 }

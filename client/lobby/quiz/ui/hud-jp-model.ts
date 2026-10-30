@@ -39,8 +39,15 @@ export function giveButtons(jp: QzJpBoard, me: QzMe): string {
   return jp.players.filter((p) => p.slot !== me.slot && p.away === 0).map((p) => `<button type="button" class="k-btn k-btn--go k-btn--sm" data-qz="give" data-slot="${p.slot}">${esc(cut(p.nick, 14))}</button>`).join('');
 }
 
+/** B1: что дальше после ответа: «Следующий вопрос через 3 с»; клетки кончились — раунд сыгран или финал */
+export function jpNext(jp: QzJpBoard, now: number): string {
+  if (!jp.themes.some((t) => t.cells.some((c) => c > 0))) return jp.final ? 'Дальше — финал' : 'Раунд сыгран';
+  const left = jp.endsAt > 0 ? Math.max(1, Math.ceil((jp.endsAt - now) / 1000)) : 0;
+  return left ? `Следующий вопрос через ${left} с` : 'Следующий вопрос';
+}
+
 /** Плашка сверху в игре: чей ход, кто отвечает, что делать. mine — мой голос за пак; null — нет такого режима */
-export function jpPlate(v: QzView, me: QzMe, mine = -1): PlateSpec | null {
+export function jpPlate(v: QzView, me: QzMe, mine = -1, now = 0): PlateSpec | null {
   const jp = v.jp;
   if (!jp) return null;
   const ic = pic('bell');
@@ -89,10 +96,9 @@ export function jpPlate(v: QzView, me: QzMe, mine = -1): PlateSpec | null {
         ? mk(ev({ ic, title: 'Засчитать ответ?', sub, actions: '<button type="button" class="k-btn k-btn--go k-btn--sm" data-qz="dv" data-ok="1">Засчитать</button><button type="button" class="k-btn k-btn--stop k-btn--sm" data-qz="dv" data-ok="0">Не засчитывать</button>' }), { lamp: true })
         : mk(ev({ ic, title: 'Игроки решают: засчитать?', sub, side: swap }));
     }
-    case 'reveal': {
-      const a = jp.answer;
-      return mk(ev({ ic, title: a ? `Ответ: <b class="k-gold">${esc(a.text)}</b>` : 'Ответ', side: swap }), jp.verdict === 'yes' ? { tone: 'good' } : {});
-    }
+    case 'reveal':
+      // B1: ответ — на табло; плашка говорит, что дальше
+      return mk(ev({ ic, title: jpNext(jp, now), side: swap }), jp.verdict === 'yes' ? { tone: 'good' } : {});
     case 'fremove':
       return fin?.remover === me.slot
         ? mk(ev({ ic, title: 'Убери тему', sub: 'останется одна — по ней финал' }), { lamp: true })
@@ -130,7 +136,7 @@ export function buzzModel(v: QzView, me: QzMe, now: number): BuzzModel | null {
   if (!jp || v.phase !== 'game' || !isPlayer(me) || (jp.step !== 'read' && jp.step !== 'buzz')) return null;
   const j = me.jp!;
   if (j.lockUntil > now) return { state: 'blocked', p: 0, note: 'Рано! Кнопка ждёт 1 с' };
-  if (jp.step === 'read') return { state: 'closed', p: jp.total > 0 ? clamp01(1 - (jp.openAt - now) / jp.total) : 0, note: 'кнопки откроются…' };
+  if (jp.step === 'read') return { state: 'closed', p: jp.total > 0 ? clamp01(1 - (jp.openAt - now) / jp.total) : 0, note: 'Пробел — когда загорится' };
   if (jp.out.includes(me.slot)) return { state: 'out', p: 0, note: 'ты уже отвечал — жмут остальные' };
   if (!j.canBuzz) return { state: 'wait', p: 0, note: showing(jp) ? 'никто не жмёт' : 'ждём' };
   return { state: 'open', p: jp.total > 0 ? clamp01((jp.endsAt - now) / jp.total) : 0, note: 'жми, пока не опередили' };

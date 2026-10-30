@@ -9,6 +9,7 @@ import type { OnlineEntry, RoomKind } from '../../shared/messages.ts';
 import { KICK_PERCENT, KICK_VOTE_MS } from '../../shared/votekick.ts';
 import { TOUCH } from '../touch.ts';
 import { onVoiceChange, peerVoices, setPeerVoice, voiceTalkers } from '../voice-prefs.ts';
+import { quizTitleOf } from '../lobby/quiz/titles.ts';
 import { iconImg } from './kit/dom.ts';
 import { MODE_CARDS } from './transition-art.ts';
 import './online.css';
@@ -222,7 +223,10 @@ export class OnlineList {
       ring.setAttribute('aria-label', `Уровень ${level}${tier.id === 'none' ? '' : ` · ${tier.name}`}`);
       ring.appendChild(el('b', '', String(level)));
       const who = row.appendChild(el('span', 'k-online-nick'));
-      who.appendChild(el('span', 'ol-nick', e.nick));
+      // «Ракушка» 1.1, C9: титул «Кто из нас?» этого вечера, пока он есть на табло; ник при этом не сжимается — сжимается титул
+      const qt = quizTitleOf(e.nick);
+      who.appendChild(el('span', qt ? 'ol-nick ol-nick--t' : 'ol-nick', e.nick));
+      if (qt) who.appendChild(el('span', 'k-pill k-pill--gold k-pill--xs ol-qtitle', qt));
       if (mine) who.appendChild(el('span', 'k-pill k-pill--gold k-pill--sm', 'это ты'));
       const mic = who.appendChild(el('span', 'ol-mic'));
       mic.innerHTML = iconImg('voice', 'k-ic');

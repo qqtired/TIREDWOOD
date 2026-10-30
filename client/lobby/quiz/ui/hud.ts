@@ -8,14 +8,15 @@
 // их эффекты приходят сюда через send и fx. Тексты — «на ты»; цвета, шрифты и тени — только токены кита.
 import type { QuizClientMsg } from '../../../../shared/quiz/net.ts';
 import type { QzBoard, QzMark, QzMe, QzRole, QzView } from '../../../../shared/quiz/types.ts';
+import { keyMark } from '../state.ts';
 import { placeAt } from '../../../../shared/quiz/venue.ts';
 import type { QuizFx } from '../fx.ts';
 import { BottomBars } from './hud-bars.ts';
 import { DockView, Flyer, OwnView, WarmView } from './hud-dock.ts';
 import { resolveKit, type QuizHudKit, type ResolvedKit } from './hud-kit.ts';
 import { ModesHud } from './hud-modes.ts';
-import { digitsBusy, keyHit, lineMsg, modeLines, modePlate, plainDock } from './hud-modes-model.ts';
-import { OWN_SHOW_MS, PLATE_KEY, dockModel, isRiddling, keyCap, ownGuess, plateSpec, playBar, rolesBar, warmModel, warmVisible, type DockModel } from './hud-model.ts';
+import { digitsBusy, keyHit, lineMsg, modeLines, modePlate, plainDock, todoRow } from './hud-modes-model.ts';
+import { OWN_SHOW_MS, PLATE_KEY, againBar, dockModel, hostBar, isRiddling, keyCap, ownGuess, plateSpec, playBar, queueBar, rolesBar, warmBar, warmModel, warmVisible, type DockModel } from './hud-model.ts';
 import { QuizSounds } from './hud-sound.ts';
 import { QuizWindows } from './hud-windows.ts';
 import { QuizWindow } from './hud-window.ts';
@@ -129,6 +130,14 @@ export class QuizHud {
    */
   onKey(code: string): boolean {
     if (this.disposed || !this.v || !this.me) return false;
+    const v = this.v, me = this.me;
+    // «Ракушка» 1.1: R — «Ещё раз!» на итогах; F — «Веду я» (выбор пака), разминка (игры нет), «Хочу загадать» / слово заранее («Загадка»)
+    if (code === 'KeyR' && againBar(v, me)) { this.toggleAgain(); return true; }
+    if (code === 'KeyF') {
+      if (hostBar(v, me)) { this.send({ t: 'qz', a: 'role', take: true, r: 'host' }); this.sound.play('pop'); return true; }
+      if (warmBar(v, me)) { this.send({ t: 'qz', a: 'warm', on: true }); this.sound.play('pop'); return true; }
+      if (queueBar(v, me)) { this.queueKey(); return true; }
+    }
     const hit = keyHit(this.v, this.me, code);
     if (!hit) return false;
     this.modes.key(hit);
@@ -203,7 +212,15 @@ export class QuizHud {
         break;
       }
       case 'skip': this.send({ t: 'qz', a: 'role', take: false }); break;
-      case 'mark': if (Number.isFinite(id)) this.send({ t: 'qz', a: 'mark', id, m: t.dataset.m as 'warm' | 'miss' | 'win' }); break;
+      case 'mark': if (Number.isFinite(id)) this.send({ t: 'qz', a: 'mark', id, m: t.dataset.m as 'warm' | 'hot' | 'miss' | 'win' }); break;
+      case 'again': this.toggleAgain(); break;
+      case 'hostTake': this.send({ t: 'qz', a: 'role', take: true, r: 'host' }); this.sound.play('pop'); break;
+      case 'warm': this.send({ t: 'qz', a: 'warm', on: t.dataset.on === '1' }); this.sound.play('pop'); break;
+      case 'queue':
+        if (t.dataset.take === '1') { this.send({ t: 'qz', a: 'role', take: true, r: 'riddler' }); this.windows.wantPrep(); } else this.send({ t: 'qz', a: 'role', take: false, r: 'riddler' });
+        this.sound.play(t.dataset.take === '1' ? 'pop' : 'undo');
+        break;
+      case 'prep': this.windows.openPrep(v, me); break;
       case 'unmark': if (Number.isFinite(id)) this.send({ t: 'qz', a: 'unmark', id }); break;
       case 'undo': this.send({ t: 'qz', a: 'undo' }); break;
       case 'like': {
@@ -240,6 +257,24 @@ export class QuizHud {
     }
   }
 
+  /** A1: «Ещё раз!» — нажал / передумал (R или кнопка на полосе внизу) */
+  private toggleAgain(): void {
+    const me = this.me;
+    if (!me) return;
+    this.send({ t: 'qz', a: 'again', on: !me.again });
+    this.sound.play(me.again ? 'undo' : 'vote');
+  }
+
+  /** A3: F в «Загадке» — встать в очередь «Хочу загадать» (и сразу заготовить слово), в очереди — открыть слово заранее */
+  private queueKey(): void {
+    const v = this.v, me = this.me;
+    if (!v || !me) return;
+    if ((me.queuePos ?? 0) > 0) { this.windows.openPrep(v, me); return; }
+    this.send({ t: 'qz', a: 'role', take: true, r: 'riddler' });
+    this.windows.wantPrep();
+    this.sound.play('pop');
+  }
+
   // ---------------------------------------------------------------- части
 
   private syncPlate(): void {
@@ -253,7 +288,10 @@ export class QuizHud {
 
   private syncBottom(kit: ResolvedKit, riddling: boolean): void {
     const v = this.v!, me = this.me!;
-    this.bars.setBar(playBar(v, me) ?? rolesBar(v, me, this.now));
+    const qBar = queueBar(v, me);
+    this.bars.setBar(againBar(v, me) ?? hostBar(v, me) ?? playBar(v, me) ?? warmBar(v, me) ?? rolesBar(v, me, this.now) ?? qBar);
+    // B2: строка «что мне делать» с клавишей — для ролей без своей полосы (угадывающий, зритель «Своей игры»)
+    this.bars.setTodo(todoRow(v, me, !!qBar));
     const R = v.riddle;
     if (riddling && R) {
       // «1 тепло · 2 мимо · 3 угадал» до первой отметки раунда, потом «Z отменить»
@@ -262,7 +300,8 @@ export class QuizHud {
       if (R.lines.some((l) => l.mark !== '')) this.used = true;
       this.bars.setRiddler({
         used: this.used, checking: !!R.checking, hintsLeft: me.hintsLeft ?? 0,
-        canUndo: !!R.checking || R.lines.some((l) => l.mark === 'warm' || l.mark === 'miss'),
+        canUndo: !!R.checking || R.lines.some((l) => l.mark === 'warm' || l.mark === 'hot' || l.mark === 'miss'),
+        hot: keyMark(R.lines, 0, this.now)?.m === 'hot',
       });
     } else this.bars.setRiddler(null);
     if (this.bars.empty) this.bars.host.remove();
@@ -291,7 +330,7 @@ export class QuizHud {
     let m: DockModel;
     let marked = new Set<number>();
     if (riddle) {
-      marked = new Set(R!.lines.filter((l) => l.mark === 'warm').map((l) => l.id));
+      marked = new Set(R!.lines.filter((l) => l.mark === 'warm' || l.mark === 'hot').map((l) => l.id));
       m = dockModel(R!.lines, me, this.now, riddling, !!R!.checking);
     } else m = plainDock(modeLines(v), me, this.now);
     this.dock.update(m, { riddler: riddle && riddling, checking: riddle && !!R!.checking, marked });

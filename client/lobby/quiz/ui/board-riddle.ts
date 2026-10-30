@@ -7,20 +7,23 @@ import { PAD, centerText, pill, timeBar } from './board-base.ts';
 import { C, DISPLAY, TEXT, badge, clip, confetti, fit, font, icon, leftSec, mmss, quizImg, rr, title } from './paint.ts';
 
 /** Что «свежее» на табло: новое «тепло» и новая подсказка вспыхивают на пару секунд (табло — без памяти, помним тут) */
-const memo = { key: '', warm: 0, warmAt: -1e9, hints: 0, hintAt: -1e9 };
+const memo = { key: '', warm: 0, warmAt: -1e9, hot: 0, hotAt: -1e9, hints: 0, hintAt: -1e9 };
 
 function fresh(r: QzRiddleBoard, nowMs: number): void {
   const key = `${r.riddler?.slot ?? 0}|${r.num}`;
   if (memo.key !== key) {
     memo.key = key;
     memo.warm = r.warm;
+    memo.hot = r.hot ?? 0;
     memo.hints = r.hints.length;
-    memo.warmAt = memo.hintAt = -1e9;
+    memo.warmAt = memo.hotAt = memo.hintAt = -1e9;
     return;
   }
   if (r.warm > memo.warm) memo.warmAt = nowMs;
+  if ((r.hot ?? 0) > memo.hot) memo.hotAt = nowMs;
   if (r.hints.length > memo.hints) memo.hintAt = nowMs;
   memo.warm = r.warm;
+  memo.hot = r.hot ?? 0;
   memo.hints = r.hints.length;
 }
 
@@ -58,8 +61,9 @@ function round(ctx: CanvasRenderingContext2D, b: QzBoard, r: QzRiddleBoard, nowM
   ctx.restore();
   // идёт проверка «угадал»: золотая пилюля между темой и временем
   if (r.checking) pill(ctx, 'ПРОВЕРЯЕМ…', W - PAD - timeW - 50, 62, 92, { fill: C.gold, ink: C.goldInk, px: 46, align: 'right' });
-  // слева — «тепло»: сколько тёплых догадок (сами догадки — в карточке у каждого)
-  const bx = PAD, by = 200, bw = 620, bh = 560;
+  // слева — «тепло»: сколько тёплых догадок (сами догадки — в карточке у каждого); есть «Горячо!» — карточка ниже, под ней «Горячо!»
+  const hot = r.hot ?? 0;
+  const bx = PAD, by = 200, bw = 620, bh = hot > 0 ? 380 : 560, kk = bh / 560;
   ctx.save();
   rr(ctx, bx, by + 9, bw, bh, 34);
   ctx.fillStyle = C.ink;
@@ -72,16 +76,17 @@ function round(ctx: CanvasRenderingContext2D, b: QzBoard, r: QzRiddleBoard, nowM
     ctx.strokeStyle = `rgba(255, 205, 74, ${0.6 + 0.4 * Math.sin(nowMs / 150)})`;
     ctx.stroke();
   }
-  badge(ctx, quizImg('q-warm'), bx + bw / 2, by + 130, 92, C.good);
+  badge(ctx, quizImg('q-warm'), bx + bw / 2, by + 130 * kk, 92 * kk, C.good);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.font = font(800, 70);
+  ctx.font = font(800, Math.round(70 * kk));
   ctx.fillStyle = C.goodLo;
-  ctx.fillText('ТЕПЛО', bx + bw / 2, by + 284);
-  ctx.font = font(400, 210, DISPLAY);
+  ctx.fillText('ТЕПЛО', bx + bw / 2, by + 284 * kk);
+  ctx.font = font(400, Math.round(210 * kk), DISPLAY);
   ctx.fillStyle = r.warm ? C.enamelSolid : 'rgba(14, 85, 80, .28)';
-  ctx.fillText(String(r.warm), bx + bw / 2, by + 436);
+  ctx.fillText(String(r.warm), bx + bw / 2, by + 436 * kk);
   ctx.restore();
+  if (hot > 0) hotCard(ctx, r, bx, by + bh + 28, bw, nowMs);
   // справа — подсказки, без номеров (цифры путают с клавишами 1/2/3)
   const rx = bx + bw + 70, rw = W - PAD - rx;
   ctx.save();
@@ -115,6 +120,8 @@ function round(ctx: CanvasRenderingContext2D, b: QzBoard, r: QzRiddleBoard, nowM
     ctx.fillText(clip(ctx, h, rw - 80), rx + 72, y + 4);
   });
   ctx.restore();
+  // A3: очередь «Хочу загадать» — под подсказками, одной строкой
+  queueLine(ctx, r, rx, 786, rw);
   // внизу слева — «мимо» одной строкой (по центру снизу — макушка загадывающего), справа — номер загадки
   const misses = r.misses.slice(-QZ.BOARD_MISSES).reverse();
   ctx.save();
@@ -141,6 +148,66 @@ function round(ctx: CanvasRenderingContext2D, b: QzBoard, r: QzRiddleBoard, nowM
   }
   ctx.restore();
   timeBar(ctx, left / total, hurry, W, H);
+}
+
+/** C1: «Горячо!» — крупно под карточкой «Тепло»: сколько и последняя такая догадка (вспыхивает красной рамкой) */
+function hotCard(ctx: CanvasRenderingContext2D, r: QzRiddleBoard, x: number, y: number, w: number, nowMs: number): void {
+  const h = 172;
+  ctx.save();
+  rr(ctx, x, y + 9, w, h, 34);
+  ctx.fillStyle = C.ink;
+  ctx.fill();
+  rr(ctx, x, y, w, h, 34);
+  ctx.fillStyle = C.cream;
+  ctx.fill();
+  ctx.lineWidth = nowMs - memo.hotAt < 1800 ? 14 : 8;
+  ctx.strokeStyle = nowMs - memo.hotAt < 1800 ? `rgba(229, 72, 77, ${0.65 + 0.35 * Math.sin(nowMs / 150)})` : C.bad;
+  ctx.stroke();
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'left';
+  ctx.font = font(800, 56);
+  ctx.fillStyle = C.badLo;
+  ctx.fillText('ГОРЯЧО!', x + 40, y + 52);
+  ctx.textAlign = 'right';
+  ctx.font = font(400, 84, DISPLAY);
+  ctx.fillStyle = C.bad;
+  ctx.fillText(String(r.hot ?? 0), x + w - 40, y + 56);
+  ctx.textAlign = 'left';
+  const text = r.hotText ?? '';
+  if (text) {
+    const px = fit(ctx, text, 800, 74, w - 80, TEXT, 40);
+    ctx.font = font(800, px);
+    ctx.fillStyle = C.plateInk;
+    ctx.fillText(clip(ctx, text, w - 80), x + 40, y + 124);
+  }
+  ctx.restore();
+}
+
+/** A3: «ДАЛЬШЕ  Оля, Петя +2» — очередь «Хочу загадать» одной строкой (до трёх имён); пусто — ничего */
+function queueLine(ctx: CanvasRenderingContext2D, r: QzRiddleBoard, x: number, y: number, maxW: number, align: 'left' | 'center' = 'left'): void {
+  const q = r.queue ?? [];
+  if (!q.length) return;
+  ctx.save();
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'left';
+  ctx.font = font(800, 40);
+  ctx.letterSpacing = '4px';
+  const lead = 'ДАЛЬШЕ';
+  const lw = ctx.measureText(lead).width + 26;
+  ctx.letterSpacing = '0px';
+  const names = q.slice(0, 3).map((p) => p.nick).join(', ') + (q.length > 3 ? ` +${q.length - 3}` : '');
+  ctx.font = font(800, 54);
+  const text = clip(ctx, names, Math.max(100, maxW - lw));
+  const x0 = align === 'center' ? x - (lw + ctx.measureText(text).width) / 2 : x;
+  ctx.font = font(800, 40);
+  ctx.letterSpacing = '4px';
+  ctx.fillStyle = C.goldText;
+  ctx.fillText(lead, x0, y);
+  ctx.letterSpacing = '0px';
+  ctx.font = font(800, 54);
+  ctx.fillStyle = C.cream;
+  ctx.fillText(text, x0 + lw, y + 1);
+  ctx.restore();
 }
 
 /** Итог загадки: слово во всё табло, кто угадал (или кто ушёл), «счёт вечера». «Дальше загадывает…» — только на плашке */
@@ -207,6 +274,7 @@ function ask(ctx: CanvasRenderingContext2D, b: QzBoard, r: QzRiddleBoard, nowMs:
   centerText(ctx, `${who} загадывает…`, W / 2, 440, px, C.cream, W - PAD * 2);
   centerText(ctx, 'Придумывает слово — скоро начнём', W / 2, 600, 64, C.creamDim, W - PAD * 2, 700);
   if (left > 0) centerText(ctx, mmss(left), W / 2, 740, 70, C.goldText);
+  queueLine(ctx, r, W / 2, 850, W - PAD * 2, 'center');
   timeBar(ctx, (b.endsAt - nowMs) / QZ.ASK_MS, left <= 10, W, H);
 }
 

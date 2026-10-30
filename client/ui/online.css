@@ -52,6 +52,20 @@
   text-overflow: ellipsis;
 }
 
+/* титул «Кто из нас?» рядом с ником: в тесной строке сжимается титул, ник остаётся целым (пока сам не больше строки) */
+.ol-nick--t {
+  flex: 0 0 auto;
+  max-width: 100%;
+}
+
+.ol-qtitle {
+  flex: 0 1 auto;
+  min-width: 2.4em;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .ol-mic {
   display: inline-flex;
   flex: none;

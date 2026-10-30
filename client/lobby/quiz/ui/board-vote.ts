@@ -48,7 +48,8 @@ export function paintVote(ctx: CanvasRenderingContext2D, b: QzBoard, nowMs: numb
   if (v.nobody) return nobody(ctx, W);
   const spin = !!v.spin;
   const win = !spin && v.win >= 0;
-  const head = spin ? 'НИЧЬЯ!' : win ? 'ИГРАЕМ!' : 'ВО ЧТО ИГРАЕМ?';
+  // A1: победитель выбран кнопкой «Ещё раз!» — «Играем снова»
+  const head = spin ? 'НИЧЬЯ!' : win ? (v.again ? 'ИГРАЕМ СНОВА!' : 'ИГРАЕМ!') : 'ВО ЧТО ИГРАЕМ?';
   title(ctx, head, PAD, 104, 80, spin ? C.gold : C.cream, 'left', 6);
   if (!spin && !win) {
     ctx.save();
@@ -79,8 +80,9 @@ export function paintVote(ctx: CanvasRenderingContext2D, b: QzBoard, nowMs: numb
   });
   if (win) winner(ctx, b, gs, winMs, nowMs, W, H);
   if (!spin && !win) {
-    // меньше 3 человек — без жетонов (бриф, «Жетоны»)
-    if (b.noTokens) centerText(ctx, 'Меньше 3 человек — без жетонов', W / 2, 900, 54, C.goldText, W - PAD * 2, 700);
+    // F4: внутри двое — половина жетонов; один — без жетонов (бриф, «Жетоны»)
+    if (b.halfTokens) centerText(ctx, 'Вдвоём — половина жетонов', W / 2, 900, 54, C.goldText, W - PAD * 2, 700);
+    else if (b.noTokens) centerText(ctx, 'Один — без жетонов', W / 2, 900, 54, C.goldText, W - PAD * 2, 700);
     timeBar(ctx, toEnd / QZ.VOTE_MS, toEnd <= 5000, W, H);
   }
 }
@@ -186,9 +188,11 @@ function winner(ctx: CanvasRenderingContext2D, b: QzBoard, gs: Game[], winMs: nu
   ctx.font = font(400, px, DISPLAY);
   ctx.fillStyle = C.enamelSolid;
   ctx.fillText(name, x + w / 2, y + 470);
-  ctx.font = font(800, 62);
-  ctx.fillStyle = C.plateDim;
-  ctx.fillText(clip(ctx, v.why || `${g.n} ${plural(g.n)}`, w - 80), x + w / 2, y + 598);
+  if (!v.again) { // «Ещё раз!» — заголовок «ИГРАЕМ СНОВА!» уже всё сказал, подпись не нужна
+    ctx.font = font(800, 62);
+    ctx.fillStyle = C.plateDim;
+    ctx.fillText(clip(ctx, v.why || `${g.n} ${plural(g.n)}`, w - 80), x + w / 2, y + 598);
+  }
   ctx.restore();
 }
 

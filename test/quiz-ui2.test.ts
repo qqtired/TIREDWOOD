@@ -228,14 +228,16 @@ describe('«Крокодил»: плашка, слово, очередь, инс
     assert.equal(queueModel(cv({ of: QZ_CROC.TURNS_MAX }), cm()), null);
   });
 
-  it('инструменты: цвет, толщина, ластик → то, что читает мольберт', () => {
-    assert.deepEqual(toolOut({ color: 3, width: 2, erase: false }), { color: 3, width: 2, size: 2, erase: false });
+  it('инструменты: цвет, толщина, ластик, ведёрко → то, что читает мольберт', () => {
+    assert.deepEqual(toolOut({ color: 3, width: 2, erase: false }), { color: 3, width: 2, size: 2, erase: false, fill: false });
+    assert.deepEqual(toolOut({ color: 3, width: 2, erase: false, fill: true }), { color: 3, width: 2, size: 2, erase: false, fill: true });
     assert.equal(toolOut({ color: 3, width: 1, erase: true }).color, QZ_CROC.ERASER);
     const html = toolsHtml({ color: 2, width: 0, erase: false });
     assert.equal((html.match(/data-qz="crColor"/g) ?? []).length, QZ_CROC.COLORS.length);
     assert.equal((html.match(/data-qz="crWidth"/g) ?? []).length, QZ_CROC.WIDTHS.length);
     assert.match(html, /qz-color is-on" style="--c:[^"]+" data-qz="crColor" data-i="2"/);
-    for (const k of ['crErase', 'crUndo', 'crClear']) assert.match(html, new RegExp(`data-qz="${k}"`));
+    for (const k of ['crErase', 'crFill', 'crUndo', 'crClear']) assert.match(html, new RegExp(`data-qz="${k}"`));
+    assert.match(toolsHtml({ color: 2, width: 0, erase: false, fill: true }), /qz-tool is-on" data-qz="crFill"/);
     assert.equal(toolsVisible(cv({ drawer: who(7, 'Я') }), cm()), true);
     assert.equal(toolsVisible(cv(), cm()), false);
   });
@@ -317,6 +319,7 @@ describe('HUD частей 2: общая плашка, цифры, док, кл�
     assert.deepEqual(keyHit(c, me({ croc: { queued: false, drew: false, got: false, choices: ['а', 'б', 'в'] } }), 'Digit3'), { msg: { t: 'qz', a: 'crWord', i: 2 } });
     const d = view({ mode: 'croc', croc: { step: 'draw', drawer: who(7, 'Я'), queue: [], of: 2 } as never });
     assert.deepEqual(keyHit(d, me({ croc: { queued: false, drew: true, got: false } }), 'KeyZ'), { undo: true });
+    assert.deepEqual(keyHit(d, me({ croc: { queued: false, drew: true, got: false } }), 'KeyG'), { fill: true });
     const g = view({ mode: 'croc', croc: { step: 'draw', drawer: who(901, 'Барон'), queue: [], of: 2 } as never });
     assert.deepEqual(keyHit(g, me({ croc: { queued: false, drew: false, got: false } }), 'KeyF'), { msg: { t: 'qz', a: 'role', take: true, r: 'drawer' } });
     assert.equal(keyHit(g, me({ croc: { queued: true, drew: false, got: false } }), 'KeyF'), null);

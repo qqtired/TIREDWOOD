@@ -8,6 +8,7 @@ import { BOARD_H, BOARD_W, PAD, boardBase, boardUi } from './board-base.ts';
 import { onQuizImages, quizImagesPending } from './paint.ts';
 import { paintJeopardyBoard, paintCrocBoard, paintWhoBoard, jpCellRect, packRect, crocRect } from './board-modes.ts';
 import { paintRiddleBoard, paintRoles } from './board-riddle.ts';
+import { paintWarmBoard } from './board-warm.ts';
 import { cardRect, paintIdle, paintResults, paintVote, spinPos } from './board-vote.ts';
 
 export { BOARD_H, BOARD_W, PAD, boardUi, cardRect, crocRect, jpCellRect, onQuizImages, packRect, spinPos, quizImagesPending };
@@ -17,6 +18,8 @@ export function paintBoard(ctx: CanvasRenderingContext2D, b: QzBoard, nowMs: num
   const W = ctx.canvas?.width || BOARD_W;
   const H = ctx.canvas?.height || BOARD_H;
   boardBase(ctx, W, H);
+  // «Ракушка» 1.1, F3: разминка с Затейником — игры нет, один сидящий отвечает на вопросы
+  if (b.phase === 'idle' && b.warm) return paintWarmBoard(ctx, b, nowMs, W, H);
   switch (b.phase) {
     case 'vote':
       if (b.vote) return paintVote(ctx, b, nowMs, W, H);
@@ -41,10 +44,11 @@ export function boardAnimating(b: QzBoard): boolean {
   // значок ещё грузится — табло надо перерисовать, когда он придёт
   if (quizImagesPending() > 0) return true;
   if (b.phase === 'vote' && b.vote) return !!b.vote.spin || b.vote.win >= 0 || b.vote.nobody;
+  if (b.phase === 'idle' && b.warm) return true;
   if (b.phase === 'results') return true;
   if (b.phase === 'game') {
     const r = b.riddle;
-    if (r && (r.step === 'reveal' || r.step === 'check' || r.warm > 0)) return true;
+    if (r && (r.step === 'reveal' || r.step === 'check' || r.warm > 0 || (r.hot ?? 0) > 0)) return true;
     if (b.jp && (b.jp.step === 'buzz' || b.jp.step === 'reveal' || b.jp.step === 'pick')) return true;
     if (b.croc && (b.croc.step === 'draw' || b.croc.step === 'reveal')) return true;
     if (b.who?.step === 'reveal') return true;

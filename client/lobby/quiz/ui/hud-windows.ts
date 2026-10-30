@@ -22,6 +22,8 @@ const IDEAS: Record<QzCategory, string[]> = {
 const BUSY_MS = 2500;
 /** Окно подсказки открывает клавиша H: столько миллисекунд после открытия ввод в поле не принимаем (иначе в нём «h») */
 const KEY_LEAK_MS = 120;
+/** A3: после «Хочу загадать» окно слова ждёт снимок с моим местом в очереди столько */
+const PREP_WAIT_MS = 3000;
 
 export interface DlgSpec {
   /** подпись для скринридера и класс окна */
@@ -101,6 +103,10 @@ export class QuizWindows {
   private readonly parent: HTMLElement;
   private ask: QDialog | null = null;
   private hint: QDialog | null = null;
+  /** A3: то же окно «Что загадал?» для очереди — шлёт prep (слово заранее), а не ask */
+  private prepDlg: QDialog | null = null;
+  private prepSig = '';
+  private wantPrepAt = 0;
   /** номер загадки, окно которой игрок закрыл сам: само не открываем, открыть можно кнопкой на плашке */
   private dismissedNum = -1;
   private hintsAtOpen = 0;
@@ -112,7 +118,12 @@ export class QuizWindows {
   }
 
   get open(): boolean {
-    return !!this.ask?.isOpen || !!this.hint?.isOpen;
+    return !!this.ask?.isOpen || !!this.hint?.isOpen || !!this.prepDlg?.isOpen;
+  }
+
+  /** A3: только что встал в очередь — окно слова откроется само, когда придёт снимок с моим местом */
+  wantPrep(): void {
+    this.wantPrepAt = performance.now();
   }
 
   /** Привести окна к снимку: «Что загадал?» — пока шаг ask у меня; «Подсказка» — пока идёт раунд */
@@ -122,6 +133,13 @@ export class QuizWindows {
     if (this.ask?.isOpen && !(meRid && R!.step === 'ask')) this.ask.close(true);
     if (meRid && R!.step === 'ask' && R!.num !== this.dismissedNum && !this.ask?.isOpen) this.openAsk(v, me);
     if (this.hint?.isOpen && (!(meRid && R!.step === 'round') || (R?.hints.length ?? 0) > this.hintsAtOpen)) this.hint.close(true);
+    // A3: окно слова для очереди закрывается, когда слово принято, я вышел или подошла очередь
+    const queued = (me.queuePos ?? 0) > 0 && v.mode === 'riddle' && v.phase === 'game';
+    if (this.prepDlg?.isOpen && (!queued || JSON.stringify(me.prep ?? null) !== this.prepSig)) this.prepDlg.close(true);
+    if (this.wantPrepAt) {
+      if (performance.now() - this.wantPrepAt > PREP_WAIT_MS) this.wantPrepAt = 0;
+      else if (queued && !this.prepDlg?.isOpen && !me.prep) { this.wantPrepAt = 0; this.openPrep(v, me); }
+    }
   }
 
   /** Убрать всё (ушли из ограды) */
@@ -129,31 +147,46 @@ export class QuizWindows {
     clearTimeout(this.busyTimer);
     this.ask?.destroy();
     this.hint?.destroy();
-    this.ask = this.hint = null;
+    this.prepDlg?.destroy();
+    this.ask = this.hint = this.prepDlg = null;
+    this.wantPrepAt = 0;
   }
 
   // ---------------------------------------------------------------- «Что загадал?»
 
   openAsk(v: QzView, me: QzMe): void {
+    this.openWord(v, me, false);
+  }
+
+  /** A3: то же окно, пока стою в очереди «Хочу загадать»: слово заранее, загадка начнётся сразу, когда подойдёт очередь */
+  openPrep(v: QzView, me: QzMe): void {
+    this.openWord(v, me, true);
+  }
+
+  private openWord(v: QzView, me: QzMe, prep: boolean): void {
     const R = v.riddle;
-    if (!R || this.ask?.isOpen) return;
-    this.ask?.destroy();
-    const note = v.noTokens ? 'Меньше трёх человек — без жетонов' : `Разгадают за минуту и дольше — тебе +10 ${COIN_K}`;
+    const pos = me.queuePos ?? 0;
+    if (!R || (prep && !pos) || (prep ? this.prepDlg : this.ask)?.isOpen) return;
+    (prep ? this.prepDlg : this.ask)?.destroy();
+    // F4: вдвоём — половина жетонов, один — без жетонов; разминка и очередь жетонов не обещают
+    const note = prep ? 'Загадка начнётся сразу, как подойдёт очередь' : v.noTokens ? 'Один — без жетонов' : v.halfTokens ? 'Вдвоём — половина жетонов' : `Разгадают за минуту и дольше — тебе +10 ${COIN_K}`;
     const num = R.num;
+    const pre = prep ? me.prep : null;
     const dlg = new QDialog(this.parent, {
-      label: 'Что загадал?', cls: '', icon: 'scroll', eyebrow: `«Ракушка» · Загадка ${R.num} из ${R.of}`, title: 'Что загадал?',
+      label: 'Что загадал?', cls: '', icon: 'scroll',
+      eyebrow: prep ? `«Ракушка» · ${pos === 1 ? 'ты следующий' : `ты в очереди ${pos}-м`}` : `«Ракушка» · Загадка ${R.num} из ${R.of}`, title: 'Что загадал?',
       body: `<div class="qz-ask">
         <label class="qz-field"><span class="qz-label">Слово или фраза</span>
-          <span class="qz-wordrow"><input class="k-input qz-word" maxlength="${QZ.WORD_MAX}" placeholder="Например: пароход" autocomplete="off" spellcheck="false"><button type="button" class="k-btn k-btn--ghost k-btn--sm qz-idea">Подкинь идею</button></span></label>
+          <span class="qz-wordrow"><input class="k-input qz-word" maxlength="${QZ.WORD_MAX}" placeholder="Например: пароход" autocomplete="off" spellcheck="false" value="${esc(pre?.word ?? '')}"><button type="button" class="k-btn k-btn--ghost k-btn--sm qz-idea">Подкинь идею</button></span></label>
         <div class="qz-ideas" hidden></div>
         <p class="k-faint qz-note">Видишь только ты — остальные угадывают в чате</p>
-        <div class="qz-field"><span class="qz-label">Тема</span><div class="k-seg qz-cats">${QZ_CATEGORIES.map((c, i) => `<button type="button" class="${i === 0 ? 'is-on' : ''}">${esc(c)}</button>`).join('')}</div></div>
+        <div class="qz-field"><span class="qz-label">Тема</span><div class="k-seg qz-cats">${QZ_CATEGORIES.map((c, i) => `<button type="button" class="${(pre ? c === pre.cat : i === 0) ? 'is-on' : ''}">${esc(c)}</button>`).join('')}</div></div>
         <label class="qz-field"><span class="qz-label">Первая подсказка <em>по желанию</em></span>
-          <input class="k-input qz-hint" maxlength="${QZ.HINT_MAX}" placeholder="Например: дымит" autocomplete="off" spellcheck="false"></label>
+          <input class="k-input qz-hint" maxlength="${QZ.HINT_MAX}" placeholder="Например: дымит" autocomplete="off" spellcheck="false" value="${esc(pre?.hint ?? '')}"></label>
         <p class="qz-err k-bad" hidden></p></div>`,
-      foot: `<span class="k-note">${note}</span><button type="button" class="k-btn k-btn--ghost" data-a="cancel">Отмена</button><button type="button" class="k-btn k-btn--go" data-a="go">Загадать${keyCap('Enter', 'tr', '')}</button>`,
-    }, () => { this.dismissedNum = num; });
-    this.ask = dlg;
+      foot: `<span class="k-note">${note}</span><button type="button" class="k-btn k-btn--ghost" data-a="cancel">Отмена</button><button type="button" class="k-btn k-btn--go" data-a="go">${prep ? 'Готово' : 'Загадать'}${keyCap('Enter', 'tr', '')}</button>`,
+    }, () => { if (!prep) this.dismissedNum = num; });
+    if (prep) { this.prepDlg = dlg; this.prepSig = JSON.stringify(me.prep ?? null); } else this.ask = dlg;
     const w = dlg.win;
     const q = <T extends HTMLElement>(s: string): T => w.querySelector<T>(s)!;
     const word = q<HTMLInputElement>('.qz-word'), hint = q<HTMLInputElement>('.qz-hint'), err = q<HTMLElement>('.qz-err');
@@ -180,7 +213,7 @@ export class QuizWindows {
       if (text.length < QZ.WORD_MIN) { err.textContent = `Напиши слово — от ${QZ.WORD_MIN} до ${QZ.WORD_MAX} знаков`; err.hidden = false; sfx.play('error'); word.focus(); return; }
       err.hidden = true;
       const h = hint.value.trim();
-      this.send({ t: 'qz', a: 'ask', word: text, cat: cat(), ...(h ? { hint: h } : {}) });
+      this.send({ t: 'qz', a: prep ? 'prep' : 'ask', word: text, cat: cat(), ...(h ? { hint: h } : {}) });
       this.busy(go);
     };
     go.addEventListener('click', submit);

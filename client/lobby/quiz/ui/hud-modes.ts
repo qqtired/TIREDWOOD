@@ -78,7 +78,7 @@ export class ModesHud {
   /** мой выбор пака (сервер его не присылает): подсвечивает карточку на плашке */
   pvMine = -1;
   /** выбранное на полосе инструментов */
-  readonly sel: ToolSel = { color: 0, width: 1, erase: false };
+  readonly sel: ToolSel = { color: 0, width: 1, erase: false, fill: false };
 
   private readonly send: (m: QuizClientMsg) => void;
   private readonly sound: QuizSounds;
@@ -140,7 +140,7 @@ export class ModesHud {
     const hm = hostPanel(v, me, { moreUsed: this.moreUsed, endArmed: this.endArmed });
     if (hm) this.host.show(hm.html, hm.sig); else this.host.hide();
     if (toolsVisible(v, me)) {
-      this.tools.show(toolsHtml(this.sel), `${this.sel.color}|${this.sel.width}|${this.sel.erase}`);
+      this.tools.show(toolsHtml(this.sel), `${this.sel.color}|${this.sel.width}|${this.sel.erase}|${this.sel.fill}`);
       const full = this.tools.q<HTMLElement>('.qz-full');
       if (full) full.hidden = !crocInk.full;
     } else this.tools.hide();
@@ -160,7 +160,7 @@ export class ModesHud {
   }
 
   /** Что выбрал рисующий: color 0–8 (8 — ластик), width 0–2 — как ждёт мазок qzInk; size и erase — для удобства */
-  tool(): { color: number; width: number; size: number; erase: boolean } {
+  tool(): { color: number; width: number; size: number; erase: boolean; fill: boolean } {
     return toolOut(this.sel);
   }
 
@@ -325,8 +325,9 @@ export class ModesHud {
       case 'crWord': { const i = num(d.i); this.wordPicked = i; this.send({ t: 'qz', a: 'crWord', i }); this.sound.play('pop'); if (v && this.me) this.update(v, this.me, Date.now()); return true; }
       case 'crQueue': this.send({ t: 'qz', a: 'role', take: d.take === '1', ...(d.take === '1' ? { r: 'drawer' as const } : {}) }); this.sound.play('pop'); return true;
       case 'crColor': this.sel.color = num(d.i); this.sel.erase = false; this.pushTool(); return true;
-      case 'crWidth': this.sel.width = num(d.i); this.pushTool(); return true;
-      case 'crErase': this.sel.erase = !this.sel.erase; this.pushTool(); return true;
+      case 'crWidth': this.sel.width = num(d.i); this.sel.fill = false; this.pushTool(); return true;
+      case 'crErase': this.sel.erase = !this.sel.erase; this.sel.fill = false; this.pushTool(); return true;
+      case 'crFill': this.toggleFill(); return true;
       case 'crUndo': crocInk.undo(); this.sound.play('undo'); return true;
       case 'crClear': crocInk.clear(); this.sound.play('undo'); return true;
       case 'whoAsk': this.sendAsk(); return true;
@@ -340,6 +341,7 @@ export class ModesHud {
     const o = toolOut(this.sel);
     crocInk.tool.color = o.color;
     crocInk.tool.width = o.width;
+    crocInk.tool.fill = o.fill;
     this.sound.play('pop');
     const v = this.v;
     if (v && this.me) this.update(v, this.me, Date.now());
@@ -352,6 +354,13 @@ export class ModesHud {
     if (hm) this.host.show(hm.html, hm.sig); else this.host.hide();
   }
 
+  /** C6: ведёрко вкл/выкл (кнопка и G); с ластика — сразу ведёрко */
+  private toggleFill(): void {
+    this.sel.fill = this.sel.erase || !this.sel.fill;
+    this.sel.erase = false;
+    this.pushTool();
+  }
+
   /** Горячая клавиша «Отмена мазка» (Z) */
   undoStroke(): void {
     crocInk.undo();
@@ -361,6 +370,7 @@ export class ModesHud {
   /** Клавиша режима (keyHit в hud-modes-model.ts): выбор пака, письмо серверу или отмена мазка */
   key(hit: KeyHit): void {
     if (hit.undo) { this.undoStroke(); return; }
+    if (hit.fill) { this.toggleFill(); return; }
     if (hit.mine !== undefined) {
       this.pvMine = hit.mine;
       this.sound.play('vote');

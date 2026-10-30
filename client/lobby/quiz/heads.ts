@@ -4,12 +4,12 @@
 // проверка «угадал» — золотая рамка, пока идёт дробь; угадал — золотое.
 import * as THREE from 'three';
 import { BUBBLE_CHARS, BUBBLE_MS } from '../../../shared/lobby.ts';
-import { QZ, QZ_MODES, type QzLine, type QzMark, type QzPerson } from '../../../shared/quiz/types.ts';
+import { QZ, QZ_MODES, type QzLine, type QzMark, type QzPerson, type QzTitle } from '../../../shared/quiz/types.ts';
 import type { Avatar, SpeechTone } from '../../render/avatar.ts';
 import { uiIcon } from '../../ui/kit/icons.ts';
 import type { QuizEvent } from './state.ts';
 
-const toneOf = (m: QzMark): SpeechTone => (m === 'warm' ? 'warm' : m === 'miss' ? 'miss' : m === 'check' ? 'check' : m === 'win' ? 'win' : 'new');
+const toneOf = (m: QzMark): SpeechTone => (m === 'warm' || m === 'hot' ? 'warm' : m === 'miss' ? 'miss' : m === 'check' ? 'check' : m === 'win' ? 'win' : 'new');
 /** Сколько ещё держать облачко после отметки, мс */
 const MARK_MS: Record<SpeechTone, number> = { new: BUBBLE_MS, warm: 4000, miss: 3000, check: QZ.CHECK_MS + 600, win: 5000 };
 
@@ -21,6 +21,9 @@ export class QuizHeads {
   private readonly icons = new Map<string, THREE.Texture>();
   /** Титулы «Кто из нас?» над никами: slot → спрайт и текст */
   private readonly titles = new Map<number, { sprite: THREE.Sprite; text: string; av: Avatar }>();
+  /** Какие титулы нужны (slot → текст): желейка может появиться позже снимка — раз в секунду добираем недостающие */
+  private want = new Map<number, string>();
+  private retryAt = 0;
 
   constructor(avatarOf: (slot: number) => Avatar | null, mySlot: () => number) {
     this.avatarOf = avatarOf;
@@ -84,10 +87,20 @@ export class QuizHeads {
     return t;
   }
 
-  /** Титулы над никами (people[].titles — до конца игры): последний полученный, золотой пилюлей над табличкой */
-  setTitles(people: readonly QzPerson[] | null): void {
+  /**
+   * Титулы над никами: золотой пилюлей над табличкой. C9: источник — board.titles (по последнему на человека, их видят все
+   * на набережной), для тех, кого там нет, — people[].titles (до конца игры «Кто из нас?»).
+   */
+  setTitles(list: readonly QzTitle[] | null, people: readonly QzPerson[] | null = null): void {
     const want = new Map<number, string>();
     for (const p of people ?? []) if (p.titles?.length) want.set(p.slot, p.titles[p.titles.length - 1]);
+    for (const t of list ?? []) if (t.slot > 0 && t.title) want.set(t.slot, t.title);
+    this.want = want;
+    this.attach();
+  }
+
+  private attach(): void {
+    const want = this.want;
     for (const [slot, t] of this.titles) {
       const av = this.avatarOf(slot);
       if (want.get(slot) === t.text && av === t.av) continue;
@@ -108,6 +121,11 @@ export class QuizHeads {
 
   /** Кадр: титул держится над табличкой с ником и прячется вместе с ней */
   update(): void {
+    // желейка могла появиться (подошла ближе) уже после снимка с титулом
+    if (this.want.size > this.titles.size && performance.now() > this.retryAt) {
+      this.retryAt = performance.now() + 1000;
+      this.attach();
+    }
     for (const { sprite, av } of this.titles.values()) {
       const tag = av.nameTag;
       sprite.visible = tag.visible;

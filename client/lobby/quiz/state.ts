@@ -108,9 +108,31 @@ export function oldestUnmarked(lines: readonly QzLine[]): QzLine | null {
   return best;
 }
 
-/** Карточка «Тепло»: строки с 👍 по времени отметки */
+/** Карточка «Тепло»: строки с «тепло» и «Горячо!» по времени отметки */
 export function warmLines(lines: readonly QzLine[]): QzLine[] {
-  return lines.filter((l) => l.mark === 'warm').sort((a, b) => a.markedAt - b.markedAt);
+  return lines.filter((l) => l.mark === 'warm' || l.mark === 'hot').sort((a, b) => a.markedAt - b.markedAt);
+}
+
+/** C1: «тепло» можно усилить до «Горячо!» клавишей 1 ещё раз столько, мс, после отметки */
+export const HOT_KEY_MS = 10_000;
+
+/**
+ * Клавиша 1/2/3 загадывающего → что отметить. 1 — «тепло» у самой старой неотмеченной; неотмеченных нет — вторым
+ * нажатием «тепло» → «Горячо!» (самая свежая «тепло», не старше HOT_KEY_MS). 2 и 3 — «мимо» и «угадал» у самой старой.
+ */
+export function keyMark(lines: readonly QzLine[], n: number, serverNow: number): { id: number; m: 'warm' | 'hot' | 'miss' | 'win' } | null {
+  const l = oldestUnmarked(lines);
+  if (l) return { id: l.id, m: n === 0 ? 'warm' : n === 1 ? 'miss' : 'win' };
+  if (n !== 0) return null;
+  let best: QzLine | null = null;
+  for (const w of lines) if (w.kind === 'guess' && w.mark === 'warm' && serverNow - w.markedAt < HOT_KEY_MS && (!best || w.markedAt > best.markedAt)) best = w;
+  return best ? { id: best.id, m: 'hot' } : null;
+}
+
+/** B3: «Своя игра» — цифра отсчёта 3-2-1 за три секунды до openAt; 0 — не показываем */
+export function jpCountdown(openAt: number, serverNow: number): 0 | 1 | 2 | 3 {
+  const left = openAt - serverNow;
+  return openAt > 0 && left > 0 && left <= 3000 ? (Math.ceil(left / 1000) as 1 | 2 | 3) : 0;
 }
 
 /** «Мимо», отмеченные за последние MISS_UNDO_MS (у них в доке загадывающего «↩ Вернуть») */
@@ -200,13 +222,24 @@ export class QuizState {
     return recentMisses(this.lines, this.serverNow());
   }
 
+  /** Клавиша 1/2/3 загадывающего: какую строку и как отметить */
+  keyMark(n: number): ReturnType<typeof keyMark> {
+    return keyMark(this.lines, n, this.serverNow());
+  }
+
   /** Эмоции 1–7 выключены: у всех внутри — в голосовании, у загадывающего — пока он загадывает */
   get emotesBlocked(): boolean {
     return this.inside && (this.board?.phase === 'vote' || this.riddling);
   }
 
-  /** Строка чата по умолчанию «В игру:» — внутри ограды, пока идёт игра */
+  /** Идёт «Разминка с Затейником» и разминаюсь я (F3): ответы — обычная строка «В игру» в шаге idle */
+  get warming(): boolean {
+    const w = this.board?.warm;
+    return !!w && this.board?.phase === 'idle' && !!this.me && w.who.slot === this.me.slot;
+  }
+
+  /** Строка чата по умолчанию «В игру:» — внутри ограды, пока идёт игра (и разминка) */
   get gameChat(): boolean {
-    return this.inside && this.board?.phase === 'game';
+    return this.inside && (this.board?.phase === 'game' || this.warming);
   }
 }

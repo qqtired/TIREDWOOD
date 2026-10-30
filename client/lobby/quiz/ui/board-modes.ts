@@ -2,6 +2,7 @@
 // Перенос lab/quiz/v2/js/world/boards-more.js; шаги, которых в обзоре не было (финал «Своей игры», вызов очереди,
 // выбор слова), нарисованы тем же набором: крем-плашки на эмали, золото — «сейчас», крупный кегль.
 import { QZ_CROC, QZ_WHO, type QzBoard, type QzContent, type QzCrocBoard, type QzJpBoard, type QzWhoBoard } from '../../../../shared/quiz/types.ts';
+import { jpCountdown } from '../state.ts';
 import { BOARD_H, BOARD_W, PAD, boardUi, centerText, head, timeBar } from './board-base.ts';
 import { C, DISPLAY, TEXT, badge, clip, confetti, contain, fit, font, leftSec, mmss, quizImg, remoteImg, rr, title, wrap } from './paint.ts';
 
@@ -230,10 +231,14 @@ function jpQuestion(ctx: CanvasRenderingContext2D, jp: QzJpBoard, nowMs: number,
   const toEnd = (jp.endsAt - nowMs) / 1000;
   const who = jp.buzz?.nick ?? '';
   switch (jp.step) {
-    case 'read':
-      centerText(ctx, 'кнопки откроются…', W / 2, H - 120, 46, C.creamDim, W, 700);
+    case 'read': {
+      // B3: за три секунды до открытия кнопок — 3 · 2 · 1 (текущая цифра золотая и крупнее)
+      const dg = jpCountdown(jp.openAt, nowMs);
+      if (dg) countdown(ctx, dg, W, H);
+      else centerText(ctx, 'кнопки откроются…', W / 2, H - 120, 46, C.creamDim, W, 700);
       if (jp.total) timeBar(ctx, 1 - (jp.endsAt - nowMs) / jp.total, false, W, H);
       break;
+    }
     case 'buzz':
       if (Math.floor(nowMs / 400) % 2 === 0) centerText(ctx, 'ЖМИ!', W / 2, H - 120, 58, C.goldText);
       stepBar(ctx, jp, nowMs, W, H, H - 64, 2);
@@ -256,6 +261,30 @@ function jpQuestion(ctx: CanvasRenderingContext2D, jp: QzJpBoard, nowMs: number,
     }
     default:
   }
+}
+
+/** Отсчёт «3 · 2 · 1» внизу табло: прошедшие цифры гаснут, текущая — золотой кружок покрупнее */
+function countdown(ctx: CanvasRenderingContext2D, now: number, W: number, H: number): void {
+  const y = H - 150;
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  [3, 2, 1].forEach((n, i) => {
+    const x = W / 2 + (i - 1) * 200, on = n === now, past = n > now;
+    const r = on ? 76 : 56;
+    ctx.beginPath();
+    ctx.arc(x, y + (on ? 8 : 5), r, 0, Math.PI * 2);
+    ctx.fillStyle = C.ink;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fillStyle = on ? C.gold : past ? 'rgba(255, 244, 220, .16)' : C.cream;
+    ctx.fill();
+    ctx.font = font(800, on ? 96 : 66);
+    ctx.fillStyle = on ? C.goldInk : past ? 'rgba(255, 244, 220, .45)' : C.plateInk;
+    ctx.fillText(String(n), x, y + 4);
+  });
+  ctx.restore();
 }
 
 function pillBottom(ctx: CanvasRenderingContext2D, txt: string, tm: string, W: number, H: number): void {
@@ -529,6 +558,8 @@ function crocReveal(ctx: CanvasRenderingContext2D, c: QzCrocBoard, nowMs: number
   if (all) confetti(ctx, W, H, nowMs, 90, 5);
   const nick = (last?.drawer.nick ?? '').toUpperCase();
   const head1 = all ? 'ВСЕ УГАДАЛИ!' : end === 'left' ? `${nick} УШЁЛ` : end === 'swap' ? 'МЕНЯЕМ ИГРУ' : end === 'empty' ? 'ВСЕ УШЛИ' : 'НЕ УГАДАЛИ';
+  // повтор рисунка (C7): рамка 4:3 слева, как в шаге draw, справа слово и итог; рисунка нет — слово по центру
+  if (boardUi.drawing) return crocRevealPic(ctx, c, W, H, head1, all, nowMs);
   title(ctx, clip(ctx, head1, 1800), W / 2, 130, 96, all ? C.gold : C.coral, 'center', 7);
   const word = (last?.word ?? '').toUpperCase();
   ctx.save();
@@ -549,6 +580,57 @@ function crocReveal(ctx: CanvasRenderingContext2D, c: QzCrocBoard, nowMs: number
   ctx.restore();
   const g = last?.guessed ?? 0;
   centerText(ctx, g ? `Угадали: ${g} · рисовал ${last?.drawer.nick ?? ''}` : end === 'timeout' ? `Никто не угадал · рисовал ${last?.drawer.nick ?? ''}` : 'рисунок не в счёт', W / 2, 640, 70, C.cream, W - PAD * 2);
+  crocBar(ctx, c, nowMs, W, H, 0);
+}
+
+/** Итог рисунка с повтором: рисунок в рамке шага draw (crocRect), справа — слово, сколько угадали и кто рисовал */
+function crocRevealPic(ctx: CanvasRenderingContext2D, c: QzCrocBoard, W: number, H: number, head1: string, all: boolean, nowMs: number): void {
+  const last = c.last;
+  title(ctx, clip(ctx, head1, W - PAD * 2), PAD, 104, 70, all ? C.gold : C.coral, 'left', 5);
+  const { x: cx, y: cy, w: cw, h: ch } = crocRect(H);
+  rr(ctx, cx, cy + 8, cw, ch, 22);
+  ctx.fillStyle = C.ink;
+  ctx.fill();
+  rr(ctx, cx, cy, cw, ch, 22);
+  ctx.fillStyle = QZ_CROC_PAPER;
+  ctx.fill();
+  ctx.save();
+  rr(ctx, cx, cy, cw, ch, 22);
+  ctx.clip();
+  ctx.drawImage(boardUi.drawing!, cx, cy, cw, ch);
+  ctx.restore();
+  const rx = cx + cw + 60, rw = W - PAD - rx;
+  ctx.save();
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'left';
+  ctx.font = font(800, 48);
+  ctx.fillStyle = C.goldText;
+  ctx.letterSpacing = '4px';
+  ctx.fillText('СЛОВО', rx, 200);
+  ctx.letterSpacing = '0px';
+  const word = (last?.word ?? '').toUpperCase();
+  const px = fit(ctx, word, 400, 130, rw - 70, DISPLAY, 44);
+  const bh = 240, by = 250;
+  rr(ctx, rx, by + 12, rw, bh, 40);
+  ctx.fillStyle = C.ink;
+  ctx.fill();
+  rr(ctx, rx, by, rw, bh, 40);
+  ctx.fillStyle = all ? C.cream : C.cream2;
+  ctx.fill();
+  ctx.font = font(400, px, DISPLAY);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = C.enamelSolid;
+  ctx.fillText(clip(ctx, word, rw - 50), rx + rw / 2, by + bh / 2 + 8);
+  ctx.textAlign = 'left';
+  const g = last?.guessed ?? 0;
+  const end = last?.end ?? 'timeout';
+  ctx.font = font(800, 76);
+  ctx.fillStyle = g ? C.goodText : C.creamDim;
+  ctx.fillText(clip(ctx, g ? `Угадали: ${g}` : end === 'timeout' ? 'Никто не угадал' : 'рисунок не в счёт', rw), rx, 600);
+  ctx.font = font(700, 58);
+  ctx.fillStyle = C.cream;
+  ctx.fillText(clip(ctx, `рисовал ${last?.drawer.nick ?? ''}`, rw), rx, 700);
+  ctx.restore();
   crocBar(ctx, c, nowMs, W, H, 0);
 }
 

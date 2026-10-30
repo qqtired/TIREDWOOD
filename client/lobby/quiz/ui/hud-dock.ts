@@ -1,7 +1,7 @@
 // «Ракушка»: док «В игру» (слот bl, над чатом), карточка «Тепло» (слот tl) и полёт копии строки из дока в «Тепло».
 // Образец — lab/quiz/v2/js/hud.js (Dock, WarmCard). Всё строится по моделям из hud-model.ts и обновляется на месте:
 // строки живут по номеру (id), перерисовывается только изменившаяся, кнопки не пропадают между секундными тиками.
-import { OWN_TAG, WARM_SHOWN, keyCap, nickClass, ownText, pic, type DockModel, type DockRow, type OwnGuess, type WarmModel } from './hud-model.ts';
+import { OWN_TAG, keyCap, nickClass, ownText, pic, type DockModel, type DockRow, type OwnGuess, type WarmModel } from './hud-model.ts';
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls: string, html?: string): HTMLElementTagNameMap[K] => {
   const e = document.createElement(tag);
@@ -43,7 +43,9 @@ export function buildRow(r: DockRow): HTMLElement {
     const up = `<button type="button" class="qz-mb qz-mb--warm" data-qz="mark" data-m="warm" title="1 — тепло">${pic('q-warm')}${cap('1')}</button>`;
     const down = `<button type="button" class="qz-mb qz-mb--miss" data-qz="mark" data-m="miss" title="2 — мимо">${pic('q-miss')}${cap('2')}</button>`;
     const win = `<button type="button" class="qz-mb qz-mb--win${r.near ? ' is-big' : ''}" data-qz="mark" data-m="win" title="3 — угадал">${pic('q-win')}${r.near ? '<span>Угадал</span>' : ''}${cap('3')}</button>`;
-    row.appendChild(el('span', 'qz-markbtns', r.near ? win + up + down : up + down + win));
+    // C1: «Горячо!» — сразу сильнее «тепло» (на самой старой строке — клавиша 1 дважды)
+    const hot = '<button type="button" class="k-btn k-btn--ghost k-btn--sm qz-hotbtn" data-qz="mark" data-m="hot" title="Горячо! — очень близко">Горячо!</button>';
+    row.appendChild(el('span', 'qz-markbtns', (r.near ? win + up + down : up + down + win) + hot));
   }
   if (r.undo) {
     row.classList.add('has-undo');
@@ -152,7 +154,7 @@ export class OwnView {
     const was = this.sig;
     this.sig = sig;
     this.root.className = `k-chat-line qz-line qz-me${g.mark ? ` is-${g.mark}` : ''}`;
-    const icon = g.mark === 'warm' ? pic('q-warm') : g.mark === 'miss' ? pic('q-miss') : g.mark === 'win' || g.mark === 'check' ? pic('q-win') : '';
+    const icon = g.mark === 'warm' || g.mark === 'hot' ? pic('q-warm') : g.mark === 'miss' ? pic('q-miss') : g.mark === 'win' || g.mark === 'check' ? pic('q-win') : '';
     this.root.innerHTML = `<span class="qz-mark">${icon}</span><span class="qz-text"></span><span class="qz-tag">${OWN_TAG[g.mark]}</span>`;
     this.root.querySelector('.qz-text')!.textContent = ownText(g.text);
     if (was && !still()) {
@@ -183,6 +185,7 @@ export class OwnView {
 interface WarmEntry {
   el: HTMLElement;
   text: string;
+  hot: boolean;
 }
 
 export class WarmView {
@@ -223,7 +226,8 @@ export class WarmView {
       if (!e) {
         const row = el('div', `qz-warm-row ${nickClass(r.nick)}`);
         row.dataset.id = String(r.id);
-        row.innerHTML = '<span class="qz-warm-txt"><small></small> <b></b></span>'
+        row.innerHTML = '<span class="qz-warm-txt"><i class="k-pill k-pill--bad k-pill--xs qz-hot-pill" hidden>Горячо!</i><small></small> <b></b></span>'
+          + '<button type="button" class="k-btn k-btn--ghost k-btn--sm qz-warm-hot" data-qz="mark" data-m="hot">Горячо!</button>'
           + `<button type="button" class="qz-warm-x" data-qz="unmark" aria-label="Убрать из «Тепло»" data-tip="Убрать из «Тепло»">${CROSS}</button>`;
         row.querySelector('small')!.textContent = r.nick;
         row.querySelector('b')!.textContent = r.text;
@@ -232,17 +236,27 @@ export class WarmView {
           row.classList.add('is-new');
           window.setTimeout(() => row.classList.remove('is-new'), 1800);
         }
-        e = { el: row, text: r.text };
+        e = { el: row, text: r.text, hot: false };
         this.rows.set(r.id, e);
         this.empty.remove();
       }
+      // C1: «Горячо!» — первой строкой, красным и крупнее; тепло стало горячо — вспышка
+      if (e.hot !== r.hot) {
+        const was = e.hot;
+        e.hot = r.hot;
+        e.el.classList.toggle('is-hot', r.hot);
+        e.el.querySelector<HTMLElement>('.qz-hot-pill')!.hidden = !r.hot;
+        if (r.hot && !was && this.ready && !flying.has(r.id)) {
+          e.el.classList.add('is-new');
+          window.setTimeout(() => e.el.classList.remove('is-new'), 1800);
+        }
+      }
+      e.el.hidden = !r.shown;
       const at: ChildNode | null = prev ? prev.nextSibling : this.list.firstChild;
       if (e.el !== at) this.list.insertBefore(e.el, at);
       prev = e.el;
     }
-    // последние WARM_SHOWN на виду, старые — «ещё N»
-    const ids = m.rows.map((r) => r.id);
-    ids.forEach((id, i) => { const row = this.rows.get(id)?.el; if (row) row.hidden = i < ids.length - WARM_SHOWN; });
+    // на виду «Горячо!» и свежие «тепло» (WARM_SHOWN строк), остальное — «ещё N» (какие видны, решает модель)
     this.more.hidden = m.more === 0;
     if (m.more) this.more.textContent = `ещё ${m.more}`;
     this.count.textContent = String(m.rows.length);
