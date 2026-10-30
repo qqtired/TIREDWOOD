@@ -5,7 +5,7 @@
 import * as THREE from 'three';
 import type { QuizClientMsg } from '../../../shared/quiz/net.ts';
 import { QZ, QZ_CATEGORIES, QZ_CROC, type QzBoard, type QzInkOp, type QzMe, type QzView } from '../../../shared/quiz/types.ts';
-import { QUIZ_VENUE, stageCamera, type QuizPlace } from '../../../shared/quiz/venue.ts';
+import { QUIZ_VENUE, type QuizPlace } from '../../../shared/quiz/venue.ts';
 import type { Chat } from '../../chat.ts';
 import type { Avatar } from '../../render/avatar.ts';
 import type { LobbyFx } from '../fx.ts';
@@ -17,7 +17,7 @@ import { demoCroc, demoInk, demoJp, demoWho } from './demo2.ts';
 import { QuizPick } from './pick.ts';
 import type { QuizFx } from './fx.ts';
 import { QuizHeads } from './heads.ts';
-import { ACT_QUIZ, pultsUp, quizCamera, quizPlace } from './places.ts';
+import { ACT_QUIZ, pultsUp, quizCamera, quizPlace, whoCamera } from './places.ts';
 import { QuizState, type QuizEvent } from './state.ts';
 import { QuizHud, uiReal, type QuizHudKitArg, type QuizHudLike } from './uikit.ts';
 import { QuizVenue3D, VENUE_LIFT, type FamilyMats } from './venue3d.ts';
@@ -169,7 +169,7 @@ export class QuizClient {
         scene: d.scene, gl: d.gl, camera: d.camera, mats: familyMats(d.pavilions), mySlot: d.mySlot,
         easel: {
           canvas: d.canvas, canDraw: () => this.canDraw(), send: (ops) => this.state.send({ t: 'qz', a: 'crInk', ops }),
-          tool: () => { const t = this.hud?.crocTool?.(); return t ? { color: t.erase ? QZ_CROC.ERASER : t.color, width: t.size } : null; },
+          tool: () => { const t = this.hud?.crocTool?.(); return t ? { color: t.erase ? QZ_CROC.ERASER : t.color, width: t.width } : null; },
         },
       });
       // Затейник: стандартный материал со скинингом и цветом вершин — как у зверьков набережной (critter-kit.ts)
@@ -189,7 +189,8 @@ export class QuizClient {
     this.venue?.setBoard(st.board, () => st.serverNow());
     this.hud?.update(st.view, st.me, st.board, st.serverNow());
     this.hudSec = Math.floor(performance.now() / 1000);
-    this.d.chat.setGame(st.gameChat ? (text) => st.send({ t: 'qz', a: 'say', text: text.slice(0, QZ.LINE_MAX) }) : null);
+    // Enter в «В игру»: письмо режима от HUD (ответ отвечающего, ответ финала, свой вопрос…), без HUD — реплика
+    this.d.chat.setGame(st.gameChat ? (text) => st.send(this.hud?.lineMsg?.(text) ?? { t: 'qz', a: 'say', text: text.slice(0, QZ.LINE_MAX) }) : null);
     this.d.signs?.setExtras({ quiz: st.board });
     this.heads.setTitles(st.view?.people ?? null);
     this.syncSolid(pultsUp(st.board));
@@ -340,7 +341,7 @@ export class QuizClient {
       this.lookPlace = p.i;
       this.lookYaw = this.lookPitch = 0;
     }
-    const c = this.whoVoting() ? stageCamera() : quizCamera(p);
+    const c = this.whoVoting() ? whoCamera() : quizCamera(p);
     const lift = VENUE_LIFT;
     const dx = c.target[0] - c.pos[0], dy = c.target[1] - c.pos[1], dz = c.target[2] - c.pos[2];
     const h = Math.hypot(dx, dz) || 1;
@@ -383,14 +384,22 @@ export class QuizClient {
   /** Подсказка у своего места: кресло — «E встать»; на сцене встать нельзя */
   placeHint(arg: number): [readonly string[] | null, string] {
     const p = quizPlace(arg);
-    // встать — кнопка «Встать [E]» в HUD; здесь только мышь. Голос «Кто из нас?» — своя подсказка HUD («Клик по желейке»)
-    if (p?.kind === 'chair' && !this.whoVoting()) return [['ЛКМ'], 'зажми — осмотреться'];
+    // встать — кнопка «Встать [E]» в HUD; здесь только мышь. Голос «Кто из нас?» — своя подсказка HUD («Клик по желейке»),
+    // а при наведении на желейку — за кого голос (ник заднего ряда может прятаться под верхней плашкой)
+    if (this.whoVoting()) {
+      const h = this.pick.hover;
+      const nick = h?.k === 'jelly' ? this.state.view?.people.find((x) => x.slot === h.slot)?.nick : undefined;
+      return nick ? [['ЛКМ'], `Голос за ${nick}`] : [null, ''];
+    }
+    if (p?.kind === 'chair') return [['ЛКМ'], 'зажми — осмотреться'];
     return [null, ''];
   }
 
   /** Подсказка у кресла: свободно — «E сесть», занято — «Место занято» */
   pointHint(arg: number): [readonly string[] | null, string] {
     const p = quizPlace(arg);
+    // трибуна: E — окно «Ракушки» в любой шаг (встать за неё как ведущий сервер даст только в шаге «Веду я»)
+    if (p?.kind === 'podium') return [['E'], 'окно «Ракушки» · игры, паки, рекорды'];
     const busy = !!p && p.kind === 'chair' && !!this.state.view?.people.some((x) => x.chair === p.n && x.slot !== this.d.mySlot());
     return busy ? [[], 'Место занято'] : [['E'], 'сесть · смотреть на сцену и играть'];
   }

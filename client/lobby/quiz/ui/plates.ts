@@ -1,15 +1,18 @@
 // Таблички пультов «Своей игры»: одна текстура-атлас 1024 × 768 на шесть табличек (меш plate_faces в quiz_venue.glb).
 // Клетка пульта i — QUIZ_VENUE.pults[i].plateCell = [x, y, w, h] в пикселях от левого верхнего угла атласа (venue-data.json,
-// pultPlate.atlas). Только счёт крупно: ник — над головой игрока в мире. Перенос lab/quiz/v2/js/world/boards-more.js (paintPlate).
+// pultPlate.atlas). Ник сверху (длинный — с «…»), счёт крупно под ним: над головой игрока за пультом ника нет — он лёг бы
+// на табло (places.ts quizNoTag). Перенос lab/quiz/v2/js/world/boards-more.js (paintPlate).
 import type { QzBoard, QzJpPlayer } from '../../../../shared/quiz/types.ts';
 import { QUIZ_VENUE } from '../../../../shared/quiz/venue.ts';
-import { C, TEXT, fit, font, rr } from './paint.ts';
+import { C, TEXT, clip, fit, font, rr } from './paint.ts';
 
 export const PLATES_W = 1024;
 export const PLATES_H = 768;
 
 /** Что показывает одна табличка; null — пульт свободен */
 export interface PlateState {
+  /** ник игрока за пультом */
+  name: string;
   score: number;
   /** его ход (золотая рамка) */
   turn: boolean;
@@ -44,10 +47,13 @@ export function paintPlate(ctx: CanvasRenderingContext2D, p: PlateState | null, 
     ctx.fillStyle = 'rgba(255, 244, 220, .35)';
     ctx.fillText('—', W / 2, H / 2 + 4 * k);
   } else {
+    ctx.font = font(700, 50 * k);
+    ctx.fillStyle = p.lit ? C.goldInk : C.cream;
+    ctx.fillText(clip(ctx, p.name, W - 70 * k), W / 2, H * 0.27);
     const txt = p.away ? 'отошёл' : p.score.toLocaleString('ru-RU');
-    ctx.font = font(800, fit(ctx, txt, 800, 150 * k, W - 60 * k, TEXT, 60 * k));
+    ctx.font = font(800, fit(ctx, txt, 800, 116 * k, W - 60 * k, TEXT, 50 * k));
     ctx.fillStyle = p.lit ? C.goldInk : p.score < 0 ? C.badText : C.goldText;
-    ctx.fillText(txt, W / 2, H / 2 + 8 * k);
+    ctx.fillText(txt, W / 2, H * 0.66);
   }
   ctx.restore();
 }
@@ -60,6 +66,7 @@ export function paintPlates(ctx: CanvasRenderingContext2D, b: QzBoard | null, no
     const [x, y, w, h] = pult.plateCell;
     const p: QzJpPlayer | undefined = jp?.players.find((q) => q.pult === i);
     paintPlate(ctx, p && jp ? {
+      name: p.nick,
       score: p.score,
       turn: jp.turn === p.slot,
       lit: jp.buzz?.slot === p.slot,

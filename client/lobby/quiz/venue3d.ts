@@ -16,7 +16,7 @@ import { plaza3Shadows } from '../plaza3/mounts.ts';
 import { QuizEasel, type EaselDeps } from './easel.ts';
 import { canvasTex, familyOf, type CanvasTex, type Family, type FamilyMats } from './kit3d.ts';
 import { QuizPults } from './pults.ts';
-import { boardUi, paintBoard, paintSign } from './uikit.ts';
+import { boardUi, onQuizImages, paintBoard, paintSign } from './uikit.ts';
 
 export type { Family, FamilyMats };
 
@@ -97,6 +97,8 @@ export class QuizVenue3D {
     this.root.rotation.y = w.yaw;
     this.group.add(this.root);
     this.scene.add(this.group);
+    // значки голосования и паков догрузились — табло перерисовать (площадка живёт всю игру, отписка не нужна)
+    onQuizImages(() => { this.dirty = true; });
     void this.build();
   }
 

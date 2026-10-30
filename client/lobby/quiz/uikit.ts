@@ -19,10 +19,12 @@ export interface QuizHudLike {
   /** Часть 2б (Sonnet): клавиши режимов — первым; окно «Ракушка» (E у трибуны); инструмент «Крокодила» */
   onKey?(code: string): boolean;
   openWindow?(tab?: string): void;
-  crocTool?(): { color: number; size: number; erase: boolean } | null;
+  crocTool?(): { color: number; size: number; erase: boolean; width: number } | null;
+  /** Строка чата «В игру» → письмо режима (ответ «Своей игры», ответ финала, иначе реплика) */
+  lineMsg?(text: string): QuizClientMsg;
 }
 /** Слоты и верх-центр кита, шина звука «Интерфейс» — как у режимов фермы и самолёта (ui/hud-kit.ts QuizHudKit) */
-export type QuizHudKitArg = { slots: unknown; top: unknown; audio?: () => unknown };
+export type QuizHudKitArg = { slots: unknown; top: unknown; audio?: () => unknown; level?: () => number | null };
 /** Что шлёт HUD: письма «Ракушки» и общее «встать» (кнопка «Встать» — то же, что E на кресле) */
 export type QuizHudMsg = QuizClientMsg | { t: 'unuse' };
 type HudCtor = new (send: (m: QuizHudMsg) => void, kit?: QuizHudKitArg) => QuizHudLike;
@@ -102,6 +104,8 @@ class StubHud implements QuizHudLike {
 }
 
 export const paintBoard: QuizPaint = (MODS['./ui/board.ts']?.paintBoard as QuizPaint | undefined) ?? stubBoard;
+/** Картинки табло (значки голосования, паков) догрузились — табло перерисовать; возвращает отписку */
+export const onQuizImages: (cb: () => void) => () => void = (MODS['./ui/board.ts']?.onQuizImages as ((cb: () => void) => () => void) | undefined) ?? (() => () => {});
 export const paintSign: QuizPaint = (MODS['./ui/sign.ts']?.paintSign as QuizPaint | undefined) ?? stubSign;
 export const QuizHud: HudCtor = (MODS['./ui/hud.ts']?.QuizHud as HudCtor | undefined) ?? StubHud;
 /** Таблички пультов: атлас 1024 × 768 (ui/plates.ts); mySlot — чей пульт «мой». Нет модуля — таблички пустые */

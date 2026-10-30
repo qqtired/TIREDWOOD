@@ -3,8 +3,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { diffQuiz, oldestUnmarked, warmLines, recentMisses, type QuizSnap } from '../client/lobby/quiz/state.ts';
 import { quizAgendaLine, quizSignLine } from '../client/lobby/plaza3/status.ts';
-import { pultsUp, quizCamera, quizNoTag, quizPlace } from '../client/lobby/quiz/places.ts';
-import { hostCamera, seatCamera, tvCamera } from '../shared/quiz/venue.ts';
+import { pultsUp, quizCamera, quizNoTag, quizPlace, whoCamera } from '../client/lobby/quiz/places.ts';
+import { hostCamera, seatCamera, stageCamera, tvCamera } from '../shared/quiz/venue.ts';
 import { QUIZ_VENUE } from '../shared/quiz/venue.ts';
 import { QZ, type QzLine, type QzView } from '../shared/quiz/types.ts';
 
@@ -128,6 +128,7 @@ test('декор plaza3 в зоне площадки: прячется и воз
 test('ник загадывающего на сцене не рисуем, на кресле — рисуем', () => {
   assert.equal(quizNoTag(QUIZ_VENUE.first.riddler), true);
   assert.equal(quizNoTag(QUIZ_VENUE.first.chair), false);
+  assert.equal(quizNoTag(QUIZ_VENUE.first.pult), true, 'ник игрока за пультом — на табличке пульта');
   assert.equal(quizNoTag(-1), false);
 });
 
@@ -162,4 +163,12 @@ test('«Ракушка» у пирса: «Ласточка» прячется и
   const raw = { pbHumans: 0, fort: null, skill: null, kart: null, kartLeft: 0, hide: null, boatrace: null, regattaRunning: false, boat: { ph: 0, at: 0, n: 0 }, aqua: null, tick: 0, tickRate: 60 };
   assert.ok(agendaRows(fillLive(emptyLive(), raw)).some((r) => r.key === 'boat'), 'без QUIZ — строка катера есть');
   assert.ok(!agendaRows(fillLive(emptyLive(), { ...raw, noBoat: true })).some((r) => r.key === 'boat'), 'с QUIZ — строки катера нет');
+});
+
+test('«Кто из нас?», голосование: камера сцены с того же места, смотрит чуть выше', () => {
+  const s = stageCamera(), w = whoCamera();
+  assert.deepEqual(w.pos, s.pos);
+  assert.ok(w.target[1] > s.target[1]);
+  const d = Math.hypot(w.target[0] - w.pos[0], w.target[1] - w.pos[1], w.target[2] - w.pos[2]);
+  assert.ok(Math.abs(d - 1) < 0.01, 'направление единичное');
 });

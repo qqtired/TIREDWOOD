@@ -16,9 +16,20 @@ export function quizSits(arg: number): boolean {
   return placeAt(arg)?.sit === true;
 }
 
-/** Ник над желейкой не рисуем: загадывающий на сцене (табло и так пишет, кто загадывает, а ник ложится на табло) */
+/** Ник над желейкой не рисуем: загадывающий на сцене и игрок за пультом — ник лёг бы на табло (кто загадывает — пишет табло,
+ *  ник игрока — табличка его пульта, ui/plates.ts) */
 export function quizNoTag(arg: number): boolean {
-  return placeAt(arg)?.kind === 'riddler';
+  const k = placeAt(arg)?.kind;
+  return k === 'riddler' || k === 'pult';
+}
+
+/** «Кто из нас?», голосование: камера сцены на 3° выше — ники заднего ряда не прячутся под верхней плашкой HUD */
+export function whoCamera(): QuizCam {
+  const c = stageCamera();
+  const p0 = QUIZ_VENUE.data.stageCam.pitch, p1 = p0 + 0.05;
+  const [x, y, z] = c.pos;
+  const k = Math.cos(p1) / Math.cos(p0);
+  return { ...c, target: [x + (c.target[0] - x) * k, y + Math.sin(p1), z + (c.target[2] - z) * k] };
 }
 
 /** Камера места: кресло — зрительская (на табло); сцена — за спиной; пульт — «телекамера»; трибуна — ведущего; мольберт — холст */

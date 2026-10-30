@@ -614,7 +614,7 @@ export class LobbyScene implements Scene {
     this.quiz = this.plaza instanceof Plaza3Dress && this.world.pavilions ? new QuizClient({
       scene: this.world.scene, gl: d.renderer.gl, camera: this.world.camera, pavilions: this.world.pavilions.group, fx: this.fx, canvas: d.renderer.canvas,
       chat: d.ui.chat, send: (m) => d.net.send(m as unknown as ClientMsg), toast: (text) => d.ui.toasts.show(text, 3400), volume: () => d.settings.volume * d.settings.sfxVolume,
-      hudKit: { slots: d.ui.slots, top: d.ui.top, audio: () => d.sound.kit },
+      hudKit: { slots: d.ui.slots, top: d.ui.top, audio: () => d.sound.kit, level: () => d.ui.me().level ?? null },
       pultSolid: (i, on) => { const ix = this.world.map.quizPultBoxes?.[i]; if (ix !== undefined) this.world.collision.setEnabled(ix, on); },
       avatarOf: (slot) => (slot === this.myId ? this.me : (this.remotes.get(slot)?.avatar ?? null)), mySlot: () => this.myId, signs: this.plaza.signs,
     }) : null;
