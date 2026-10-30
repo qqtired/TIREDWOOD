@@ -3,6 +3,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { diffQuiz, oldestUnmarked, warmLines, recentMisses, type QuizSnap } from '../client/lobby/quiz/state.ts';
 import { quizAgendaLine, quizSignLine } from '../client/lobby/plaza3/status.ts';
+import { pultsUp, quizCamera, quizNoTag, quizPlace } from '../client/lobby/quiz/places.ts';
+import { hostCamera, seatCamera, tvCamera } from '../shared/quiz/venue.ts';
+import { QUIZ_VENUE } from '../shared/quiz/venue.ts';
 import { QZ, type QzLine, type QzView } from '../shared/quiz/types.ts';
 
 const line = (id: number, slot: number, mark: QzLine['mark'] = '', at = id, markedAt = 0): QzLine =>
@@ -100,8 +103,9 @@ test('вывеска над аркой и афиша кафе', () => {
 test('декор plaza3 в зоне площадки: прячется и возвращается', async () => {
   const THREE = await import('three');
   const { FenceClear, fenceDecor } = await import('../client/lobby/quiz/clear.ts');
-  // v2: в ограде кипарисы квартала games (ствол + крона)
-  const games = fenceDecor().get('plaza3-games') ?? [];
+  // свой многоугольник вокруг известного кипариса квартала games (80; 4) — от места площадки тест не зависит
+  const zone = fenceDecor([[78, 2], [82, 2], [82, 6], [78, 6]]);
+  const games = zone.get('plaza3-games') ?? [];
   assert.ok(games.length >= 2);
   // меш квартала: дерево в ограде и коробка снаружи
   const c = games[0];
@@ -113,10 +117,49 @@ test('декор plaza3 в зоне площадки: прячется и воз
   const root = new THREE.Group().add(mesh);
   const before = Array.from(mesh.geometry.getIndex()!.array);
   const fc = new FenceClear();
-  fc.apply(root);
+  fc.apply(root, zone);
   assert.equal(fc.tris, tree.getIndex()!.count / 3);
   const after = Array.from(mesh.geometry.getIndex()!.array);
   assert.deepEqual(after.slice(tree.getIndex()!.count), before.slice(tree.getIndex()!.count));
   fc.restore();
   assert.deepEqual(Array.from(mesh.geometry.getIndex()!.array), before);
+});
+
+test('ник загадывающего на сцене не рисуем, на кресле — рисуем', () => {
+  assert.equal(quizNoTag(QUIZ_VENUE.first.riddler), true);
+  assert.equal(quizNoTag(QUIZ_VENUE.first.chair), false);
+  assert.equal(quizNoTag(-1), false);
+});
+
+test('часть 2: пульты наверху — у игроков «Своей игры»; камеры мест', () => {
+  const v = view({ mode: 'jeopardy', riddle: null });
+  assert.deepEqual(pultsUp(v), QUIZ_VENUE.pults.map(() => false));
+  v.jp = { step: 'pick', players: [{ slot: 1, nick: 'P1', pult: 0, score: 0, away: 0 }, { slot: 2, nick: 'P2', pult: 3, score: 0, away: 0 }] } as unknown as QzView['jp'];
+  assert.deepEqual(pultsUp(v).map((x, i) => (x ? i : -1)).filter((i) => i >= 0), [0, 3]);
+  assert.ok(pultsUp({ ...v, phase: 'results' }).every((x) => !x));
+  const f = QUIZ_VENUE.first;
+  assert.deepEqual(quizCamera(quizPlace(f.chair + 4)!), seatCamera(QUIZ_VENUE.chairs[4]));
+  assert.deepEqual(quizCamera(quizPlace(f.pult + 2)!), tvCamera());
+  assert.deepEqual(quizCamera(quizPlace(f.podium)!), hostCamera());
+});
+
+test('«Ракушка» у пирса: «Ласточка» прячется и возвращается, строки катера в афише нет', async () => {
+  const { hideSwallow, SWALLOW } = await import('../client/lobby/quiz/swallow.ts');
+  const { agendaRows, emptyLive, fillLive } = await import('../client/lobby/plaza/live.ts');
+  const log: string[] = [];
+  const parts = {
+    pavilions: { setPavHidden: (id: string, h: boolean) => log.push(`pav ${id} ${h}`) },
+    signs: { setHidden: (id: string, h: boolean) => log.push(`sign ${id} ${h}`) },
+    npc: { setAway: (id: string, h: boolean) => log.push(`npc ${id} ${h}`) },
+    boat: { setLaunchShown: (on: boolean) => log.push(`boat ${on}`) },
+    post: { setShown: (on: boolean) => log.push(`post ${on}`) },
+  };
+  hideSwallow(parts, true);
+  assert.deepEqual(log, [`pav ${SWALLOW.pav} true`, `sign ${SWALLOW.sign} true`, `npc ${SWALLOW.npc} true`, 'boat false', 'post false']);
+  log.length = 0;
+  hideSwallow({ ...parts, pavilions: null, signs: null, npc: null }, false);
+  assert.deepEqual(log, ['boat true', 'post true'], 'без набережной — только катер и столбик');
+  const raw = { pbHumans: 0, fort: null, skill: null, kart: null, kartLeft: 0, hide: null, boatrace: null, regattaRunning: false, boat: { ph: 0, at: 0, n: 0 }, aqua: null, tick: 0, tickRate: 60 };
+  assert.ok(agendaRows(fillLive(emptyLive(), raw)).some((r) => r.key === 'boat'), 'без QUIZ — строка катера есть');
+  assert.ok(!agendaRows(fillLive(emptyLive(), { ...raw, noBoat: true })).some((r) => r.key === 'boat'), 'с QUIZ — строки катера нет');
 });

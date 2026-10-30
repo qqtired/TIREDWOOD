@@ -4,19 +4,22 @@
 // Отладка без сервера: ?quizdemo (кресло 0), ?quizdemo=seat:5, ?quizdemo=stage, ?quizdemo=walk — свои снимки и место.
 import * as THREE from 'three';
 import type { QuizClientMsg } from '../../../shared/quiz/net.ts';
-import { QZ, QZ_CATEGORIES, type QzBoard, type QzMe, type QzView } from '../../../shared/quiz/types.ts';
-import { QUIZ_VENUE, type QuizPlace } from '../../../shared/quiz/venue.ts';
+import { QZ, QZ_CATEGORIES, QZ_CROC, type QzBoard, type QzInkOp, type QzMe, type QzView } from '../../../shared/quiz/types.ts';
+import { QUIZ_VENUE, stageCamera, type QuizPlace } from '../../../shared/quiz/venue.ts';
 import type { Chat } from '../../chat.ts';
 import type { Avatar } from '../../render/avatar.ts';
 import type { LobbyFx } from '../fx.ts';
 import { plaza3Shadows } from '../plaza3/mounts.ts';
 import type { SignExtras } from '../plaza3/status.ts';
 import { FenceClear } from './clear.ts';
+import { crocInk } from './easel.ts';
+import { demoCroc, demoInk, demoJp, demoWho } from './demo2.ts';
+import { QuizPick } from './pick.ts';
 import type { QuizFx } from './fx.ts';
 import { QuizHeads } from './heads.ts';
-import { ACT_QUIZ, quizCamera, quizPlace } from './places.ts';
+import { ACT_QUIZ, pultsUp, quizCamera, quizPlace } from './places.ts';
 import { QuizState, type QuizEvent } from './state.ts';
-import { QuizHud, uiReal, type QuizHudLike } from './uikit.ts';
+import { QuizHud, uiReal, type QuizHudKitArg, type QuizHudLike } from './uikit.ts';
 import { QuizVenue3D, VENUE_LIFT, type FamilyMats } from './venue3d.ts';
 import { Zatejnik } from './zatejnik.ts';
 
@@ -35,6 +38,12 @@ export interface QuizDeps {
   toast: (text: string) => void;
   avatarOf: (slot: number) => Avatar | null;
   mySlot: () => number;
+  /** Твёрдое пульта i (map.quizPultBoxes): включено, пока пульт наверху — как у сервера */
+  pultSolid?: (i: number, on: boolean) => void;
+  /** Слоты кита для HUD (d.ui.slots, d.ui.top, d.sound.kit) */
+  hudKit?: QuizHudKitArg;
+  /** Громкость звука вопросов «Своей игры» (общая × эффекты), 0…1 */
+  volume?: () => number;
   /** Вывески plaza3: строка «Ракушки» на афише кафе */
   signs: { setExtras(x: Partial<SignExtras>): void } | null;
 }
@@ -70,6 +79,15 @@ export class QuizClient {
   private dragging = false;
   /** ?quizdemo: своё место без сервера (−1 — стоит) */
   private demo: { place: number } | null = null;
+  /** Мышью по табло и по желейкам (часть 2) */
+  private readonly pick: QuizPick;
+  /** Тост голосовой зоны — раз за сессию */
+  private zoneToast = false;
+  /** Звук вопроса «Своей игры» (/quiz/m/<пак>/<файл>) */
+  private audio: HTMLAudioElement | null = null;
+  private audioKey = '';
+  /** Твёрдое пультов: что сейчас включено */
+  private solid: boolean[] = [];
 
   constructor(d: QuizDeps) {
     this.d = d;
@@ -77,6 +95,12 @@ export class QuizClient {
     this.heads = new QuizHeads(d.avatarOf, d.mySlot);
     this.state.on((e) => this.onEvent(e));
     this.bindLook();
+    this.pick = new QuizPick({
+      camera: d.camera, canvas: d.canvas, board: () => this.venue?.boardMesh ?? null, state: this.state, avatarOf: d.avatarOf, mySlot: d.mySlot,
+      active: () => this.on && this.lookPlace >= 0 && !document.pointerLockElement,
+      repaint: () => this.venue?.markBoard(),
+      picked: (slot) => { const av = d.avatarOf(slot), t = this.heads.iconTex('online'); if (av && t) av.showIcon(t); },
+    });
     const q = new URLSearchParams(location.search).get('quizdemo');
     if (q !== null) this.startDemo(q);
     if (q !== null || new URLSearchParams(location.search).has('debug')) (window as unknown as { __quiz: unknown }).__quiz = this;
@@ -93,6 +117,8 @@ export class QuizClient {
     if (this.demo) return;
     this.setOn(!!b);
     this.state.reset();
+    // твёрдое пультов сцена только что выключила — следующий снимок включит поднятые
+    this.solid = [];
     if (!b) return;
     this.state.onBoard(b);
     this.pushView();
@@ -100,7 +126,7 @@ export class QuizClient {
 
   /** Письма «Ракушки»; true — съели */
   onMsg(msg: { t: string }): boolean {
-    if (this.demo) return msg.t === 'qz' || msg.t === 'qzBoard';
+    if (this.demo) return msg.t === 'qz' || msg.t === 'qzBoard' || msg.t === 'qzInk';
     switch (msg.t) {
       case 'qz': {
         const m = msg as unknown as { v: QzView; me: QzMe };
@@ -115,6 +141,15 @@ export class QuizClient {
         this.pushView();
         return true;
       }
+      case 'qzInk':
+        this.venue?.easel?.onInk(msg as unknown as { d: number; ops: QzInkOp[]; full?: boolean });
+        return true;
+      case 'qzPacks':
+      case 'qzPackOutline':
+      case 'qzTicket':
+      case 'qzRecs':
+        this.hud?.onMsg?.(msg);
+        return true;
       case 'qzErr': {
         const m = msg as unknown as { text: string };
         if (m.text) this.d.toast(m.text);
@@ -130,10 +165,16 @@ export class QuizClient {
     this.on = on;
     if (on && !this.venue) {
       const d = this.d;
-      this.venue = new QuizVenue3D({ scene: d.scene, gl: d.gl, camera: d.camera, mats: familyMats(d.pavilions) });
+      this.venue = new QuizVenue3D({
+        scene: d.scene, gl: d.gl, camera: d.camera, mats: familyMats(d.pavilions), mySlot: d.mySlot,
+        easel: {
+          canvas: d.canvas, canDraw: () => this.canDraw(), send: (ops) => this.state.send({ t: 'qz', a: 'crInk', ops }),
+          tool: () => { const t = this.hud?.crocTool?.(); return t ? { color: t.erase ? QZ_CROC.ERASER : t.color, width: t.size } : null; },
+        },
+      });
       // Затейник: стандартный материал со скинингом и цветом вершин — как у зверьков набережной (critter-kit.ts)
       this.zat = new Zatejnik(this.venue.group, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.4, metalness: 0 }));
-      this.hud = new QuizHud((m) => (m.t === 'unuse' ? d.send(m) : this.state.send(m)));
+      this.hud = new QuizHud((m) => (m.t === 'unuse' ? d.send(m) : this.state.send(m)), d.hudKit);
     }
     if (this.venue) this.venue.group.visible = on;
     if (on) this.clear.apply(this.d.scene);
@@ -150,6 +191,48 @@ export class QuizClient {
     this.hudSec = Math.floor(performance.now() / 1000);
     this.d.chat.setGame(st.gameChat ? (text) => st.send({ t: 'qz', a: 'say', text: text.slice(0, QZ.LINE_MAX) }) : null);
     this.d.signs?.setExtras({ quiz: st.board });
+    this.heads.setTitles(st.view?.people ?? null);
+    this.syncSolid(pultsUp(st.board));
+    this.pick.refresh();
+    this.syncAudio();
+  }
+
+  /** Звук вопроса «Своей игры»: играет, пока вопрос на табло (чтение, кнопки, ответ); только внутри ограды */
+  private syncAudio(): void {
+    const b = this.state.board;
+    const jp = this.state.inside && b?.phase === 'game' && b.mode === 'jeopardy' ? b.jp : null;
+    const a = jp?.q && jp.pack && (jp.step === 'read' || jp.step === 'buzz' || jp.step === 'answer') ? jp.q.content.find((c) => c.kind === 'audio') : undefined;
+    const key = a && a.kind === 'audio' && jp?.pack ? `${jp.pack.id}/${a.file}` : '';
+    if (key === this.audioKey) return;
+    this.audioKey = key;
+    this.audio?.pause();
+    this.audio = null;
+    if (!key) return;
+    const el = new Audio(`/quiz/m/${key}`);
+    el.volume = Math.max(0, Math.min(1, this.d.volume?.() ?? 0.7));
+    this.audio = el;
+    void el.play().catch(() => {});
+  }
+
+  /** Твёрдое пультов вслед за подъёмом (без флага и вне «Своей игры» — всё выключено) */
+  private syncSolid(up: readonly boolean[]): void {
+    up.forEach((on, i) => {
+      if (this.solid[i] === on) return;
+      this.solid[i] = on;
+      this.d.pultSolid?.(i, on);
+    });
+  }
+
+  /** Я рисую сейчас: «Крокодил», шаг draw, рисующий — я */
+  canDraw(): boolean {
+    const b = this.state.board;
+    return this.state.inside && b?.phase === 'game' && b.mode === 'croc' && b.croc?.step === 'draw' && b.croc.drawer?.slot === this.d.mySlot();
+  }
+
+  /** «Кто из нас?», шаг vote, я участник — камера со сцены на зал, голос кликом по желейке */
+  private whoVoting(): boolean {
+    const b = this.state.board;
+    return b?.phase === 'game' && b.mode === 'whoofus' && b.who?.step === 'vote' && !!this.state.me?.who?.in;
   }
 
   private onEvent(e: QuizEvent): void {
@@ -158,7 +241,16 @@ export class QuizClient {
     switch (e.k) {
       case 'inside':
         fx({ k: 'inside', on: e.on });
-        if (!e.on) this.heads.reset();
+        if (!e.on) {
+          this.heads.reset();
+          this.pick.clear();
+          this.syncAudio();
+        }
+        // своя голосовая зона (tech §25): раз за сессию; голоса нет (флаг) — кнопки микрофона нет и тоста нет
+        if (e.on && !this.zoneToast && document.querySelector('.voice-hud')) {
+          this.zoneToast = true;
+          this.d.toast('Ты на «Ракушке»: здесь свой голос — набережная не слышит');
+        }
         return;
       case 'zat':
         this.zat?.say(e.say.text, e.say.clip);
@@ -221,6 +313,7 @@ export class QuizClient {
     if (!this.on) return;
     this.venue?.update(dt, camPos);
     this.zat?.update(dt, camPos);
+    this.heads.update();
     // HUD: отсчёты — раз в секунду (снимки — сразу, pushView)
     const sec = Math.floor(performance.now() / 1000);
     if (sec !== this.hudSec && this.state.board) {
@@ -247,7 +340,7 @@ export class QuizClient {
       this.lookPlace = p.i;
       this.lookYaw = this.lookPitch = 0;
     }
-    const c = quizCamera(p);
+    const c = this.whoVoting() ? stageCamera() : quizCamera(p);
     const lift = VENUE_LIFT;
     const dx = c.target[0] - c.pos[0], dy = c.target[1] - c.pos[1], dz = c.target[2] - c.pos[2];
     const h = Math.hypot(dx, dz) || 1;
@@ -259,7 +352,8 @@ export class QuizClient {
 
   /** Своя желейка в кресле не рисуется (камера за спинкой смотрит сквозь неё на табло) */
   hidesSelf(act: number, arg: number): boolean {
-    return this.placeOf(act, arg)?.kind === 'chair';
+    const k = this.placeOf(act, arg)?.kind;
+    return (k === 'chair' && !this.whoVoting()) || k === 'drawer';
   }
 
   /** На месте «Ракушки» мышь свободна: кнопки плашки и строки дока нажимаются мышью */
@@ -289,7 +383,8 @@ export class QuizClient {
   /** Подсказка у своего места: кресло — «E встать»; на сцене встать нельзя */
   placeHint(arg: number): [readonly string[] | null, string] {
     const p = quizPlace(arg);
-    if (p?.kind === 'chair') return [['E'], 'встать · зажми мышь — осмотреться'];
+    // встать — кнопка «Встать [E]» в HUD; здесь только мышь. Голос «Кто из нас?» — своя подсказка HUD («Клик по желейке»)
+    if (p?.kind === 'chair' && !this.whoVoting()) return [['ЛКМ'], 'зажми — осмотреться'];
     return [null, ''];
   }
 
@@ -300,15 +395,35 @@ export class QuizClient {
     return busy ? [[], 'Место занято'] : [['E'], 'сесть · смотреть на сцену и играть'];
   }
 
-  /** Эмоции 1–7 выключены (голосование, загадывающий) */
+  /** Эмоции 1–7 выключены: голосование, загадывающий; часть 2 — цифры заняты (пак, слово, ✓ / ✗ ведущего) */
   get emotesBlocked(): boolean {
-    return this.on && this.state.emotesBlocked;
+    return this.on && (this.state.emotesBlocked || this.digitsBusy());
+  }
+
+  /** Стою у трибуны (точка E ведущего) */
+  private nearPodium(): boolean {
+    const av = this.d.avatarOf(this.d.mySlot());
+    const h = QUIZ_VENUE.host;
+    return !!av && Math.hypot(av.root.position.x - h.x, av.root.position.z - h.z) < 1.4;
+  }
+
+  private digitsBusy(): boolean {
+    const b = this.state.board, me = this.d.mySlot();
+    if (!this.state.inside || b?.phase !== 'game') return false;
+    if (b.mode === 'jeopardy' && b.jp) return b.jp.step === 'packvote' || b.jp.host?.slot === me;
+    if (b.mode === 'croc' && b.croc) return b.croc.step === 'words' && b.croc.drawer?.slot === me;
+    return false;
   }
 
   /** Клавиши внутри ограды: 1–4 — голос; F — взять роль; у загадывающего 1/2/3 — отметки, Z — отменить, H — подсказка */
   onKey(code: string): boolean {
     const st = this.state;
-    if (!this.on || !st.inside || !st.board) return false;
+    if (!this.on) return false;
+    // E у трибуны — окно «Ракушка» (клиент, в любой шаг); use уходит как обычно — сервер посадит ведущего в шаге roles
+    if (code === 'KeyE' && this.nearPodium()) this.hud?.openWindow?.();
+    if (!st.inside || !st.board) return false;
+    // часть 2б: клавиши режимов — сначала HUD Sonnet (Пробел, 1/2 ведущего, R…), остальное — здесь
+    if (this.hud?.onKey?.(code)) return true;
     const me = st.me;
     const b = st.board;
     const n = DIGITS[code];
@@ -336,8 +451,30 @@ export class QuizClient {
         return true;
       }
     }
+    if (b.phase === 'game' && this.part2Key(code, n, b)) return true;
     // в эти моменты эмоции выключены — цифры не уходят в жесты
-    return st.emotesBlocked && EMOTE_DIGITS.has(code);
+    return this.emotesBlocked && EMOTE_DIGITS.has(code);
+  }
+
+  /** Клавиши части 2: «Своя игра» — 1–3 пак, Пробел — «Жму!» (ведущему — открыть кнопки), 1 / 2 — ✓ / ✗ ведущего,
+   *  R — показать ответ; «Крокодил» — 1–3 слово, Z — отменить мазок */
+  private part2Key(code: string, n: number | undefined, b: QzBoard): boolean {
+    const st = this.state, me = this.d.mySlot();
+    const jp = b.mode === 'jeopardy' ? b.jp : null;
+    if (jp) {
+      const host = jp.host?.slot === me;
+      if (jp.step === 'packvote' && n !== undefined && n < 3) return st.send({ t: 'qz', a: 'jpPv', i: n }), true;
+      if (code === 'Space' && host && jp.step === 'read') return st.send({ t: 'qz', a: 'jpOpen' }), true;
+      if (code === 'Space' && (st.me?.jp?.pult ?? -1) >= 0 && (jp.step === 'read' || jp.step === 'buzz')) return st.send({ t: 'qz', a: 'jpBuzz' }), true;
+      if (host && (jp.step === 'answer' || jp.step === 'judge') && (n === 0 || n === 1)) return st.send({ t: 'qz', a: 'jpJudge', ok: n === 0 }), true;
+      if (host && code === 'KeyR' && jp.step === 'buzz') return st.send({ t: 'qz', a: 'jpShow' }), true;
+    }
+    const croc = b.mode === 'croc' ? b.croc : null;
+    if (croc?.drawer?.slot === me) {
+      if (croc.step === 'words' && n !== undefined && n < 3) return st.send({ t: 'qz', a: 'crWord', i: n }), true;
+      if (croc.step === 'draw' && code === 'KeyZ') return crocInk.undo(), true;
+    }
+    return false;
   }
 
   // ------------------------------------------------------------ взгляд мышью с места
@@ -368,6 +505,10 @@ export class QuizClient {
     this.d.signs?.setExtras({ quiz: null });
     this.hud?.update(null, null, null, Date.now());
     this.dragging = false;
+    this.pick.clear();
+    this.syncSolid(QUIZ_VENUE.pults.map(() => false));
+    this.audioKey = 'x';
+    this.syncAudio();
   }
 
   debug(): Record<string, unknown> {
@@ -394,8 +535,27 @@ export class QuizClient {
   }
 
   private startDemo(q: string): void {
-    const [kind, arg] = q.split(':');
-    this.demo = { place: kind === 'stage' ? QUIZ_VENUE.first.riddler : kind === 'walk' ? -1 : QUIZ_VENUE.first.chair + (Number(arg) || 0) };
+    const [kind, a1, a2] = q.split(':');
+    const f = QUIZ_VENUE.first;
+    // часть 2: «Своя игра» за пультом 0 (jp:host — у трибуны), «Крокодил» у мольберта (croc:seat:N — смотрю с кресла), «Кто из нас?»
+    if (kind === 'jp' || kind === 'croc' || kind === 'who') {
+      const seat = a1 === 'seat' ? f.chair + (Number(a2) || 0) : -1;
+      const place = kind === 'jp' ? (a1 === 'host' ? f.podium : f.pult) : kind === 'croc' ? (seat >= 0 ? seat : f.drawer) : (seat >= 0 ? seat : f.chair + 2);
+      this.demo = { place };
+      let rev = 1;
+      const tick = (): void => {
+        const slot = this.d.mySlot();
+        if (slot < 0) return void setTimeout(tick, 300);
+        const r = rev++;
+        const x = kind === 'jp' ? demoJp(slot, r, place, a1 === 'host') : kind === 'croc' ? demoCroc(slot, r, place, seat < 0) : demoWho(slot, r, place);
+        this.feed(x.v, x.me);
+        if (kind === 'croc' && seat >= 0) for (let i = 0; i < 6; i++) setTimeout(() => this.venue?.easel?.onInk({ d: 1, ops: demoInk(i) }), 600 + i * 700);
+        if (kind !== 'croc') setTimeout(tick, 5000);
+      };
+      setTimeout(tick, 1500);
+      return;
+    }
+    this.demo = { place: kind === 'stage' ? f.riddler : kind === 'walk' ? -1 : f.chair + (Number(a1) || 0) };
     const stage = kind === 'stage';
     // первый снимок — когда известен свой номер в снимке набережной
     const t0 = Date.now();

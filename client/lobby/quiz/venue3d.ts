@@ -13,10 +13,12 @@ import { QUIZ_VENUE } from '../../../shared/quiz/venue.ts';
 import type { QzBoard } from '../../../shared/quiz/types.ts';
 import { worldGeometry } from '../plaza3/models.ts';
 import { plaza3Shadows } from '../plaza3/mounts.ts';
-import { paintBoard, paintSign } from './uikit.ts';
+import { QuizEasel, type EaselDeps } from './easel.ts';
+import { canvasTex, familyOf, type CanvasTex, type Family, type FamilyMats } from './kit3d.ts';
+import { QuizPults } from './pults.ts';
+import { boardUi, paintBoard, paintSign } from './uikit.ts';
 
-export type Family = 'matte' | 'gloss' | 'glow';
-export type FamilyMats = Record<Family, THREE.Material>;
+export type { Family, FamilyMats };
 
 /** Газон площадки в GLB лежит на 1,6 см, пятна пола plaza3 — до 1,3 см: подъём на 2 см даёт зазор ≥ 1,5 см (AGENTS §7) */
 export const VENUE_LIFT = 0.02;
@@ -41,25 +43,6 @@ async function load(file: string): Promise<THREE.Group | null> {
   }
 }
 
-function familyOf(m: THREE.Material): Family {
-  if (m.name.startsWith('p3_glow')) return 'glow';
-  if (m.name.startsWith('p3_gloss')) return 'gloss';
-  return 'matte';
-}
-
-function canvasTex(w: number, h: number): { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D; tex: THREE.CanvasTexture } {
-  const canvas = document.createElement('canvas');
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext('2d')!;
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.anisotropy = 4;
-  // UV квадов — по правилам glTF (v = 0 сверху), как у текстур, которые грузит GLTFLoader
-  tex.flipY = false;
-  return { canvas, ctx, tex };
-}
-
 const _m = new THREE.Matrix4();
 const _q = new THREE.Quaternion();
 const _p = new THREE.Vector3();
@@ -76,8 +59,15 @@ export class QuizVenue3D {
   private readonly scene: THREE.Scene;
   /** Корень площадки: world с поворотом (местные координаты GLB → мир) */
   private readonly root = new THREE.Group();
-  private board: ReturnType<typeof canvasTex> | null = null;
-  private sign: ReturnType<typeof canvasTex> | null = null;
+  private board: CanvasTex | null = null;
+  private sign: CanvasTex | null = null;
+  /** Квад табло — для луча мыши (клик по карточке, клетке, паку) */
+  boardMesh: THREE.Mesh | null = null;
+  /** Часть 2: пульты в люках и мольберт */
+  pults: QuizPults | null = null;
+  easel: QuizEasel | null = null;
+  private readonly easelDeps: Pick<EaselDeps, 'canvas' | 'canDraw' | 'send' | 'tool'> | null;
+  private readonly mySlot: () => number;
   private bulbs: THREE.InstancedMesh | null = null;
   /** Лампочки рамки табло идут по кругу: их номера в InstancedMesh */
   private frameBulbs = 0;
@@ -94,8 +84,10 @@ export class QuizVenue3D {
   private time = 0;
   readonly stats = { ready: false, draws: 0, tris: 0, failed: [] as string[] };
 
-  constructor(o: { scene: THREE.Scene; gl: THREE.WebGLRenderer; camera: THREE.Camera; mats: FamilyMats }) {
+  constructor(o: { scene: THREE.Scene; gl: THREE.WebGLRenderer; camera: THREE.Camera; mats: FamilyMats; mySlot?: () => number; easel?: Pick<EaselDeps, 'canvas' | 'canDraw' | 'send' | 'tool'> }) {
     this.scene = o.scene;
+    this.mySlot = o.mySlot ?? (() => 0);
+    this.easelDeps = o.easel ?? null;
     this.gl = o.gl;
     this.camera = o.camera;
     this.mats = o.mats;
@@ -114,6 +106,21 @@ export class QuizVenue3D {
     this.serverNow = serverNow;
     this.dirty = true;
     this.checking = !!b?.riddle?.checking;
+    this.applyParts();
+  }
+
+  /** Табло перерисовать (подсветка мышью, новый мазок на мольберте) */
+  markBoard(): void {
+    this.dirty = true;
+  }
+
+  /** Пульты и мольберт — по снимку; рисунок «Крокодила» табло дублирует, пока мольберт на сцене */
+  private applyParts(): void {
+    const b = this.snap;
+    const now = this.serverNow();
+    this.pults?.set(b, this.mySlot(), now);
+    this.easel?.set(b);
+    boardUi.drawing = b?.mode === 'croc' && this.easel ? this.easel.canvas : null;
   }
 
   /** Праздник на сцене: лампочки бегут быстро seconds секунд */
@@ -173,7 +180,7 @@ export class QuizVenue3D {
       this.root.add(mesh);
     }
     // --- табло и вывеска: квад из GLB, холст интерфейса (MeshBasic без тонмаппинга — цвета как в UI)
-    const face = (name: string, w: number, h: number): ReturnType<typeof canvasTex> | null => {
+    const face = (name: string, w: number, h: number): CanvasTex | null => {
       const src = venue.getObjectByName(name) as THREE.Mesh | undefined;
       if (!src?.isMesh) return null;
       const t = canvasTex(w, h);
@@ -184,19 +191,23 @@ export class QuizVenue3D {
       // не гаснет по дальности (сетка — p3keep); материал приводит к общему виду plaza3/perf.ts — своей программы нет
       m.userData.p3keep = true;
       this.root.add(m);
+      if (name === 'board_face') this.boardMesh = m;
       return t;
     };
     this.board = face('board_face', d.board.canvas[0] ?? 2048, d.board.canvas[1] ?? 1024);
     // вывеска — там, где в GLB лежит узел sign_face (с оградой — над аркой, без ограды — где положил левел-дизайнер; нет узла — нет вывески)
     this.sign = face('sign_face', d.sign?.canvas?.[0] ?? 1024, d.sign?.canvas?.[1] ?? 256);
-    // --- пульты: в части 1 спрятаны в люки (крышка вровень с настилом), лампа-кнопка внутри — её не рисуем
-    if (pult) tris += this.instances(pult, d.pults.map((p) => [p.x, p.down, p.z, p.yaw] as const), 'quiz-pults', true, 'pult_lamp');
-    else this.stats.failed.push(d.glb.pult);
-    // --- мольберт ждёт за кулисами (выкатывается в «Крокодиле», часть 2) — пока не рисуем
-    if (easel) {
-      const park = d.easel.park;
-      tris += this.instances(easel, [[park.x, park.y, park.z, park.yaw]], 'quiz-easel', true, '', false);
+    // --- пульты в люках (крышка вровень с настилом); в «Своей игре» занятые выезжают (pults.ts)
+    if (pult) {
+      this.pults = new QuizPults(this.root, pult, venue, this.mats);
+      tris += this.pults.tris;
+    } else this.stats.failed.push(d.glb.pult);
+    // --- мольберт ждёт за кулисами, в «Крокодиле» выезжает (easel.ts)
+    if (easel && this.easelDeps) {
+      this.easel = new QuizEasel({ ...this.easelDeps, root: this.root, easel, mats: this.mats, camera: this.camera, changed: () => this.markBoard() });
+      tris += this.easel.tris;
     }
+    this.applyParts();
     // --- лампочки: кромка ракушки и рама табло — один InstancedMesh, цвет экземпляра — яркость
     const all = [...frameAt, ...bulbAt];
     if (all.length) {
@@ -234,38 +245,6 @@ export class QuizVenue3D {
     plaza3Shadows.refresh();
   }
 
-  /** Прототип (точка — пол под центром, лицо −Z) инстансами по точкам [x, y, z, yaw]; skip — узел, который не рисуем */
-  private instances(src: THREE.Group, at: ReadonlyArray<readonly [number, number, number, number]>, name: string, keep: boolean, skip = '', visible = true): number {
-    src.updateMatrixWorld(true);
-    let tris = 0;
-    const byFam = new Map<Family, THREE.BufferGeometry[]>();
-    src.traverse((o) => {
-      const m = o as THREE.Mesh;
-      if (!m.isMesh || (skip && m.name.startsWith(skip))) return;
-      const f = familyOf(Array.isArray(m.material) ? m.material[0] : m.material);
-      const list = byFam.get(f) ?? [];
-      list.push(worldGeometry(m.geometry, m.matrixWorld));
-      byFam.set(f, list);
-    });
-    for (const [f, list] of byFam) {
-      const geo = list.length > 1 ? mergeGeometries(list, false) : list[0];
-      if (!geo) continue;
-      const inst = new THREE.InstancedMesh(geo, this.mats[f], at.length);
-      at.forEach(([x, y, z, yaw], i) => inst.setMatrixAt(i, _m.compose(_p.set(x, y, z), _q.setFromAxisAngle(_up, yaw), _one)));
-      inst.instanceMatrix.needsUpdate = true;
-      inst.computeBoundingSphere();
-      inst.name = `${name}-${f}`;
-      // без тени: тень инстансов — отдельная программа глубины (бюджет — без новых программ); пульты в части 1 в люках
-      inst.castShadow = false;
-      inst.receiveShadow = true;
-      if (keep) inst.userData.p3keep = true;
-      inst.visible = visible;
-      this.root.add(inst);
-      tris += ((geo.index ? geo.index.count : geo.getAttribute('position').count) / 3) * at.length;
-    }
-    return tris;
-  }
-
   update(dt: number, camPos: THREE.Vector3): void {
     this.time += dt;
     if (!this.stats.ready) return;
@@ -273,7 +252,10 @@ export class QuizVenue3D {
     const sec = Math.floor(now / 1000);
     // табло: изменился снимок — не чаще 4 раз в секунду; идёт отсчёт — раз в секунду
     const b = this.snap;
-    if (this.board && b && (this.dirty || (sec !== this.paintedSec && (b.endsAt > now || (b.riddle?.endsAt ?? 0) > now))) && this.time - this.paintedAt >= BOARD_MIN_S) {
+    this.pults?.update(dt);
+    this.easel?.update(dt);
+    const ends = Math.max(b?.endsAt ?? 0, b?.riddle?.endsAt ?? 0, b?.jp?.endsAt ?? 0, b?.croc?.endsAt ?? 0, b?.who?.endsAt ?? 0);
+    if (this.board && b && (this.dirty || (sec !== this.paintedSec && ends > now)) && this.time - this.paintedAt >= BOARD_MIN_S) {
       this.paintedAt = this.time;
       this.paintedSec = sec;
       this.dirty = false;
@@ -312,7 +294,7 @@ export class QuizVenue3D {
   }
 
   debug(): Record<string, unknown> {
-    return { ...this.stats, bulbs: { frame: this.frameBulbs, edge: this.edgeBulbs } };
+    return { ...this.stats, bulbs: { frame: this.frameBulbs, edge: this.edgeBulbs }, pults: this.pults?.raised ?? null, easel: this.easel?.shown ?? null };
   }
 }
 

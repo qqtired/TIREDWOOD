@@ -431,6 +431,8 @@ const NO_PLAYERS: ReadonlyArray<{ x: number; z: number }> = [];
 export class NpcCrowd {
   private readonly scene: THREE.Scene;
   private readonly modes = new Map<PlazaMode, boolean>();
+  /** Убранные на время жители (setAway) */
+  private readonly away = new Set<string>();
   private npcs: Npc[] = [];
   private mesh: THREE.SkinnedMesh | null = null;
   private tags: THREE.Mesh | null = null;
@@ -616,6 +618,12 @@ export class NpcCrowd {
     this.modes.set(mode, on);
   }
 
+  /** Убрать или вернуть жителя по id: капитан Сева, пока у пирса «Ракушка» вместо «Ласточки» (флаг QUIZ) */
+  setAway(id: string, hidden: boolean): void {
+    if (hidden) this.away.add(id);
+    else this.away.delete(id);
+  }
+
   /** Облачко над жителем на 6 с (пул из трёх: занятое самым старым — перерисовывается) */
   private say(n: Npc, text: string): void {
     const t = text.trim().slice(0, BUBBLE_CHARS);
@@ -696,7 +704,7 @@ export class NpcCrowd {
           if (!n.hidden) this.shadowAt(i, n, true);
         }
       }
-      const on = (def.mode ? this.modes.get(def.mode) === true : true) && (!ext || ext.on);
+      const on = !this.away.has(def.id) && (def.mode ? this.modes.get(def.mode) === true : true) && (!ext || ext.on);
       const d = Math.hypot(cam.x - n.x, cam.z - n.z);
       n.dist = d;
       if (!on) n.fade = makeFade(0);

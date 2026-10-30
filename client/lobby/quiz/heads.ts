@@ -4,7 +4,7 @@
 // проверка «угадал» — золотая рамка, пока идёт дробь; угадал — золотое.
 import * as THREE from 'three';
 import { BUBBLE_CHARS, BUBBLE_MS } from '../../../shared/lobby.ts';
-import { QZ, QZ_MODES, type QzLine, type QzMark } from '../../../shared/quiz/types.ts';
+import { QZ, QZ_MODES, type QzLine, type QzMark, type QzPerson } from '../../../shared/quiz/types.ts';
 import type { Avatar, SpeechTone } from '../../render/avatar.ts';
 import { uiIcon } from '../../ui/kit/icons.ts';
 import type { QuizEvent } from './state.ts';
@@ -18,7 +18,9 @@ export class QuizHeads {
   private readonly mySlot: () => number;
   /** Чья строка сейчас в облачке: slot → id строки (облачко перекрашивается, только если это она) */
   private readonly shown = new Map<number, number>();
-  private readonly icons = new Map<number, THREE.Texture>();
+  private readonly icons = new Map<string, THREE.Texture>();
+  /** Титулы «Кто из нас?» над никами: slot → спрайт и текст */
+  private readonly titles = new Map<number, { sprite: THREE.Sprite; text: string; av: Avatar }>();
 
   constructor(avatarOf: (slot: number) => Avatar | null, mySlot: () => number) {
     this.avatarOf = avatarOf;
@@ -67,17 +69,91 @@ export class QuizHeads {
 
   /** Значок режима (иконка кита) — текстура для спрайта над головой */
   private icon(card: number): THREE.Texture | null {
-    let t = this.icons.get(card);
+    return this.iconTex(QZ_MODES[card]?.icon ?? '');
+  }
+
+  /** Значок кита по id — текстура для спрайта над головой (голос, выбор в «Кто из нас?») */
+  iconTex(id: string): THREE.Texture | null {
+    let t = this.icons.get(id);
     if (t) return t;
-    const url = uiIcon(QZ_MODES[card]?.icon ?? '');
+    const url = uiIcon(id);
     if (!url) return null;
     t = new THREE.TextureLoader().load(url);
     t.colorSpace = THREE.SRGBColorSpace;
-    this.icons.set(card, t);
+    this.icons.set(id, t);
     return t;
+  }
+
+  /** Титулы над никами (people[].titles — до конца игры): последний полученный, золотой пилюлей над табличкой */
+  setTitles(people: readonly QzPerson[] | null): void {
+    const want = new Map<number, string>();
+    for (const p of people ?? []) if (p.titles?.length) want.set(p.slot, p.titles[p.titles.length - 1]);
+    for (const [slot, t] of this.titles) {
+      const av = this.avatarOf(slot);
+      if (want.get(slot) === t.text && av === t.av) continue;
+      t.sprite.removeFromParent();
+      (t.sprite.material.map as THREE.Texture | null)?.dispose();
+      t.sprite.material.dispose();
+      this.titles.delete(slot);
+    }
+    for (const [slot, text] of want) {
+      if (this.titles.has(slot)) continue;
+      const av = this.avatarOf(slot);
+      if (!av) continue;
+      const sprite = titleSprite(text);
+      av.root.add(sprite);
+      this.titles.set(slot, { sprite, text, av });
+    }
+  }
+
+  /** Кадр: титул держится над табличкой с ником и прячется вместе с ней */
+  update(): void {
+    for (const { sprite, av } of this.titles.values()) {
+      const tag = av.nameTag;
+      sprite.visible = tag.visible;
+      if (!tag.visible) continue;
+      sprite.position.y = tag.position.y;
+      sprite.material.opacity = tag.material.opacity;
+      sprite.center.y = (tag.center.y * tag.scale.y - tag.scale.y - 0.003) / sprite.scale.y;
+    }
   }
 
   reset(): void {
     this.shown.clear();
+    this.setTitles(null);
   }
+}
+
+const TITLE_H = 0.034;
+/** Титул: золотая пилюля с тёмным текстом (как пилюли кита), тот же вид спрайта, что у таблички с ником — без новой программы */
+function titleSprite(text: string): THREE.Sprite {
+  const cv = document.createElement('canvas');
+  const g = cv.getContext('2d')!;
+  const font = '800 34px Rubik, system-ui, sans-serif';
+  g.font = font;
+  const w = Math.min(560, Math.ceil(g.measureText(text).width) + 44);
+  cv.width = w;
+  cv.height = 56;
+  g.font = font;
+  g.fillStyle = '#ffcd4a';
+  g.beginPath();
+  g.roundRect(2, 4, w - 4, 48, 24);
+  g.fill();
+  g.lineWidth = 3;
+  g.strokeStyle = 'rgba(22, 49, 58, .35)';
+  g.stroke();
+  g.fillStyle = '#16313a';
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.fillText(text, w / 2, 29, w - 28);
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.minFilter = THREE.LinearFilter;
+  tex.generateMipmaps = false;
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, sizeAttenuation: false, depthWrite: false, transparent: true, fog: false }));
+  sprite.scale.set((TITLE_H * w) / 56, TITLE_H, 1);
+  sprite.center.set(0.5, 0);
+  sprite.renderOrder = 5;
+  sprite.name = 'quiz-title';
+  return sprite;
 }

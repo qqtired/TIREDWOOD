@@ -14,12 +14,20 @@ export interface QuizHudLike {
   update(v: QzView | null, me: QzMe | null, b: QzBoard | null, nowMs: number): void;
   fx(e: QuizFx): void;
   dispose(): void;
+  /** Письма окна «Ракушка» (паки, билет загрузки, рекорды) — HUD Sonnet, если умеет */
+  onMsg?(m: { t: string }): void;
+  /** Часть 2б (Sonnet): клавиши режимов — первым; окно «Ракушка» (E у трибуны); инструмент «Крокодила» */
+  onKey?(code: string): boolean;
+  openWindow?(tab?: string): void;
+  crocTool?(): { color: number; size: number; erase: boolean } | null;
 }
+/** Слоты и верх-центр кита, шина звука «Интерфейс» — как у режимов фермы и самолёта (ui/hud-kit.ts QuizHudKit) */
+export type QuizHudKitArg = { slots: unknown; top: unknown; audio?: () => unknown };
 /** Что шлёт HUD: письма «Ракушки» и общее «встать» (кнопка «Встать» — то же, что E на кресле) */
 export type QuizHudMsg = QuizClientMsg | { t: 'unuse' };
-type HudCtor = new (send: (m: QuizHudMsg) => void) => QuizHudLike;
+type HudCtor = new (send: (m: QuizHudMsg) => void, kit?: QuizHudKitArg) => QuizHudLike;
 
-const MODS = import.meta.glob(['./ui/board.ts', './ui/sign.ts', './ui/hud.ts'], { eager: true }) as Record<string, Record<string, unknown>>;
+const MODS = import.meta.glob(['./ui/board.ts', './ui/sign.ts', './ui/hud.ts', './ui/plates.ts'], { eager: true }) as Record<string, Record<string, unknown>>;
 
 const FONT = 'Rubik, system-ui, sans-serif';
 const left = (at: number, now: number): string => {
@@ -96,5 +104,21 @@ class StubHud implements QuizHudLike {
 export const paintBoard: QuizPaint = (MODS['./ui/board.ts']?.paintBoard as QuizPaint | undefined) ?? stubBoard;
 export const paintSign: QuizPaint = (MODS['./ui/sign.ts']?.paintSign as QuizPaint | undefined) ?? stubSign;
 export const QuizHud: HudCtor = (MODS['./ui/hud.ts']?.QuizHud as HudCtor | undefined) ?? StubHud;
+/** Таблички пультов: атлас 1024 × 768 (ui/plates.ts); mySlot — чей пульт «мой». Нет модуля — таблички пустые */
+export type QuizPlates = (ctx: CanvasRenderingContext2D, b: QzBoard | null, nowMs: number, mySlot: number) => void;
+export const paintPlates: QuizPlates = (MODS['./ui/plates.ts']?.paintPlates as QuizPlates | undefined) ?? ((g) => g.clearRect(0, 0, g.canvas.width, g.canvas.height));
+
+type Rect = { x: number; y: number; w: number; h: number };
+/** Раскладка табло — у Sonnet (ui/board-*.ts), здесь не дублируем: карточки голосования, клетки «Своей игры», паки */
+export const boardRects: { card: (i: number) => Rect; cell: (r: number, c: number, rows: number, cols: number) => Rect; pack: (i: number) => Rect } | null =
+  MODS['./ui/board.ts']?.cardRect ? {
+    card: MODS['./ui/board.ts'].cardRect as (i: number) => Rect,
+    cell: MODS['./ui/board.ts'].jpCellRect as (r: number, c: number, rows: number, cols: number) => Rect,
+    pack: MODS['./ui/board.ts'].packRect as (i: number) => Rect,
+  } : null;
+/** Что подсвечено мышью на табло и рисунок «Крокодила» — табло читает при перерисовке (ui/board-base.ts boardUi) */
+export const boardUi: { card: number; cell: [number, number] | null; pack: number; drawing: CanvasImageSource | null } =
+  (MODS['./ui/board.ts']?.boardUi as typeof boardUi | undefined) ?? { card: -1, cell: null, pack: -1, drawing: null };
+
 /** Какие модули интерфейса настоящие (для __opus и отчёта) */
-export const uiReal = { board: !!MODS['./ui/board.ts'], sign: !!MODS['./ui/sign.ts'], hud: !!MODS['./ui/hud.ts'] };
+export const uiReal = { board: !!MODS['./ui/board.ts'], sign: !!MODS['./ui/sign.ts'], hud: !!MODS['./ui/hud.ts'], plates: !!MODS['./ui/plates.ts'] };

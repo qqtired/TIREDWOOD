@@ -82,6 +82,8 @@ export class Boats {
   private readonly ahead: BoatPose = { x: 0, z: 0, yaw: 0 };
   /** Скорость катера, м/с (для звука мотора) */
   private speed = 0;
+  /** Катер у причала есть (setLaunchShown) */
+  private shown = true;
   private readonly motorPos = new THREE.Vector3();
   /** Насколько катер на экране сдвинут от своего места по пути (качка): на столько же двигаем пассажиров */
   readonly launchOffset = new THREE.Vector3();
@@ -111,6 +113,13 @@ export class Boats {
   /** Мотор катера в поездке и его ход, м/с (null — стоит у причала). */
   launchMotor(): { pos: THREE.Vector3; speed: number } | null {
     return this.riding ? { pos: this.motorPos, speed: this.speed } : null;
+  }
+
+  /** Катер у причала есть или нет: со швартовами и кранцами; нет, пока у пирса «Ракушка» (флаг QUIZ) */
+  setLaunchShown(on: boolean): void {
+    this.shown = on;
+    this.launch.visible = on;
+    for (const r of this.ropes) r.visible = on && !this.riding;
   }
 
   /** Поездка катера по статусу с сервера: идёт (с тика at) или катер у причала. */
@@ -163,7 +172,7 @@ export class Boats {
     // швартовы отданы и кранцы убраны, пока катер в поездке
     this.fenders.visible = !this.riding;
     for (let i = 0; i < this.ropes.length; i++) {
-      this.ropes[i].visible = !this.riding;
+      this.ropes[i].visible = this.shown && !this.riding;
       if (!this.riding) this.ropes[i].update(this.cleats[i].getWorldPosition(this.tmp));
     }
     // след и мотор: нос и корма по курсу

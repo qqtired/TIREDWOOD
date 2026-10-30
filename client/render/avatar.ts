@@ -18,7 +18,7 @@ import { E_ADS, E_ALIVE, E_DASH, E_GROUNDED, E_PROTECTED, E_RELOAD } from '../..
 import { AWP_MUZZLE, makeAwp } from './awp.ts';
 import { headwearBounds, headwearLabelHeight, makeHatMaterial } from './hatpose.ts';
 import { drawLevelTag } from './leveltag.ts';
-import { ACT_QUIZ, quizSits } from '../lobby/quiz/places.ts';
+import { ACT_QUIZ, quizNoTag, quizSits } from '../lobby/quiz/places.ts';
 import { LOOK2 } from './look.ts';
 import { JellyFace } from './lookface.ts';
 import { BODY_H, bodyProfile, bodyR, type Wear } from './outfit3d.ts';
@@ -1175,6 +1175,8 @@ export class Avatar {
 
   /** Верх наряда для кадра в примерочной; границы уже посчитаны при смене шляпы. */
   get outfitHeight(): number { return this.hatBounds.top; }
+  /** Табличка с ником — над ней «Ракушка» вешает титул «Кто из нас?» (client/lobby/quiz/heads.ts) */
+  get nameTag(): THREE.Sprite { return this.tag; }
 
   /** После update: от первого лица показываем только правую варежку с настоящей анимацией рычага. */
   slotView(on: boolean): void {
@@ -1420,7 +1422,7 @@ export class Avatar {
     if (this.shown) {
       this.updateMark(camPos, local);
       // над своей желейкой табличка с ником не нужна
-      if (local) this.tag.visible = false;
+      if (local || (this.action === ACT_QUIZ && quizNoTag(this.arg))) this.tag.visible = false;
       else this.updateTag(camPos);
       this.updateSpeech(camPos);
       this.updateVoiceIndicator(local);

@@ -20,6 +20,7 @@ export class BoatSign {
   private readonly ctx: CanvasRenderingContext2D;
   private readonly tex: THREE.CanvasTexture;
   private key = '';
+  private readonly parts: THREE.Object3D[] = [];
 
   constructor(scene: THREE.Scene) {
     const canvas = document.createElement('canvas');
@@ -45,7 +46,13 @@ export class BoatSign {
     face.position.set(x, BOARD_Y + BOARD_H / 2, z - 0.056);
     face.rotation.y = Math.PI;
     scene.add(wood, face);
+    this.parts.push(wood, face);
     this.draw('', '#9fd6ff');
+  }
+
+  /** Столбик с табличкой есть или нет: катера нет, пока у пирса «Ракушка» (флаг QUIZ) */
+  setShown(on: boolean): void {
+    for (const o of this.parts) o.visible = on;
   }
 
   /** Статус катера и часы сервера (тики): что написать внизу. */

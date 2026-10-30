@@ -74,6 +74,7 @@ import type { NpcStatusIn } from './plaza3/npcdata.ts';
 import { PL_DOCK } from '../../shared/plane.ts';
 import { ArcadeClient } from './plaza3/arcade/index.ts';
 import { ACT_QUIZ, QuizClient } from './quiz/index.ts';
+import { hideSwallow } from './quiz/swallow.ts';
 import { emptyLive, fillLive, type LiveIn } from './plaza/live.ts';
 import { LobbyCamera, SLOT_LOOK_PITCH, SLOT_LOOK_YAW } from './camera.ts';
 import { FarmGate } from '../farm/lobbygate.ts';
@@ -610,7 +611,9 @@ export class LobbyScene implements Scene {
     if (this.plaza instanceof Plaza3Dress) this.plaza.npc.setLive(() => this.npcLive());
     this.quiz = this.plaza instanceof Plaza3Dress && this.world.pavilions ? new QuizClient({
       scene: this.world.scene, gl: d.renderer.gl, camera: this.world.camera, pavilions: this.world.pavilions.group, fx: this.fx, canvas: d.renderer.canvas,
-      chat: d.ui.chat, send: (m) => d.net.send(m as unknown as ClientMsg), toast: (text) => d.ui.toasts.show(text, 3400),
+      chat: d.ui.chat, send: (m) => d.net.send(m as unknown as ClientMsg), toast: (text) => d.ui.toasts.show(text, 3400), volume: () => d.settings.volume * d.settings.sfxVolume,
+      hudKit: { slots: d.ui.slots, top: d.ui.top, audio: () => d.sound.kit },
+      pultSolid: (i, on) => { const ix = this.world.map.quizPultBoxes?.[i]; if (ix !== undefined) this.world.collision.setEnabled(ix, on); },
       avatarOf: (slot) => (slot === this.myId ? this.me : (this.remotes.get(slot)?.avatar ?? null)), mySlot: () => this.myId, signs: this.plaza.signs,
     }) : null;
     // «Подземелье»: пещера и доска на лужайке (и их твёрдость) появляются, когда сервер прислал статус (флаг DUNGEON); таблицу рекордов берёт сама площадь
@@ -974,9 +977,14 @@ export class LobbyScene implements Scene {
         this.folk.setV2(this.fish2.on);
         this.rat3d.setOn(!!msg.ratrace);
         for (const index of this.world.map.ratBoxes) this.world.collision.setEnabled(index, !!msg.ratrace);
-        // «Ракушка»: поле quiz в приветствии — флаг QUIZ включён (площадка, твёрдое); нет — как раньше
+        // «Ракушка»: поле quiz в приветствии — флаг QUIZ включён (площадка, твёрдое); нет — как раньше.
+        // Пульты в люках — без твёрдого; поднятые включает QuizClient по снимку (в welcome)
+        for (const index of this.world.map.quizPultBoxes ?? []) this.world.collision.setEnabled(index, false);
         this.quiz?.welcome((msg as { quiz?: QzBoard }).quiz ?? null);
-        for (const index of (this.world.map as { quizBoxes?: number[] }).quizBoxes ?? []) this.world.collision.setEnabled(index, !!this.quiz?.enabled);
+        for (const index of this.world.map.quizBoxes ?? []) this.world.collision.setEnabled(index, !!this.quiz?.enabled);
+        // «Ракушка» у пирса: «Ласточки» нет — ворота, столбик и корпус катера без твёрдого (катер включит setBoat ниже, если QUIZ нет)
+        for (const index of [...(this.world.map.swallowBoxes ?? []), ...this.world.map.boatBoxes]) this.world.collision.setEnabled(index, !this.quiz?.enabled);
+        if (this.plaza instanceof Plaza3Dress) hideSwallow({ pavilions: this.world.pavilions ?? null, signs: this.plaza.signs, npc: this.plaza.npc, boat: this.world.boats, post: this.boatSign }, !!this.quiz?.enabled);
         // остров — следом отдельным письмом isle; нет его — флаг ISLE выключен
         for (const index of this.world.map.isleBoxes) this.world.collision.setEnabled(index, false);
         this.ratHud.setMe(this.d.ui.me().pid);
@@ -1698,7 +1706,8 @@ export class LobbyScene implements Scene {
   private setBoat(st: BoatStatus): void {
     this.boat = { ph: st.ph, at: st.at, n: st.n, nick: st.nick };
     const away = st.ph === BP_RIDE;
-    for (const i of this.world.map.boatBoxes) this.world.collision.setEnabled(i, !away);
+    // с QUIZ катера нет («Ракушка» у пирса) — его корпус без твёрдого всегда
+    for (const i of this.world.map.boatBoxes) this.world.collision.setEnabled(i, !away && !this.quiz?.enabled);
     this.world.boats.setRide(away, st.at);
   }
 
@@ -1950,7 +1959,7 @@ export class LobbyScene implements Scene {
     if (this.d.input.blocked) return false;
     if (this.rg.racing) return this.rg.onKey(code);
     // «Ракушка»: голос 1–4, F — роль, у загадывающего 1/2/3, Z, H; в эти моменты эмоции (и змей на 7) выключены
-    if (this.quiz?.onKey(code)) return true;
+    if (this.quiz?.onKey(code)) { e.preventDefault(); return true; }
     if ((code === 'Digit7' || code === 'Numpad7' || (code === 'Escape' && act === ACT_KITE)) && this.kiteOn && this.hasSelf && !isHeld(act)) {
       if (!this.outerMenu && !this.ratHud.isOpen && !this.juke.isOpen && !this.radio.isOpen && !this.ob.modalOpen) {
         if (act === ACT_KITE) this.d.net.send({ t: 'emote', e: ACT_NONE });
@@ -2527,9 +2536,12 @@ export class LobbyScene implements Scene {
     this.updateSlots(dt, this.busySlots | (act === ACT_SLOT ? 1 << this.arg : 0));
     this.world.barkas.setListener(this.d.sound.kit, this.hasSelf ? this.pose : null);
     this.world.update(dt, this.clock.renderTick);
-    this.boatSign.update(this.boat, this.clock.renderTick);
-    this.boatBanner.update(this.boat, this.clock.renderTick, this.time, this.world.boats.launchOffset, camPos);
-    this.kraken.update(this.clock.renderTick, this.boat, { x: camPos.x, z: camPos.z, riding: isAboard(act), camera: this.world.camera });
+    // с QUIZ «Ласточки» нет: табличка, вымпел посадки и кракен стоят
+    if (!this.quiz?.enabled) {
+      this.boatSign.update(this.boat, this.clock.renderTick);
+      this.boatBanner.update(this.boat, this.clock.renderTick, this.time, this.world.boats.launchOffset, camPos);
+      this.kraken.update(this.clock.renderTick, this.boat, { x: camPos.x, z: camPos.z, riding: isAboard(act), camera: this.world.camera });
+    }
     this.skillPortal.update(dt);
     this.ferris.update(this.clock.ready ? this.clock.renderTick : (performance.now() / 1000) * TICK_RATE, this.time);
     if (this.pool >= 0) this.world.jackpotBoard.update(this.pool, this.time);
@@ -2566,7 +2578,7 @@ export class LobbyScene implements Scene {
     fillLive(this.plazaLive, {
       pbHumans: this.pbHumans, fort: this.fortSt, skill: this.skillStatus, kart: ks.status, kartLeft: ks.left, hide: this.hideStatus,
       boatrace: this.boatRaceStatus, regattaRunning: this.rg.phase !== 'idle', boat: this.boat, aqua: this.aquaTop[0] ?? null,
-      tick: this.clock.renderTick, tickRate: TICK_RATE,
+      noBoat: !!this.quiz?.enabled, tick: this.clock.renderTick, tickRate: TICK_RATE,
     });
     if (plaza instanceof Plaza3Dress) {
       plaza.setSlotsBusy(this.busySlots, MACHINE_XS.length);
@@ -3050,7 +3062,9 @@ export class LobbyScene implements Scene {
       // место 45 — пустышка бывшего «Fight Club»: подсказки нет
       if (it.kind === 'retired') continue;
       // кресла «Ракушки» — только с флагом QUIZ
-      if ((it.kind as string) === 'quiz' && !this.quiz?.enabled) continue;
+      if (it.kind === 'quiz' && !this.quiz?.enabled) continue;
+      // катер «Ласточка» — только без QUIZ (на его месте у пирса «Ракушка»)
+      if (it.kind === 'boat' && this.quiz?.enabled) continue;
       if (this.isBusy(it)) {
         if (dist < takenD) {
           taken = it;
@@ -3191,7 +3205,7 @@ export class LobbyScene implements Scene {
         break;
       }
     }
-    if ((it.kind as string) === 'quiz' && this.quiz) this.hud.setHint(...this.quiz.pointHint(it.arg));
+    if (it.kind === 'quiz' && this.quiz) this.hud.setHint(...this.quiz.pointHint(it.arg));
   }
 
   /**

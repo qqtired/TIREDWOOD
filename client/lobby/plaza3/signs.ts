@@ -699,6 +699,11 @@ export class Plaza3Signs {
     for (const s of this.signs) if (s.meta.flag === mode && s.on !== on) this.place(s, on);
   }
 
+  /** Спрятать или вернуть вывеску без флага режима (так же, на ходу): «Ласточка», пока у пирса «Ракушка» (флаг QUIZ) */
+  setHidden(id: string, hidden: boolean): void {
+    for (const s of this.signs) if (s.id === id && !s.meta.flag && s.on === hidden) this.place(s, !hidden);
+  }
+
   setFortLine(line: string): void {
     this.fortLine = line;
   }

@@ -22,6 +22,8 @@ export interface LiveIn {
   boat: { ph: number; n: number; left: number } | null;
   /** Лучший результат аквапарка (первая строка доски рекордов); null — рекордов ещё нет */
   aqua: { nick: string; ms: number } | null;
+  /** Катера «Ласточка» нет: у пирса «Ракушка» (флаг QUIZ) — ни строки в афише, ни реплик */
+  noBoat?: boolean;
 }
 
 export function emptyLive(): LiveIn {
@@ -90,7 +92,7 @@ export function liveLines(key: ToutKey, s: LiveIn): readonly string[] {
     }
     case 'boat': {
       const b = s.boat;
-      if (!b) return [];
+      if (!b || s.noBoat) return [];
       if (b.ph === BP_BOARD) {
         const free = BOAT_SEATS - b.n;
         return [cut(free > 0 ? `Отплытие через ${b.left} с. Свободно мест: ${free}` : `Мест нет. Отплытие через ${b.left} с`)];
@@ -184,6 +186,7 @@ export function agendaRows(s: LiveIn): AgendaRow[] {
       }
       case 'boat': {
         const b = s.boat;
+        if (s.noBoat) break;
         if (b && b.ph === BP_BOARD) row(key, BOAT_SEATS - b.n > 0 ? `отплытие через ${b.left} с · мест ${BOAT_SEATS - b.n}` : `мест нет · через ${b.left} с`, true);
         else if (b && b.ph === BP_RIDE) row(key, `в поездке · ещё ${b.left} с`, true);
         else row(key, 'катер свободен · жми E', false);
@@ -236,6 +239,8 @@ export interface LiveRaw {
   regattaRunning: boolean;
   boat: { ph: number; at: number; n: number };
   aqua: { nick: string; ms: number } | null;
+  /** «Ракушка» у пирса (флаг QUIZ): катера нет */
+  noBoat?: boolean;
   /** Часы отрисовки, тики сервера */
   tick: number;
   tickRate: number;
@@ -274,6 +279,7 @@ export function fillLive(out: LiveIn, r: LiveRaw): LiveIn {
   b.ph = r.boat.ph;
   b.n = r.boat.n;
   out.aqua = r.aqua;
+  out.noBoat = !!r.noBoat;
   b.left = r.boat.ph === BP_RIDE ? secs(r.boat.at + BOAT_RIDE_TICKS - r.tick, r.tickRate) : secs(r.boat.at - r.tick, r.tickRate);
   return out;
 }

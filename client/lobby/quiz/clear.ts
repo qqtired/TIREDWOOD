@@ -13,7 +13,7 @@ const EPS = 0.03;
 
 /** Где прятать декор (мир, [x, z]): decorClear из данных (локальные координаты площадки), иначе ограда */
 export function clearPoly(): [number, number][] {
-  const d = QUIZ_VENUE.data as { decorClear?: [number, number][] };
+  const d = QUIZ_VENUE.data;
   if (!d.decorClear || d.decorClear.length < 3) return QUIZ_VENUE.fence.map(([x, z]) => [x, z]);
   return d.decorClear.map(([x, z]) => { const v = toWorld(QUIZ_VENUE.world, x, 0, z); return [v[0], v[2]]; });
 }
@@ -52,9 +52,8 @@ export class FenceClear {
   tris = 0;
 
   /** Спрятать декор в ограде; повторный вызов ничего не делает */
-  apply(root: THREE.Object3D): void {
+  apply(root: THREE.Object3D, want: Map<string, Cut[]> = fenceDecor()): void {
     if (this.saved.length) return;
-    const want = fenceDecor();
     if (!want.size) return;
     root.traverse((o) => {
       const cuts = want.get(o.name);

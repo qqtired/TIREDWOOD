@@ -102,6 +102,9 @@ export class Plaza3Pavilions {
   private readonly redLights: THREE.MeshBasicMaterial[] = [];
   private lampsOn = true;
   private fortOpen = false;
+  /** Вершины павильона в склейке его группы (меш, первая, сколько, сохранённые при скрытии) — setPavHidden */
+  private readonly spans = new Map<string, Array<{ mesh: THREE.Mesh; at: number; n: number; keep: Float32Array | null }>>();
+  private readonly hiddenPavs = new Set<string>();
   /** Сколько и чего собрано: группы, упавшие файлы — для замера (__opus) */
   readonly stats = { groups: {} as Record<string, GroupStat>, failed: [] as string[], loaded: [] as string[], ready: false };
 
@@ -167,6 +170,8 @@ export class Plaza3Pavilions {
     const root = new THREE.Matrix4();
     let props = 0;
     const ok: Array<[PavPlace, PavModel]> = [];
+    /** Павильон → номера его кусков в buckets по семьям (FAMILIES): с какого и до какого */
+    const marks: Array<[string, number[], number[]]> = [];
     const skip = new Set<string>([...Object.values(BOARD_FIELDS).map((b) => b.live).filter(Boolean), ...SKIP_LIVE]);
     for (const [p, model] of got) {
       if (!model) {
@@ -174,6 +179,7 @@ export class Plaza3Pavilions {
         continue;
       }
       ok.push([p, model]);
+      marks.push([p.id, FAMILIES.map((f) => buckets[f].length), []]);
       placeMatrix(p, root);
       for (const [name, parts] of model.nodes) {
         if (!(name.startsWith('static_') || name.startsWith('live_')) || skip.has(name) || p.live?.includes(name)) continue;
@@ -191,6 +197,7 @@ export class Plaza3Pavilions {
         buckets.glow.push(worldGeometry(BULB, _m.makeTranslation(_p.x, _p.y, _p.z)));
       }
       this.bulbs += model.bulbs.length;
+      marks[marks.length - 1][2] = FAMILIES.map((f) => buckets[f].length);
       for (const name of p.live ?? []) this.addLive(p, model, name, root);
     }
     const holder = new THREE.Group();
@@ -199,6 +206,8 @@ export class Plaza3Pavilions {
     for (const f of FAMILIES) {
       const list = buckets[f];
       if (!list.length) continue;
+      const starts = [0];
+      for (const x of list) starts.push(starts[starts.length - 1] + x.getAttribute('position').count);
       const geo = mergeGeometries(list, false);
       for (const x of list) x.dispose();
       if (!geo) continue;
@@ -211,6 +220,11 @@ export class Plaza3Pavilions {
       mesh.updateMatrix();
       tris += (geo.index ? geo.index.count : geo.getAttribute('position').count) / 3;
       holder.add(mesh);
+      const fi = FAMILIES.indexOf(f);
+      for (const [id, from, to] of marks) {
+        const at = starts[from[fi]], n = starts[to[fi]] - at;
+        if (n > 0) this.spans.set(id, [...(this.spans.get(id) ?? []), { mesh, at, n, keep: null }]);
+      }
     }
     // прогрев: программы собираются параллельно, пока кадр идёт, — показ группы без замирания
     holder.updateMatrixWorld(true);
@@ -224,9 +238,40 @@ export class Plaza3Pavilions {
       this.world.hidePavilion(p.id);
       this.mount(p, model);
       this.stats.loaded.push(p.id);
+      if (this.hiddenPavs.has(p.id)) this.foldPav(p.id, true);
     }
     this.stats.groups[g] = { draws: holder.children.length, tris: Math.round(tris), props, ms: Math.round(performance.now() - t0) };
     this.hooks.refreshShadows();
+  }
+
+  /**
+   * Спрятать или вернуть один павильон на ходу: его треугольники в склейке группы схлопываются в точку — без пересборки
+   * и новых шейдеров, как вывески за флагом. Ещё не встал — спрячется, когда встанет. Ворота «Ласточки» с флагом QUIZ.
+   */
+  setPavHidden(id: string, hidden: boolean): void {
+    if (hidden) this.hiddenPavs.add(id);
+    else this.hiddenPavs.delete(id);
+    if (this.foldPav(id, hidden)) this.hooks.refreshShadows();
+  }
+
+  private foldPav(id: string, hidden: boolean): boolean {
+    let changed = false;
+    for (const s of this.spans.get(id) ?? []) {
+      if (hidden === !!s.keep) continue;
+      const pos = s.mesh.geometry.getAttribute('position') as THREE.BufferAttribute;
+      const arr = pos.array as Float32Array;
+      const a = s.at * 3, b = (s.at + s.n) * 3;
+      if (hidden) {
+        s.keep = arr.slice(a, b);
+        for (let i = a + 3; i < b; i += 3) arr.copyWithin(i, a, a + 3);
+      } else {
+        arr.set(s.keep!, a);
+        s.keep = null;
+      }
+      pos.needsUpdate = true;
+      changed = true;
+    }
+    return changed;
   }
 
 

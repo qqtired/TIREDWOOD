@@ -111,6 +111,8 @@ export const MODE_STATS: readonly ModeStats[] = [
   { icon: 'bell-cloud', mode: 'Выше облаков', rows: [['подъёмов', (s) => s.skRuns], ['медаль', (s) => medal(s.skMedal)], ['без падений', (s) => (s.skClean ? 'есть' : null)]] },
   { icon: 'shield', mode: 'Крепость', rows: [['игр', (s) => s.ftGames], ['побед', (s) => s.ftWins], ['сбито зомби', (s) => s.ftKills]], played: (s) => s.ftGames > 0 },
   { icon: 'storm', mode: 'Шторм', rows: [['штормов', (s) => s.stStorms], ['огней зажжено', (s) => s.stLights]], played: (s) => s.stStorms > 0 },
+  // «Ракушка» (флаг QUIZ): квизы на сцене — тем, кто играл
+  { icon: 'bell', mode: 'Ракушка', rows: [['«Своя игра» — побед', (s) => s.qzJpWins], ['«Своя игра» — лучший счёт', (s) => best(s.qzJpBest)], ['«Загадка» — разгадано', (s) => s.qzRdSolved], ['разгадали твоих загадок', (s) => s.qzRdMade], ['«Крокодил» — угадано слов', (s) => s.qzCrGuessed], ['угадали твоих рисунков', (s) => s.qzCrDrawn], ['«Кто из нас?» — титулов', (s) => s.qzWhoTitles]], played: (s) => s.qzJpGames + s.qzRdSolved + s.qzRdMade + s.qzCrGuessed + s.qzCrDrawn + s.qzWhoTitles > 0 },
   { icon: 'pirate-flag', mode: 'Пираты', rows: [['налётов', (s) => s.prRaids], ['побед', (s) => s.prWins], ['сбито пиратов', (s) => s.prKos]], played: (s) => s.prRaids > 0 },
 ];
 
