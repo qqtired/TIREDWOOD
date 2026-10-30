@@ -244,6 +244,7 @@ export class LobbyRoom implements Room {
     this.map = buildLobby();
     this.world = new CollisionWorld(this.map);
     if (!hub.quiz) for (const box of this.map.quizBoxes ?? []) this.world.setEnabled(box, false);
+    if (hub.quiz) for (const box of [...this.map.boatBoxes, ...(this.map.swallowBoxes ?? [])]) this.world.setEnabled(box, false);
     for (const box of this.map.quizPultBoxes ?? []) this.world.setEnabled(box, false);
     this.quiz = hub.quiz ? new QuizStage({
       now: () => this.now(), rand: Math.random,
@@ -1308,6 +1309,7 @@ export class LobbyRoom implements Room {
 
   /** E у катера: стоит — первый платит и садится за руль (30 с посадки); идёт посадка — садишься бесплатно. */
   private onBoat(p: LobbyPlayer): void {
+    if (this.hub.quiz) return;
     const c = p.client;
     const prof = c.profile;
     const b = this.boat;
@@ -1870,6 +1872,7 @@ export class LobbyRoom implements Room {
 
   /** Катер: отплытие, поездка (пассажиров везёт сервер — по общему пути, клиенты рисуют катер по нему же), возврат. */
   private stepBoat(): void {
+    if (this.hub.quiz) return;
     const b = this.boat;
     const r = b.step(this.tick);
     if (r === 'cancel') this.boatChanged();

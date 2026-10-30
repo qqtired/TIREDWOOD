@@ -21,7 +21,7 @@ import { PLANE_SIGN, PLANE_USE } from '../plane.ts';
 import { BERTHS, parkDeckBoxes } from '../ownboat.ts';
 import { SLOT_POSES } from '../slots.ts';
 import { moleRampSteps } from '../plaza3/port.ts';
-import { KART_TIRES, PB_BARRELS, SIGNPOST, plazaSolids, type PlazaSolid, type PlazaSolidMode } from '../plaza2.ts';
+import { BOAT_GATE, KART_TIRES, PB_BARRELS, SIGNPOST, plazaSolids, type PlazaSolid, type PlazaSolidMode } from '../plaza2.ts';
 import { FARM_PLAZA_GATE } from '../farmmap.ts';
 import { WHEEL, WHEEL_GATE } from '../wheel.ts';
 import { billiardsTableGuards, cafeTableGuards } from '../tableguard.ts';
@@ -125,6 +125,8 @@ export interface LobbyMap extends GameMap {
   ratBoxes: number[];
   /** «Ракушка»: без QUIZ выключены; только новая набережная. */
   quizBoxes?: number[];
+  /** Ворота и столбик вывески «Ласточки»: с QUIZ выключены; только новая набережная. */
+  swallowBoxes?: number[];
   /** Пульты «Ракушки»: выключены комнатой и клиентом, пока соответствующий пульт в люке. */
   quizPultBoxes?: number[];
   /** Бильярдные столы и столбы навеса (флаг сервера BILLIARDS): без флага коллизию выключают */
@@ -428,6 +430,7 @@ export function buildLobby(): LobbyMap {
   for (let i = first; i < b.boxes.length; i++) boatBoxes.push(i);
   const boatArea: Box2 = { x0: LAUNCH.x - 3.5, z0: LAUNCH.z - 1.2, x1: LAUNCH.x + 3.5, z1: LAUNCH.z + 1.2 };
   // табличка у катера: столбик (обходить, как кнехт)
+  const swallowBoxes: number[] = [b.boxes.length];
   b.box([BOAT_SIGN.x - 0.05, 0, BOAT_SIGN.z - 0.05], [BOAT_SIGN.x + 0.05, 1.9, BOAT_SIGN.z + 0.05], 'invisible', 0);
 
   // --- Аквапарк «Волна» к западу от площади (shared/aqua.ts): дощатый мостик на сваях — старт, дальше надувная полоса
@@ -642,6 +645,7 @@ export function buildLobby(): LobbyMap {
   for (const p of solids) {
     plazaBoxes.push(b.boxes.length);
     if (p.mode) plazaModeBoxes[p.mode].push(b.boxes.length);
+    if (p.z === BOAT_GATE.z && (p.x === BOAT_GATE.x0 || p.x === BOAT_GATE.x1)) swallowBoxes.push(b.boxes.length);
     b.box([p.x - p.hx, p.y ?? 0, p.z - p.hz], [p.x + p.hx, (p.y ?? 0) + p.h, p.z + p.hz], 'invisible', 0);
   }
 
@@ -722,7 +726,7 @@ export function buildLobby(): LobbyMap {
     ferryAwayBoxes,
     jukeBoxes,
     ratBoxes,
-    ...(PLAZA3 ? { quizBoxes, quizPultBoxes } : {}),
+    ...(PLAZA3 ? { quizBoxes, quizPultBoxes, swallowBoxes } : {}),
     billiardsBoxes,
     planeBoxes,
     parkBoxes,
