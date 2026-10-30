@@ -361,6 +361,8 @@ export class LobbyScene implements Scene {
   /** Куда смотрел нос в прошлом кадре: в поездке взгляд поворачивает вместе с катером */
   private boatYaw = LAUNCH.yaw;
   private readonly boatSign: BoatSign;
+  /** «Ласточка» спрятана: у пирса «Ракушка» (syncPier; null — ещё не решали) */
+  private pierOff: boolean | null = null;
   /** Оформление площади: входы в режимы, зазывалы (client/lobby/plaza); null при ?plaza=1 */
   private readonly plaza: PlazaDress | Plaza3Dress | null;
   private readonly plazaLive: LiveIn = emptyLive();
@@ -982,9 +984,9 @@ export class LobbyScene implements Scene {
         for (const index of this.world.map.quizPultBoxes ?? []) this.world.collision.setEnabled(index, false);
         this.quiz?.welcome((msg as { quiz?: QzBoard }).quiz ?? null);
         for (const index of this.world.map.quizBoxes ?? []) this.world.collision.setEnabled(index, !!this.quiz?.enabled);
-        // «Ракушка» у пирса: «Ласточки» нет — ворота, столбик и корпус катера без твёрдого (катер включит setBoat ниже, если QUIZ нет)
-        for (const index of [...(this.world.map.swallowBoxes ?? []), ...this.world.map.boatBoxes]) this.world.collision.setEnabled(index, !this.quiz?.enabled);
-        if (this.plaza instanceof Plaza3Dress) hideSwallow({ pavilions: this.world.pavilions ?? null, signs: this.plaza.signs, npc: this.plaza.npc, boat: this.world.boats, post: this.boatSign }, !!this.quiz?.enabled);
+        // «Ракушка» у пирса: «Ласточки» нет (катер у причала включит setBoat ниже, если QUIZ нет)
+        this.pierOff = null;
+        this.syncPier();
         // остров — следом отдельным письмом isle; нет его — флаг ISLE выключен
         for (const index of this.world.map.isleBoxes) this.world.collision.setEnabled(index, false);
         this.ratHud.setMe(this.d.ui.me().pid);
@@ -1709,6 +1711,19 @@ export class LobbyScene implements Scene {
     // с QUIZ катера нет («Ракушка» у пирса) — его корпус без твёрдого всегда
     for (const i of this.world.map.boatBoxes) this.world.collision.setEnabled(i, !away && !this.quiz?.enabled);
     this.world.boats.setRide(away, st.at);
+  }
+
+  /**
+   * «Ракушка» у пирса (флаг QUIZ): «Ласточки» нет — ворота, вывеска, Сева, катер и столбик спрятаны, их твёрдое выключено.
+   * Следит за quiz.enabled каждый кадр: «Ракушка» включается не только приветствием (?quizdemo, письма «Ракушки»).
+   */
+  private syncPier(): void {
+    const off = !!this.quiz?.enabled;
+    if (off === this.pierOff) return;
+    this.pierOff = off;
+    for (const index of this.world.map.swallowBoxes ?? []) this.world.collision.setEnabled(index, !off);
+    for (const index of this.world.map.boatBoxes) this.world.collision.setEnabled(index, !off && this.boat.ph !== BP_RIDE);
+    if (this.plaza instanceof Plaza3Dress) hideSwallow({ pavilions: this.world.pavilions ?? null, signs: this.plaza.signs, npc: this.plaza.npc, boat: this.world.boats, post: this.boatSign }, off);
   }
 
   /** Статус «Удалой»: её боксы — только у той стоянки, где она стоит (как на сервере); first — при входе, без гудка. */
@@ -2537,6 +2552,7 @@ export class LobbyScene implements Scene {
     this.world.barkas.setListener(this.d.sound.kit, this.hasSelf ? this.pose : null);
     this.world.update(dt, this.clock.renderTick);
     // с QUIZ «Ласточки» нет: табличка, вымпел посадки и кракен стоят
+    this.syncPier();
     if (!this.quiz?.enabled) {
       this.boatSign.update(this.boat, this.clock.renderTick);
       this.boatBanner.update(this.boat, this.clock.renderTick, this.time, this.world.boats.launchOffset, camPos);
