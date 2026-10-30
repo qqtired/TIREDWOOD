@@ -1,6 +1,6 @@
 import type { QuizClientMsg, QuizServerMsg, QzErrCode } from '../../../shared/quiz/net.ts';
 import type { RiddleWho } from '../../../shared/quiz/riddle.ts';
-import type { QuizMode, QzBoard, QzCall, QzMe, QzPersonRole, QzResults, QzView, QzZatClip, QzPackKind } from '../../../shared/quiz/types.ts';
+import type { QuizMode, QzBoard, QzCall, QzMe, QzPersonRole, QzResults, QzView, QzZatClip, QzPackKind, QzOrder } from '../../../shared/quiz/types.ts';
 import type { VenueSpot } from '../../../shared/quiz/venue.ts';
 import type { JeopardyPack } from '../../../shared/quiz/jeopardy.ts';
 import type { QuizRewardEvent } from './tokens.ts';
@@ -24,6 +24,10 @@ export interface ModeHost {
   store?: QuizPacks;
   ping(slot: number): number;
   ink(msg: Extract<QuizServerMsg, { t: 'qzInk' }>): void;
+  /** «Ракушка» 1.1: заказ кнопкой «Сыграть» на этот вид пака (null — нет). Режим снимает заказ orderUsed,
+   *  когда пак действительно пошёл в игру (у «Своей игры» — выбран и сыгран вопрос) */
+  order?(kind: QzPackKind): QzOrder | null;
+  orderUsed?(kind: QzPackKind, id: string): void;
 }
 
 /** Общая граница сцены и режимов. У «Загадки» вызов и возврат в кресло остаются в сцене. */

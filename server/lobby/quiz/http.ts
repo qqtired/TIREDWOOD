@@ -13,6 +13,12 @@ export interface QuizHttpOptions {
   /** clientIp из server/main.ts (не доверять X-Forwarded-For от произвольного адреса). */
   ip?: (req: IncomingMessage) => string;
   log?: (message: string) => void;
+  /** «Ракушка» 1.1: ники, которым можно загружать паки (QUIZ_UPLOADERS, без учёта регистра); пусто — по уровню, как раньше */
+  uploaders?: readonly string[];
+}
+/** QUIZ_UPLOADERS=Tired,Ник — ники через запятую */
+export function quizUploaders(raw: string | undefined): string[] {
+  return [...new Set((raw ?? '').split(',').map(s => s.trim()).filter(Boolean))];
 }
 const MIME: Record<string, string> = { webp: 'image/webp', png: 'image/png', jpg: 'image/jpeg', gif: 'image/gif', mp3: 'audio/mpeg', ogg: 'audio/ogg', m4a: 'audio/mp4' };
 function json(res: ServerResponse, status: number, value: unknown): void {
@@ -56,12 +62,14 @@ export class QuizHttp {
   private now: () => number;
   private ip: (req: IncomingMessage) => string;
   private log: (message: string) => void;
+  private uploaders: string[];
   private tickets = new Map<string, Ticket>();
   private limiter: RateLimiter;
   private sweepTimer: ReturnType<typeof setInterval>;
   constructor(opts: QuizHttpOptions) {
     this.packs = opts.packs; this.enabled = opts.enabled ?? true; this.now = opts.now ?? Date.now;
     this.ip = opts.ip ?? (req => req.socket.remoteAddress ?? 'local'); this.log = opts.log ?? console.error;
+    this.uploaders = [...(opts.uploaders ?? [])];
     this.limiter = new RateLimiter(this.now);
     this.sweepTimer = setInterval(() => { try { this.sweep(); } catch { this.log('quiz: не удалось убрать истёкшую загрузку'); } }, 30_000);
     this.sweepTimer.unref();
@@ -72,11 +80,20 @@ export class QuizHttp {
     for (const [key, t] of this.tickets) if (t.exp <= now && !t.busy) this.tickets.delete(key);
     this.packs.expire(now); this.limiter.sweep(60_000);
   }
-  /** Вызывает WS-сцена с pid и уровнем из профиля; билет никогда не пишется в каталог или журнал. */
-  ticket(pid: number, level: number): { ticket: string; exp: number; left: number } {
+  /** Можно ли загружать паки; why — готовая строка для окна «Ракушки» (QzMe.uploadWhy) */
+  uploadCheck(nick: string, level: number): { ok: boolean; why: string } {
+    if (!this.enabled) return { ok: false, why: 'Паки пока недоступны.' };
+    const key = nick.trim().toLowerCase();
+    if (this.uploaders.length && !this.uploaders.some(n => n.toLowerCase() === key)) return { ok: false, why: `Загружать паки пока может только ${this.uploaders.join(', ')}` };
+    if (!Number.isFinite(level) || level < QZ_PACK.MIN_LEVEL) return { ok: false, why: 'Загружать паки можно с 3-го уровня' };
+    return { ok: true, why: '' };
+  }
+  /** Вызывает WS-сцена с pid, ником и уровнем из профиля; билет никогда не пишется в каталог или журнал. */
+  ticket(pid: number, level: number, nick = ''): { ticket: string; exp: number; left: number } {
     if (!this.enabled) throw new PackError('Паки пока недоступны.', 404);
     this.sweep();
-    if (!Number.isFinite(level) || level < QZ_PACK.MIN_LEVEL) throw new PackError('Загружать паки можно с 3-го уровня', 403);
+    const check = this.uploadCheck(nick, level);
+    if (!check.ok) throw new PackError(check.why, 403);
     for (const [ticket, t] of this.tickets) if (t.pid === pid) return { ticket, exp: t.exp, left: this.packs.uploadsLeft(pid, this.now()) };
     this.packs.checkUpload(pid, level, this.now());
     const ticket = randomBytes(32).toString('hex'), exp = this.now() + QZ_PACK.TICKET_MS;

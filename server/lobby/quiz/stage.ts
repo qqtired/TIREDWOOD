@@ -3,7 +3,7 @@ import { ACT_QUIZ } from '../../../shared/lobby.ts';
 import type { QuizClientMsg, QuizServerMsg, QzErrCode } from '../../../shared/quiz/net.ts';
 import type { RiddleResult, RiddleWho } from '../../../shared/quiz/riddle.ts';
 import { QZ, QZ_CROC, QZ_MODES, type QuizMode, type QzBoard, type QzCall, type QzMe, type QzPhase, type QzInkOp,
-  type QzScoreRow, type QzView, type QzVote, type QzZatClip, type QzZatSay } from '../../../shared/quiz/types.ts';
+  type QzScoreRow, type QzView, type QzVote, type QzZatClip, type QzZatSay, type QzOrder, type QzPackKind } from '../../../shared/quiz/types.ts';
 import { QUIZ_VENUE, inQuizArea, placeAt, type VenueSpot } from '../../../shared/quiz/venue.ts';
 import { createVote, castVote, syncVote, voteView, finishVote, type VoteState } from '../../../shared/quiz/vote.ts';
 import { RiddleGame } from './riddle.ts';
@@ -43,6 +43,8 @@ export interface QuizHost {
 }
 
 const READY = QZ_MODES.map(m => m.id);
+/** «Ракушка» 1.1: «Сыграть» — какие паки можно заказать и как назвать игру в ответе */
+const ORDER_GAME: Partial<Record<QzPackKind, string>> = { jeopardy: 'Своя игра', words: 'Крокодил', whoofus: 'Кто из нас?' };
 
 export class QuizStage {
   private readonly h: QuizHost;
@@ -88,6 +90,8 @@ export class QuizStage {
   private rev = 0;
   private stateKey = '';
   private readonly sent = new Map<number, { pid: number; inside: boolean; key: string; at: number }>();
+  /** «Сыграть»: по одному заказу на вид пака, новый заменяет старый; живут, пока жив счёт вечера */
+  private readonly orders = new Map<QzPackKind, QzOrder>();
 
   constructor(host: QuizHost) {
     this.h = host; this.emptyAt = host.now(); this.tokens = new QuizTokens(host.profiles?.());
@@ -218,7 +222,8 @@ export class QuizStage {
       ...(this.mode === 'whoofus' ? { titles: this.controller?.titles?.(p.pid) ?? [] } : {}) })),
     call: this.call ? { ...this.call, to: this.call.to ? { ...this.call.to } : null } : null,
     swap: (this.phase === 'roles' || this.phase === 'game') && !this.swapPending ? { n: this.swaps.size, need: this.swapNeed() } : null,
-    riddle: fields?.riddle ?? null, jp: fields?.jp ?? null, croc: fields?.croc ?? null, who: fields?.who ?? null };
+    riddle: fields?.riddle ?? null, jp: fields?.jp ?? null, croc: fields?.croc ?? null, who: fields?.who ?? null,
+    orders: [...this.orders.values()].map(o => ({ ...o, by: { ...o.by } })) };
   }
 
   me(slot: number): QzMe | null {
@@ -228,6 +233,8 @@ export class QuizStage {
       swap: this.swaps.has(slot), canSwap: this.canSwap(p), canPlay: this.phase === 'idle' && this.chair(p) >= 0 && this.members.size >= 2,
       canTake: this.canTake(p), gapUntil: this.controller?.gapUntil(p.pid) ?? 0,
       ...this.controller?.meFields(slot, this.h.now()), dayCoins: this.tokens.stats(p.pid, this.h.now()).qzDayCoins };
+    const up = this.h.http?.uploadCheck(p.nick, p.level ?? 1) ?? { ok: false, why: 'Паки пока недоступны.' };
+    me.canUpload = up.ok; me.uploadWhy = up.why;
     const score = this.scores.get(p.pid);
     if (this.phase === 'results' && (score || this.tokens.gameCoins(p.pid))) me.result = {
       place: score ? 1 + [...this.scores.values()].filter(s => s.pts > score.pts).length : 0,
@@ -236,7 +243,7 @@ export class QuizStage {
   }
 
   private refresh(now: number): void {
-    if (this.emptyAt !== null && now - this.emptyAt >= QZ.EVENING_IDLE_MS) this.evening.clear();
+    if (this.emptyAt !== null && now - this.emptyAt >= QZ.EVENING_IDLE_MS) { this.evening.clear(); this.orders.clear(); }
     const lobby = [...this.h.people()];
     const next = new Map(lobby.filter(p => !p.ephemeral && !p.riding && inQuizArea(p.x, p.y, p.z)).map(p => [p.slot, { ...p }]));
     const previous = this.members; this.members = next;
@@ -306,12 +313,12 @@ export class QuizStage {
         if (this.voteStep === 'nobody') this.idle(true);
         else if (this.voteStep === 'spin') this.voteWinner(now);
         else {
-          const voters = [...this.members.values()].filter(p => this.vote?.votes[p.slot] === 1).map(p => p.pid);
+          const win = this.decision?.win ?? -1, voters = [...this.members.values()].filter(p => this.vote?.votes[p.slot] === win).map(p => p.pid);
           this.phase = 'roles'; this.deadline = 0; this.vote = null; this.decision = null;
           this.skipped.clear(); this.lastRiddler = 0;
           const h = this.modeHost();
           if (this.mode === 'jeopardy') this.controller = new JeopardyGame(h, now, voters, this.lineSeq);
-          else if (this.mode === 'croc') this.controller = new CrocGame(h, now, this.lineSeq);
+          else if (this.mode === 'croc') this.controller = new CrocGame(h, now, this.lineSeq, voters);
           else if (this.mode === 'whoofus') this.controller = new WhoOfUsGame(h, now, this.lineSeq);
           else { this.controller = new RiddleGame(this.lineSeq); this.openCall(now); }
           this.syncMode(now);
@@ -531,6 +538,8 @@ export class QuizStage {
         return this.builtins.filter(p => p.pack.kind === kind);
       },
       store: this.h.packs, ink: msg => this.ink(msg),
+      order: kind => { const o = this.orders.get(kind); return o ? { ...o, by: { ...o.by } } : null; },
+      orderUsed: (kind, id) => { if (this.orders.get(kind)?.id === id) this.orders.delete(kind); },
     };
   }
 
@@ -588,7 +597,7 @@ export class QuizStage {
   }
 
   private catalog(p: QuizPerson, msg: QuizClientMsg, now: number): boolean {
-    if (!['packs', 'packOutline', 'packDel', 'packLike', 'upTicket', 'recs'].includes(msg.a)) return false;
+    if (!['packs', 'packOutline', 'packDel', 'packLike', 'packPlay', 'upTicket', 'recs'].includes(msg.a)) return false;
     try {
       const packs = this.h.packs;
       switch (msg.a) {
@@ -600,13 +609,22 @@ export class QuizStage {
         }
         case 'packDel':
           if (!packs) throw new PackError('Паки пока недоступны.', 404);
-          packs.delete(msg.id, p.pid); this.h.send(p.slot, { t: 'qzPacks', ...packs.list(p.pid) }); break;
+          packs.delete(msg.id, p.pid); this.h.send(p.slot, { t: 'qzPacks', ...packs.list(p.pid) });
+          for (const [kind, o] of this.orders) if (o.id === msg.id) this.orders.delete(kind);
+          break;
+        case 'packPlay': {
+          const pack = packs?.get(msg.id), game = pack ? ORDER_GAME[pack.kind] : undefined;
+          if (!pack) throw new PackError('Пак не найден.', 404);
+          if (!game) throw new PackError('Этот пак нельзя заказать.');
+          this.orders.set(pack.kind, { id: msg.id, title: pack.title, kind: pack.kind, by: { slot: p.slot, nick: p.nick }, at: now });
+          this.h.toast(p.slot, `Заказан «${pack.title}» — будет в следующей игре «${game}»`); break;
+        }
         case 'packLike':
           if (!packs) throw new PackError('Паки пока недоступны.', 404);
           packs.like(msg.id, p.pid); this.h.send(p.slot, { t: 'qzPacks', ...packs.list(p.pid) }); break;
         case 'upTicket':
           if (!this.h.http) throw new PackError('Паки пока недоступны.', 404);
-          this.h.send(p.slot, { t: 'qzTicket', ...this.h.http.ticket(p.pid, p.level ?? 1) }); break;
+          this.h.send(p.slot, { t: 'qzTicket', ...this.h.http.ticket(p.pid, p.level ?? 1, p.nick) }); break;
         case 'recs': {
           if (now - (this.recsAt.get(p.pid) ?? -Infinity) < 2000) break;
           this.recsAt.set(p.pid, now);

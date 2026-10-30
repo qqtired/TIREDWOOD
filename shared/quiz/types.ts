@@ -750,7 +750,8 @@ export interface QzJpBoard {
   /** Табло: темы строками, цены столбцами; 0 — клетка сыграна */
   themes: Array<{ name: string; cells: number[] }>;
   /** packvote: три пака и голоса */
-  packs: Array<QzPackRef & { sub: string; n: number }> | null;
+  /** «Ракушка» 1.1: by — ник заказавшего «Сыграть» (карточка первая), fresh — загружен и ещё не сыгран («новый») */
+  packs: Array<QzPackRef & { sub: string; n: number; by?: string; fresh?: boolean }> | null;
   q: QzJpQuestion | null;
   /** Кнопки откроются / открылись (часы сервера; 0 — не открываются сейчас) */
   openAt: number;

@@ -19,11 +19,13 @@ export class CrocGame implements QuizController {
   private presenceKey = '';
   private hurryDrawing = -1;
   private packs: string[];
-  constructor(h: ModeHost, now: number, nextId: number) {
+  /** voters — pid голосовавших за «Крокодил» по времени голоса: сразу очередь рисующих (A2, «Ракушка» 1.1) */
+  constructor(h: ModeHost, now: number, nextId: number, voters: number[] = []) {
     this.h = h;
     const packs = h.packs('words').filter(p => !p.pack.adult); this.packs = packs.map(p => p.id);
     for (const id of this.packs) h.store?.setPlaying(id, true);
-    this.state = newCroc(this.people(), packs.map(p => p.pack), now); this.state.nextId = nextId;
+    const people = this.people(), queue = voters.flatMap(pid => people.filter(p => p.pid === pid));
+    this.state = newCroc(people, packs.map(p => p.pack), now, queue); this.state.nextId = nextId;
     h.say('Кто рисует? Жмите «Хочу рисовать»!', 'announce', now);
   }
   get nextId(): number { return this.state.nextId; }

@@ -24,7 +24,7 @@ import { farmEnabled } from '../shared/farmnet.ts';
 import { quizEnabled } from '../shared/quiz/net.ts';
 import { QuizPacks, quizAdmins } from './lobby/quiz/packs.ts';
 import { registerBuiltinPacks } from './lobby/quiz/builtin.ts';
-import { QuizHttp } from './lobby/quiz/http.ts';
+import { QuizHttp, quizUploaders } from './lobby/quiz/http.ts';
 import { jukeboxEnabled } from '../shared/jukebox.ts';
 import { planeEnabled } from '../shared/plane.ts';
 import { Profiles } from './profiles.ts';
@@ -81,7 +81,7 @@ if (quiz) {
     packs = new QuizPacks({ dataDir: mkdtempSync(path.join(tmpdir(), 'tiredwood-quiz-')) });
   }
   registerBuiltinPacks(packs);
-  quizHttp = new QuizHttp({ packs, enabled, ip: clientIp });
+  quizHttp = new QuizHttp({ packs, enabled, ip: clientIp, uploaders: quizUploaders(process.env.QUIZ_UPLOADERS) });
 }
 const voice = process.env.VOICE === undefined ? DEV : process.env.VOICE === '1';
 const voiceIce = voice ? voiceConfigFromEnv(process.env) : undefined;
