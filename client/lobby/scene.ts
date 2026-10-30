@@ -41,7 +41,8 @@ import { STATUE_AT, respectReach } from '../../shared/respect.ts';
 import { RC_MAX_KARTS } from '../../shared/kart.ts';
 import { DEFAULT_TRACK, nextRaceTrack, raceTrackLabel } from '../../shared/racecourse.ts';
 import { clamp } from '../../shared/math.ts';
-import type { AquaRow, BoatStatus, DurakSeatView, DurakTableView, FerryStatus, HonorInfo, LobbyPlayerInfo, PbStatus, ServerMsg } from '../../shared/messages.ts';
+import type { AquaRow, BoatStatus, ClientMsg, DurakSeatView, DurakTableView, FerryStatus, HonorInfo, LobbyPlayerInfo, PbStatus, ServerMsg } from '../../shared/messages.ts';
+import type { QzBoard } from '../../shared/quiz/types.ts';
 import type { Outfit } from '../../shared/outfit.ts';
 import { E_ALIVE, E_DASH, E_GROUNDED, SNAP_HAS_SELF, SNAP_SELF_RESET, decodeSnapshot, encodeInputs, makeHeader, type EntitySnap } from '../../shared/protocol.ts';
 import { BTN_FIRE, BTN_JUMP, makeInput, makeState, type Input, type StepEvents } from '../../shared/sim.ts';
@@ -72,6 +73,7 @@ import { DECAL_LIFT } from './plaza3/floor.ts';
 import type { NpcStatusIn } from './plaza3/npcdata.ts';
 import { PL_DOCK } from '../../shared/plane.ts';
 import { ArcadeClient } from './plaza3/arcade/index.ts';
+import { ACT_QUIZ, QuizClient } from './quiz/index.ts';
 import { emptyLive, fillLive, type LiveIn } from './plaza/live.ts';
 import { LobbyCamera, SLOT_LOOK_PITCH, SLOT_LOOK_YAW } from './camera.ts';
 import { FarmGate } from '../farm/lobbygate.ts';
@@ -258,6 +260,8 @@ export class LobbyScene implements Scene {
   /** Музыкальный автомат на площади (флаг сервера JUKEBOX) */
   private readonly juke: LobbyJukebox;
   private readonly arcade: ArcadeClient | null;
+  /** «Ракушка» (флаг QUIZ, client/lobby/quiz): площадка, Затейник, кресла и камеры мест, чат «В игру» */
+  private readonly quiz: QuizClient | null;
   /** Радио на лодке (флаг ISLE, client/boat/radio.ts) */
   private readonly radio: BoatRadio;
   private readonly fishDrink: FishDrink;
@@ -604,6 +608,11 @@ export class LobbyScene implements Scene {
     // новая набережная (флаг PLAZA3): своё оформление входов, когда готов блокаут (legacyStatic: false)
     this.plaza = PLAZA3 && !P3.legacyStatic ? new Plaza3Dress(this.world.plazaCtx, () => d.ui.me().nick) : PLAZA2 ? new PlazaDress(this.world.plazaCtx, this.world.collision, () => d.renderer.refreshShadows(), () => d.ui.me().nick) : null;
     if (this.plaza instanceof Plaza3Dress) this.plaza.npc.setLive(() => this.npcLive());
+    this.quiz = this.plaza instanceof Plaza3Dress && this.world.pavilions ? new QuizClient({
+      scene: this.world.scene, gl: d.renderer.gl, camera: this.world.camera, pavilions: this.world.pavilions.group, fx: this.fx, canvas: d.renderer.canvas,
+      chat: d.ui.chat, send: (m) => d.net.send(m as unknown as ClientMsg), toast: (text) => d.ui.toasts.show(text, 3400),
+      avatarOf: (slot) => (slot === this.myId ? this.me : (this.remotes.get(slot)?.avatar ?? null)), mySlot: () => this.myId, signs: this.plaza.signs,
+    }) : null;
     // «Подземелье»: пещера и доска на лужайке (и их твёрдость) появляются, когда сервер прислал статус (флаг DUNGEON); таблицу рекордов берёт сама площадь
     onDgStatus((st) => this.plazaMode('dungeon', !!st));
     this.boatBanner = new BoatBanner(this.world.scene);
@@ -667,7 +676,7 @@ export class LobbyScene implements Scene {
    */
   get wantsPointer(): boolean {
     const act = this.myAct;
-    return !((this.wardrobeOpen && act === ACT_WARDROBE) || (act === ACT_DURAK && this.dkSeat >= 0) || act === ACT_BILLIARDS || this.fish2.modalOpen || this.ratHud.isOpen || this.juke.isOpen || this.radio.isOpen || this.plane.bannerOpen || this.ob.modalOpen || this.pirates3d.resultsOpen || this.rg.resultsOpen || !!this.arcade?.isOpen);
+    return !((this.wardrobeOpen && act === ACT_WARDROBE) || (act === ACT_DURAK && this.dkSeat >= 0) || act === ACT_BILLIARDS || !!this.quiz?.freesPointer(act, this.arg) || this.fish2.modalOpen || this.ratHud.isOpen || this.juke.isOpen || this.radio.isOpen || this.plane.bannerOpen || this.ob.modalOpen || this.pirates3d.resultsOpen || this.rg.resultsOpen || !!this.arcade?.isOpen);
   }
 
   /** Меню примерочной — div, поэтому одной проверки native dialog для PTT недостаточно. */
@@ -794,6 +803,7 @@ export class LobbyScene implements Scene {
     this.resetAdditions();
     this.juke.reset(true);
     this.arcade?.reset();
+    this.quiz?.reset();
     this.radio.reset(true);
     this.myId = -1;
     this.hasSelf = false;
@@ -862,6 +872,7 @@ export class LobbyScene implements Scene {
     this.resetAdditions();
     this.juke.reset(false);
     this.arcade?.reset();
+    this.quiz?.reset();
     this.radio.reset(false);
     this.entered = false;
     this.hasSelf = false;
@@ -921,6 +932,7 @@ export class LobbyScene implements Scene {
 
   onJson(msg: ServerMsg): void {
     if (this.arcade?.onMsg(msg)) return;
+    if (this.quiz?.onMsg(msg)) return;
     switch (msg.t) {
       case 'redeemResult':
         this.wardrobe.giftResult(msg.result);
@@ -962,6 +974,9 @@ export class LobbyScene implements Scene {
         this.folk.setV2(this.fish2.on);
         this.rat3d.setOn(!!msg.ratrace);
         for (const index of this.world.map.ratBoxes) this.world.collision.setEnabled(index, !!msg.ratrace);
+        // «Ракушка»: поле quiz в приветствии — флаг QUIZ включён (площадка, твёрдое); нет — как раньше
+        this.quiz?.welcome((msg as { quiz?: QzBoard }).quiz ?? null);
+        for (const index of (this.world.map as { quizBoxes?: number[] }).quizBoxes ?? []) this.world.collision.setEnabled(index, !!this.quiz?.enabled);
         // остров — следом отдельным письмом isle; нет его — флаг ISLE выключен
         for (const index of this.world.map.isleBoxes) this.world.collision.setEnabled(index, false);
         this.ratHud.setMe(this.d.ui.me().pid);
@@ -1853,6 +1868,13 @@ export class LobbyScene implements Scene {
         this.setTableSeat(-1);
         this.d.wantPointer();
       }
+      // на месте «Ракушки» мышь — кнопки плашки и строки дока (взгляд — с зажатой кнопкой)
+      if (action === ACT_QUIZ) {
+        input.unlock();
+        // лицом, куда смотрит место (кресло — на сцену, загадывающий — в зал): так его видят и другие
+        const yaw = this.quiz?.placeYaw(arg);
+        if (yaw !== undefined) input.yaw = yaw;
+      } else if (prev === ACT_QUIZ) this.d.wantPointer();
       // у бильярдного стола мышь — прицел и кнопки панели
       if (action === ACT_BILLIARDS) {
         input.releaseAll();
@@ -1927,6 +1949,8 @@ export class LobbyScene implements Scene {
     }
     if (this.d.input.blocked) return false;
     if (this.rg.racing) return this.rg.onKey(code);
+    // «Ракушка»: голос 1–4, F — роль, у загадывающего 1/2/3, Z, H; в эти моменты эмоции (и змей на 7) выключены
+    if (this.quiz?.onKey(code)) return true;
     if ((code === 'Digit7' || code === 'Numpad7' || (code === 'Escape' && act === ACT_KITE)) && this.kiteOn && this.hasSelf && !isHeld(act)) {
       if (!this.outerMenu && !this.ratHud.isOpen && !this.juke.isOpen && !this.radio.isOpen && !this.ob.modalOpen) {
         if (act === ACT_KITE) this.d.net.send({ t: 'emote', e: ACT_NONE });
@@ -2458,6 +2482,8 @@ export class LobbyScene implements Scene {
     this.me.slotView(act === ACT_SLOT);
     // у бильярдного стола камера прямо над своей головой — себя не рисуем, иначе шапка закрывает ближний борт
     if (act === ACT_BILLIARDS) this.me.root.visible = false;
+    // в кресле «Ракушки» камера за спинкой смотрит на табло — себя не рисуем
+    if (this.quiz?.hidesSelf(act, this.arg)) this.me.root.visible = false;
     this.updateRemotes(dt);
     this.kites.end();
     this.updateFishing(dt);
@@ -2483,6 +2509,7 @@ export class LobbyScene implements Scene {
     this.updateRats();
     this.juke.update(dt, this.hasSelf ? this.pose : null, this.world.camera);
     this.arcade?.update(dt, camPos);
+    this.quiz?.frame(dt, camPos);
     this.radio.update(dt, this.world.camera);
     this.respects?.update(dt, this.time, this.respecting());
     const ps = this.predictor.state;
@@ -2706,6 +2733,7 @@ export class LobbyScene implements Scene {
     }
     // в своей лодке — на своём месте по позе лодки на экране (client/boat/ownboats.ts)
     this.ob.selfPose(act, this.arg, pose);
+    this.quiz?.selfPose(act, this.arg, pose, this.me);
     pose.flags = E_ALIVE | (s.grounded ? E_GROUNDED : 0) | (s.dashT > 0 ? E_DASH : 0);
   }
 
@@ -2723,7 +2751,11 @@ export class LobbyScene implements Scene {
     if (this.plane.camera(cam, dt, vfov(settings.fov))) return;
     const p = this.pose;
     const act = this.myAct;
-    if (act === ACT_SLOT) {
+    // «Ракушка»: кресло — на табло, сцена — за спиной загадывающего (shared/quiz/venue.ts seatCamera / stageCamera)
+    const qc = this.quiz?.cameraPose(act, this.arg);
+    if (qc) {
+      this.cam.fixed(cam, dt, qc.px, qc.py, qc.pz, qc.tx, qc.ty, qc.tz, qc.fov, 'table');
+    } else if (act === ACT_SLOT) {
       const slot = SLOT_POSES[this.arg];
       this.cam.slot(cam, dt, p.x, p.y, p.z, slot?.front.x ?? p.x, slot?.front.z ?? p.z, input.yaw - (this.spotOf(ACT_SLOT, this.arg)?.yaw ?? 0), input.pitch);
     } else if (act === ACT_DURAK) {
@@ -2876,13 +2908,14 @@ export class LobbyScene implements Scene {
       this.wardrobeAnchor.set(this.pose.x, this.pose.y, this.pose.z).project(this.world.camera);
       this.wardrobe.placeInspect((this.wardrobeAnchor.x + 1) * this.d.renderer.canvas.clientWidth / 2);
     }
-    hud.showEmotes(this.hasSelf && !isHeld(act) && !this.ratHud.cheering);
+    hud.showEmotes(this.hasSelf && !isHeld(act) && !this.ratHud.cheering && !this.quiz?.emotesBlocked);
     hud.setKite(this.kiteOn, act === ACT_KITE, this.arg >= KITE_REEL_FIRST);
     const kd = this.kartDist();
     this.kartBeeps(kd <= KART_START.r);
     if (!this.hasSelf || act === ACT_WARDROBE) hud.setHint(null);
     else if (act === ACT_SLOT) hud.setHint(TOUCH ? ['🎰'] : ['ЛКМ', '/', 'Пробел'], `крутить · ставка ${STAKES[this.arg] ?? '?'} 🪙 · ${TOUCH ? 'пальцем' : 'мышь'} — осмотреться · шаг — отойти`);
     else if (act === ACT_DURAK || act === ACT_BILLIARDS) hud.setHint(null);
+    else if (act === ACT_QUIZ) hud.setHint(...this.quiz!.placeHint(this.arg));
     else if (act === ACT_FISH) this.hintFish();
     else if (act === ACT_BOAT) hud.setHint(TOUCH ? ['E'] : ['W', 'A', 'S', 'D'], `выйти из катера · отплытие через ${this.boatSecs()} с`);
     else if (act === ACT_RIDE) hud.setHint([], `Прогулка по бухте · ещё ${this.boatSecs()} с · ${TOUCH ? 'пальцем' : 'мышь'} — осмотреться`);
@@ -3016,6 +3049,8 @@ export class LobbyScene implements Scene {
       if (it.kind === 'oboat' && !this.ob.enabled) continue;
       // место 45 — пустышка бывшего «Fight Club»: подсказки нет
       if (it.kind === 'retired') continue;
+      // кресла «Ракушки» — только с флагом QUIZ
+      if ((it.kind as string) === 'quiz' && !this.quiz?.enabled) continue;
       if (this.isBusy(it)) {
         if (dist < takenD) {
           taken = it;
@@ -3156,6 +3191,7 @@ export class LobbyScene implements Scene {
         break;
       }
     }
+    if ((it.kind as string) === 'quiz' && this.quiz) this.hud.setHint(...this.quiz.pointHint(it.arg));
   }
 
   /**

@@ -79,8 +79,14 @@ export interface VenueData {
   readonly chairColliders?: readonly VenueBox[];
   readonly seatCam: { readonly back: number; readonly pivotAboveSeat: number; readonly up: number; readonly fovV: number; readonly lookYawDeg: number; readonly target: V3 };
   readonly stageCam: { readonly back: number; readonly pivotY: number; readonly up: number; readonly pitch: number; readonly fovV: number };
-  readonly fence: { readonly poly: readonly V2[]; readonly height: number; readonly arch: { readonly x: number; readonly z0: number; readonly z1: number; readonly top: number } };
-  readonly sign: { readonly face: readonly V3[]; readonly canvas: readonly number[] };
+  /** Граница зоны «Ракушки» (внутри — игрок у площадки) и ограда v2 с аркой. У v3 без ограды арки нет */
+  readonly fence: { readonly poly: readonly V2[]; readonly height: number; readonly arch?: { readonly x: number; readonly z0: number; readonly z1: number; readonly top: number } };
+  /** v3: ограду не строить — fence.poly только граница зоны (клумбы, бордюр, мощение) */
+  readonly noFence?: boolean;
+  /** Где клиент прячет декор площади под площадкой (местные координаты); нет — по fence.poly */
+  readonly decorClear?: readonly V2[];
+  /** Вывеска «РАКУШКА» над аркой (у v3 может не быть — тогда статус только на табло и афише) */
+  readonly sign?: { readonly face: readonly V3[]; readonly canvas: readonly number[] };
   readonly colliders: readonly VenueBox[];
 }
 
@@ -109,14 +115,14 @@ export interface QuizCam {
 export interface QuizVenue {
   readonly data: VenueData;
   readonly world: VenueData['world'];
-  /** Ограда — многоугольник по земле; арка — отрезок a–b и высота */
+  /** Граница зоны — многоугольник по земле; арка — отрезок a–b и высота (null — без ограды, v3) */
   readonly fence: readonly V2[];
-  readonly arch: { readonly a: V2; readonly b: V2; readonly top: number };
+  readonly arch: { readonly a: V2; readonly b: V2; readonly top: number } | null;
   /** Середина ограды — для «далеко ли от «Ракушки»» */
   readonly center: V2;
   readonly stage: { readonly top: number; readonly poly: readonly V2[] };
   readonly board: { readonly face: readonly V3[]; readonly center: V3; readonly canvas: readonly number[] };
-  readonly sign: { readonly face: readonly V3[]; readonly canvas: readonly number[] };
+  readonly sign: { readonly face: readonly V3[]; readonly canvas: readonly number[] } | null;
   readonly chairs: readonly VenueSpot[];
   readonly chairSeatY: number;
   readonly pults: ReadonlyArray<Omit<VenuePult, 'x' | 'y' | 'z' | 'yaw' | 'player'> & VenueSpot & { readonly player: VenueSpot }>;
@@ -197,10 +203,11 @@ function rampSteps(m: VenueRamp, stagePoly: readonly V2[]): VenueBox[] {
 export function checkVenueData(d: VenueData): void {
   const need: Array<[string, unknown]> = [['world', d.world], ['stage.poly', d.stage?.poly], ['board.face', d.board?.face], ['riddler', d.riddler],
     ['podium.host', d.podium?.host], ['zatejnik.stand', d.zatejnik?.stand], ['pults', d.pults], ['easel', d.easel], ['chairs', d.chairs],
-    ['seatCam', d.seatCam], ['stageCam', d.stageCam], ['fence.poly', d.fence?.poly], ['fence.arch', d.fence?.arch], ['sign.face', d.sign?.face], ['colliders', d.colliders]];
+    ['seatCam', d.seatCam], ['stageCam', d.stageCam], ['fence.poly', d.fence?.poly], ['colliders', d.colliders]];
   for (const [k, v] of need) if (v === undefined || v === null) throw new Error(`quiz/venue-data.json: нет поля ${k}`);
-  if (d.fence.poly.length < 3) throw new Error('quiz/venue-data.json: ограда — меньше трёх точек');
-  if (d.board.face.length !== 4 || d.sign.face.length !== 4) throw new Error('quiz/venue-data.json: табло и вывеска — по 4 угла');
+  if (d.fence.poly.length < 3) throw new Error('quiz/venue-data.json: граница зоны — меньше трёх точек');
+  if (d.decorClear && d.decorClear.length < 3) throw new Error('quiz/venue-data.json: decorClear — меньше трёх точек');
+  if (d.board.face.length !== 4 || (d.sign && d.sign.face.length !== 4)) throw new Error('quiz/venue-data.json: табло и вывеска — по 4 угла');
   if (Math.abs(Math.sin(2 * d.world.yaw)) > 1e-3) {
     throw new Error('quiz/venue-data.json: world.yaw должен быть кратен 90° (твёрдое — прямоугольники по осям)');
   }
@@ -242,11 +249,11 @@ export function buildVenue(d: VenueData): QuizVenue {
     data: d,
     world: w,
     fence,
-    arch: { a: p2([d.fence.arch.x, d.fence.arch.z0]), b: p2([d.fence.arch.x, d.fence.arch.z1]), top: d.fence.arch.top },
+    arch: d.fence.arch && !d.noFence ? { a: p2([d.fence.arch.x, d.fence.arch.z0]), b: p2([d.fence.arch.x, d.fence.arch.z1]), top: d.fence.arch.top } : null,
     center: [r3(fx), r3(fz)],
     stage: { top: (w.y ?? 0) + d.stage.top, poly: d.stage.poly.map(p2) },
     board: { face, center, canvas: d.board.canvas },
-    sign: { face: d.sign.face.map(p3), canvas: d.sign.canvas },
+    sign: d.sign ? { face: d.sign.face.map(p3), canvas: d.sign.canvas } : null,
     chairs,
     chairSeatY: d.chairSeatY,
     pults,

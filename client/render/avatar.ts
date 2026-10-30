@@ -18,6 +18,7 @@ import { E_ADS, E_ALIVE, E_DASH, E_GROUNDED, E_PROTECTED, E_RELOAD } from '../..
 import { AWP_MUZZLE, makeAwp } from './awp.ts';
 import { headwearBounds, headwearLabelHeight, makeHatMaterial } from './hatpose.ts';
 import { drawLevelTag } from './leveltag.ts';
+import { ACT_QUIZ, quizSits } from '../lobby/quiz/places.ts';
 import { LOOK2 } from './look.ts';
 import { JellyFace } from './lookface.ts';
 import { BODY_H, bodyProfile, bodyR, type Wear } from './outfit3d.ts';
@@ -422,6 +423,12 @@ interface Speech {
   tex: THREE.CanvasTexture;
 }
 
+/**
+ * Тон облачка: обычное; «Ракушка» (client/lobby/quiz) — 👍 тепло (мятное), 👎 мимо (серое, зачёркнуто), проверка «угадал»
+ * (золотая рамка), угадал (золотое). Как на странице lab/quiz/v2 (js/world/bubble.js).
+ */
+export type SpeechTone = 'new' | 'warm' | 'miss' | 'check' | 'win';
+
 // ------------------------------------------------------------ желейка
 
 export class Avatar {
@@ -469,6 +476,9 @@ export class Avatar {
   private photoWas: [boolean, boolean, boolean, number, boolean] = [false, false, false, 0, false];
   private speech: Speech | null = null;
   private speechUntil = 0;
+  /** Что в облачке сейчас — перекрасить его по отметке «Ракушки» (sayTone) */
+  private speechText = '';
+  private speechNick = '';
   private emote: THREE.Sprite | null = null;
   private emoteKind = 0;
   private splat: THREE.Mesh | null = null;
@@ -902,14 +912,41 @@ export class Avatar {
     this.leverT = LEVER_S;
   }
 
-  /** Облачко над головой на 6 с. */
-  say(text: string): void {
+  /** Облачко над головой на 6 с; у «Ракушки» — тон отметки, ник автора и свой срок. */
+  say(text: string, tone: SpeechTone = 'new', nick = '', ms = BUBBLE_MS): void {
     const t = text.trim().slice(0, BUBBLE_CHARS);
     if (!t) return;
     const sp = (this.speech ??= this.makeSpeech());
-    drawSpeech(sp.canvas, t);
+    this.speechText = t;
+    this.speechNick = nick;
+    drawSpeech(sp.canvas, t, tone, nick);
     sp.tex.needsUpdate = true;
-    this.speechUntil = performance.now() + BUBBLE_MS;
+    this.speechUntil = performance.now() + ms;
+  }
+
+  /** Перекрасить облачко (отметка загадывающего); ms — показать ещё столько (0 — срок прежний) */
+  sayTone(tone: SpeechTone, ms = 0): void {
+    const sp = this.speech;
+    if (!sp || !this.speechText) return;
+    drawSpeech(sp.canvas, this.speechText, tone, this.speechNick);
+    sp.tex.needsUpdate = true;
+    if (ms) this.speechUntil = Math.max(this.speechUntil, performance.now() + ms);
+  }
+
+  /** Убрать облачко сразу (строку заменила новая догадка) */
+  hush(): void {
+    this.speechUntil = 0;
+  }
+
+  /** Значок над головой на ~2,5 с, как реакция за столом (голос за карточку «Ракушки») */
+  showIcon(map: THREE.Texture): void {
+    if (!this.reactSprite) {
+      this.reactSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map, transparent: true, depthWrite: false }));
+      this.reactSprite.renderOrder = 6;
+      this.root.add(this.reactSprite);
+    }
+    this.reactSprite.material.map = map;
+    this.reactT = 0;
   }
 
   /**
@@ -1291,7 +1328,7 @@ export class Avatar {
     if (this.driving) {
       sy *= DRIVE_SQUASH.y;
       sxz *= DRIVE_SQUASH.xz;
-    } else if (act === ACT_SIT || act === ACT_DURAK || act === ACT_WHEEL || isAboard(act) || isFerry(act) || act === ACT_OWNBOAT) {
+    } else if (act === ACT_SIT || act === ACT_DURAK || act === ACT_WHEEL || isAboard(act) || isFerry(act) || act === ACT_OWNBOAT || (act === ACT_QUIZ && quizSits(this.arg))) {
       // в катере и лодке «Удалая» стоит на полу, а подушка кресла и банка — выше скамейки
       lift = isAboard(act) || isFerry(act) ? BOAT_SIT_LIFT : SIT_LIFT;
       sy *= 0.88;
@@ -1665,9 +1702,19 @@ export class Avatar {
 }
 
 /** Облачко: белая плашка с хвостиком, до 3 строк, длинное обрезается многоточием. */
-function drawSpeech(cv: HTMLCanvasElement, text: string): void {
+/** Цвета облачка по тону (lab/quiz/v2/js/world/bubble.js): заливка, обводка, толщина, текст, ник */
+const SPEECH_TONE: Record<SpeechTone, { fill: string; stroke: string; lw: number; ink: string; nick: string }> = {
+  new: { fill: 'rgba(255,252,246,0.96)', stroke: 'rgba(40,32,28,0.35)', lw: 3, ink: '#2a2420', nick: '#2a7d74' },
+  warm: { fill: '#d9f3e2', stroke: '#2f9e5c', lw: 5, ink: '#173d27', nick: '#1f7a45' },
+  miss: { fill: '#ebe8e2', stroke: 'rgba(40,32,28,0.25)', lw: 3, ink: '#8d877f', nick: '#a8a29a' },
+  check: { fill: 'rgba(255,252,246,0.98)', stroke: '#e0a526', lw: 7, ink: '#2a2420', nick: '#9a6a00' },
+  win: { fill: '#ffd75e', stroke: '#c48a12', lw: 5, ink: '#4a3200', nick: '#6b4a00' },
+};
+
+export function drawSpeech(cv: HTMLCanvasElement, text: string, tone: SpeechTone = 'new', nick = ''): void {
   const ctx = cv.getContext('2d')!;
   ctx.clearRect(0, 0, cv.width, cv.height);
+  const st = SPEECH_TONE[tone];
   ctx.font = '600 34px Rubik, system-ui, sans-serif';
   const lines: string[] = [];
   let cur = '';
@@ -1680,21 +1727,27 @@ function drawSpeech(cv: HTMLCanvasElement, text: string): void {
     }
   }
   if (cur) lines.push(cur);
-  if (lines.length > 3) {
-    lines.length = 3;
-    lines[2] = `${lines[2].replace(/.$/u, '')}…`;
+  // с ником — до двух строк текста (холст 200 пкс по высоте)
+  const maxLines = nick ? 2 : 3;
+  if (lines.length > maxLines) {
+    lines.length = maxLines;
+    lines[maxLines - 1] = `${lines[maxLines - 1].replace(/.$/u, '')}…`;
   }
   for (let i = 0; i < lines.length; i++) {
     while (ctx.measureText(lines[i]).width > 460 && lines[i].length > 1) lines[i] = `${lines[i].slice(0, -2)}…`;
   }
   const lineH = 40;
-  const w = Math.max(90, ...lines.map((l) => ctx.measureText(l).width)) + 40;
-  const h = lines.length * lineH + 24;
+  const nh = nick ? 30 : 0;
+  ctx.font = '700 25px Rubik, system-ui, sans-serif';
+  const nw = nick ? Math.min(440, ctx.measureText(nick).width) : 0;
+  ctx.font = '600 34px Rubik, system-ui, sans-serif';
+  const w = Math.max(90, nw, ...lines.map((l) => ctx.measureText(l).width)) + 40;
+  const h = lines.length * lineH + 24 + nh;
   const x = (cv.width - w) / 2;
   const y = cv.height - 18 - h;
-  ctx.fillStyle = 'rgba(255,252,246,0.96)';
-  ctx.strokeStyle = 'rgba(40,32,28,0.35)';
-  ctx.lineWidth = 3;
+  ctx.fillStyle = st.fill;
+  ctx.strokeStyle = st.stroke;
+  ctx.lineWidth = st.lw;
   roundRect(ctx, x, y, w, h, 22);
   ctx.fill();
   ctx.stroke();
@@ -1704,10 +1757,24 @@ function drawSpeech(cv: HTMLCanvasElement, text: string): void {
   ctx.lineTo(cv.width / 2 + 14, y + h - 1);
   ctx.closePath();
   ctx.fill();
-  ctx.fillStyle = '#2a2420';
+  if (st.lw > 3) ctx.stroke();
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  lines.forEach((l, i) => ctx.fillText(l, cv.width / 2, y + 12 + lineH * (i + 0.5)));
+  if (nick) {
+    ctx.font = '700 25px Rubik, system-ui, sans-serif';
+    ctx.fillStyle = st.nick;
+    ctx.fillText(nick, cv.width / 2, y + 12 + 14, 440);
+    ctx.font = '600 34px Rubik, system-ui, sans-serif';
+  }
+  ctx.fillStyle = st.ink;
+  lines.forEach((l, i) => {
+    const ly = y + 12 + nh + lineH * (i + 0.5);
+    ctx.fillText(l, cv.width / 2, ly);
+    if (tone === 'miss') {
+      const lw = ctx.measureText(l).width;
+      ctx.fillRect(cv.width / 2 - lw / 2 - 3, ly, lw + 6, 3);
+    }
+  });
 }
 
 

@@ -12,6 +12,7 @@ import { FE_HOME, FE_BOARD, FE_OUT, FE_AWAY, FERRY_SEATS, ferryEta } from '../..
 import { TICK_RATE } from '../../../shared/constants.ts';
 import type { FerryStatus } from '../../../shared/messages.ts';
 import { agendaRows, plural, type LiveIn } from '../plaza/live.ts';
+import { QZ_MODES, type QzBoard } from '../../../shared/quiz/types.ts';
 
 /** Чей статус показывает вывеска (SIGN_META в signstyle.ts) */
 export type StatusMode =
@@ -32,6 +33,8 @@ export interface SignExtras {
   slots: { busy: number; total: number } | null;
   dungeon: { nick: string; waves: number } | null;
   ferry?: { status: FerryStatus; tick: number } | null;
+  /** «Ракушка» (флаг QUIZ): табло — строка на афише кафе (client/lobby/quiz) */
+  quiz?: QzBoard | null;
 }
 
 export function emptyExtras(): SignExtras {
@@ -156,7 +159,9 @@ export function signStatus(mode: StatusMode, s: LiveIn, x: SignExtras): SignStat
       return { text: `${free === 1 ? 'свободен' : 'свободно'} ${free} ${plural(free, 'автомат', 'автомата', 'автоматов')}`, tone: 'open' };
     }
     case 'cafe': {
-      // афиша кафе: сколько мест в городе «горит» прямо сейчас
+      // афиша кафе: на «Ракушке» идёт игра — её строка (docs/quiz/tech.md §11), иначе сколько мест в городе «горит»
+      const qz = quizAgendaLine(x.quiz ?? null);
+      if (qz?.hot) return { text: cut(`Ракушка: ${qz.text.replace(' · идёт', '')}`), tone: 'go' };
       let hot = 0;
       for (const r of agendaRows(s)) if (r.hot) hot++;
       return hot > 0 ? { text: `сегодня в городе · идёт ${hot}`, tone: 'go' } : { text: 'афиша «Сегодня в городе»', tone: 'open' };
@@ -172,3 +177,27 @@ export function signStatus(mode: StatusMode, s: LiveIn, x: SignExtras): SignStat
 
 /** Ключ для сравнения: строка перерисовывается, только когда он поменялся */
 export const statusKey = (st: SignStatus): string => `${st.tone}|${st.text}`;
+
+// ------------------------------------------------------------------ «Ракушка» (флаг QUIZ, docs/quiz/tech.md §11)
+
+const quizMode = (b: QzBoard): string => QZ_MODES.find((m) => m.id === b.mode)?.name ?? 'Игра';
+
+/** Строка статуса вывески над аркой «Ракушки» (без эмодзи, до 34 знаков); serverNow — часы сервера, мс */
+export function quizSignLine(b: QzBoard | null, serverNow: number): SignStatus {
+  if (!b || b.phase === 'idle') return { text: 'Игры нет — заходи', tone: 'open' };
+  const left = (at: number): string => clock(Math.ceil((at - serverNow) / 1000));
+  if (b.phase === 'vote') return { text: b.endsAt ? `Голосуем · ${left(b.endsAt)}` : 'Голосуем', tone: 'go' };
+  if (b.phase === 'results') return { text: cut(`Итоги · ${quizMode(b)}`), tone: 'go' };
+  const r = b.riddle;
+  const time = r && r.endsAt && (r.step === 'round' || r.step === 'check') ? ` · ${left(r.endsAt)}` : '';
+  return { text: cut(`${quizMode(b)}${time} · ${players(b.count)}`), tone: 'go' };
+}
+
+/** Строка «Ракушки» на афише кафе: «Загадка · идёт · 5 игроков» / «голосуют · 3 игрока» / «игры нет»; hot — идёт игра или голосуют */
+export function quizAgendaLine(b: QzBoard | null): { text: string; hot: boolean } | null {
+  if (!b) return null;
+  if (b.phase === 'idle') return { text: 'игры нет', hot: false };
+  if (b.phase === 'vote') return { text: `голосуют · ${players(b.count)}`, hot: true };
+  if (b.phase === 'results') return { text: `${quizMode(b)} · итоги`, hot: true };
+  return { text: `${quizMode(b)} · идёт · ${players(b.count)}`, hot: true };
+}

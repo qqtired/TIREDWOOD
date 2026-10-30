@@ -10,7 +10,7 @@ test('площадка: координаты, места, ограда, высо
     assert.deepEqual(toLocal(w, ...toWorld(w, 3, 4, 5)), [3, 4, 5]);
   }
   assert.equal(V.chairs[0].x, 76.701); assert.equal(V.chairs[0].z, 6.354);
-  assert.equal(insideFence((V.arch.a[0] + V.arch.b[0]) / 2, (V.arch.a[1] + V.arch.b[1]) / 2), true);
+  if (V.arch) assert.equal(insideFence((V.arch.a[0] + V.arch.b[0]) / 2, (V.arch.a[1] + V.arch.b[1]) / 2), true);
   assert.equal(insideFence(60, 8), false); assert.equal(insideFence(68.1, 8, .5), true);
   assert.equal(inQuizArea(V.center[0], 20, V.center[1]), false);
   assert.equal(V.first.pult, V.chairs.length); assert.equal(V.first.riddler, V.chairs.length + 7);
@@ -26,4 +26,7 @@ test('ступени до настила, пульты отдельно; пов�
   assert.equal(tops.at(-1), V.stage.top); assert.ok(!V.solid.some(b => b.name.startsWith('pult')));
   assert.equal(V.pultSolid.length, 6);
   assert.throws(() => buildVenue({ ...QUIZ_VENUE_DATA, world: { ...V.world, yaw: Math.PI / 4 } }), /90/);
+  // v3 без ограды: нет арки и вывески — площадка строится, граница зоны та же
+  const open = buildVenue({ ...QUIZ_VENUE_DATA, noFence: true, sign: undefined, fence: { ...QUIZ_VENUE_DATA.fence, arch: undefined } });
+  assert.equal(open.arch, null); assert.equal(open.sign, null); assert.deepEqual(open.fence, V.fence);
 });

@@ -712,6 +712,7 @@ export class Plaza3Signs {
     if (x.ferry !== undefined) this.extras.ferry = x.ferry;
     if (x.slots !== undefined) this.extras.slots = x.slots;
     if (x.dungeon !== undefined) this.extras.dungeon = x.dungeon;
+    if (x.quiz !== undefined) this.extras.quiz = x.quiz;
   }
 
   /** Кадр: пересчёт статусов 4 раза в секунду, перерисовка плашек — при смене текста и не чаще двух раз в секунду */

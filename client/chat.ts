@@ -31,6 +31,10 @@ export class Chat {
   private readonly form: HTMLElement;
   private readonly input: HTMLInputElement;
   private readonly hint: HTMLElement;
+  private readonly label: HTMLSpanElement;
+  /** «Ракушка» (client/lobby/quiz): строка «В игру» — куда её слать; null — только «Всем» */
+  private game: ((text: string) => void) | null = null;
+  private toGame = false;
   isOpen = false;
   onSend: (text: string) => void = () => {};
   onOpenChange: (open: boolean) => void = () => {};
@@ -49,7 +53,7 @@ export class Chat {
     this.form = document.createElement('label');
     this.form.className = 'k-chat-input is-typing';
     this.form.hidden = true;
-    const label = document.createElement('span');
+    const label = (this.label = document.createElement('span'));
     label.textContent = 'Всем:';
     this.input = document.createElement('input');
     this.input.type = 'text';
@@ -70,13 +74,25 @@ export class Chat {
     // мышь свободна (стол, примерочная): «Написать в чат» — открыть сразу, с фокусом
     this.closed.addEventListener('mousedown', (e) => e.preventDefault());
     this.closed.addEventListener('click', () => this.open('', true));
+    // «В игру / Всем»: клик по подписи (поле не теряет фокус)
+    label.addEventListener('mousedown', (e) => {
+      if (!this.game) return;
+      e.preventDefault();
+      this.flipGame();
+    });
     this.input.addEventListener('keydown', (e) => {
       e.stopPropagation();
-      if (e.key === 'Enter') {
+      if (e.key === 'Tab' && this.game) {
+        e.preventDefault();
+        this.flipGame();
+      } else if (e.key === 'Enter') {
         e.preventDefault();
         const text = this.input.value.trim();
         this.input.value = '';
-        if (text) this.onSend(text);
+        if (text) {
+          if (this.game && this.toGame) this.game(text);
+          else this.onSend(text);
+        }
         this.close();
       } else if (e.key === 'Escape') {
         e.preventDefault();
@@ -111,6 +127,33 @@ export class Chat {
     this.form.hidden = this.hint.hidden = true;
     this.input.blur();
     this.onOpenChange(false);
+  }
+
+  /**
+   * «Ракушка»: внутри ограды, пока идёт игра, у поля подпись «В игру:» (send — строка игре), Tab в поле или клик по подписи —
+   * «Всем:» (общий чат, как раньше). null — чат прежний.
+   */
+  setGame(send: ((text: string) => void) | null): void {
+    if (!!send === !!this.game) {
+      this.game = send;
+      return;
+    }
+    this.game = send;
+    this.toGame = !!send;
+    this.paintLabel();
+  }
+
+  private flipGame(): void {
+    this.toGame = !this.toGame;
+    this.paintLabel();
+  }
+
+  private paintLabel(): void {
+    const game = !!this.game && this.toGame;
+    this.label.textContent = game ? 'В игру:' : 'Всем:';
+    this.label.title = this.game ? 'Tab — переключить «В игру / Всем»' : '';
+    this.label.style.cursor = this.game ? 'pointer' : '';
+    this.form.classList.toggle('is-game', game);
   }
 
   /** Подсказка в поле ввода (в пейнтболе работают команды /help и другие). */
