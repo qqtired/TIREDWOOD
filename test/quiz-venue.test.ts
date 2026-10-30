@@ -9,9 +9,12 @@ test('площадка: координаты, места, ограда, высо
     const w = { x: 84, y: 2, z: 8, yaw };
     assert.deepEqual(toLocal(w, ...toWorld(w, 3, 4, 5)), [3, 4, 5]);
   }
-  assert.equal(V.chairs[0].x, 76.701); assert.equal(V.chairs[0].z, 6.354);
+  // v3: на площади восточнее Розы ветров, без ограды — граница зоны по клумбам, вывеска под кромкой ракушки
+  assert.equal(V.chairs[0].x, 18.636); assert.equal(V.chairs[0].z, -3.862);
+  assert.equal(V.arch, null); assert.ok(V.sign); assert.ok((QUIZ_VENUE_DATA.decorClear?.length ?? 0) >= 3);
   if (V.arch) assert.equal(insideFence((V.arch.a[0] + V.arch.b[0]) / 2, (V.arch.a[1] + V.arch.b[1]) / 2), true);
-  assert.equal(insideFence(60, 8), false); assert.equal(insideFence(68.1, 8, .5), true);
+  assert.equal(insideFence(60, 8), false); assert.equal(insideFence(15, 0.7), true);
+  assert.equal(insideFence(13.6, 0.7), false); assert.equal(insideFence(13.6, 0.7, .5), true);
   assert.equal(inQuizArea(V.center[0], 20, V.center[1]), false);
   assert.equal(V.first.pult, V.chairs.length); assert.equal(V.first.riddler, V.chairs.length + 7);
   assert.equal(placeAt(chairPlace(0))?.kind, 'chair'); assert.equal(placeAt(-1), null);
