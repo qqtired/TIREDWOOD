@@ -31,6 +31,7 @@ import {
   stepKart,
   type KartEvents,
   type KartState,
+  KART_PACE,
 } from '../shared/kart.ts';
 import { RING, buildRing } from '../shared/maps/ring.ts';
 import { BTN_FORWARD, BTN_LEFT, makeInput } from '../shared/sim.ts';
@@ -306,10 +307,10 @@ test('ускоритель: наезд — событие dash и турбо н�
     assert.equal(step(t, k).dash, false, 'повторное событие на том же ускорителе');
     top = Math.max(top, speed(k));
   }
-  assert.ok(top > 37 && top < 41.0001, `разгон до ${top}`);
+  assert.ok(top > 37 * KART_PACE && top < 41 * KART_PACE + 0.0001, `разгон до ${top}`);
   for (let i = 0; i < 120; i++) step(t, k);
   assert.equal(k.boostT, 0);
-  assert.ok(speed(k) <= 31.0001 && speed(k) > 29, `после турбо скорость ${speed(k)}`);
+  assert.ok(speed(k) <= 31 * KART_PACE + 0.0001 && speed(k) > 29 * KART_PACE, `после турбо скорость ${speed(k)}`);
   // стоит на пластине без газа — одно событие, дальше сам разгоняется
   const s = kartAt(t, L, 60, 0, 0);
   let n = 0;

@@ -18,6 +18,7 @@ import {
   stepKart,
   type KartEvents,
   type KartState,
+  KART_MAX_SPEED,
 } from '../shared/kart.ts';
 import { RING, buildRing } from '../shared/maps/ring.ts';
 import { makeRng } from '../shared/math.ts';
@@ -83,11 +84,11 @@ function autopilot(k: KartState): number {
   return b;
 }
 
-test('газ по прямой: за 4 с — 31 м/с, по ровной дороге', () => {
+test('газ по прямой: за 4 с — полная скорость (31 м/с × темп), по ровной дороге', () => {
   const k = makeKartState();
   placeOnGrid(k, tr, 0);
   for (let i = 0; i < 240; i++) step(k, BTN_FORWARD);
-  assert.ok(speed(k) >= 30.9 && speed(k) <= 31, `скорость ${speed(k)}`);
+  assert.ok(speed(k) >= KART_MAX_SPEED - 0.1 && speed(k) <= KART_MAX_SPEED, `скорость ${speed(k)}`);
   assert.equal(k.y, 0);
   assert.equal(k.grounded, 1);
   assert.ok(Math.abs(k.z - tr.grid[0].z) < 1e-9, 'ехал прямо');

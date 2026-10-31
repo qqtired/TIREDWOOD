@@ -373,7 +373,7 @@ test('удар о бочку: событие hit уходит всем (кто, 
     assert.ok(hits.length > 0, 'удар не передан');
     for (const e of hits) {
       assert.equal(e[1], a.id, 'бьётся только Аня');
-      assert.ok(e[2] > 3 && e[2] < 25, `сила ${e[2]}`);
+      assert.ok(e[2] > 3 && e[2] < 31, `сила ${e[2]}`);
       assert.ok(Math.abs(e[3] - barrel.ax) < 4 && Math.abs(e[4] - barrel.az) < 4, 'удар у бочки');
     }
   }

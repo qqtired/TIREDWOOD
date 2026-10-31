@@ -82,19 +82,21 @@ export const RT_MAX = 65535;
 
 /** Мини-турбо 1–3: столько тиков рывка */
 const MT_BOOST = [0, 36, 66, 96];
-export const KART_MAX_SPEED = 31;
+/** Темп картов: владелец 01.11.2026 — «не хватает динамики, сделай +20% скорости». Множитель потолков и разгона. */
+export const KART_PACE = 1.2;
+export const KART_MAX_SPEED = 31 * KART_PACE;
 const MAX_SPEED = KART_MAX_SPEED;
 /** Потолок скорости по уровню ускорения: без него, мини-турбо 1–3, турбо */
-export const KART_TURBO_SPEED = 41;
-const BOOST_SPEED = [MAX_SPEED, 34.5, 36.5, 38.5, KART_TURBO_SPEED];
+export const KART_TURBO_SPEED = 41 * KART_PACE;
+const BOOST_SPEED = [MAX_SPEED, 34.5 * KART_PACE, 36.5 * KART_PACE, 38.5 * KART_PACE, KART_TURBO_SPEED];
 const SLOW_SPEED = 11;
 const REVERSE_SPEED = 6;
-const ACCEL = 20;
-/** Разгон слабеет к потолку: 20 · (1 − 0,55 · v / потолок) */
+const ACCEL = 20 * KART_PACE;
+/** Разгон слабеет к потолку: ACCEL · (1 − 0,55 · v / потолок) */
 const ACCEL_FALL = 0.55;
 const OVER_DECEL = 12;
 /** Ускорение под турбо и мини-турбо (и без газа) */
-const BOOST_ACCEL = 34;
+const BOOST_ACCEL = 34 * KART_PACE;
 const BRAKE = 38;
 const REVERSE_ACCEL = 9;
 const COAST = 4;
@@ -104,8 +106,10 @@ const DRIFT_GRIP = 0.06;
 const STEER_RATE = 8;
 export const KART_TURN_RATE = 2.3;
 const TURN_RATE = KART_TURN_RATE;
-/** На полной скорости руль поворачивает слабее: радиус ~32 м на 31 м/с; шпильки требуют торможения. */
+/** На скорости руль поворачивает слабее: радиус ~32 м на 31 м/с; шпильки требуют торможения. Считается от 31 м/с,
+ * а не от потолка: с темпом KART_PACE на полной скорости радиус шире (~38 м) — в шпильку надо тормозить сильнее. */
 const TURN_FALL = 0.58;
+const TURN_REF_SPEED = 31;
 /** На месте руль поворачивает с такой долей силы: карт развернётся, даже стоя носом в стену */
 const TURN_MIN = 0.5;
 /** Полная сила руля — с такой скорости, м/с */
@@ -548,7 +552,7 @@ export function stepKart(k: KartState, inp: Input, tr: Track, ev: KartEvents, ca
   // 7. Поворот курса: на месте — вполсилы, с TURN_FULL_AT — в полную, к полной скорости — заметно слабее.
   // Задним ходом руль наоборот, как у машины; на месте и чуть назад — как вперёд, чтобы не дёргался при смене.
   const af = f < 0 ? -f : f;
-  let turn = TURN_RATE * (TURN_MIN + (1 - TURN_MIN) * Math.min(1, af / TURN_FULL_AT)) * (1 - TURN_FALL * Math.min(1, af / MAX_SPEED));
+  let turn = TURN_RATE * (TURN_MIN + (1 - TURN_MIN) * Math.min(1, af / TURN_FULL_AT)) * (1 - TURN_FALL * Math.min(1, af / TURN_REF_SPEED));
   let steer = k.steer;
   if (k.drift !== 0) {
     steer = k.drift * (0.75 + 0.4 * k.steer * k.drift);
