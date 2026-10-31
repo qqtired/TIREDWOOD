@@ -39,7 +39,8 @@ import { BOAT_FISH_SPOTS, FISH_ISLE_FIRST, FISH_NPCS, FISH_SPOTS, FISH_SPOT_COUN
 import { IsleClient } from './isle/index.ts';
 import { STATUE_AT, respectReach } from '../../shared/respect.ts';
 import { RC_MAX_KARTS } from '../../shared/kart.ts';
-import { DEFAULT_TRACK, nextRaceTrack, raceTrackLabel } from '../../shared/racecourse.ts';
+import { raceTrackLabel } from '../../shared/racecourse.ts';
+import { KartVoteUi } from './kartvote.ts';
 import { clamp } from '../../shared/math.ts';
 import type { AquaRow, BoatStatus, ClientMsg, DurakSeatView, DurakTableView, FerryStatus, HonorInfo, LobbyPlayerInfo, PbStatus, ServerMsg } from '../../shared/messages.ts';
 import type { QzBoard } from '../../shared/quiz/types.ts';
@@ -85,7 +86,7 @@ import { DurakDecor } from './durakdecor.ts';
 import { DurakHud } from './durakhud.ts';
 import { BlackjackHud } from './blackjackhud.ts';
 import { BilliardsClient } from './billiards.ts';
-import { billiardsCover } from '../../shared/billiards.ts';
+import { BL_TABLES, billiardsCover } from '../../shared/billiards.ts';
 import { BlackjackTable3D } from './blackjack3d.ts';
 import { SkillPortal, skyStatusLine } from '../skilltest/portal.ts';
 import { Kraken } from './kraken.ts';
@@ -265,6 +266,8 @@ export class LobbyScene implements Scene {
   private readonly arcade: ArcadeClient | null;
   /** «Ракушка» (флаг QUIZ, client/lobby/quiz): площадка, Затейник, кресла и камеры мест, чат «В игру» */
   private readonly quiz: QuizClient | null;
+  /** Голосование за трассу картинга в круге «Старт»: плашка сверху, клавиши 1 и 2 (client/lobby/kartvote.ts) */
+  private readonly kartVote: KartVoteUi;
   /** Радио на лодке (флаг ISLE, client/boat/radio.ts) */
   private readonly radio: BoatRadio;
   private readonly fishDrink: FishDrink;
@@ -346,6 +349,8 @@ export class LobbyScene implements Scene {
   private spinUntil = 0;
   /** Ближайший предмет, на который сейчас подсказка */
   private target: Interactable | null = null;
+  /** К-2: когда включили просмотр партии (performance.now) — первые мс мышь ещё отпускается */
+  private watchSince = 0;
   /** Занятые другими: автоматы (биты) и места */
   private busySlots = 0;
   private readonly busySeats = new Set<number>();
@@ -467,6 +472,7 @@ export class LobbyScene implements Scene {
     this.effects = new Effects(this.world.scene, this.world.collision);
     this.ball = new LobbyBall(this.world, this.effects, d.sound);
     this.hud = new LobbyHud(d.hudRoot, d.ui.slots, d.ui.top);
+    this.kartVote = new KartVoteUi(d.ui.top, { myId: () => this.myId, send: (track) => d.net.send({ t: 'kartTrack', track }) });
     this.juke.attachPanel((actions) => new JukeboxPanel(this.hud.root, actions));
     this.juke.attachModels(jukeModels(this.world.scene));
     // аркада новой набережной (флаг PLAZA3, client/lobby/plaza3/arcade): шесть автоматов в курзале и окно игры
@@ -567,6 +573,18 @@ export class LobbyScene implements Scene {
       leave: () => { d.net.send({ t: 'unuse' }); this.billiards.setSeat(-1, -1); d.wantPointer(); },
       pointerFree: () => !d.input.locked && !d.input.blocked,
       refreshShadows: () => d.renderer.refreshShadows(),
+      // К-2: болельщик у стола — мышь свободна (кнопки «Давай, ник!»), обычный вид — мышь обратно
+      watching: (on, byUser) => {
+        if (on) {
+          this.watchSince = performance.now();
+          d.input.releaseAll();
+          d.input.unlock();
+        } else {
+          if (!byUser) d.quietPause?.();
+          d.wantPointer();
+        }
+      },
+      cheered: (m) => this.onBlCheer(m),
     });
     // plaza2 — рама без таблички; plaza3 уже рисует всю облачную арку павильоном.
     this.skillPortal = new SkillPortal(this.world.scene, SKILL_PORTAL.x, SKILL_PORTAL.z, !PLAZA2, !PLAZA3);
@@ -685,7 +703,7 @@ export class LobbyScene implements Scene {
    */
   get wantsPointer(): boolean {
     const act = this.myAct;
-    return !((this.wardrobeOpen && act === ACT_WARDROBE) || (act === ACT_DURAK && this.dkSeat >= 0) || act === ACT_BILLIARDS || !!this.quiz?.freesPointer(act, this.arg) || this.fish2.modalOpen || this.ratHud.isOpen || this.juke.isOpen || this.radio.isOpen || this.plane.bannerOpen || this.ob.modalOpen || this.pirates3d.resultsOpen || this.rg.resultsOpen || !!this.arcade?.isOpen);
+    return !((this.wardrobeOpen && act === ACT_WARDROBE) || (act === ACT_DURAK && this.dkSeat >= 0) || act === ACT_BILLIARDS || this.billiards.watching || !!this.quiz?.freesPointer(act, this.arg) || this.fish2.modalOpen || this.ratHud.isOpen || this.juke.isOpen || this.radio.isOpen || this.plane.bannerOpen || this.ob.modalOpen || this.pirates3d.resultsOpen || this.rg.resultsOpen || !!this.arcade?.isOpen);
   }
 
   /** Меню примерочной — div, поэтому одной проверки native dialog для PTT недостаточно. */
@@ -811,6 +829,7 @@ export class LobbyScene implements Scene {
     this.entered = true;
     this.resetAdditions();
     this.juke.reset(true);
+    this.kartVote.hide();
     this.arcade?.reset();
     this.quiz?.reset();
     this.radio.reset(true);
@@ -880,6 +899,7 @@ export class LobbyScene implements Scene {
     this.kiteOn = false;
     this.resetAdditions();
     this.juke.reset(false);
+    this.kartVote.hide();
     this.arcade?.reset();
     this.quiz?.reset();
     this.radio.reset(false);
@@ -961,6 +981,7 @@ export class LobbyScene implements Scene {
         if (msg.blackjack) this.onBlackjack(msg.blackjack);
         // столы бильярда приходят следом отдельными сообщениями; нет их — флаг BILLIARDS выключен
         this.billiards.off();
+        this.billiards.tables2 = msg.tables2 === true;
         this.skillStatus = msg.skill ?? null;
         this.skillPortal.setVisible(!!msg.skill);
         this.plazaMode('sky', !!msg.skill);
@@ -1136,6 +1157,7 @@ export class LobbyScene implements Scene {
       case 'blShot':
       case 'blAim':
       case 'blErr':
+      case 'blCheer':
         this.billiards.onMessage(msg);
         break;
       case 'skillSt':
@@ -1279,6 +1301,13 @@ export class LobbyScene implements Scene {
     this.aquaTop = rows;
     const me = this.d.ui.me();
     this.aqua.setTop(rows, me.pid, me.stats.aqBest);
+  }
+
+  /** К-2: кто-то у стола крикнул «Давай, ник!» — облачко над ним и тихий шум трибуны у стола */
+  private onBlCheer(m: { table: number; pid: number; text: string }): void {
+    this.avatarOfPid(m.pid)?.say(m.text);
+    const t = BL_TABLES[m.table];
+    if (t) this.d.sound.applause([t.x, 1.4, t.z]);
   }
 
   private avatarOfPid(pid: number): Avatar | null {
@@ -1977,6 +2006,23 @@ export class LobbyScene implements Scene {
     }
     if (this.d.input.blocked) return false;
     if (this.rg.racing) return this.rg.onKey(code);
+    // К-2: болельщик у бильярдного стола — 1 / 2 «Давай, ник!», Esc и шаг — обычный вид (мышь возвращаем)
+    if (this.billiards.watching) {
+      if (code === 'Digit1' || code === 'Digit2' || code === 'Numpad1' || code === 'Numpad2') {
+        e.preventDefault();
+        this.billiards.hud.onKey(code);
+        return true;
+      }
+      if (code === 'Escape' || MOVE_KEYS.has(code)) {
+        this.billiards.stopWatch(true);
+        if (code === 'Escape') {
+          e.preventDefault();
+          return true;
+        }
+      }
+    }
+    // круг «Старт» у гаража: 1 / 2 — голос за трассу (эмоции на 1 и 2 в это время молчат)
+    if (this.kartVote.onKey(code, e)) { e.preventDefault(); return true; }
     // «Ракушка»: голос 1–4, F — роль, у загадывающего 1/2/3, Z, H; в эти моменты эмоции (и змей на 7) выключены
     if (this.quiz?.onKey(code)) { e.preventDefault(); return true; }
     if ((code === 'Digit7' || code === 'Numpad7' || (code === 'Escape' && act === ACT_KITE)) && this.kiteOn && this.hasSelf && !isHeld(act)) {
@@ -2132,13 +2178,9 @@ export class LobbyScene implements Scene {
       const gate = this.world.map.interact.find(i => i.kind === (this.startZone.kind === 'paintball' ? 'pb_gate' : 'fort'));
       if (gate) { this.d.net.send({ t: 'use', id: gate.id }); return; }
     }
-    const kart = this.world.kartStart.status;
-    if (kart.phase === 'count' && kart.hostId === this.myId && this.kartDist() <= KART_START.r) {
-      this.d.net.send({ t: 'kartTrack', track: nextRaceTrack(kart.track ?? DEFAULT_TRACK) });
-      return;
-    }
     const it = this.target;
-    if (it?.kind === 'juke') this.juke.toggle();
+    if (it?.kind === 'billiards' && this.billiards.canWatch(it.arg)) this.billiards.watch(it.arg);
+    else if (it?.kind === 'juke') this.juke.toggle();
     else if (it?.kind === 'fisher' && this.fish2.on) this.fish2.requestNpcOpen(FISH_NPCS[it.arg] ?? 'semyon');
     else if (it?.kind === 'ratrace') {
       this.d.net.send({ t: 'use', id: it.id });
@@ -2545,6 +2587,8 @@ export class LobbyScene implements Scene {
     this.tables3d.update(dt, this.time, camPos);
     this.decor.update(dt, this.time, camPos);
     this.blackjack3d.update(dt, this.time, camPos);
+    // К-2: мышь вернулась в игру (кликнули по сцене) или посадили куда-то — болельщиком больше не быть
+    if (this.billiards.watching && (isHeld(act) || (this.d.input.locked && performance.now() - this.watchSince > 700))) this.billiards.stopWatch(true);
     this.billiards.update(dt, this.time, camPos);
     this.dkHud.tick(performance.now());
     this.placeDurakTags();
@@ -2816,7 +2860,7 @@ export class LobbyScene implements Scene {
         const h = Math.cos(pitch);
         this.cam.fixed(cam, dt, cx, camY, cz, cx - ux * h, camY - Math.sin(pitch), cz - uz * h, TABLE_FOV, 'table');
       }
-    } else if (act === ACT_BILLIARDS && this.billiards.cameraPose()) {
+    } else if ((act === ACT_BILLIARDS || this.billiards.watching) && this.billiards.cameraPose()) {
       const c = this.billiards.cameraPose()!;
       this.cam.fixed(cam, dt, c.px, c.py, c.pz, c.lx, c.ly, c.lz, c.fov, 'table');
     } else if (act === ACT_WARDROBE && this.wardrobeOpen) {
@@ -2954,9 +2998,10 @@ export class LobbyScene implements Scene {
     hud.setKite(this.kiteOn, act === ACT_KITE, this.arg >= KITE_REEL_FIRST);
     const kd = this.kartDist();
     this.kartBeeps(kd <= KART_START.r);
+    this.kartVote.update(kd <= KART_START.r && this.hasSelf && !isHeld(act) && act !== ACT_WARDROBE && !this.d.input.blocked && !this.startZone.kind, this.world.kartStart.status, this.world.kartStart.left);
     if (!this.hasSelf || act === ACT_WARDROBE) hud.setHint(null);
     else if (act === ACT_SLOT) hud.setHint(TOUCH ? ['🎰'] : ['ЛКМ', '/', 'Пробел'], `крутить · ставка ${STAKES[this.arg] ?? '?'} 🪙 · ${TOUCH ? 'пальцем' : 'мышь'} — осмотреться · шаг — отойти`);
-    else if (act === ACT_DURAK || act === ACT_BILLIARDS) hud.setHint(null);
+    else if (act === ACT_DURAK || act === ACT_BILLIARDS || this.billiards.watching) hud.setHint(null);
     else if (act === ACT_QUIZ) hud.setHint(...this.quiz!.placeHint(this.arg));
     else if (act === ACT_FISH) this.hintFish();
     else if (act === ACT_BOAT) hud.setHint(TOUCH ? ['E'] : ['W', 'A', 'S', 'D'], `выйти из катера · отплытие через ${this.boatSecs()} с`);
@@ -3044,9 +3089,10 @@ export class LobbyScene implements Scene {
     else if (!inside) text = `Встань в круг — старт через ${ks.left} с`;
     else if (st.names.indexOf(this.d.ui.me().nick) >= RC_MAX_KARTS) text = 'Мест нет — поедешь в следующий заезд';
     else text = `Старт через ${ks.left} с · гонщиков: ${Math.min(st.n, RC_MAX_KARTS)}`;
-    const canChoose = inside && st.phase === 'count' && st.hostId === this.myId;
-    const track = raceTrackLabel(st.track);
-    this.hud.setHint(canChoose ? ['E'] : [], `${text} · ${track}${canChoose ? ' · сменить трассу' : st.phase === 'count' && st.hostNick ? ` · выбирает ${st.hostNick}` : ''}`);
+    // в круге трассу выбирают голосом (плашка сверху, клавиши 1 и 2); у круга — какая впереди сейчас
+    const voting = inside && st.phase === 'count' && st.ballots && !(st.names.indexOf(this.d.ui.me().nick) >= RC_MAX_KARTS);
+    if (voting) this.hud.setHint(TOUCH ? [] : ['1', '/', '2'], `голос за трассу · старт через ${ks.left} с · гонщиков: ${Math.min(st.n, RC_MAX_KARTS)}`);
+    else this.hud.setHint([], `${text} · ${raceTrackLabel(st.track)}`);
   }
 
   /** Три последних секунды отсчёта — писк, только тем, кто стоит в круге. */
@@ -3086,7 +3132,7 @@ export class LobbyScene implements Scene {
       if (it.kind === 'hide' && !this.hideStatus) continue;
       if (it.kind === 'farm' && !this.farmGate.on) continue;
       if (it.kind === 'juke' && !this.juke.enabled) continue;
-      if (it.kind === 'billiards' && (!this.billiards.on || this.myAct === ACT_BILLIARDS)) continue;
+      if (it.kind === 'billiards' && (!this.billiards.on || this.myAct === ACT_BILLIARDS || this.billiards.watching)) continue;
       if ((it.kind === 'plane' || it.kind === 'banner') && !this.plane.enabled) continue;
       if (it.kind === 'oboat' && !this.ob.enabled) continue;
       // место 45 — пустышка бывшего «Fight Club»: подсказки нет
@@ -3169,9 +3215,7 @@ export class LobbyScene implements Scene {
         else this.hud.setHint(['E'], 'в пейнтбол');
         break;
       case 'garage':
-        if (this.world.kartStart.status.hostId === this.myId) {
-          this.hud.setHint(['E'], `выбрать трассу · ${raceTrackLabel(this.world.kartStart.status.track)}`);
-        } else this.hud.setHint([], this.world.kartStart.status.hostNick ? `Трассу выбирает ${this.world.kartStart.status.hostNick}` : 'Встань первым в круг — выбери трассу');
+        this.hud.setHint([], 'Встань в круг «Старт» — вместе проголосуем за трассу');
         break;
       case 'honor':
         this.hud.setHint([], 'Доска почёта');

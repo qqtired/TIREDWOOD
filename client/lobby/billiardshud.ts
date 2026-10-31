@@ -29,7 +29,7 @@ const RULES: readonly string[] = [
   `Забил — очко за каждый шар и бьёшь ещё. Не забил — ход сопернику. Кто первым забил ${BL_WIN}, тот выиграл.`,
   'Биток в лузе — фол: забитое этим ударом возвращается на стол, ход сопернику.',
   `На удар — ${Math.round(TURN_MS / 1000)} секунд, не успел — ход сопернику.`,
-  'Партия на двоих: предложи (можно без ставки), второй принимает ту же ставку. Банк — обе ставки, победителю всё, комиссии нет.',
+  'Партия на двоих: «Бесплатно» или «На жетоны». Второй принимает ту же ставку или зовёт играть бесплатно. Банк — обе ставки, победителю всё, комиссии нет.',
   'Тренировка — бесплатно и без таймера. «Расставить» (R) — новая пирамида.',
 ];
 const CONTROLS = TOUCH
@@ -84,6 +84,10 @@ function pottedCount(on: number): number {
 export class BilliardsHud {
   onAction: (act: BlHudAction) => void = () => {};
   onLeave: () => void = () => {};
+  /** К-2: болельщик нажал 1 / 2 — «Давай, <ник>!» за сторону 0 / 1 */
+  onCheer: (side: number) => void = () => {};
+  /** К-2: болельщик вернул обычный вид (Esc / кнопка) */
+  onStopWatch: () => void = () => {};
   /** Итог партии показан (шары остановились): победа или поражение — для звука */
   onResult: (won: boolean, bet: number) => void = () => {};
   private readonly root = el('section', 'bl hidden');
@@ -95,12 +99,24 @@ export class BilliardsHud {
   private readonly powerNum = el('em');
   private readonly rules = el('div', 'bl-rules');
   private readonly bar = el('div', 'bl-bar');
+  /** К-2: нижняя полоска болельщика — две кнопки «Давай, ник!» и «Обычный вид» */
+  private readonly watchBar = el('div', 'bl-watch');
+  private readonly cheerBtns = [el('button', 'bl-btn bl-cheer'), el('button', 'bl-btn bl-cheer')];
+  private readonly watchSub = el('small');
+  private watching = false;
+  private cheerLabels = '';
   private readonly tableEl = el('small', 'bl-id-sub');
   private readonly helpBtn = el('button', 'bl-help', '?');
   private readonly status = el('div', 'bl-status');
   private readonly eventEl = el('div', 'bl-event');
   private readonly actRow = el('div', 'bl-act');
   private readonly betBox = el('div', 'bl-bet');
+  /** Как играть: «Бесплатно» / «На жетоны» (по умолчанию бесплатно, как «Моё участие» у дурака) */
+  private readonly modeSeg = el('div', 'bl-seg');
+  private readonly modeFree = el('button', 'bl-seg-btn', 'Бесплатно');
+  private readonly modeBet = el('button', 'bl-seg-btn');
+  private readonly modeBetNeed = el('small');
+  private readonly freeBtn = el('button', 'bl-btn bl-free', 'Давай бесплатно');
   private readonly input = document.createElement('input');
   private readonly limitEl = el('small', 'bl-limit');
   private readonly chipBtns: Array<{ btn: HTMLButtonElement; chip: number }> = [];
@@ -124,6 +140,10 @@ export class BilliardsHud {
   private myPid = 0;
   private balance = 0;
   private draft = 0;
+  /** Выбран путь «На жетоны» (включается, только если есть жетоны) */
+  private payBet = false;
+  /** Моё предложение со ставкой заменили встречным «без ставки»: ставка вернулась */
+  private stakeBack = false;
   private lastAmount = 0;
   private bannerKey = '';
   private flashKey = '';
@@ -193,8 +213,10 @@ export class BilliardsHud {
     this.input.setAttribute('aria-label', 'Своя сумма ставки');
     this.input.addEventListener('input', () => {
       const digits = this.input.value.replace(/\D/g, '').slice(0, 5);
-      this.draft = Math.min(digits ? Number(digits) : 0, BL_MAX_BET);
-      if (this.input.value !== digits) this.input.value = digits;
+      // больше своих жетонов (и лимита стола) не впишешь: цифры обрезаются, как в блэкджеке (client/lobby/bjbet.ts)
+      this.draft = Math.min(digits ? Number(digits) : 0, blMaxBet(this.balance));
+      const shown = this.draft > 0 ? String(this.draft) : '';
+      if (this.input.value !== shown) this.input.value = shown;
       this.render();
     });
     this.input.addEventListener('keydown', (e) => {
@@ -210,10 +232,17 @@ export class BilliardsHud {
     const amount = el('div', 'bl-amount');
     amount.append(this.input, this.resetBtn);
     this.betBox.append(chips, amount, this.limitEl);
-    for (const b of [this.goBtn, this.cancelBtn, this.rackBtn, this.exitBtn]) b.type = 'button';
+    this.modeSeg.setAttribute('role', 'radiogroup');
+    this.modeSeg.setAttribute('aria-label', 'Как играть');
+    this.modeBet.append('На жетоны', this.modeBetNeed);
+    this.modeFree.addEventListener('click', () => this.setPayBet(false));
+    this.modeBet.addEventListener('click', () => this.setPayBet(true));
+    this.modeSeg.append(this.modeFree, this.modeBet);
+    for (const b of [this.goBtn, this.cancelBtn, this.rackBtn, this.exitBtn, this.freeBtn, this.modeFree, this.modeBet]) b.type = 'button';
+    this.freeBtn.addEventListener('click', () => this.onAction({ a: 'offer', amount: 0 }));
     this.goBtn.addEventListener('click', () => this.go?.());
     this.cancelBtn.addEventListener('click', () => this.onAction({ a: 'cancel' }));
-    this.actRow.append(this.betBox, this.goBtn, this.cancelBtn, this.whyEl);
+    this.actRow.append(this.modeSeg, this.betBox, this.goBtn, this.freeBtn, this.cancelBtn, this.whyEl);
     const mid = el('div', 'bl-mid');
     mid.append(this.status, this.eventEl, this.actRow, this.keysEl);
 
@@ -242,6 +271,20 @@ export class BilliardsHud {
 
     this.bar.append(this.rules, id, mid, side);
 
+    // К-2: полоска болельщика (вместо панели игрока)
+    this.watchBar.hidden = true;
+    const wTitle = el('div', 'bl-watch-title');
+    wTitle.append(el('b', '', 'Смотришь партию'), this.watchSub);
+    this.cheerBtns.forEach((b, i) => {
+      b.type = 'button';
+      b.addEventListener('click', () => this.onCheer(i));
+    });
+    const normal = el('button', 'bl-btn', 'Обычный вид');
+    normal.type = 'button';
+    normal.append(el('kbd', '', 'Esc'));
+    normal.addEventListener('click', () => this.onStopWatch());
+    this.watchBar.append(wTitle, this.cheerBtns[0], this.cheerBtns[1], normal);
+
     this.dialog.className = 'bj-dialog bl-dialog';
     const row = el('div', 'bj-actions-row');
     const stay = el('button', 'bj-button', 'Играть дальше');
@@ -259,7 +302,7 @@ export class BilliardsHud {
     this.dialog.append(el('h2', '', 'Сдаться?'), this.dialogText, row);
 
     this.flash.addEventListener('animationend', () => this.flash.classList.remove('show'));
-    this.root.append(this.board, this.banner, this.flash, this.power, this.bar, this.dialog);
+    this.root.append(this.board, this.banner, this.flash, this.power, this.bar, this.watchBar, this.dialog);
     // кнопки не забирают фокус мышью: иначе пробел нажмёт их ещё раз вместо замаха
     this.root.addEventListener('mousedown', (e) => {
       if ((e.target as HTMLElement).closest('button')) e.preventDefault();
@@ -288,14 +331,49 @@ export class BilliardsHud {
     this.lastShot = null;
     this.boardKey = this.statusKey = this.eventKey = this.keysKey = '';
     this.shownScore = [0, 0];
+    this.payBet = false;
+    this.stakeBack = false;
+    this.setDraft(0, false);
     this.tableEl.textContent = `стол ${table + 1} · американка`;
     this.root.classList.remove('hidden');
     this.render();
   }
 
+  /** К-2: смотрим партию издали — сверху табло с никами, снизу «Давай, ник!» (1 / 2) и «Обычный вид». */
+  watch(table: number): void {
+    this.table = table;
+    this.side = -1;
+    this.myPid = 0;
+    this.watching = true;
+    this.view = this.latest = null;
+    this.lastShot = null;
+    this.boardKey = this.statusKey = this.eventKey = this.keysKey = this.cheerLabels = '';
+    this.shownScore = [0, 0];
+    this.board.replaceChildren();
+    this.root.classList.remove('hidden');
+    this.root.classList.add('watching');
+    this.bar.hidden = true;
+    this.watchBar.hidden = false;
+    this.watchSub.textContent = `стол ${table + 1} · шаг — обычный вид`;
+  }
+
+  get isWatching(): boolean {
+    return this.watching;
+  }
+
+  /** Кнопки «Давай, ник!» неактивны ms (сервер пускает раз в 2 с) */
+  cheerCooldown(ms: number): void {
+    for (const b of this.cheerBtns) b.disabled = true;
+    window.setTimeout(() => { for (const b of this.cheerBtns) b.disabled = false; }, ms);
+  }
+
   hide(): void {
     this.table = -1;
     this.side = -1;
+    this.watching = false;
+    this.root.classList.remove('watching');
+    this.bar.hidden = false;
+    this.watchBar.hidden = true;
     if (this.dialog.open) this.dialog.close();
     this.toggleRules(false);
     this.input.blur();
@@ -311,8 +389,14 @@ export class BilliardsHud {
     this.recvAt = now;
     if (v.offer && v.offer.by === this.side) this.lastAmount = v.offer.amount;
     if (v.phase === 'match' && v.bet) this.lastAmount = v.bet;
-    // реванш: после итога в поле — прошлая ставка
-    if (prev?.phase === 'result' && v.phase === 'open') this.setDraft(Math.min(this.lastAmount, blMaxBet(this.balance)), false);
+    // моё предложение со ставкой заменили встречным «без ставки»: ставка вернулась, сказать об этом
+    if (prev?.offer && prev.offer.by === this.side && prev.offer.amount > 0 && v.phase === 'open' && v.offer && v.offer.by !== this.side && v.offer.amount === 0) this.stakeBack = true;
+    else if (!v.offer || v.phase !== 'open') this.stakeBack = false;
+    // реванш: после итога в поле — прошлая ставка (и путь «На жетоны», если играли на жетоны)
+    if (prev?.phase === 'result' && v.phase === 'open') {
+      this.setDraft(Math.min(this.lastAmount, blMaxBet(this.balance)), false);
+      this.payBet = this.draft > 0;
+    }
     // шары катятся — показываем стол до удара, новый вид — когда остановятся
     if (!this.animating || !this.view) this.view = v;
     this.render();
@@ -320,6 +404,7 @@ export class BilliardsHud {
 
   setBalance(n: number): void {
     this.balance = n;
+    if (this.draft > blMaxBet(n)) this.setDraft(this.draft, false);
     this.render();
   }
 
@@ -366,15 +451,25 @@ export class BilliardsHud {
   /** Клавиши панели: 1–4 — фишки, Enter — главная кнопка, R — расставить заново. true — съели. */
   onKey(code: string): boolean {
     if (!this.visible) return false;
+    if (this.watching) {
+      if (code === 'Escape') this.onStopWatch();
+      else if (code === 'Digit1' || code === 'Numpad1') this.onCheer(0);
+      else if (code === 'Digit2' || code === 'Numpad2') this.onCheer(1);
+      else return false;
+      return true;
+    }
     if (code === 'Escape') {
       this.escape();
       return true;
     }
     if (this.dialog.open) return true;
     const i = /^(?:Digit|Numpad)([1-9])$/.exec(code);
-    if (i && !this.betBox.hidden && !this.actRow.hidden) {
+    if (i && !this.actRow.hidden && this.canPickBet()) {
       const chip = BL_CHIPS[Number(i[1]) - 1];
-      if (chip) this.setDraft(Math.min(blMaxBet(this.balance), this.draft + chip));
+      if (chip) {
+        if (!this.payBet) this.setPayBet(true);
+        this.setDraft(Math.min(blMaxBet(this.balance), this.draft + chip));
+      }
       return !!chip;
     }
     if (code === 'Enter' && this.go && !this.goBtn.disabled && !this.goBtn.hidden) {
@@ -391,6 +486,15 @@ export class BilliardsHud {
   /** Раз в кадр: таймер, полоска хода, конец «шары катятся», снятие ошибки. */
   tick(now: number): void {
     if (!this.visible || !this.view) return;
+    if (this.watching) {
+      // у болельщика — только полоска времени хода на табло
+      if (this.timeBar && this.latest) {
+        const left = this.left(now);
+        this.timeBar.style.width = `${((left / TURN_MS) * 100).toFixed(1)}%`;
+        this.timeBar.parentElement?.classList.toggle('hurry', left < HURRY_MS);
+      }
+      return;
+    }
     if (this.err && now > this.errUntil) this.err = '';
     this.root.classList.toggle('my-turn', this.myTurn(now));
     this.renderStatus(now);
@@ -432,10 +536,25 @@ export class BilliardsHud {
     return this.view?.seats[s]?.nick ?? 'соперник';
   }
 
+  /** Можно выбирать ставку: стол свободен, никто не зовёт, жетоны есть */
+  private canPickBet(): boolean {
+    const v = this.view;
+    return !!v && v.phase === 'open' && !v.offer && blMaxBet(this.balance) > 0;
+  }
+
   private setDraft(n: number, render = true): void {
-    this.draft = Math.max(0, Math.min(BL_MAX_BET, Math.floor(n)));
+    this.draft = Math.max(0, Math.min(blMaxBet(this.balance), Math.floor(n)));
     this.input.value = this.draft ? String(this.draft) : '';
     if (render) this.render();
+  }
+
+  /** Путь «На жетоны» / «Бесплатно». Жетонов нет — только бесплатно. Ставка при смене пути сбрасывается. */
+  private setPayBet(on: boolean): void {
+    const next = on && blMaxBet(this.balance) > 0;
+    if (next === this.payBet) return;
+    this.payBet = next;
+    this.setDraft(0, false);
+    this.render();
   }
 
   private toggleRules(on = this.rules.hidden === true): void {
@@ -457,6 +576,11 @@ export class BilliardsHud {
     const v = this.view;
     if (!this.visible || !v) return;
     const now = performance.now();
+    if (this.watching) {
+      this.renderBoard(v);
+      this.renderWatch(v);
+      return;
+    }
     this.root.classList.toggle('my-turn', this.myTurn(now));
     this.renderBoard(v);
     this.renderBar(v);
@@ -466,6 +590,19 @@ export class BilliardsHud {
     if (v.phase === 'result' && v.winner >= 0) this.showBanner(v);
   }
 
+  /** К-2: подписи на кнопках «Давай, <ник>!» — по никам сидящих (меняются, только если сменились ники) */
+  private renderWatch(v: BlTableView): void {
+    const names = [v.seats[0]?.nick ?? 'игрок', v.seats[1]?.nick ?? 'игрок'];
+    const key = names.join('|');
+    if (key === this.cheerLabels) return;
+    this.cheerLabels = key;
+    this.cheerBtns.forEach((b, i) => {
+      const label = el('span', '', `Давай, ${names[i]}!`);
+      b.replaceChildren(label, el('kbd', '', String(i + 1)));
+      b.title = `Подбодрить: «Давай, ${names[i]}!» — облачко над головой и шум у стола`;
+    });
+  }
+
   /** Табло сверху: в партии — ты, «до 8» и банк, соперник; до партии — тренировка. */
   private renderBoard(v: BlTableView): void {
     const me = this.side;
@@ -473,11 +610,19 @@ export class BilliardsHud {
       const x = v.seats[s];
       return x ? `${x.nick}|${x.away > 0 ? 1 : 0}` : '-';
     };
-    const key = [v.phase, v.score.join(':'), v.phase === 'match' ? v.turn : -1, v.bet, v.winner, seat(0), seat(1), me,
+    const key = [this.watching ? 'w' : '', v.phase, v.score.join(':'), v.phase === 'match' ? v.turn : -1, v.bet, v.winner, seat(0), seat(1), me,
       v.phase === 'open' ? `${pottedCount(v.on)}|${v.offer ? `${v.offer.by}:${v.offer.amount}` : ''}` : ''].join('/');
     if (key === this.boardKey) return;
     this.boardKey = key;
     this.timeBar = null;
+    if (this.watching) {
+      // болельщик: слева сторона 0, справа сторона 1; пока партии нет — табло пустое
+      this.board.className = 'bl-board match';
+      if (v.phase === 'open') this.board.replaceChildren();
+      else this.board.replaceChildren(this.card(v, 0), this.vsCard(v), this.card(v, 1));
+      this.shownScore = [v.score[0], v.score[1]];
+      return;
+    }
     if (v.phase === 'open') {
       this.board.className = 'bl-board train';
       this.board.replaceChildren(this.trainCard(v));
@@ -495,7 +640,7 @@ export class BilliardsHud {
     const turn = v.phase === 'match' && v.turn === s;
     const won = v.phase === 'result' && v.winner === s;
     const lost = v.phase === 'result' && v.winner >= 0 && v.winner !== s;
-    const cls = ['bl-card', isMe ? 'me' : 'opp'];
+    const cls = ['bl-card', isMe || (this.watching && s === 0) ? 'me' : 'opp'];
     if (turn) cls.push('turn');
     if (seat?.away) cls.push('away');
     if (won) cls.push('win');
@@ -504,7 +649,7 @@ export class BilliardsHud {
     const ava = el('div', 'bl-ava', initial(seat?.nick));
     if (turn) ava.append(ballImg('cue', 'bl-ava-cue'));
     const who = el('div', 'bl-who');
-    const tag = el('span', 'bl-tag', isMe ? 'ты' : 'соперник');
+    const tag = el('span', 'bl-tag', isMe ? 'ты' : this.watching ? 'игрок' : 'соперник');
     if (seat?.away) {
       tag.textContent = 'отошёл';
       tag.classList.add('bad');
@@ -574,16 +719,28 @@ export class BilliardsHud {
     this.go = null;
     this.whyEl.textContent = '';
     let bet = false, go = false, cancel = false;
+    let seg = false, free = false;
     if (v.phase === 'open') {
       const offer = v.offer;
       if (!offer) {
-        bet = go = true;
-        const can = this.draft <= this.balance;
-        this.goLabel('bl-go', this.draft > 0 ? `Предложить партию · ${this.draft} 🪙` : 'Предложить партию без ставки');
+        // выбор «Бесплатно» / «На жетоны»; по умолчанию бесплатно, без жетонов путь «На жетоны» закрыт
+        const cap = blMaxBet(this.balance);
+        if (cap <= 0) this.payBet = false;
+        seg = go = true;
+        bet = this.payBet;
+        const amount = this.payBet ? this.draft : 0;
+        const can = !this.payBet || (amount > 0 && amount <= cap);
+        if (this.payBet) this.goLabel('bl-go', amount > 0 ? `Позвать на ${amount} 🪙` : 'Выбери ставку — нажми фишку');
+        else this.goLabel('bl-go', 'Позвать сыграть без ставки');
         this.goBtn.disabled = !can;
-        if (!can) this.whyEl.textContent = `у тебя ${this.balance} — не хватает`;
-        const amount = this.draft;
         if (can) this.go = () => this.onAction({ a: 'offer', amount });
+        this.modeFree.classList.toggle('on', !this.payBet);
+        this.modeFree.setAttribute('aria-checked', String(!this.payBet));
+        this.modeBet.classList.toggle('on', this.payBet);
+        this.modeBet.setAttribute('aria-checked', String(this.payBet));
+        this.modeBet.disabled = cap <= 0;
+        this.modeBetNeed.textContent = cap <= 0 ? 'нет жетонов' : '';
+        this.modeBet.title = cap <= 0 ? 'Жетонов нет — сыграй бесплатно, жетоны дают рыбалка и другие режимы' : 'Ставка из своих жетонов, победитель забирает банк';
       } else if (offer.by === me) {
         if (offer.amount > 0) cancel = true;
         else {
@@ -593,15 +750,25 @@ export class BilliardsHud {
           this.go = () => this.onAction({ a: 'cancel' });
         }
       } else {
+        // зовут на партию. Ставка не по карману — главной кнопкой становится «Давай бесплатно» (встречное предложение)
         go = true;
         const can = offer.amount <= this.balance;
-        this.goLabel('bl-go green', offer.amount ? `Принять · ${offer.amount} 🪙` : 'Принять партию');
-        this.goBtn.disabled = !can;
-        if (!can) setCoinText(this.whyEl, `нужно ${offer.amount} 🪙, у тебя ${this.balance}`);
-        const amount = offer.amount;
-        if (can) this.go = () => this.onAction({ a: 'accept', amount });
+        if (can) {
+          this.goLabel('bl-go green', offer.amount ? `Принять · ${offer.amount} 🪙` : 'Принять партию');
+          this.goBtn.disabled = false;
+          const amount = offer.amount;
+          this.go = () => this.onAction({ a: 'accept', amount });
+          free = offer.amount > 0;
+        } else {
+          this.goLabel('bl-go green', 'Давай бесплатно');
+          this.goBtn.disabled = false;
+          this.go = () => this.onAction({ a: 'offer', amount: 0 });
+          setCoinText(this.whyEl, `на ${offer.amount} 🪙 не хватает — у тебя ${this.balance}`);
+        }
       }
     }
+    this.modeSeg.hidden = !seg;
+    this.freeBtn.hidden = !free;
     this.betBox.hidden = !bet;
     this.goBtn.hidden = !go;
     this.cancelBtn.hidden = !cancel;
@@ -648,7 +815,7 @@ export class BilliardsHud {
       } else {
         title = `${this.nick(offer.by)} зовёт на партию`;
         tone = 'gold';
-        sub = offer.amount ? `ставка ${offer.amount} 🪙 · банк ${offer.amount * 2}, победителю всё` : 'без ставки';
+        sub = offer.amount ? `ставка ${offer.amount} 🪙 · банк ${offer.amount * 2}, победителю всё` : this.stakeBack ? 'ставка вернулась · играем без ставки?' : 'без ставки';
       }
     } else if (v.phase === 'match') {
       if (this.rolling(now)) title = 'Шары катятся…';

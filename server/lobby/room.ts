@@ -7,7 +7,7 @@ import { AQUA_QUEUE, AQUA_WAIT, AquaDyn, aquaClock } from '../../shared/aquadyn.
 import { BALL_BYTES, BALL_KICK_TICKS, makeBall, stepBall, touchBall, writeBall, type Ball } from '../../shared/ball.ts';
 import { BARKAS_LANDING, SANYA_PRICE, barkasLanding, barkasWater } from '../../shared/barkas.ts';
 import { BJ_TABLE } from '../../shared/blackjack.ts';
-import { BL_TABLES, blSpot } from '../../shared/billiards.ts';
+import { BL_TABLES, BL_TABLE_COUNT, blSpot } from '../../shared/billiards.ts';
 import { BOAT_FLOOR_Y, BOAT_PRICE, BOAT_RIDE_TICKS, BP_BOARD, BP_RIDE, LAUNCH, ridePose, seatAt, type BoatPose } from '../../shared/boat.ts';
 import { HIDE_CAPACITY, HIDE_MIN } from '../../shared/hide.ts';
 import { RG_GATHER_TICKS, RG_MAX } from '../../shared/regatta.ts';
@@ -27,7 +27,7 @@ import { JUKE_RATE_MS, JUKE_SERVER_R, JUKE_SONGS, fmtSongTime, jukeUseDist, song
 import { RAT_CENTER, RAT_CHEER_MS, RAT_CHEER_R, isRatIndex } from '../../shared/ratrace.ts';
 import {
   ACT_BILLIARDS, ACT_BOAT, ACT_DANCE, ACT_DURAK, ACT_FERRY, ACT_FERRY_RIDE, ACT_FISH, ACT_LAUGH, ACT_NONE, ACT_OWNBOAT, ACT_PLANE, ACT_REGATTA, ACT_RESPECT, ACT_RIDE, ACT_SIT, ACT_SLOT,
-  ACT_WARDROBE, ACT_WAVE, ACT_WHEEL, EMOTE_TICKS, KART_CHECK_EVERY, KART_COUNT_TICKS, LOBBY_CAPACITY, LOBBY_SNAP_EVERY, PAIR_ACCEPT_RANGE, PAIR_ACTS, PAIR_ASK_TICKS, PAIR_TICKS, STOP_EMOTE,
+  ACT_WARDROBE, ACT_WAVE, ACT_WHEEL, EMOTE_TICKS, KART_CHECK_EVERY, KART_COUNT_TICKS, KART_DRAW_TICKS, LOBBY_CAPACITY, LOBBY_SNAP_EVERY, PAIR_ACCEPT_RANGE, PAIR_ACTS, PAIR_ASK_TICKS, PAIR_TICKS, STOP_EMOTE,
   holdMask, isAboard, isFerry, isHeld,
   isPair, isRiding, pairReach, stepHeld,
 } from '../../shared/lobby.ts';
@@ -38,7 +38,7 @@ import { gearOnly } from '../../shared/fishstyle.ts';
 import { devIsleCommand } from '../fishstyle.ts';
 import { RESPECT_COUNT_MS, RESPECT_TICKS, respectReach } from '../../shared/respect.ts';
 import { E_ALIVE, E_DASH, E_GROUNDED, SNAP_SELF_RESET, encodeEntities, encodeSnapshot, makeHeader, type EntitySnap } from '../../shared/protocol.ts';
-import { DEFAULT_TRACK, isRaceTrackId, nextRaceTrack, raceTrackName, type RaceTrackId } from '../../shared/racecourse.ts';
+import { DEFAULT_TRACK, RACE_TRACKS, isRaceTrackId, raceTrackName, tallyTrackVotes, type RaceTrackId } from '../../shared/racecourse.ts';
 import { inStartCircle, START_DWELL_TICKS, START_ZONES, type StartZoneKind } from '../../shared/startzones.ts';
 import { inFarmRoadZone } from '../../shared/farmmap.ts';
 import { stormInput, stormPush } from '../../shared/stormdyn.ts';
@@ -195,7 +195,12 @@ export class LobbyRoom implements Room {
   private readonly farmRoadTried = new WeakSet<LobbyPlayer>();
   /** Тик конца отсчёта до гонки (0 — отсчёта нет) */
   private kartCountEnd = 0;
-  private kartTrack: RaceTrackId = DEFAULT_TRACK;
+  /** Голоса за трассу: кто стоит в круге → за какую (выходишь из круга — голос снимается, смена голоса — до старта) */
+  private readonly kartVotes = new Map<LobbyPlayer, RaceTrackId>();
+  /** Ничья на последних секундах отсчёта: какая трасса выпала по жребию (null — ничьей нет или ещё рано) */
+  private kartDraw: RaceTrackId | null = null;
+  /** Жребий при ничьей: целое от 0 до n−1 (в тестах подменяется) */
+  kartRoll: (n: number) => number = (n) => Math.floor(Math.random() * n);
   private kartShown = '';
   /** Табло: последние разосланные позиции картов строкой — шлём, только если поменялись */
   private kposShown = '';
@@ -421,6 +426,10 @@ export class LobbyRoom implements Room {
         return accepted;
       },
       finished: (r) => {
+        if (r.why === 'score') {
+          hub.tableXp(r.winner.pid, 'billiards');
+          hub.tableXp(r.loser.pid, 'billiards');
+        }
         const bank = r.bet * 2;
         const how = r.why === 'score' ? ` ${Math.max(...r.score)}:${Math.min(...r.score)}` : r.why === 'resign' ? ' (соперник сдался)' : ' (соперник не вернулся)';
         hub.announce(`🎱 ${r.winner.nick} обыграл ${r.loser.nick} в бильярд${how}${bank ? ` и забрал банк ${bank} 🪙` : ''}`);
@@ -737,6 +746,7 @@ export class LobbyRoom implements Room {
       ...(this.kite ? { kite: true } : {}),
       ...(this.quiz ? { quiz: this.quiz.board() } : {}),
       ...(this.hub.dungeon ? { dg: this.hub.dungeon.status() } : {}),
+      ...(this.hub.tables2 ? { tables2: true } : {}),
       ...(this.regatta && this.boatQueue ? { regatta: { v: this.regatta.view(), q: this.boatQueue.view(this.tick), top: this.hub.regattaTop() } } : {}),
       ...(this.hideQueue ? { hide: this.hideStatus()! } : {}),
       ...(this.hub.farm ? { farm: this.hub.farm.status() } : {}),
@@ -787,7 +797,8 @@ export class LobbyRoom implements Room {
     this.boatQueue?.drop(p);
     this.hideQueue?.drop(p);
     this.starts.delete(p);
-    if (!this.circle.size) { this.kartTrack = DEFAULT_TRACK; this.kartCountEnd = 0; }
+    this.kartVotes.delete(p);
+    if (!this.circle.size) { this.kartDraw = null; this.kartCountEnd = 0; }
     if (c.profile) this.radios?.left(c.profile.id);
     this.byClient.delete(c);
     this.players.delete(p.slot);
@@ -898,8 +909,11 @@ export class LobbyRoom implements Room {
       case 'bl':
         this.onBilliards(p, msg);
         return;
+      case 'blCheer':
+        this.onBilliardsCheer(p, msg);
+        return;
       case 'kartTrack':
-        this.chooseKartTrack(p, msg.track);
+        this.voteKartTrack(p, msg.track);
         return;
       case 'juke':
         this.onJuke(p, msg.song);
@@ -964,6 +978,23 @@ export class LobbyRoom implements Room {
           this.fishing2.reel(p.arg, p.slot, msg.i, msg.k, msg.u, msg.d, this.tick);
         }
         return;
+    }
+  }
+
+  private onBilliardsCheer(p: LobbyPlayer, msg: Extract<ClientMsg, { t: 'blCheer' }>): void {
+    const hall = this.billiards, c = p.client;
+    if (!this.hub.tables2 || !hall || c.ephemeral) return;
+    if (!this.hub.limits.hit(`blCheer:${c.id}`, 1, 2000)) return;
+    const { table, side } = msg;
+    if (!Number.isInteger(table) || table < 0 || table >= BL_TABLE_COUNT || (side !== 0 && side !== 1)) return;
+    const t = BL_TABLES[table];
+    if (!(Math.abs(p.state.x - t.x) < 14 && Math.abs(p.state.z - t.z) < 14)) return;
+    if (p.action === ACT_BILLIARDS && Math.floor(p.arg / 2) === table) return;
+    const view = hall.view(table), seat = view.seats[side];
+    if (view.phase !== 'match' || !seat) return;
+    const cheer: ServerMsg = { t: 'blCheer', table, pid: c.pid, nick: c.nick, side, text: `Давай, ${seat.nick}!` };
+    for (const near of this.players.values()) {
+      if (Math.abs(near.state.x - t.x) < 14 && Math.abs(near.state.z - t.z) < 14) near.client.sink.sendJson(cheer);
     }
   }
 
@@ -1072,7 +1103,8 @@ export class LobbyRoom implements Room {
         this.hub.move(c, this.hub.paintball);
         return;
       case 'garage':
-        this.chooseKartTrack(p, nextRaceTrack(this.kartTrack));
+        // трассу больше не выбирает один игрок: в круге у гаража голосуют все (клавиши 1 и 2)
+        this.hub.toast(c, this.circle.has(p) ? 'Трассу выбираем голосованием: 1 — Портовое кольцо, 2 — Солнечный серпантин.' : 'Встань в круг у гаража — там голосуют за трассу.');
         return;
       case 'skill':
         if (!this.hub.skill) return;
@@ -2273,24 +2305,46 @@ export class LobbyRoom implements Room {
   private syncKartCircle(): void {
     syncCircleMembers(this.circle, this.players.values(), p =>
       !p.client.ephemeral && !isHeld(p.action) && !p.menuOpen && inStartCircle(p.state, KART_START));
-    if (!this.circle.size) { this.kartTrack = DEFAULT_TRACK; this.kartCountEnd = 0; }
+    for (const p of this.kartVotes.keys()) if (!this.circle.has(p)) this.kartVotes.delete(p);
+    if (!this.circle.size) { this.kartDraw = null; this.kartCountEnd = 0; }
   }
 
-  private chooseKartTrack(p: LobbyPlayer, track: unknown): void {
-    if (!isRaceTrackId(track) || !this.hub.limits.hit(`kartTrack:${p.client.id}`, 4, 1000)) return;
+  /**
+   * Голос за трассу из круга старта (клавиши 1 и 2 или клик по карточке). Голос можно менять до старта; вышел из круга —
+   * голос снят. Считает сервер: на старте побеждает большинство, при ничьей решает жребий (kartResolve).
+   */
+  private voteKartTrack(p: LobbyPlayer, track: unknown): void {
+    if (!isRaceTrackId(track) || !this.hub.limits.hit(`kartTrack:${p.client.id}`, 6, 1000)) return;
     this.syncKartCircle();
-    if (!this.hub.race.idle) { this.hub.toast(p.client, 'Гонка уже идёт. Трассу выберем перед следующим заездом.'); return; }
-    if (!this.circle.has(p)) { this.hub.toast(p.client, 'Встань в круг старта у гаража.'); return; }
-    const host = this.circle.values().next().value;
-    if (host !== p) { this.hub.toast(p.client, `Трассу выбирает ${host?.client.nick ?? 'первый игрок в круге'}.`); return; }
-    if (this.kartTrack !== track) {
-      this.kartTrack = track;
-      this.kartCountEnd = this.tick + KART_COUNT_TICKS;
-      const status = this.kartStatus();
-      this.kartShown = JSON.stringify(status);
-      this.broadcast({ t: 'kart', ...status });
-      this.hub.toast(p.client, `Выбрана трасса «${raceTrackName(track)}». E — сменить.`);
-    }
+    if (!this.hub.race.idle) { this.hub.toast(p.client, 'Гонка уже идёт. Трассу выберем голосованием перед следующим заездом.'); return; }
+    if (!this.circle.has(p)) { this.hub.toast(p.client, 'Встань в круг старта у гаража — там голосуют за трассу.'); return; }
+    if (this.kartVotes.get(p) === track) return;
+    this.kartVotes.set(p, track);
+    this.kartResolve();
+    this.kartPublish();
+  }
+
+  /** Разослать табло, если оно изменилось (голоса, жребий, секунды) */
+  private kartPublish(): void {
+    const st = this.kartStatus();
+    const key = JSON.stringify(st);
+    if (key === this.kartShown) return;
+    this.kartShown = key;
+    this.broadcast({ t: 'kart', ...st });
+  }
+
+  /**
+   * Итог голосования сейчас: у кого сколько голосов и кто впереди. Ничья (поровну у нескольких) — за KART_DRAW_TICKS до
+   * старта бросаем жребий и показываем его на табло; сменили голос и ничья пропала или выпавшая трасса отпала — жребий
+   * сбрасывается и бросается заново. Нет голосов совсем — едет трасса по умолчанию, жребия нет.
+   */
+  private kartResolve(): { counts: number[]; leaders: RaceTrackId[]; tie: boolean } {
+    const { counts, leaders } = tallyTrackVotes(this.kartVotes.values());
+    const tie = leaders.length > 1;
+    const soon = this.kartCountEnd > 0 && this.kartCountEnd - this.tick <= KART_DRAW_TICKS;
+    if (!tie || !soon) this.kartDraw = null;
+    else if (!this.kartDraw || !leaders.includes(this.kartDraw)) this.kartDraw = leaders[this.kartRoll(leaders.length) % leaders.length];
+    return { counts, leaders, tie };
   }
 
   /**
@@ -2299,21 +2353,25 @@ export class LobbyRoom implements Room {
    */
   private kartStep(): void {
     this.syncKartCircle();
+    let launched = false;
     if (!this.hub.race.idle || this.circle.size === 0) this.kartCountEnd = 0;
     else if (this.kartCountEnd === 0) this.kartCountEnd = this.tick + KART_COUNT_TICKS;
     else if (this.tick >= this.kartCountEnd) {
+      launched = true;
+      const { leaders, tie } = this.kartResolve();
+      const track = tie ? (this.kartDraw ?? leaders[this.kartRoll(leaders.length) % leaders.length]) : leaders[0];
       this.kartCountEnd = 0;
+      this.kartDraw = null;
       const all = [...this.circle];
       for (const p of all.slice(RC_MAX_KARTS)) this.hub.toast(p.client, 'Мест нет — поедешь в следующий заезд');
       this.circleChat.launched('kart', Math.min(all.length, RC_MAX_KARTS));
-      this.hub.startRace(all.slice(0, RC_MAX_KARTS).map((p) => p.client), this.kartTrack);
+      const riders = all.slice(0, RC_MAX_KARTS);
+      for (const p of riders) this.kartVotes.delete(p);
+      if (tie) for (const p of riders) this.hub.toast(p.client, `Ничья — жребий: «${raceTrackName(track)}»`);
+      this.hub.startRace(riders.map((p) => p.client), track);
     }
-    const st = this.kartStatus();
-    const key = JSON.stringify(st);
-    if (key !== this.kartShown) {
-      this.kartShown = key;
-      this.broadcast({ t: 'kart', ...st });
-    }
+    if (!launched) this.kartResolve();
+    this.kartPublish();
     // табло: где карты — 10 раз в секунду, пока идёт гонка (стоят — не шлём)
     const pos = this.hub.race.positions();
     const pkey = pos ? pos.join(',') : '';
@@ -2326,15 +2384,17 @@ export class LobbyRoom implements Room {
   kartStatus(): KartStatus {
     const race = this.hub.race.status();
     if (race) return race;
-    const host = this.circle.values().next().value;
-    const selection = { track: this.kartTrack, hostId: host?.slot ?? 0, hostNick: host?.client.nick ?? '' };
     if (this.kartCountEnd > 0) {
       const names = [...this.circle].map((p) => p.client.nick);
+      const { leaders } = tallyTrackVotes(this.kartVotes.values());
+      const ballots: Array<[number, number]> = [];
+      for (const [p, t] of this.kartVotes) if (this.circle.has(p)) ballots.push([p.slot, RACE_TRACKS.findIndex((r) => r.id === t)]);
       return {
-        phase: 'count', left: Math.max(0, Math.ceil((this.kartCountEnd - this.tick) / TICK_RATE)), n: names.length, names, lap: 0, laps: RC_LAPS, ...selection,
+        phase: 'count', left: Math.max(0, Math.ceil((this.kartCountEnd - this.tick) / TICK_RATE)), n: names.length, names, lap: 0, laps: RC_LAPS,
+        track: this.kartDraw ?? leaders[0], ballots, ...(this.kartDraw ? { draw: this.kartDraw } : {}),
       };
     }
-    return { phase: 'idle', left: 0, n: 0, names: [], lap: 0, laps: RC_LAPS, ...selection };
+    return { phase: 'idle', left: 0, n: 0, names: [], lap: 0, laps: RC_LAPS, track: DEFAULT_TRACK };
   }
 
   /** Круг сбора регаты у пирса (null — регата выключена) */

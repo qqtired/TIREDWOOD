@@ -4,6 +4,7 @@ import { timingSafeEqual } from 'node:crypto';
 import { PROTOCOL_VERSION, TICK_RATE } from '../shared/constants.ts';
 import { LAYOUT } from '../shared/layout.ts';
 import { UI3 } from '../shared/ui3.ts';
+import { TABLE_XP_DAILY_GAMES } from '../shared/tables2.ts';
 import { addRecord } from '../shared/aqua.ts';
 import { rgLapMs, type RgRecordRow, type RgRow } from '../shared/regatta.ts';
 import type { HideResult } from '../shared/hide.ts';
@@ -138,6 +139,7 @@ export interface HubOptions {
   storm?: boolean;
   pirates?: boolean;
   voice?: boolean;
+  modes2?: boolean;
   voiceIce?: (client: VoiceClient) => VoiceIceConfig;
   giftCodeHash?: string | null;
   devStorm?: boolean;
@@ -156,6 +158,7 @@ export interface HubOptions {
   jukebox?: boolean;
   /** Бильярд в пристройке казино (флаг сервера BILLIARDS, shared/billiards.ts) */
   billiards?: boolean;
+  tables2?: boolean;
   /** Гидроплан «Стриж»: прогулка над городом (флаг сервера PLANE, shared/plane.ts) */
   plane?: boolean;
   /** Воздушный змей на набережной — общая эмоция 7 (флаг KITE). */
@@ -266,6 +269,7 @@ export class Hub {
   /** «Ферма»: null — режим выключен флагом (калитки на площади не видно, вход закрыт, profile.farm хранится как есть) */
   readonly farm: FarmRoom | null;
   readonly voice: VoiceRouter | null;
+  readonly modes2: boolean;
   private readonly gifts: GiftCodes;
   /** «Крепость»: null — режим выключен флагом (арки на набережной не видно, вход закрыт) */
   readonly fort: FortRoom | null;
@@ -281,6 +285,7 @@ export class Hub {
   readonly roulette: boolean;
   /** Крысиные бега включены (флаг RATRACE) */
   readonly ratrace: boolean;
+  readonly tables2: boolean;
   readonly quiz: boolean;
   readonly quizHttp?: QuizHttp;
   readonly clients = new Set<Client>();
@@ -321,8 +326,10 @@ export class Hub {
     this.smokeToken = o.smokeToken;
     this.build = o.build;
     this.now = o.now ?? Date.now;
+    this.modes2 = o.modes2 ?? false;
     this.gifts = new GiftCodes({ profiles: this.profiles, codeHash: o.giftCodeHash ?? null, now: this.now });
     this.voice = o.voice ? new VoiceRouter({ now: this.now, ice: o.voiceIce ?? (() => ({ iceServers: [], expiresAt: null, relayOnly: false })),
+      worldKinds: o.modes2 ? ['dungeon'] : [],
       entityId: client => {
         if (!(client instanceof Client) || !client.room || client.room.kind === 'hide') return null;
         const actor = client.room.playerOf?.(client);
@@ -337,6 +344,7 @@ export class Hub {
     setIsle(this.isle);
     this.roulette = this.fish2 && (o.roulette ?? false);
     this.ratrace = o.ratrace ?? false;
+    this.tables2 = o.tables2 ?? false;
     this.quiz = LAYOUT === 3 && (o.quiz ?? false);
     this.quizHttp = this.quiz ? o.quizHttp : undefined;
     this.skill = o.skill ? new SkillRoom({ course: this.store.state.skillCourse, outfitOf: (p) => this.outfitOf(p), afk: (c) => this.onPaintballAfk(c), result: (c, ticks, falls) => this.onSkillResult(c, ticks, falls) }) : null;
@@ -390,10 +398,12 @@ export class Hub {
       outfitOf: (p) => this.outfitOf(p),
       result: (c, row, reward) => this.onRaceResult(c, row, reward),
       over: (clients) => this.onRaceOver(clients),
+      again: (clients, track) => this.rematchRace(clients, track),
       announce: (text) => this.announce(text),
-    });
+    }, { again: this.tables2 });
     this.fort = o.fort
       ? new FortRoom({
+        ranks: this.modes2,
         outfitOf: (p) => this.outfitOf(p),
         result: (c, row, reward, win, wave) => this.onFortResult(c, row, reward, win, wave),
         afk: (c) => this.onPaintballAfk(c),
@@ -857,6 +867,7 @@ export class Hub {
   /** Итог партии в дурака: колпак дураку, жетоны и статистика сидевшим за столом, строка в общий чат. */
   onDurakGame(r: DurakResult): void {
     const now = this.now();
+    const humans = r.players.filter((pl) => !pl.bot && pl.pid > 0).length;
     for (const pl of r.players) {
       if (pl.bot || pl.pid <= 0) continue;
       const prof = this.profiles.byId(pl.pid);
@@ -876,6 +887,7 @@ export class Hub {
         continue;
       }
       prof.stats.dkGames++;
+      if (humans >= 2) this.tableXp(pl.pid, 'durak');
       if (pl.fool) prof.stats.dkFools++;
       if (pl.first && !pl.fool) prof.stats.dkFirst++;
       this.store.markDirty();
@@ -889,6 +901,17 @@ export class Hub {
       ? `🃏 Стол ${r.table + 1}: ${fool.nick} остаётся в дураках${r.ep ? ' — и с погонами!' : ''}`
       : `🃏 Стол ${r.table + 1}: ничья — дураков нет`);
     this.lobby.honorChanged();
+  }
+
+  /** Общий дневной опыт за столы; профиль обновляется и у отключившегося игрока. */
+  tableXp(pid: number, kind: 'durak' | 'billiards'): void {
+    const p = this.profiles.byId(pid), c = this.byPid.get(pid);
+    if (!p || c?.ephemeral) return;
+    const { xp, n } = this.profiles.tableGameXp(p, kind);
+    if (xp === 0 || !c || c.closed) return;
+    this.sendMe(c);
+    const withWhom = kind === 'durak' ? 'людьми' : 'человеком';
+    this.toast(c, `+${xp} опыта за партию с ${withWhom} · сегодня ${n} из ${TABLE_XP_DAILY_GAMES}${n === TABLE_XP_DAILY_GAMES ? ' — на сегодня всё' : ''}`);
   }
 
   /** Раз в секунду: у кого истёк колпак — снять (наряд разослать заново). */
@@ -923,6 +946,28 @@ export class Hub {
   startRace(clients: Client[], track: RaceTrackId = DEFAULT_TRACK): void {
     this.race.open(track);
     for (const c of clients) this.move(c, this.race, true);
+    this.race.launch();
+  }
+
+  /** Большинство на итогах: новая гонка на той же трассе, с повторным ожиданием загрузки. */
+  private rematchRace(clients: Client[], track: RaceTrackId): void {
+    this.race.open(track);
+    for (const c of clients) {
+      if (c.closed) continue;
+      if (!this.race.hasSpace()) { this.onRaceOver([c]); continue; }
+      c.epoch = (c.epoch + 1) & 255;
+      c.lastMove = this.tick;
+      c.room = this.race;
+      c.sink.sendJson({ t: 'scene', scene: 'race', epoch: c.epoch });
+      if (!this.race.join(c)) {
+        c.room = null;
+        this.onRaceOver([c]);
+        continue;
+      }
+      this.gate.moved(c, this.race);
+      this.voice?.moved(c);
+      if (!c.ephemeral) this.broadcastOnline();
+    }
     this.race.launch();
   }
 

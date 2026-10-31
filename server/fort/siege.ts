@@ -210,6 +210,7 @@ export class Siege {
   precision(z: Zombie, by: number): void {
     if (by <= 0 || by >= 250 || z.kind < S.Z_ROPECRAB || z.state === S.ZS_SIEGE_SPENT) return;
     if (z.kind === S.Z_CANOPY) {
+      if (z.state !== S.ZS_SIEGE_OPEN) this.host.sapped?.(by);
       z.state = S.ZS_SIEGE_OPEN; z.t = S.CANOPY_OPEN_TICKS; z.siegeHits = 1; this.progress(z); this.syncPhase(z); return;
     }
     if (!active(z)) return;
@@ -217,6 +218,7 @@ export class Siege {
     z.siegeHits++;
     this.progress(z);
     if (z.siegeHits < total) return;
+    this.host.sapped?.(by);
     this.clearWarning(z.id, true);
     if (z.kind === S.Z_SIEGE_TOWER || z.kind === S.Z_BATTERY) {
       z.state = S.ZS_SIEGE_SPENT;
@@ -366,6 +368,7 @@ export class Siege {
     z.siegeHits += hits;
     this.progress(z);
     if (z.siegeHits < 3) return;
+    this.host.sapped?.(by);
     z.anchor = false; z.stage &= ~S.BOAT_ANCHOR_FLAG;
     z.state = S.ZS_SIEGE_OPEN; z.t = S.SIEGE_OPEN_TICKS;
     this.clearWarning(z.id, true);

@@ -243,8 +243,17 @@ export class BilliardsHall {
     const side = this.sideOf(tb, slot);
     if (side < 0) return this.hooks.reject(slot, t, 'Сначала подойди к столу (E)');
     if (tb.phase !== 'open') return this.hooks.reject(slot, t, 'Партия уже идёт');
-    if (tb.offer) return this.hooks.reject(slot, t, tb.offer.by === side ? 'Ты уже предложил партию — жди соперника' : 'Соперник уже предложил партию — прими её');
     if (!isBlBet(amount)) return this.hooks.reject(slot, t, `Ставка — целое число жетонов от 0 до ${BL_MAX_BET}`);
+    if (tb.offer) {
+      if (tb.offer.by !== side && tb.offer.amount > 0 && amount === 0) {
+        this.cancelOffer(tb);
+        tb.offer = { by: side, amount: 0, round: '' };
+        tb.note = `${tb.seats[side]!.nick} предлагает сыграть без ставки`;
+        this.changed(tb);
+        return;
+      }
+      return this.hooks.reject(slot, t, tb.offer.by === side ? 'Ты уже предложил партию — жди соперника' : 'Соперник уже предложил партию — прими её');
+    }
     const pid = tb.seats[side]!.pid;
     let round = '';
     if (amount > 0) {

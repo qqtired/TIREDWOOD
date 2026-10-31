@@ -37,6 +37,7 @@ import { DEVIL_GIFT_CODE_HASH } from './gift-config.ts';
 import { isleEnabled } from '../shared/isle.ts';
 import { PLAZA3 } from '../shared/layout.ts';
 import { UI3 } from '../shared/ui3.ts';
+import { tables2Enabled } from '../shared/tables2.ts';
 import { parseClientJson, sendServerBinary, sendServerJson, sendServerText } from './voice-wire.ts';
 
 const ROOT = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
@@ -102,13 +103,15 @@ const lab = new LabHttp({ enabled: labEnabled(process.env.LAB, DEV), dir: DATA_D
 const jukebox = jukeboxEnabled(process.env.JUKEBOX, DEV);
 // Бильярд в пристройке казино: BILLIARDS=1 — включить, BILLIARDS=0 — выключить, без переменной — только с --dev
 const billiards = process.env.BILLIARDS === undefined ? DEV : process.env.BILLIARDS === '1';
+const tables2 = tables2Enabled(process.env.TABLES2);
 // Гидроплан «Стриж» (полёт над городом за 100 🪙): PLANE=1 — включить, PLANE=0 — выключить, без переменной — только с --dev
 const plane = planeEnabled(process.env.PLANE, DEV);
 const kite = process.env.KITE === undefined ? DEV : process.env.KITE === '1';
 // Голосование «выгнать игрока» из меню Tab: VOTEKICK=1 — включить, VOTEKICK=0 — выключить, без переменной — только с --dev
 const votekick = process.env.VOTEKICK === undefined ? DEV : process.env.VOTEKICK === '1';
-const hub = new Hub({ store, profiles, smokeToken: smokeToken(), build, roll, weather, tg, fort, skill, boatrace, hide, farm, farmPond, fish2, isle, roulette, ratrace, quiz, quizHttp, storm, pirates, voice, voiceIce, jukebox, billiards, plane, kite, votekick, dungeon,
-  giftCodeHash: gifts ? DEVIL_GIFT_CODE_HASH : null,
+const modes2 = process.env.MODES2 === undefined ? DEV : process.env.MODES2 === '1';
+const hub = new Hub({ store, profiles, smokeToken: smokeToken(), build, roll, weather, tg, fort, skill, boatrace, hide, farm, farmPond, fish2, isle, roulette, ratrace, quiz, quizHttp, storm, pirates, voice, voiceIce, jukebox, billiards, plane, kite, votekick, dungeon, modes2,
+  tables2, giftCodeHash: gifts ? DEVIL_GIFT_CODE_HASH : null,
   devStorm: DEV && process.env.DEV_STORM === 'now', devPirates: DEV && process.env.DEV_PIRATES === 'now',
   // /wave, /event, /gate, /hp в чате крепости — только разработка или DEV_GO=1 (проверка собранного сервера)
   devFort: DEV || process.env.DEV_GO === '1' });
@@ -149,8 +152,10 @@ if (voice) console.log('VOICE: голос по удержанию V включё
 if (gifts) console.log('GIFTS: подарочные коды включены');
 if (jukebox) console.log('JUKEBOX: музыкальный автомат на площади включён');
 if (billiards) console.log('BILLIARDS: бильярд в пристройке казино включён');
+console.log(`TABLES2: ${tables2 ? '1' : '0'}`);
 if (plane) console.log('PLANE: гидроплан «Стриж» (полёт над городом) включён');
 if (votekick) console.log('VOTEKICK: голосование «выгнать игрока» (меню Tab) включено');
+if (modes2) console.log('MODES2: голос из Подземелья и звания крепости');
 console.log(`Профилей: ${profiles.count}, банк джекпота: ${Math.floor(store.state.jackpot)}`);
 
 /** Токен для проверки после выкладки (deploy/smoke.ts): создаётся один раз, файл только для владельца. */

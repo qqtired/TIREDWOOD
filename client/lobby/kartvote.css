@@ -1,0 +1,25 @@
+/* Голосование за трассу картинга (client/lobby/kartvote.ts): плашка события кита с двумя карточками внутри.
+   Только токены кита (kit.css / tokens.css): цвета, радиусы, шрифты; свои цвета и тени не вводим. */
+.k-event:has(> .kt-cards) { width: min(620px, 94vw); max-width: none; }
+/* HUD «Веранда v3» держит плашки в 440 px (veranda3.css) — как у голосования «Ракушки», перебиваем той же силой */
+[data-hud='veranda3'] .k-hud .k-event:not(:has(> .mo-team)):has(> .kt-cards) { width: min(620px, 94vw); max-width: none; }
+.kt-cards { align-items: stretch; width: 100%; }
+.kt-card {
+  flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 3px; margin: 0; padding: 8px 10px 9px;
+  border: var(--surf-2-border); border-radius: var(--r-md); background: var(--surf-2); color: var(--surf-text);
+  font: 500 var(--fs-13)/1.25 var(--font-text); text-align: left; cursor: pointer; user-select: none;
+  transition: background .12s, box-shadow .12s, transform .06s;
+}
+.kt-card:hover { background: var(--surf-3); }
+.kt-card:active { transform: translateY(1px); }
+.kt-card:focus-visible { outline: none; box-shadow: var(--focus); }
+.kt-card.is-lead { border-color: var(--gold); }
+.kt-card.is-mine { border-color: var(--good); background: var(--good-soft); box-shadow: inset 0 0 0 1.5px var(--good); }
+.kt-head { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.kt-head b { flex: 1 1 auto; min-width: 0; overflow: hidden; font: 700 var(--fs-15)/1.2 var(--font-text); text-overflow: ellipsis; white-space: nowrap; }
+.kt-head .k-pill { flex: none; }
+.kt-card > small { color: var(--surf-dim); font: 500 var(--fs-13)/1.25 var(--font-text); }
+@media (max-width: 760px) {
+  .kt-cards { flex-direction: column; }
+}
+@media (prefers-reduced-motion: reduce) { .kt-card { transition: none; } }

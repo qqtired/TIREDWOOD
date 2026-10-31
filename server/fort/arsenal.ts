@@ -26,6 +26,7 @@ import type { FortGame, FortPlayer } from './game.ts';
 import type { Zombie } from './horde.ts';
 import { tearWebAt, webSlowAt } from './boss-weaver.ts';
 import { makeRun, type FortRun } from './ledger.ts';
+import { addRankCount } from './ranks.ts';
 import { REPAIR_COOLDOWN_TICKS, REPAIR_WORK_TICKS, Z_CANOPY } from '../../shared/fortsiege.ts';
 
 /** Деньги и покупки защитника на эту игру (живут в p.run.arsenal: вышел и вернулся — всё на месте) */
@@ -980,6 +981,7 @@ export class Arsenal {
         g.raiseGate(this.gateMax);
         g.event(['gate', 2, p.id]);
       }
+      if (g.ranksEnabled && (r === 0 || r === 2)) addRankCount(p.run, 'fix');
       return;
     }
     if (id < ACT_TOWER) {
@@ -990,6 +992,7 @@ export class Arsenal {
         this.crystalTier = Math.min(CRYSTAL_TIERS, this.crystalTier + 1);
         g.crystal = Math.min(this.crystalMax, g.crystal + (this.crystalMax - max));
       }
+      if (g.ranksEnabled && r === 0) addRankCount(p.run, 'fix');
       return;
     }
     const spot = Math.floor((id - ACT_TOWER) / 10);

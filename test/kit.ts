@@ -44,7 +44,7 @@ export function fakeSink(): FakeSink {
 
 export const SMOKE = 'f'.repeat(64);
 
-export function setupHub(opts: { roll?: () => number; durakDeck?: () => number[]; blackjackDeck?: () => number[]; skill?: boolean; fort?: boolean; fish2?: boolean; boatrace?: boolean; hide?: boolean; farm?: boolean; kite?: boolean; storm?: boolean; pirates?: boolean; devStorm?: boolean; devPirates?: boolean; votekick?: boolean; dungeon?: boolean; dungeonSim?: DgSimApi; dungeonSeed?: () => number; log?: (s: string) => void } = {}) {
+export function setupHub(opts: { roll?: () => number; durakDeck?: () => number[]; blackjackDeck?: () => number[]; skill?: boolean; fort?: boolean; fish2?: boolean; boatrace?: boolean; hide?: boolean; farm?: boolean; kite?: boolean; storm?: boolean; pirates?: boolean; devStorm?: boolean; devPirates?: boolean; votekick?: boolean; billiards?: boolean; tables2?: boolean; dungeon?: boolean; dungeonSim?: DgSimApi; dungeonSeed?: () => number; log?: (s: string) => void } = {}) {
   const dir = mkdtempSync(path.join(tmpdir(), 'opus-hub-'));
   dirs.push(dir);
   const clock = { now: Date.UTC(2026, 9, 1, 12) };
@@ -55,6 +55,7 @@ export function setupHub(opts: { roll?: () => number; durakDeck?: () => number[]
     store, profiles, smokeToken: SMOKE, build: 'test', roll: opts.roll, durakDeck: opts.durakDeck, blackjackDeck: opts.blackjackDeck, skill: opts.skill ?? true, fort: opts.fort, now: () => clock.now, log: opts.log ?? (() => {}),
     fish2: opts.fish2, storm: opts.storm, pirates: opts.pirates, devStorm: opts.devStorm, devPirates: opts.devPirates,
     boatrace: opts.boatrace, hide: opts.hide, farm: opts.farm, kite: opts.kite, votekick: opts.votekick,
+    billiards: opts.billiards, tables2: opts.tables2,
     dungeon: opts.dungeon, dungeonSim: opts.dungeonSim, dungeonSeed: opts.dungeonSeed,
   });
   return { hub, store, profiles, clock };

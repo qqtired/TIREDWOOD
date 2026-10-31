@@ -5,6 +5,7 @@
 import { TICK_RATE } from './constants.ts';
 import { FORT_LAST_WAVE } from './fortwaves.ts';
 import type { ArsenalEvent, ArsenalRow } from './fortarsenal.ts';
+import type { FortRankId } from './fortranks.ts';
 import type { FortRecView } from './fortrecord.ts';
 import type { Outfit } from './outfit.ts';
 import type { SiegeEvent } from './fortsiege.ts';
@@ -221,6 +222,7 @@ export interface FtReward {
   win: number;
   mvp: number;
   record?: number;
+  ranks?: number;
 }
 
 // --- сообщения (shared/messages.ts берёт отсюда типы)
@@ -271,6 +273,8 @@ export interface FortResultRow {
   pts: number;
   waves: number;
   tokens: number;
+  /** Звания в итогах (флаг MODES2, shared/fortranks.ts); нет — ни одного */
+  ranks?: FortRankId[];
   /** Не первая выплата за этот забег (вышел раньше и вернулся) — игру в статистике уже посчитали */
   again?: boolean;
   /** Сбитых с прошлой выплаты — в статистику профиля */

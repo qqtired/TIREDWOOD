@@ -145,20 +145,16 @@ test('skill chat and online roster route correctly; AFK returns to lobby', () =>
   steps(hub, 1); assert.equal(a.c.room, hub.lobby); assert.equal(hub.skill.humans, 0);
   assert.match(lastOf(a.s, 'toast')!.text, /без дела/);
 });
-test('oldest entrant hosts track choice; host leaving transfers authority and empty queue resets', () => {
-  const { hub } = setupHub(); const a = login(hub, 'HostFirst'), b = login(hub, 'HostSecond');
+test('track is chosen by votes of everyone in the circle; leaving removes the vote and empty queue resets', () => {
+  const { hub } = setupHub(); const a = login(hub, 'VoteFirst'), b = login(hub, 'VoteSecond');
   placeAt(hub, b.c, KART_START.x, KART_START.z); steps(hub, KART_CHECK_EVERY);
   placeAt(hub, a.c, KART_START.x, KART_START.z); steps(hub, KART_CHECK_EVERY);
-  assert.equal(hub.lobby.kartStatus().hostId, hub.lobby.playerOf(b.c)?.slot);
-  hub.onJson(a.c, { t: 'kartTrack', track: 'hills' }); assert.equal(hub.lobby.kartStatus().track, 'harbor');
-  hub.onJson(b.c, { t: 'kartTrack', track: 'hills' }); assert.equal(hub.lobby.kartStatus().track, 'hills');
+  hub.onJson(a.c, { t: 'kartTrack', track: 'hills' }); assert.equal(hub.lobby.kartStatus().track, 'hills');
+  hub.onJson(b.c, { t: 'kartTrack', track: 'harbor' }); assert.equal(hub.lobby.kartStatus().ballots?.length, 2);
   placeAt(hub, b.c, 0, 0); steps(hub, KART_CHECK_EVERY);
-  assert.equal(hub.lobby.kartStatus().hostId, hub.lobby.playerOf(a.c)?.slot);
-  hub.onJson(b.c, { t: 'kartTrack', track: 'harbor' }); assert.equal(hub.lobby.kartStatus().track, 'hills');
-  placeAt(hub, b.c, KART_START.x, KART_START.z); steps(hub, KART_CHECK_EVERY);
-  assert.equal(hub.lobby.kartStatus().hostId, hub.lobby.playerOf(a.c)?.slot);
-  placeAt(hub, b.c, 0, 0); steps(hub, KART_CHECK_EVERY);
+  assert.equal(hub.lobby.kartStatus().track, 'hills'); assert.equal(hub.lobby.kartStatus().ballots?.length, 1);
   placeAt(hub, a.c, 0, 0); steps(hub, KART_CHECK_EVERY); assert.equal(hub.lobby.kartStatus().track, 'harbor');
+  assert.equal(hub.lobby.kartStatus().ballots, undefined);
 });
 test('selected track is immutable after launch and reaches race hello/status', () => {
   const { hub } = setupHub(); const a = login(hub, 'HillsDriver');

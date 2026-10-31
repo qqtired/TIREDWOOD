@@ -64,6 +64,9 @@ export interface Stats {
   dkGames: number;
   dkFools: number;
   dkFirst: number;
+  /** Общий дневной лимит опыта за дурака и бильярд; день по Москве. */
+  txDay: number;
+  txGames: number;
   rcRaces: number;
   rcWins: number;
   rcPodiums: number;
@@ -200,6 +203,7 @@ export function emptyStats(): Stats {
     qzDay: 0, qzDayCoins: 0, qzJpGames: 0, qzJpWins: 0, qzJpBest: 0,
     qzRdSolved: 0, qzRdMade: 0, qzCrGuessed: 0, qzCrDrawn: 0, qzWhoTitles: 0,
     pbRounds: 0, pbWins: 0, pbKills: 0, pbMvp: 0, spins: 0, slotWon: 0, bestWin: 0, jackpots: 0, dkGames: 0, dkFools: 0, dkFirst: 0,
+    txDay: 0, txGames: 0,
     rcRaces: 0, rcWins: 0, rcPodiums: 0, rcBestLap: 0, rcBestLapFoundry: 0, rcBestLapHarbor: 0, rcBestLapHills: 0,
     rcBestLapHarborV3: 0, rcBestLapHillsV3: 0, fsCaught: 0, fsSold: 0,
     aqRuns: 0, aqBest: 0, aqCourse: 0, aqBestCourse1: 0, aqBestCourse2: 0, aqBestCourse3: 0, slotBet: 0, slotPaid: 0,

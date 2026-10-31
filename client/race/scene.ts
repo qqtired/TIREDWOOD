@@ -41,6 +41,8 @@ export class RaceScene implements Scene {
     };
     // итоги: мышь отпускаем — «На набережную» нажимается; клик — жест игрока: мышь сразу снова в игре
     this.hud.onResults = () => d.input.unlock();
+    // «Ещё заезд»: голос серверу (идемпотентно); мышь не берём — окно итогов остаётся кликабельным, пока не пересоберётся гонка
+    this.hud.onAgain = () => d.net.send({ t: 'rcAgain' });
     this.hud.onLeave = () => {
       void d.input.lock();
       d.net.send({ t: 'leave' });
@@ -108,6 +110,12 @@ export class RaceScene implements Scene {
         this.d.quietPause?.();
         this.d.net.send({ t: 'leave' });
       }
+      return true;
+    }
+    // итоги: E — «Ещё заезд» (если голосование включено и ты ещё не нажал)
+    if (this.hud.canAgain && code === 'KeyE' && !this.d.ui.chat.isOpen) {
+      e.preventDefault();
+      if (down && !e.repeat) this.d.net.send({ t: 'rcAgain' });
       return true;
     }
     return this.match?.onKey(code, down, e) ?? false;

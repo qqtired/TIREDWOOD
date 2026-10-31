@@ -79,19 +79,18 @@ for (const kind of ['paintball', 'fort', 'boatrace', 'hide', 'race'] as const) {
   });
 }
 
-test('kart host keeps the selected map and arrival order while jumping', () => {
+test('kart voters keep their votes and arrival order while jumping', () => {
   const { hub } = setupHub();
   const a = login(hub, 'Host'), b = login(hub, 'Guest');
   placeAt(hub, a.c, KART_START.x, KART_START.z); steps(hub, KART_CHECK_EVERY);
   placeAt(hub, b.c, KART_START.x + 0.6, KART_START.z); steps(hub, KART_CHECK_EVERY);
   hub.onJson(a.c, { t: 'kartTrack', track: 'hills' });
+  hub.onJson(b.c, { t: 'kartTrack', track: 'hills' });
   for (let tick = 0; tick < 60; tick++) {
     sendInput(hub, a.c, tick === 0 ? BTN_JUMP : 0); hub.step();
     const status = hub.lobby.kartStatus();
-    assert.equal(status.hostId, hub.lobby.playerOf(a.c)!.slot);
     assert.equal(status.track, 'hills');
+    assert.equal(status.ballots?.length, 2);
     assert.deepEqual(status.names, ['Host', 'Guest']);
   }
-  hub.onJson(b.c, { t: 'kartTrack', track: 'harbor' });
-  assert.equal(hub.lobby.kartStatus().track, 'hills');
 });
