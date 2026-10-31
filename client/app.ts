@@ -26,6 +26,7 @@ import { LazyScene, type LazyInner } from './lazyscene.ts';
 import { DG_LOST_MS } from '../shared/dungeon/api.ts';
 import { LinkBanner } from './ui/linkbanner.ts';
 import { JoinScreen, LinkScreen, type JoinMode } from './ui/entry.ts';
+import { ENTRY3 } from './ui/entry3.ts';
 import { PaintballScene } from './paintball/scene.ts';
 import { RaceScene } from './race/scene.ts';
 import { SkillScene } from './skilltest/scene.ts';
@@ -286,6 +287,8 @@ export class App {
       quietPause: () => { this.quietPauseUntil = performance.now() + 10000; },
     };
     this.lobby = new LobbyScene(this.deps);
+    // вход 3.0: «Ракушка» на фоне меню ещё до входа, если сервер сказал quiz в /health (client/layout-boot.ts)
+    if (ENTRY3 && (globalThis as { __opusQuiz?: boolean }).__opusQuiz) this.lobby.previewQuiz();
 
     const dpr = window.devicePixelRatio || 1;
     // телефон: экран маленький и плотный — хватит и меньшего разрешения, а батарея и нагрев скажут спасибо
@@ -1405,7 +1408,8 @@ export class App {
     this.syncFishingUi(false);
     // вход и обрыв: фоном — облёт набережной. За входом он закрыт непрозрачной картиной (.en-art): первые кадры рисуем, чтобы
     // собрались шейдеры набережной, дальше не рисуем (канвас держит последний кадр). Под окнами связи мир виден — там рисуем всегда
-    const covered = (this.screen === 'join' || this.screen === 'connecting') && this.idleFrames >= IDLE_WARM_FRAMES;
+    // вход 3.0 (client/ui/entry3.ts): картины нет — набережная за меню живая, рисуем всегда
+    const covered = !ENTRY3 && (this.screen === 'join' || this.screen === 'connecting') && this.idleFrames >= IDLE_WARM_FRAMES;
     if (!covered) {
       this.idleFrames++;
       this.renderer.beginFrame(this.settings.showStats);

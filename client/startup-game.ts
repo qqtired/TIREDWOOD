@@ -21,6 +21,8 @@ import './ui/kit/hud3/veranda3-fight.css';
 import './ui/kit/hud3/veranda3-water.css';
 import './ui/kit/hud3/veranda3-plaza.css';
 import './ui/kit/hud3/veranda3-quiz.css';
+// вход 3.0 (client/ui/entry3.ts): меню входа поверх живой набережной — тоже только под [data-hud='veranda3']
+import './ui/kit/hud3/entry3.css';
 import { UI3 } from '../shared/ui3.ts';
 import { bindHud3 } from './ui/hud3.ts';
 import { waitForFonts } from './startup.ts';

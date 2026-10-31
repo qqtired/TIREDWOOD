@@ -53,6 +53,8 @@ export async function bootLayout(env: BootEnv = { fetch: (u, i) => fetch(u, i), 
     const j = await env.fetch('/health', { cache: 'no-store', signal: ctrl.signal }).then((r) => r.json());
     lay = (j as { plaza?: unknown } | null)?.plaza === 3 ? 3 : 2;
     ui = (j as { ui?: unknown } | null)?.ui === 3 ? 3 : 2;
+    // «Ракушка» включена (флаг QUIZ): вход 3.0 показывает её на фоне меню ещё до входа (client/lobby/scene.ts previewQuiz)
+    (globalThis as { __opusQuiz?: boolean }).__opusQuiz = (j as { quiz?: unknown } | null)?.quiz === 1;
   } catch {
     // нет ответа за timeoutMs или ошибка — остаётся последняя известная
   } finally {

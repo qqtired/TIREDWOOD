@@ -9,6 +9,7 @@ import { TOUCH } from '../touch.ts';
 import { iconImg, keyHtml, meterHtml } from './kit/dom.ts';
 import { uiIcon } from './kit/icons.ts';
 import { escHtml } from './kit/topcenter.ts';
+import { ENTRY3, ENTRY3_LOOK, stillFade } from './entry3.ts';
 import { artUrl } from './transition-art.ts';
 import './entry.css';
 
@@ -167,11 +168,18 @@ export class JoinScreen {
     this.h = hooks;
     this.root = el('div', 'screen join show');
     const scr = this.root.appendChild(el('div', 'en-scr en-login k-hudctx'));
-    const art = scr.appendChild(el('img', 'en-art'));
-    art.src = artUrl('hero-left');
-    art.alt = '';
-    art.decoding = 'async';
-    art.draggable = false;
+    // вход 3.0 (entry3.ts): вместо картины за меню видна живая набережная — канвас игры; вид — kit/hud3/entry3.css
+    if (ENTRY3) {
+      scr.classList.add('en-v3');
+      scr.dataset.look = ENTRY3_LOOK;
+      stillFade(scr, artUrl('menu'));
+    } else {
+      const art = scr.appendChild(el('img', 'en-art'));
+      art.src = artUrl('hero-left');
+      art.alt = '';
+      art.decoding = 'async';
+      art.draggable = false;
+    }
     scr.append(el('div', 'en-shade en-shade--left'));
     const col = scr.appendChild(el('div', 'en-col'));
     col.append(el('div', 'en-login-logo', `${logoHtml('en-logo--md')}<span class="k-pill k-pill--plate en-tagline">мини игры, фарм сабжей, казино и safeplace</span>`));
@@ -297,6 +305,8 @@ export class JoinScreen {
     const hello = `${escHtml(nick.slice(0, -1).join(''))}<span class="en-nobr">${escHtml(nick.slice(-1).join(''))}<i class="en-bang">!</i></span>`;
     // длинный ник — заголовок мельче, а не перенос посреди ника
     const helloCls = nick.length > 13 ? ' en-h--xs' : nick.length > 9 ? ' en-h--sm' : '';
+    // вход 3.0 (владелец 31.10: «аккуратный, красивый, понятный»): спокойный заголовок-действие, вход по коду — ссылкой внизу
+    const codeBtn = `<button class="k-btn k-btn--ghost k-btn--sm" type="button" data-act="code"${dis}>${ENTRY3 ? 'Войти по коду' : 'У меня есть код'}</button>`;
     if (mode === 'saved') {
       this.card.innerHTML = `${gear}
         <p class="k-eyebrow">С возвращением</p>
@@ -304,19 +314,19 @@ export class JoinScreen {
         <p class="en-lead">Набережная уже ждёт — заходи.</p>
         ${this.err ? `<div class="en-msg is-bad" role="alert"><i class="en-tick">!</i><span>${escHtml(this.err)}</span></div>` : ''}
         ${play('Играть')}
-        <div class="en-alt"><button class="k-btn k-btn--ghost k-btn--sm" type="button" data-act="other"${dis}>Другой профиль</button><button class="k-btn k-btn--ghost k-btn--sm" type="button" data-act="code"${dis}>У меня есть код</button></div>`;
+        <div class="en-alt"><button class="k-btn k-btn--ghost k-btn--sm" type="button" data-act="other"${dis}>Другой профиль</button>${codeBtn}</div>`;
       return;
     }
     if (mode === 'nick') {
       const [cls, msg] = this.err ? (['is-bad', this.err] as const) : nickCheck(this.nickText, this.placeholder);
       this.card.innerHTML = `${gear}
         <p class="k-eyebrow">Первый раз на набережной</p>
-        <h2 class="en-h">Как тебя звать?</h2>
+        ${ENTRY3 ? '<h2 class="en-h">Придумай ник</h2><p class="en-lead">Его увидят все на набережной.</p>' : '<h2 class="en-h">Как тебя звать?</h2>'}
         <label class="en-field ${cls}"><span class="en-field-top"><span>Ник — его увидят все</span><span class="k-num en-count">${[...this.nickText].length} / ${MAX_NAME}</span></span>
           <input class="k-input en-nick" type="text" maxlength="${MAX_NAME}" spellcheck="false" autocomplete="off" placeholder="${escHtml(this.placeholder)}" value="${escHtml(this.nickText)}"${dis}></label>
         <div class="en-msg ${cls}" role="${this.err ? 'alert' : 'status'}">${cls ? `<i class="en-tick">${cls === 'is-ok' ? '✓' : '!'}</i>` : ''}<span class="en-msg-text">${escHtml(msg)}</span></div>
         ${play('Играть')}
-        <div class="en-alt">${saved ? `<button class="k-btn k-btn--ghost k-btn--sm" type="button" data-act="back"${dis}>Назад</button>` : ''}<button class="k-btn k-btn--ghost k-btn--sm" type="button" data-act="code"${dis}>У меня есть код</button></div>`;
+        <div class="en-alt">${saved ? `<button class="k-btn k-btn--ghost k-btn--sm" type="button" data-act="back"${dis}>Назад</button>` : ENTRY3 ? '<span class="en-alt-q">Играл на другом устройстве?</span>' : ''}${codeBtn}</div>`;
       if (this.err) this.card.querySelector('.en-field')!.classList.add('is-bad');
       return;
     }

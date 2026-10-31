@@ -58,6 +58,7 @@ import type { Scene, SceneDeps } from '../scene.ts';
 import type { Quality } from '../settings.ts';
 import { TOUCH, type TouchMode } from '../touch.ts';
 import { Wardrobe } from '../ui/wardrobe.ts';
+import { ENTRY3 } from '../ui/entry3.ts';
 import { FortGate, fortHint, recordLine as fortRecordLine, statusLine as fortStatusLine } from '../fort/lobbygate.ts';
 import { noteFortStatus } from '../fort/record.ts';
 import { AquaPark } from './aquapark.ts';
@@ -90,6 +91,7 @@ import { SkillPortal, skyStatusLine } from '../skilltest/portal.ts';
 import { Kraken } from './kraken.ts';
 import { LobbyCritters } from './critters.ts';
 import { Mermaid3D } from './mermaid.ts';
+import { menuFov, menuPose } from './menucam.ts';
 import { lobbyMermaidLayout } from '../../shared/mermaid.ts';
 import { Storm3D } from './storm.ts';
 import { Pirates3D } from './pirates.ts';
@@ -2636,7 +2638,17 @@ export class LobbyScene implements Scene {
     };
   }
 
-  /** Фон меню: облёт площади по кругу. */
+  /**
+   * Вход 3.0: до приветствия площадь собрана без флагов сервера — «Ракушку» у пирса (вместо «Ласточки») показываем
+   * сразу, если /health сказал quiz (client/layout-boot.ts); приветствие после входа выставит настоящее.
+   */
+  previewQuiz(): void {
+    if (!this.quiz) return;
+    this.quiz.preview();
+    this.syncPier();
+  }
+
+  /** Фон меню: облёт площади (по кругу; вход 3.0 — пролёт client/lobby/menucam.ts). */
   idle(dt: number): void {
     this.time += dt;
     this.orbit();
@@ -3323,6 +3335,17 @@ export class LobbyScene implements Scene {
 
   private orbit(): void {
     const cam = this.world.camera;
+    // вход 3.0 (client/ui/entry3.ts): за меню — медленный пролёт с видом на надпись на холме (client/lobby/menucam.ts)
+    if (PLAZA3 && ENTRY3) {
+      menuPose(this.time, cam.aspect, cam.position, _v);
+      cam.lookAt(_v);
+      const fov = menuFov(cam.aspect);
+      if (cam.fov !== fov) {
+        cam.fov = fov;
+        cam.updateProjectionMatrix();
+      }
+      return;
+    }
     if (PLAZA3) {
       // plaza3: круг шире и выше вокруг розы ветров (8; −8) — снаружи самых высоких зданий (каланча, крепость, колесо); начинаем с запада,
       // чтобы в кадре были площадь, бульвар и холм с надписью

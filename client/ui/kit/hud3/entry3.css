@@ -1,0 +1,135 @@
+/* Вход 3.0 (UI 3.0, второй шаг — docs/ui3/entry.md): меню входа поверх живой набережной (канвас игры, client/ui/entry3.ts).
+   Раскладка колонки — прежняя (client/ui/entry.css), здесь вид в языке «Веранды v3»: сливовые плашки со скошенными углами
+   и золотой каймой, кремовый текст, латунная главная кнопка. Карточка — компактная форма (владелец 31.10: «КАК ТЕБЯ ЗВАТЬ
+   тупо выглядит и огромным … сделай блок аккуратный красивым понятным»): заголовок-действие обычным шрифтом, счётчик внутри
+   поля, вход по коду — ссылкой внизу. Два вида на выбор владельца: data-look="a" «Слива» (как HUD v3) и data-look="b» «Крем»
+   (как кремовые таблички v3). Всё под [data-hud='veranda3'] .en-v3: без флага UI3 вход прежний. Размытия нет (AGENTS.md §7):
+   читаемость над живой сценой — непрозрачные плашки и тень слева. */
+
+[data-hud='veranda3'] .en-v3 {
+  --e3-plum-in: rgba(20, 10, 15, .55); --e3-edge: rgba(212, 165, 82, .55); --e3-rule: rgba(212, 165, 82, .26);
+  --e3-cream-ink: #2a1720; --e3-cream-dim: #6b4a3a; --e3-cream-link: #9a5f1c;
+}
+/* тень слева и снизу: карточка и новинки читаются, площадь справа — светлая и живая */
+[data-hud='veranda3'] .en-v3 .en-shade--left {
+  background: linear-gradient(90deg, rgba(30, 16, 24, .58) 0%, rgba(30, 16, 24, .3) 30%, rgba(30, 16, 24, 0) 52%),
+    linear-gradient(0deg, rgba(30, 16, 24, .42) 0%, rgba(30, 16, 24, 0) 24%);
+}
+
+/* ------------------------------------------------ плашки вокруг карточки: как HUD v3 */
+[data-hud='veranda3'] .en-v3 :is(.en-tagline, .en-news > .k-pill, .en-live, .en-keys, .en-news-card) {
+  border: 1px solid transparent; border-image: var(--v3-plate) 8 fill / 8px / 0 stretch; border-radius: 0;
+  background: none; box-shadow: none; color: var(--v3-cream-text); filter: var(--v3-drop);
+}
+[data-hud='veranda3'] .en-v3 .en-tagline { color: var(--v3-dim); font-weight: 700; }
+[data-hud='veranda3'] .en-v3 .en-news > .k-pill { color: var(--v3-gold); text-transform: uppercase; letter-spacing: .06em; font-size: 13px; }
+[data-hud='veranda3'] .en-v3 .en-news-card { padding: 7px 7px 10px; }
+[data-hud='veranda3'] .en-v3 .en-news-card img { border-radius: 3px; box-shadow: 0 0 0 1px rgba(212, 165, 82, .45); }
+[data-hud='veranda3'] .en-v3 .en-keys > span { color: var(--v3-dim); }
+[data-hud='veranda3'] .en-v3 .en-live { font-weight: 800; }
+
+/* ------------------------------------------------ карточка: раскладка (оба вида) */
+[data-hud='veranda3'] .en-v3 .en-card {
+  width: 420px; padding: 22px 24px 16px; border: 1px solid transparent; border-image: var(--v3-card) 12 fill / 12px / 0 stretch;
+  border-radius: 0; background: none; box-shadow: none; filter: var(--v3-drop);
+}
+[data-hud='veranda3'] .en-v3 .en-card > .k-eyebrow { display: none; }
+[data-hud='veranda3'] .en-v3 .en-card .en-gear { top: 14px; right: 14px; width: 36px; height: 36px; }
+[data-hud='veranda3'] .en-v3 .en-card .en-gear .k-ic { width: 22px; height: 22px; }
+[data-hud='veranda3'] .en-v3 .en-card .en-h {
+  padding-right: 44px; font: 800 24px/1.2 var(--font-text); letter-spacing: 0; text-transform: none; text-shadow: none;
+}
+[data-hud='veranda3'] .en-v3 .en-card .en-h--sm { font-size: 21px; }
+[data-hud='veranda3'] .en-v3 .en-card .en-h--xs { font-size: 18px; }
+[data-hud='veranda3'] .en-v3 .en-card .en-lead { margin-top: 4px; font-size: 15px; }
+/* поле ника: подпись — строкой под заголовком, счётчик — внутри поля справа */
+[data-hud='veranda3'] .en-v3 .en-card .en-field { position: relative; margin-top: 16px; }
+[data-hud='veranda3'] .en-v3 .en-card .en-field-top {
+  position: absolute; z-index: 1; top: 0; right: 14px; bottom: 0; margin: 0; align-items: center; pointer-events: none;
+}
+[data-hud='veranda3'] .en-v3 .en-card .en-field-top > span:first-child { display: none; }
+[data-hud='veranda3'] .en-v3 .en-card .en-count { font-size: 13px; font-weight: 700; }
+[data-hud='veranda3'] .en-v3 .en-card .en-field .en-nick { min-height: 50px; padding: 0 64px 0 16px; font-size: 19px; }
+[data-hud='veranda3'] .en-v3 .en-card .en-msg { min-height: 20px; margin-top: 8px; font-size: 13px; }
+[data-hud='veranda3'] .en-v3 .en-card .en-msg .en-tick { width: 18px; height: 18px; font-size: 11px; }
+[data-hud='veranda3'] .en-v3 .en-card .en-play { margin-top: 16px; }
+[data-hud='veranda3'] .en-v3 .en-card .en-play .k-btn { min-height: 56px; font-size: 22px; }
+/* низ карточки: тихие ссылки под чертой — «Другой профиль», «Назад», «Войти по коду ›» */
+[data-hud='veranda3'] .en-v3 .en-card .en-alt {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 16px; padding-top: 12px;
+  border-top: 1px solid var(--e3-rule);
+}
+[data-hud='veranda3'] .en-v3 .en-card .en-alt .k-btn--ghost {
+  display: inline-block; min-height: 0; padding: 4px 0; border: 0; border-radius: 3px; background: none; box-shadow: none; white-space: nowrap;
+  color: var(--v3-gold-hi); font-size: 15px; font-weight: 700; letter-spacing: 0; text-transform: none;
+}
+[data-hud='veranda3'] .en-v3 .en-card .en-alt .k-btn--ghost:hover:not(:disabled) { text-decoration: underline; text-underline-offset: 3px; }
+[data-hud='veranda3'] .en-v3 .en-card .en-alt [data-act='code'] { margin-left: auto; }
+[data-hud='veranda3'] .en-v3 .en-card .en-alt [data-act='code']::after { content: '\00a0›'; }
+[data-hud='veranda3'] .en-v3 .en-card .en-alt [data-act='back']::before { content: '‹\00a0'; }
+[data-hud='veranda3'] .en-v3 .en-card .en-alt-q { color: var(--v3-dim); font-size: 14px; }
+/* вход по коду: шаги и клетки поменьше, подписи поля не нужны — под клетками строка «Дефис и регистр не важны» */
+[data-hud='veranda3'] .en-v3 .en-card--code .en-field-top { display: none; }
+[data-hud='veranda3'] .en-v3 .en-card--code .en-field { position: static; margin-top: 14px; }
+[data-hud='veranda3'] .en-v3 .en-card--code .en-code { margin-top: 0; }
+[data-hud='veranda3'] .en-v3 .en-card--code .en-code .k-input { width: 38px; min-height: 50px; font-size: 22px; }
+[data-hud='veranda3'] .en-v3 .en-card .en-steps { gap: 8px; margin-top: 12px; }
+[data-hud='veranda3'] .en-v3 .en-card .en-steps li { gap: 10px; font-size: 14px; }
+[data-hud='veranda3'] .en-v3 .en-card .en-steps li > b:first-child { width: 22px; height: 22px; font-size: 12px; }
+
+/* ------------------------------------------------ «Слива» (a): сливовая карточка, кремовый текст, золото */
+[data-hud='veranda3'] .en-v3 .en-card .en-h { color: var(--v3-cream-text); }
+[data-hud='veranda3'] .en-v3 .en-card .en-h b { color: var(--v3-gold-hi); }
+[data-hud='veranda3'] .en-v3 .en-card .en-h .en-bang { color: var(--v3-cream-text); }
+[data-hud='veranda3'] .en-v3 .en-card :is(.en-lead, .en-msg, .en-count, .en-steps li) { color: var(--v3-dim); }
+[data-hud='veranda3'] .en-v3 .en-card .en-msg.is-ok { color: #8fdca4; }
+[data-hud='veranda3'] .en-v3 .en-card .en-msg.is-bad { color: #ff9a8a; }
+[data-hud='veranda3'] .en-v3 .en-card .k-input {
+  border: 1px solid var(--e3-edge); border-radius: 4px; background: var(--e3-plum-in); box-shadow: none; color: var(--v3-cream-text);
+}
+[data-hud='veranda3'] .en-v3 .en-card .k-input::placeholder { color: rgba(236, 216, 182, .5); }
+[data-hud='veranda3'] .en-v3 .en-card .k-input:focus { border-color: var(--v3-gold-hi); box-shadow: 0 0 0 2px rgba(255, 211, 90, .35); outline: none; }
+[data-hud='veranda3'] .en-v3 .en-card .en-field.is-ok .k-input { border-color: #6fcf8e; box-shadow: none; }
+[data-hud='veranda3'] .en-v3 .en-card .en-field.is-bad .k-input { border-color: #ff7a6a; box-shadow: none; }
+[data-hud='veranda3'] .en-v3 .en-card .k-btn--gold {
+  border: 0; border-radius: 6px; background: var(--v3-brass); color: #3a2208;
+  box-shadow: 0 3px 0 #5a3410, inset 0 -1px 0 rgba(122, 76, 10, .4), inset 0 1px 0 rgba(255, 250, 220, .6);
+}
+[data-hud='veranda3'] .en-v3 .en-card .k-btn--gold:hover { filter: brightness(1.06) saturate(1.05); }
+[data-hud='veranda3'] .en-v3 .en-card .en-gear {
+  border: 1px solid var(--e3-edge); border-radius: 4px; background: rgba(255, 240, 220, .06); box-shadow: none;
+}
+[data-hud='veranda3'] .en-v3 .en-card .en-gear:hover { background: rgba(255, 240, 220, .13); border-color: var(--v3-gold); }
+[data-hud='veranda3'] .en-v3 .en-card :is(.en-tick, .en-steps li > b:first-child) { background: rgba(255, 240, 220, .1); color: var(--v3-dim); }
+[data-hud='veranda3'] .en-v3 .en-card .en-code-dash { background: var(--e3-edge); }
+
+/* ------------------------------------------------ «Крем» (b): кремовая табличка с латунной каймой, текст — слива */
+[data-hud='veranda3'] .en-v3[data-look='b'] .en-card { border-image: var(--v3-cream) 8 fill / 8px / 0 stretch; --e3-rule: rgba(168, 116, 46, .3); }
+[data-hud='veranda3'] .en-v3[data-look='b'] .en-card :is(.en-h, .en-h .en-bang) { color: var(--e3-cream-ink); }
+[data-hud='veranda3'] .en-v3[data-look='b'] .en-card .en-h b { color: #b0561e; }
+[data-hud='veranda3'] .en-v3[data-look='b'] .en-card :is(.en-lead, .en-msg, .en-count, .en-steps li, .en-alt-q) { color: var(--e3-cream-dim); }
+[data-hud='veranda3'] .en-v3[data-look='b'] .en-card .en-msg.is-ok { color: #1b7a48; }
+[data-hud='veranda3'] .en-v3[data-look='b'] .en-card .en-msg.is-bad { color: #c02f3b; }
+[data-hud='veranda3'] .en-v3[data-look='b'] .en-card .k-input { border-color: rgba(168, 116, 46, .55); background: #fffaf0; color: var(--e3-cream-ink); }
+[data-hud='veranda3'] .en-v3[data-look='b'] .en-card .k-input::placeholder { color: rgba(107, 74, 58, .55); }
+[data-hud='veranda3'] .en-v3[data-look='b'] .en-card .k-input:focus { border-color: #a8742e; box-shadow: 0 0 0 2px rgba(212, 165, 82, .35); }
+[data-hud='veranda3'] .en-v3[data-look='b'] .en-card .en-alt .k-btn--ghost { color: var(--e3-cream-link); }
+[data-hud='veranda3'] .en-v3[data-look='b'] .en-card .en-gear { border-color: rgba(42, 23, 32, .25); background: rgba(42, 23, 32, .04); }
+[data-hud='veranda3'] .en-v3[data-look='b'] .en-card .en-gear:hover { border-color: var(--e3-cream-ink); background: rgba(42, 23, 32, .09); }
+[data-hud='veranda3'] .en-v3[data-look='b'] .en-card :is(.en-tick, .en-steps li > b:first-child) { background: rgba(42, 23, 32, .08); color: var(--e3-cream-dim); }
+
+/* ------------------------------------------------ быстрые настройки (шестерёнка): кремовая табличка v3 рядом с карточкой */
+[data-hud='veranda3'] .en-v3 .en-pop {
+  left: 508px; border: 1px solid transparent; border-image: var(--v3-cream) 8 fill / 8px / 0 stretch; border-radius: 0;
+  background: none; box-shadow: none; filter: var(--v3-drop);
+}
+@media (max-width: 720px) { [data-hud='veranda3'] .en-v3 .en-pop { left: 16px; } }
+
+/* ------------------------------------------------ первая загрузка → меню: тот же кадр снимком растворяется в живой сцене
+   (client/ui/entry3.ts stillFade; снимок — client/assets/loading/hd/menu.webp, его же показывает index.html) */
+[data-hud='veranda3'] .en-v3 .en3-still {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; user-select: none;
+  transition: opacity .9s ease-out;
+}
+[data-hud='veranda3'] .en-v3 .en3-still.is-out { opacity: 0; }
+@media (prefers-reduced-motion: reduce) { [data-hud='veranda3'] .en-v3 .en3-still { transition: none; } }

@@ -182,3 +182,10 @@ Color and outfit: bubblegum pink; it wears a slightly too big old brass miner's 
 Rendering: polished hand-painted cartoon style matching cozy storybook game art, soft warm sunlight from the upper left, clean silhouette with a soft painted edge.
 Framing: full body visible, centered, the character fills about 85 percent of the canvas height, small transparent margins. Nothing else: no ground, no cast shadow, no background, no text, no frame.
 ```
+
+## menu.webp — первая загрузка (вход 3.0), 31 октября 2026
+
+Не imagegen: это кадр самой игры. Застывший первый кадр меню входа — набережная с камеры меню (client/lobby/menucam.ts,
+момент 0), площадь PLAZA3 с «Ракушкой» у пирса, без интерфейса. Снят в headless Chrome на 2560×1440 прямо с канваса WebGL
+(сразу после отрисовки кадра), WebP 0,8. Заглушка menu-lqip.txt — тот же кадр 48×27, WebP 0,5 (строка data: в index.html).
+Переснять после заметных перемен на площади: скрипт снятия — в docs/ui3/entry.md.
