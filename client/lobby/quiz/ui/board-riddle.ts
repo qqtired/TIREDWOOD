@@ -5,6 +5,14 @@
 import { QZ, QZ_MODES, type QzBoard, type QzRiddleBoard } from '../../../../shared/quiz/types.ts';
 import { PAD, centerText, pill, timeBar } from './board-base.ts';
 import { C, DISPLAY, TEXT, badge, clip, confetti, fit, font, icon, leftSec, mmss, quizImg, rr, title } from './paint.ts';
+import { paintRiddleAsk2, paintRiddleRound2, type RiddleStyle } from './board-riddle2.ts';
+
+/** ?board2 — новая раскладка раунда и «ждём слово» (board-riddle2.ts) на панелях — выбор владельца 31.10 (docs/ui3/brief.md, №19);
+ *  ?board2=lines — второй вариант, «линии». Без параметра рисуется прежнее табло ниже (откат — просто не включать).
+ *  Прежние round() и ask() вынесены для стенда tools/quiz-board */
+const RIDDLE2: boolean = typeof location !== 'undefined' && new URLSearchParams(location.search).has('board2');
+const RIDDLE2_STYLE: RiddleStyle = typeof location !== 'undefined' && new URLSearchParams(location.search).get('board2') === 'lines' ? 'lines' : 'panels';
+export { round as paintRiddleRoundNow, ask as paintRiddleAskNow };
 
 /** Что «свежее» на табло: новое «тепло» и новая подсказка вспыхивают на пару секунд (табло — без памяти, помним тут) */
 const memo = { key: '', warm: 0, warmAt: -1e9, hot: 0, hotAt: -1e9, hints: 0, hintAt: -1e9 };
@@ -30,9 +38,9 @@ function fresh(r: QzRiddleBoard, nowMs: number): void {
 /** Табло «Загадки» по шагу: раунд / проверка, итог, ожидание слова, вызов */
 export function paintRiddleBoard(ctx: CanvasRenderingContext2D, b: QzBoard, nowMs: number, W: number, H: number): void {
   const r = b.riddle!;
-  if (r.step === 'round' || r.step === 'check') return round(ctx, b, r, nowMs, W, H);
+  if (r.step === 'round' || r.step === 'check') return RIDDLE2 ? paintRiddleRound2(ctx, b, r, nowMs, W, H, RIDDLE2_STYLE) : round(ctx, b, r, nowMs, W, H);
   if (r.last) return end(ctx, b, r, nowMs, W, H);
-  if (r.step === 'ask') return ask(ctx, b, r, nowMs, W, H);
+  if (r.step === 'ask') return RIDDLE2 ? paintRiddleAsk2(ctx, b, r, nowMs, W, H, RIDDLE2_STYLE) : ask(ctx, b, r, nowMs, W, H);
   return paintRoles(ctx, b, nowMs, W, H);
 }
 

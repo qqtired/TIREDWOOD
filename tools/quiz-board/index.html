@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Табло «Загадки» — было и стало</title>
+    <style>
+      :root { color-scheme: dark; --cw: calc((100vw - 64px - 32px) / 3); }
+      html, body { margin: 0; background: #1b1714; color: #fff4dc; font: 16px/1.4 Rubik, system-ui, sans-serif; }
+      main { padding: 20px 32px 48px; width: max-content; min-width: calc(100vw - 64px); }
+      h1 { margin: 0 0 6px; font-size: 24px; }
+      .hint { margin: 0 0 14px; color: rgba(255, 244, 220, .7); max-width: min(900px, calc(100vw - 96px)); }
+      .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 22px; margin: 0 0 22px; padding: 10px 14px; border-radius: 10px; position: sticky; left: 0; top: 0; z-index: 5; background: #2a231f; max-width: calc(100vw - 96px); box-sizing: border-box; }
+      .bar label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+      .bar select, .bar button { min-height: 34px; padding: 4px 10px; border: 1px solid #8b6f4c; border-radius: 6px; color: inherit; background: #3b3029; font: inherit; cursor: pointer; }
+      .bar :focus-visible { outline: 3px solid #7ffff4; outline-offset: 2px; }
+      section { margin: 0 0 34px; }
+      h2 { margin: 0 0 4px; font-size: 20px; color: #ffd665; }
+      .note { margin: 0 0 10px; color: rgba(255, 244, 220, .65); font-size: 14px; }
+      .row { display: grid; grid-template-columns: repeat(3, var(--cw)); gap: 16px; align-items: start; }
+      body.stack .row { grid-template-columns: var(--cw); }
+      figure { margin: 0; }
+      figcaption { margin: 0 0 6px; font-weight: 700; font-size: 15px; letter-spacing: .04em; color: rgba(255, 244, 220, .82); }
+      canvas { display: block; width: var(--cw); aspect-ratio: 2 / 1; background: #072b28; border-radius: 8px; box-shadow: 0 6px 22px rgba(0, 0, 0, .45); }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Табло «Загадки»: «Сейчас», «Линии», «Панели»</h1>
+      <p class="hint">Холсты 2048 × 1024, те же функции, что рисуют табло в игре (без ?board2 — «Сейчас»; ?board2 — «Панели», выбор владельца; ?board2=lines — «Линии»). Из зала табло видно ≈ 480 px в ширину — размер «из зала» показывает именно такой.</p>
+      <div class="bar" id="bar">
+        <label>Размер
+          <select id="size">
+            <option value="fit">вписать три в окно</option>
+            <option value="1000">1000 px</option>
+            <option value="480">из зала, 480 px</option>
+          </select>
+        </label>
+        <label><input type="checkbox" id="stack" /> колонкой</label>
+        <label><input type="checkbox" id="flash" /> вспышки «тепло» / «горячо» / подсказки</label>
+        <label>Состояние
+          <select id="only"></select>
+        </label>
+      </div>
+      <div id="stand"></div>
+    </main>
+    <!-- Только сервер разработки Vite (как tools/fort-preview); в боевую сборку не входит -->
+    <script type="module" src="/tools/quiz-board/stand.ts"></script>
+  </body>
+</html>
