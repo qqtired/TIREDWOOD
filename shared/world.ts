@@ -28,6 +28,8 @@ export class CollisionWorld {
   readonly invisible: Uint8Array;
   /** 1 — пули пролетают насквозь (стены в море) */
   readonly shootThrough: Uint8Array;
+  /** 1 — невидимый бокс, о который всё же упирается камера (MapBox.cam) */
+  readonly camBlock: Uint8Array;
   /** Индекс бокса, остановившего последний sweep (-1 — ничего) */
   lastHit = -1;
   /** Убранные боксы (катер ушёл в поездку): их настоящие границы */
@@ -48,6 +50,7 @@ export class CollisionWorld {
     this.tramp = new Uint8Array(n);
     this.invisible = new Uint8Array(n);
     this.shootThrough = new Uint8Array(n);
+    this.camBlock = new Uint8Array(n);
     for (let i = 0; i < n; i++) {
       const b = boxes[i];
       this.minX[i] = b.min[0];
@@ -58,6 +61,7 @@ export class CollisionWorld {
       this.maxZ[i] = b.max[2];
       this.tramp[i] = b.tramp ? 1 : 0;
       this.invisible[i] = b.mat === 'invisible' ? 1 : 0;
+      this.camBlock[i] = b.cam ? 1 : 0;
       // Большие невидимые стены в море не должны ловить пули
       const big = b.max[1] - b.min[1] > 20;
       this.shootThrough[i] = b.mat === 'invisible' && big ? 1 : 0;
@@ -130,7 +134,7 @@ export class CollisionWorld {
   /**
    * Луч по боксам. dir не обязан быть нормирован (t — в его длинах).
    * forShots: пропускать «прострельные» боксы; skipInvisible: пропускать все невидимые (камера
-   * не должна дёргаться о столбы фонарей и кнехты).
+   * не должна дёргаться о столбы фонарей и кнехты; исключение — невидимые стенки с cam: камера в них упирается).
    */
   raycast(ox: number, oy: number, oz: number, dx: number, dy: number, dz: number, maxT: number, hit: RayHit, forShots: boolean, skipInvisible = false, includeTerrain = false): boolean {
     const ix = dx !== 0 ? 1 / dx : Infinity;
@@ -141,7 +145,7 @@ export class CollisionWorld {
     let axis = 0;
     for (let i = 0; i < this.n; i++) {
       if (forShots && this.shootThrough[i]) continue;
-      if (skipInvisible && this.invisible[i]) continue;
+      if (skipInvisible && this.invisible[i] && !this.camBlock[i]) continue;
       let tmin: number;
       let tmax: number;
       let a = 0;

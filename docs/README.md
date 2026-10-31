@@ -115,7 +115,7 @@
 | Дурак | `durak.ts` | `lobby/durak.ts` | `lobby/durak*.ts`, `lobby/tomatopick.ts` | — | `durak.test.ts`, `durak-stakes.test.ts` | design «Дурак за столиками кафе» |
 | Бильярд | `billiards.ts` | `lobby/billiards.ts` | `lobby/billiards*.ts`, `lobby/blball.ts` | `BILLIARDS` | `billiards.test.ts` | [billiards-2026-10-04.md](billiards-2026-10-04.md) |
 | Крысиные бега | `ratrace.ts` | `lobby/ratrace.ts` | `lobby/ratrace*.ts` | `RATRACE` | `ratrace.test.ts` | [ratrace-2026-10-04.md](ratrace-2026-10-04.md) |
-| Автоматы и «Топ проигравших» | `slots.ts` | `lobby/slots.ts`, `lobby/losers.ts` | `lobby/slots3d.ts`, `lobby/camera.ts`, `lobby/losers.ts` | — | `slots.test.ts`, `lobby-view.test.ts`, `losers.test.ts` | design «Автоматы набережной» |
+| Автоматы и «Топ проигравших» | `slots.ts` | `lobby/slots.ts`, `lobby/losers.ts` | `lobby/slots3d.ts`, `lobby/camera.ts`, `lobby/losers.ts` | — | `slots.test.ts`, `lobby-view.test.ts`, `losers.test.ts` (неделя + рулетка + «за всё время», Х-17) | design «Автоматы набережной» |
 | Столы: таблички и защита от залезания | `tableguard.ts` | — | `lobby/tablesign.ts` | — | `table-guard.test.ts` | план `tables-noclimb` |
 | Катера и «Портовая регата» | `regatta*.ts`, `boat.ts` | `lobby/regatta.ts`, `lobby/regattabot.ts`, `lobby/boat.ts` | `lobby/regatta*.ts`, `lobby/boat*.ts`, `lobby/kraken.ts` | `BOATRACE` | `regatta.test.ts`, `boat.test.ts` | план `boats` (design «Гонки на катерах» — старая версия) |
 | Гидроплан «Стриж» | `plane.ts` | `lobby/plane.ts` | `lobby/plane*.ts` | `PLANE` | `plane.test.ts` | план `plane` |
@@ -156,6 +156,7 @@
 |---|---|---|---|---|---|---|
 | Подарки по коду | `gifts.ts` | `gifts.ts`, `gift-config.ts` | `ui/gift-code.ts`, `ui/menu/gift.ts` | `GIFTS` | `gifts-server.test.ts`, `gifts-hub.test.ts` | [devil-mobile-20261003/REPORT.md](devil-mobile-20261003/REPORT.md) |
 | Голосование «выгнать» | `votekick.ts` | `votekick.ts` | `ui/kickvote.ts`, `ui/online.ts` | `VOTEKICK` | `votekick.test.ts` | план `tabmenu` |
+| «Общее»: «Позвать», зов в Telegram, викторина в чате, огни букв TIREDWOOD | `social.ts` | `social.ts`, `chatquiz.ts`, `tgcall.ts` | `ui/social.ts`, `lobby/social3d.ts`, `lobby/tiredwood.ts` (огни букв), `ui/menu/settings-panel.ts` (выключатель викторины) | `SOCIAL`, `TG_CALL` | `social.test.ts`, `chatquiz.test.ts`, `tgcall.test.ts` | [social/README.md](social/README.md) |
 | Лаборатория идей `/lab` | `lab.ts`, `lab-*.ts` (правила локальных примеров) | `lab/http.ts`, `lab/store.ts` | `lab/` (страница — `lab/index.html` в корне репозитория) | `LAB` | `lab.test.ts`, `lab-registry.test.ts`, `lab-*.test.ts` | план `lab`, [примеры ревью](lab-research-examples.md) |
 | Страница `/fishing` | — | — | — (страница — `public/fishing/` в корне) | — | `tools/fishing-guide/verify.mjs`, `test/fishing-guide.test.ts` (подсказки калькулятора) | [STATUS.md](STATUS.md); пересборка — `node tools/fishing-guide/gen.mjs` |
 | Экраны загрузки, вход и связь (карточка входа, окно «Связь потеряна…») | `loading.ts` | `readygate.ts` | `ui/entry.ts`, `ui/entry.css`, `ui/transition.ts`, `ui/transition.css`, `ui/transition-art.ts`, `startup.ts`, `index.html` (первая загрузка), `assets/loading/hd/` | — | `loading.test.ts`, `startup.test.ts` | план `loading`, [ui.md](ui.md) §1, [ui-redesign/README.md](ui-redesign/README.md) |
@@ -167,6 +168,9 @@
 
 Куда идти за типовой правкой:
 - **Табличка, вывеска, афиша у входа в режим** — `client/lobby/plaza/` (`agenda.ts`, `live.ts`, `touts.ts`).
+  На новой набережной (PLAZA3) доска афиши «Сегодня в городе» стоит на фасаде кафе: `client/lobby/plaza3/afisha.ts` на поле
+  `anchor_afisha_face` модели `pav_cafe` (строки — `agendaRows` из `live.ts`; в афише все места, в том числе «Ракушка», бега,
+  «Подземелье» и ферма — Х-9, Х-10).
 - **Награды и статистика** — `shared/economy.ts` или рядом с режимом (считает сервер); **рекорды в профиле** — `client/ui/records.ts`.
 - **Новое сообщение по сети** — тип в `shared/messages.ts`, обработка в `server/hub.ts` или в комнате; сменил формат — подними `PROTOCOL_VERSION` в `shared/constants.ts` (новые поля в JSON можно слать без смены номера).
 - **Новое поле профиля** — `server/store.ts` (нормализация: старые сохранения грузятся без потерь, AGENTS §10).

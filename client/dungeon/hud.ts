@@ -896,11 +896,9 @@ export class DungeonHud implements DungeonHudApi {
     if (!c) return;
     const win = el('div', `dg-window dg-pnl dg-chest${c.big ? ' big' : ''}`);
     win.append(el('h2', 'dg-chest-title', c.title ?? (c.big ? 'Большой сундук!' : 'Сундук!')));
-    // лента барабана: свои вещи и все оружия/пассивки
-    const pool: [DgIconKind, string, string][] = [
-      ...Object.entries(WEAPONS).filter(([id]) => !id.endsWith('_evo')).map(([id, w]) => ['weapon', id, w.icon] as [DgIconKind, string, string]),
-      ...Object.entries(PASSIVES).map(([id, p]) => ['passive', id, p.icon] as [DgIconKind, string, string]),
-    ];
+    // лента барабана: только свои вещи героя (выпасть может лишь то, что у него уже есть); нет списка — то, что выпало
+    const own = c.pool?.length ? c.pool : c.items.flatMap((it) => (it.id ? [{ kind: it.kind === 'passive' ? 'passive' as const : 'weapon' as const, id: it.id, icon: it.icon }] : []));
+    const pool = own.map((x): [DgIconKind, string, string] => [x.kind, x.id, x.icon]);
     c.items.forEach((it, i) => {
       const row = el('div', `dg-reel-row${it.evo ? ' evo' : ''}`);
       row.style.setProperty('--d', `${1.2 + i * 0.3}s`);
