@@ -80,7 +80,8 @@ test('набор E: части в цвете, до 6 частей, бюджет 
   for (const d of MOBS_E) {
     assert.ok(!ids.has(d.id), `${d.id}: повтор id`);
     ids.add(d.id);
-    assert.ok(d.parts.length >= 1 && d.parts.length <= 6, `${d.id}: частей ${d.parts.length}`);
+    // краб-абордажник (М-4, 31.10): подвижные верхние пальцы клешней (щёлкают) — до 8 частей
+    assert.ok(d.parts.length >= 1 && d.parts.length <= (d.when ? 8 : 6), `${d.id}: частей ${d.parts.length}`);
     for (const p of d.parts) {
       assert.ok(BONES.includes(p.bone), `${d.id}: кость ${p.bone}`);
       assert.ok(p.geo.getAttribute('color'), `${d.id}/${p.bone}: нет цветов вершин`);

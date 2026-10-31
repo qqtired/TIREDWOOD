@@ -46,7 +46,8 @@ test('набор F: три босса — свои виды, до 6 частей
   for (const def of MOBS_F) {
     assert.ok(ALL_MOBS.includes(def), `${def.id}: в ALL_MOBS`);
     assert.ok(def.kinds.every((k) => F.isBossKind(k)), `${def.id}: рисует босса`);
-    assert.ok(def.parts.length <= 6, `${def.id}: ${def.parts.length} частей`);
+    // Леший (М-5, 31.10): клубень и две «ноги» из корней шагают отдельно — до 8 частей
+    assert.ok(def.parts.length <= (def.id === 'boss-leshy' ? 8 : 6), `${def.id}: ${def.parts.length} частей`);
     let tris = 0;
     for (const part of def.parts) {
       for (const name of ['position', 'normal', 'color']) assert.ok(part.geo.getAttribute(name), `${def.id}/${part.bone}: есть ${name}`);

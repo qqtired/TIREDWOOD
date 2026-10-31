@@ -1,12 +1,14 @@
 // Сова-лекарь (Z_MEDIC, набор C). Круглые очки, белая шапочка с красным крестом (крест и сверху — видно со стены),
 // сумка с крестом на животе. По земле прыгает обеими лапками, как птица. Лечение — «взмах»: крылья вверх и резко вниз,
-// над головой вспыхивает и улетает зелёный светящийся крест. Сервер отдельного состояния для лечения не шлёт: перед
-// лечением он ставит признак ZF_LIT, а на лечении двигает счётчик ударов. Поэтому «взмах» — в ZS_ATTACK и при anim.lit
-// (необязательное поле, его может добавить договор). Гибель — падает навзничь, лапки вверх, и уходит в землю.
+// над головой вспыхивает и улетает зелёный светящийся крест. Сервер отдельного состояния для лечения не шлёт: за 0,5 с
+// до лечения ставит признак ZF_LIT и снимает его на самом лечении. Поэтому жест — по признаку и anim.flagT (секунды с
+// его смены): засветилась — крылья вверх, над головой зажигается крест; погасла (лечит) — резкий мах вниз, крест
+// улетает вверх и гаснет. У ворот (ZS_ATTACK) бьёт крылом. Гибель — падает навзничь, лапки вверх, и уходит в землю.
 // Голова слита с телом (бюджет — 6 частей): тело, глаза, два крыла, лапки, зелёный крест.
 import * as THREE from 'three';
 import { ZS_ATTACK } from '../../../shared/fort.ts';
 import { Z_MEDIC } from '../../../shared/fortkinds.ts';
+import { ZF_LIT } from '../../../shared/fortnet.ts';
 import { merge, setBone, setBoneS, type MobAnim, type MobDef, type MobPose } from './kit.ts';
 import {
   attach, ellipsoid, eyeBalls, finish, limb, mix, paint, pupils, rnd, smooth, splat, spring, step, type Step,
@@ -33,8 +35,10 @@ const SHOULDER_X = 0.36;
 const SHOULDER_Y = 0.98;
 const RED = 0xd8333a;
 const CAP = 0xfbf8f0;
-/** Взмах лечения, с */
-const HEAL_S = 1.0;
+/** Мах лечения после того, как признак погас, с */
+const HEAL_S = 0.8;
+/** Признак ZF_LIT горит до лечения столько, с (сервер: healT < 30 тиков) */
+const LIT_S = 0.5;
 
 function bodyGeo(l: Look): THREE.BufferGeometry {
   const p: THREE.BufferGeometry[] = [];
@@ -92,7 +96,6 @@ function crossGeo(): THREE.BufferGeometry {
 
 const _st: Step = { z: 0, lift: 0, stance: false };
 const BONES_USED = ['body', 'head', 'wingL', 'wingR', 'legL', 'extra'] as const;
-type AnimLit = MobAnim & { lit?: boolean };
 
 function build(l: Look): MobDef {
   return {
@@ -138,14 +141,32 @@ function poseOwl(a: MobAnim, out: MobPose): void {
   let puff = 1 + 0.015 * breathe + 0.1 * hit - 0.06 * crouch * w;
   let wing = 0.12 + 0.35 * air * w + 0.8 * hit;
   let wingFwd = 0;
+  /** Удар крылом у ворот: какое крыло (0 — wingL, 1 — wingR), насколько поднято и вынесено вперёд */
+  let slapWing = -1;
+  let slapUp = 0;
+  let slapFwd = 0;
   let cross = 0;
   let crossY = 0;
   let crossSpin = t * 3;
 
-  // лечение — «взмах»: крылья вверх (вспыхивает крест), резкий мах вниз, крест улетает вверх и гаснет
-  const lit = (a as AnimLit).lit === true;
-  if (a.st === ZS_ATTACK || lit) {
-    const u = a.st === ZS_ATTACK ? a.stT % HEAL_S : 0.2 + 0.03 * Math.sin(t * 20);
+  // лечение — «взмах»: засветилась (ZF_LIT) — крылья вверх, вспыхивает крест; погасла (лечит) — резкий мах вниз,
+  // крест улетает вверх и гаснет. u — время жеста: 0…0,22 подъём (растянут на LIT_S), дальше — мах
+  const lit = ((a.flags ?? 0) & ZF_LIT) !== 0;
+  const ft = a.flagT ?? 99;
+  const healing = !lit && ft < HEAL_S && a.die === 0;
+  if (a.st === ZS_ATTACK && !lit && !healing) {
+    // у ворот: бьёт крылом наотмашь — крепость обнуляет stT на каждом ударе, крылья чередуются
+    const u = a.stT;
+    const lead = Math.floor((a.t - a.stT) * 2 + sd * 2) & 1;
+    const back = smooth(0, 0.1, u) * (1 - smooth(0.1, 0.18, u));
+    const slap = smooth(0.1, 0.18, u) * (1 - smooth(0.25, 0.5, u));
+    slapWing = lead;
+    slapUp = 0.5 + 1.6 * back + 0.9 * slap;
+    slapFwd = -0.6 * back + 1.3 * slap;
+    lean += 0.18 * slap - 0.1 * back;
+    yaw += (lead ? 1 : -1) * 0.25 * slap;
+  } else if (lit || healing) {
+    const u = lit ? 0.22 * Math.min(1, ft / (LIT_S * 0.8)) + 0.012 * Math.sin(t * 20) : 0.24 + (ft / HEAL_S) * 0.76;
     const up = smooth(0, 0.22, u);
     const down = smooth(0.24, 0.36, u);
     const settle = smooth(0.5, 0.95, u);
@@ -179,7 +200,8 @@ function poseOwl(a: MobAnim, out: MobPose): void {
   out.head.copy(out.body);
   for (let i = 0; i < 2; i++) {
     const s = i === 0 ? -1 : 1;
-    attach(i === 0 ? out.wingL : out.wingR, out.body, s * SHOULDER_X * puff, SHOULDER_Y - HIP, -0.02, -wingFwd, 0, s * wing);
+    const sl = i === slapWing ? 1 - fall : 0;
+    attach(i === 0 ? out.wingL : out.wingR, out.body, s * SHOULDER_X * puff, SHOULDER_Y - HIP, -0.02, -wingFwd - slapFwd * sl, 0, s * (wing + (slapUp - wing) * sl));
   }
   if (fall > 0) {
     // лапки — вместе с телом (торчат вверх, когда лежит)

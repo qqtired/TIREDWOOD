@@ -22,11 +22,14 @@ export class BoardingAnchors {
     for (const mesh of [this.rope,this.hooks]) {mesh.name=mesh===this.rope?'boarding-ropes':'boarding-anchors';mesh.frustumCulled=false;mesh.count=0;mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);parent.add(mesh);}
   }
   begin(): void {this.ropes=this.anchors=0;}
-  add(x:number,y:number,z:number,tx:number,ty:number,tz:number,stage:number,state:number,stateTime:number):void {
+  /** from — откуда идёт канат (клешня Канатника), delay — секунд развёртывания до броска: до него крюк в лапе модели */
+  add(x:number,y:number,z:number,tx:number,ty:number,tz:number,stage:number,state:number,stateTime:number,from?:THREE.Vector3,delay=0):void {
     if (!(stage&BOAT_ANCHOR_FLAG)||this.anchors>=CAP) return;
     const active=state===ZS_SIEGE_DEPLOY||state===ZS_SIEGE_ACTION||state===ZS_SIEGE_OPEN;
-    a.set(x,y+.8,z-.5);b.set(active?tx:x,active?ty+.5:y+.9,active?tz:z-.8);
-    if(state===ZS_SIEGE_DEPLOY){const u=Math.min(1,stateTime/.75);b.lerpVectors(a,b,u);b.y+=Math.sin(u*Math.PI)*2;}
+    if(state===ZS_SIEGE_DEPLOY&&stateTime<delay) return;
+    if(from)a.copy(from);else a.set(x,y+.8,z-.5);
+    b.set(active?tx:x,active?ty+.5:y+.9,active?tz:z-.8);
+    if(state===ZS_SIEGE_DEPLOY){const u=Math.min(1,(stateTime-delay)/.75);b.lerpVectors(a,b,u);b.y+=Math.sin(u*Math.PI)*2;}
     if(state===ZS_SIEGE_OPEN)b.y-=Math.min(2.5,stateTime*1.5);
     if(active){
       end.copy(b);

@@ -1,12 +1,13 @@
 // Щитоносец «Черепаха-латник»: оливковая черепаха ходит на задних лапах и держит перед собой круглый щит-панцирь
 // с шестигранными щитками и гербом Барона — каплей варенья. Над щитом торчит лысая голова (на макушке — клякса):
-// сверху сразу видно, куда бить. От попадания голова ныряет за щит, атака — удар щитом с выпадом. Гибель — на
-// спину, лапы болтаются в воздухе, щит плашмя падает вперёд.
+// сверху сразу видно, куда бить. От попадания голова ныряет за щит, атака — удар щитом с выпадом. Щит разбили —
+// раскалывается пополам, половины разлетаются и падают (b-shield.ts), черепаха бежит без щита в панике. Гибель —
+// на спину, лапы болтаются в воздухе, щит плашмя падает вперёд.
 import * as THREE from 'three';
 import { Z_SHIELD } from '../../../shared/fortkinds.ts';
 import { type MobAnim, type MobDef, type MobPose } from './kit.ts';
 import { EYE, ball, hexPlate, jamOn, join, lathe, mix, onEllipsoid, paint, taper } from './b-parts.ts';
-import { shieldPose, type ShieldRig } from './b-shield.ts';
+import { shieldPose, splitTris, type ShieldRig } from './b-shield.ts';
 
 const SKIN = 0x9fb86a;
 const SKIN_DARK = 0x7d9550;
@@ -18,7 +19,13 @@ const RIM = 0x8d5f2c;
 const BEAK = 0x6e7a3e;
 const SOCKET = 0x3a1650;
 
-const RIG: ShieldRig = { hip: 0.36, hipX: 0.17, steps: 3, neckY: 0.8, neckZ: 0.04, eyeY: 0.31, shieldY: 0.37, shieldZ: 0.46, duck: 0.3 };
+/** Плечо руки (от таза) — руки отдельные кости, держат щит за края */
+const SHOULDER = [0.28, 0.6, 0.02] as const;
+const RIG: ShieldRig = {
+  hip: 0.36, hipX: 0.17, steps: 3, neckY: 0.8, neckZ: 0.04, eyeY: 0.31, shieldY: 0.37, shieldZ: 0.46, duck: 0.3,
+  shoulderY: SHOULDER[1], shoulderZ: SHOULDER[2], reach: 0.34,
+  shards: [[-0.22, 0, 0], [0.22, 0, 0]],
+};
 
 // ------------------------------------------------------------------ геометрия
 
@@ -40,12 +47,17 @@ function bodyGeo(): THREE.BufferGeometry {
     const [x, y, z, nx, ny, nz] = onEllipsoid(C[0], C[1], C[2], R[0], R[1], R[2], u, v);
     plates.push(hexPlate(r, 0.035, x, y, z, nx, ny, nz, SCUTE));
   }
-  // руки держат щит за края
-  const arms = [-1, 1].flatMap((sx) => [
-    taper([[sx * 0.28, 0.6, 0.02], [sx * 0.37, 0.43, 0.16], [sx * 0.32, 0.38, 0.36]], 0.075, 0.062, SKIN, 5, 5, false),
-    ball(0.075, sx * 0.32, 0.38, 0.38, SKIN_DARK, 1, 0.9, 1, 6, 4),
-  ]);
-  return join([torso, shell, ...plates, ...arms, jamOn(C[0], C[1], C[2], R[0], R[1], R[2], 0.75, 2.45, 0.09)]);
+  // плечи — бугорки, из них растут руки (отдельные кости)
+  const shoulders = [-1, 1].map((sx) => ball(0.085, sx * SHOULDER[0], SHOULDER[1], SHOULDER[2], SKIN, 1, 1, 1, 5, 3));
+  return join([torso, shell, ...plates, ...shoulders, jamOn(C[0], C[1], C[2], R[0], R[1], R[2], 0.75, 2.45, 0.09)]);
+}
+
+/** Обе руки одной частью (от линии плеч): в позе «держит щит за края», в позе «держит щит за край», ладонь — кулак */
+function armsGeo(): THREE.BufferGeometry {
+  return join([-1, 1].flatMap((sx) => [
+    taper([[sx * SHOULDER[0], 0, 0], [sx * (SHOULDER[0] + 0.09), -0.17, 0.14], [sx * (SHOULDER[0] + 0.04), -0.22, 0.34]], 0.075, 0.062, SKIN, 5, 5, false),
+    ball(0.075, sx * (SHOULDER[0] + 0.04), -0.22, 0.36, SKIN_DARK, 1, 0.9, 1, 6, 4),
+  ]));
 }
 
 function headGeo(): THREE.BufferGeometry {
@@ -83,6 +95,9 @@ function shieldGeo(): THREE.BufferGeometry {
   return join(list);
 }
 
+/** Щит пополам — трещина зигзагом сверху вниз: половины на костях wingL и wingR */
+const SHARDS = splitTris(shieldGeo(), 2, (x, y) => (x + 0.06 * Math.sin(y * 22) < 0 ? 0 : 1));
+
 /** Короткая толстая нога со ступнёй (от тазобедренного сустава, подошва на −0,36) */
 function legGeo(): THREE.BufferGeometry {
   return join([
@@ -107,7 +122,9 @@ export const shieldTurtle: MobDef = {
     { bone: 'body', geo: bodyGeo() },
     { bone: 'head', geo: headGeo() },
     { bone: 'extra', geo: eyesGeo(), glow: true },
-    { bone: 'prop', geo: shieldGeo() },
+    { bone: 'armL', geo: armsGeo() },
+    { bone: 'wingL', geo: SHARDS[0] },
+    { bone: 'wingR', geo: SHARDS[1] },
     { bone: 'legL', geo: legGeo() },
     { bone: 'legR', geo: legGeo() },
   ],

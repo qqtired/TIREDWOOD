@@ -24,7 +24,8 @@ const tris = (def: MobDef) => def.parts.reduce((n, p) => n + (p.geo.index ? p.ge
 test('набор B: цвета вершин, бюджет, светящиеся глаза, существующие виды, по 2 варианта на вид', () => {
   assert.equal(new Set(MOBS_B.map((d) => d.id)).size, MOBS_B.length, 'id уникальны');
   for (const def of MOBS_B) {
-    assert.ok(def.parts.length <= 6, `${def.id}: частей ${def.parts.length}`);
+    // щитоносцы (М-2, 31.10): обе руки — своя часть, щит — две половины (ломается на виду) — до 8 частей
+    assert.ok(def.parts.length <= (def.kinds.includes(Z_SHIELD) ? 8 : 6), `${def.id}: частей ${def.parts.length}`);
     assert.ok(tris(def) <= 1550, `${def.id}: треугольников ${tris(def)}`);
     assert.ok(def.parts.some((p) => p.glow), `${def.id}: светящиеся глаза`);
     for (const p of def.parts) {

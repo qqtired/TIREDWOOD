@@ -1,6 +1,9 @@
 // Краб-абордажник — экипаж лодки (признак ZF_CREW): красный краб в треуголке и тельняшке, клешни наготове, глаза на
 // стебельках светятся сиреневым. Прыгает из лодки на берег сальто (ZS_HOP), бежит к морской стене, лезет по ней
-// (ZS_CLIMB → ZS_TOP → ZS_DROP), во дворе щиплет клешнями. Гибель — падает на спину, сучит ножками и уходит в землю.
+// (ZS_CLIMB → ZS_TOP → ZS_DROP), во дворе щиплет клешнями. Ножки — две тройки «через одну» (как у паучка): пока одна
+// стоит на земле (стопы не скользят — едут назад ровно со скоростью хода), другая переступает. Клешни щёлкают: верхний
+// палец — своя кость (head — у левой, extra — у правой): в покое пощёлкивает, перед щипком раскрывается и
+// схлопывается на ударе. Гибель — падает на спину, сучит ножками и уходит в землю.
 // Вид у экипажа — шаркун или липучка, поэтому kinds = [Z_WALKER, Z_CLIMBER] и особый вариант when = ZF_CREW (договор
 // mobs-a): обычных шаркунов краб не заменяет, а экипажу достаётся только он (красный — 2 из 3, скрипач — 1 из 3).
 // Здесь же — сидячий краб для лодки (seatedCrab).
@@ -9,6 +12,8 @@ import { ZS_ATTACK, ZS_CLIMB, ZS_DROP, ZS_HOP, ZS_TOP, Z_CLIMBER, Z_WALKER } fro
 import { ZF_CREW } from '../../../shared/fortnet.ts';
 import { colored, merge, setBone, setBoneS, type MobAnim, type MobDef, type MobPose } from './kit.ts';
 import { blob, curve, jamDrop, mergeColored, paint, smooth, tricorn, tube } from './sea-shapes.ts';
+
+const TAU = Math.PI * 2;
 
 /** Прыжок из лодки на берег, с (HOP_TICKS = 40 у крепости, shared/fortkinds.ts в rework/fort) */
 const HOP_S = 40 / 60;
@@ -86,26 +91,43 @@ function eyesGeo(): THREE.BufferGeometry {
 function clawGeo(look: CrabLook, side: 1 | -1, k: number): THREE.BufferGeometry {
   const arm = tube(curve([[0, 0, 0], [0.12, 0.02, 0.14], [0.17, 0.1, 0.3]], 4), (_i, u) => 0.06 - u * 0.012, 5);
   const palm = blob(0.13, 0.15, 0.18, 8, 6).translate(0.17, 0.13, 0.42);
-  const up = blob(0.06, 0.065, 0.2, 6, 4).rotateX(-0.45).translate(0.16, 0.24, 0.64);
   const low = blob(0.05, 0.055, 0.17, 6, 4).rotateX(0.4).translate(0.18, 0.04, 0.61);
   const tip = (p: THREE.Vector3, _n: THREE.Vector3, o: THREE.Color) => o.setHex(p.z > 0.7 ? 0xf6dcc0 : look.shell);
-  const g = mergeColored([paint(arm, (_p, _n, o) => o.setHex(look.legs)), paint(palm, tip), paint(up, tip), paint(low, tip)]);
+  const g = mergeColored([paint(arm, (_p, _n, o) => o.setHex(look.legs)), paint(palm, tip), paint(low, tip)]);
   g.scale(side * k, k, k);
   if (side < 0) flipWinding(g);
   return g;
 }
 
-/** Ножки одного бока: три коленчатые, кончики острые (в осях бедра; левый бок — зеркально) */
-function legsGeo(look: CrabLook, side: 1 | -1): THREE.BufferGeometry {
-  const parts: THREE.BufferGeometry[] = [];
-  for (const dz of [-0.17, 0.02, 0.2]) {
-    const pts = [new THREE.Vector3(0, 0, dz), new THREE.Vector3(0.24, 0.16, dz * 1.25), new THREE.Vector3(0.4, -0.34, dz * 1.45), new THREE.Vector3(0.44, -0.72, dz * 1.55)];
-    parts.push(paint(tube(pts, (_i, u) => 0.048 - u * 0.026, 4, { capEnd: 1.6 }), (p, _n, o) => o.setHex(p.y < -0.5 ? 0x9c3a24 : look.legs)));
-  }
-  const g = mergeColored(parts);
-  g.scale(side, 1, 1);
+/** Шарнир верхнего пальца клешни в осях плеча (у k = 1, правая; левая — зеркально) */
+const HINGE = [0.16, 0.16, 0.46] as const;
+
+/** Верхний палец клешни — подвижный (щёлкает), в осях своего шарнира */
+function fingerGeo(look: CrabLook, side: 1 | -1, k: number): THREE.BufferGeometry {
+  const up = blob(0.06, 0.065, 0.2, 6, 4).rotateX(-0.45).translate(0.16 - HINGE[0], 0.24 - HINGE[1], 0.64 - HINGE[2]);
+  const g = mergeColored([paint(up, (p, _n, o) => o.setHex(p.z > 0.7 - HINGE[2] ? 0xf6dcc0 : look.shell))]);
+  g.scale(side * k, k, k);
   if (side < 0) flipWinding(g);
   return g;
+}
+
+/**
+ * Тройка ножек «через одну» в осях корня (стопы на земле): group 0 — задняя и передняя справа (+X) и средняя слева,
+ * group 1 — наоборот. Ножка коленчатая, кончик острый; бедро под панцирем.
+ */
+function tripodGeo(look: CrabLook, group: 0 | 1): THREE.BufferGeometry {
+  const parts: THREE.BufferGeometry[] = [];
+  const dzs = [-0.17, 0.02, 0.2];
+  for (let i = 0; i < 3; i++) {
+    const side = (i + group) % 2 === 0 ? 1 : -1;
+    const dz = dzs[i];
+    const pts = [new THREE.Vector3(0, 0, dz), new THREE.Vector3(0.24, 0.16, dz * 1.25), new THREE.Vector3(0.4, -0.34, dz * 1.45), new THREE.Vector3(0.44, -0.72, dz * 1.55)];
+    const g = mergeColored([paint(tube(pts, (_i, u) => 0.048 - u * 0.026, 4, { capEnd: 1.6 }), (p, _n, o) => o.setHex(p.y < -0.5 ? 0x9c3a24 : look.legs))]);
+    g.scale(side, 1, 1);
+    if (side < 0) flipWinding(g);
+    parts.push(g.translate(side * HIP[0], HIP[1], HIP[2]));
+  }
+  return mergeColored(parts);
 }
 
 /** Зеркальная копия вывернута наизнанку — разворачиваем треугольники обратно */
@@ -135,98 +157,154 @@ function fract(x: number): number {
   return x - Math.floor(x);
 }
 
+/** Стопа тройки: z — вдоль хода (в опоре едет назад ровно со скоростью земли), lift — подъём 0…1 */
+const LEG = { z: 0, lift: 0 };
+function legPhase(phase: number, travel: number): typeof LEG {
+  const p = phase - Math.floor(phase);
+  if (p < 0.5) {
+    LEG.z = (0.5 - p / 0.5) * travel;
+    LEG.lift = 0;
+  } else {
+    const u = (p - 0.5) / 0.5;
+    LEG.z = (-0.5 + smooth(0, 1, u)) * travel;
+    LEG.lift = Math.sin(Math.PI * u);
+  }
+  return LEG;
+}
+
+/** «Щёлк-щёлк»: раз в period с два быстрых щелчка (0 — закрыта, 1 — раскрыта) */
+function snaps(t: number, period: number): number {
+  const p = t % period;
+  if (p > 0.5) return 0;
+  const k = p < 0.25 ? p / 0.25 : (p - 0.25) / 0.25;
+  return k < 0.45 ? smooth(0, 0.45, k) : 1 - smooth(0.45, 0.62, k);
+}
+
 function crabPose(look: CrabLook, a: MobAnim, out: MobPose): void {
   const seed = a.seed;
   const size = 1 + (seed * 2 - 1) * 0.08;
-  /** Шагов на 1,25 м: шустрые семенят чаще и мельче */
-  const cycles = fract(seed * 7.31) < 0.3 ? 3 : 2;
-  const amp = Math.asin(Math.min(0.9, 0.422 / cycles));
+  /** Шагов на 1,25 м: краб семенит — мелко и часто, шустрые ещё чаще */
+  const cycles = fract(seed * 7.31) < 0.3 ? 4 : 3;
+  const travel = (0.5 * 1.25) / cycles / size;
   const tilt = (fract(seed * 13.7) - 0.5) * 0.16;
   const rage = a.rage ? 1.4 : 1;
   const w = Math.min(1, a.speed / 0.6);
-  const phi = a.gait * cycles * Math.PI * 2;
+  let ph = a.gait * cycles;
   const t = a.t * rage;
 
-  let bodyY = BODY_Y + 0.025 * Math.cos(2 * phi) * w;
+  let bodyY = BODY_Y + 0.022 * Math.abs(Math.cos(TAU * ph)) * w;
   let pitch = 0.07 * w;
-  let roll = 0.06 * Math.sin(phi) * w + tilt;
+  let roll = 0.05 * Math.sin(TAU * ph) * w + tilt;
   let yaw = 0;
   let sq = 1 + 0.02 * Math.sin(a.t * 2.2 + seed * 6) * (1 - w);
-  // ножки: поворот у бедра (+ — ступня назад), подъём; клешни: наклон (− — вверх), разворот внутрь
-  let legL = -amp * w * Math.cos(phi);
-  let legR = -amp * w * Math.cos(phi + Math.PI);
-  let liftL = Math.max(0, -Math.sin(phi)) * 0.09 * w;
-  let liftR = Math.max(0, -Math.sin(phi + Math.PI)) * 0.09 * w;
-  let splay = 0;
-  let clawL = -0.28 + 0.14 * Math.sin(phi + 0.6) * w + 0.08 * Math.sin(t * 1.7 + seed * 9) * (1 - w);
-  let clawR = -0.28 + 0.14 * Math.sin(phi + 0.6 + Math.PI) * w + 0.08 * Math.sin(t * 1.9 + seed * 5) * (1 - w);
+  // тройки ножек: stride — размах шага, lift — подъём стопы, legRx — поворот тройки вокруг линии бёдер (− — вперёд),
+  // spread — растопырить; onBody — ножки следуют за панцирем (кувырок, на спине)
+  let stride = w;
+  let lift = 0.1;
+  let legRx = 0;
+  let spread = 1;
+  let wig = 0;
+  let onBody = false;
+  // клешни: наклон (− — вверх), разворот внутрь; open — верхний палец раскрыт (0…1)
+  let clawL = -0.28 + 0.14 * Math.sin(TAU * ph + 0.6) * w + 0.08 * Math.sin(t * 1.7 + seed * 9) * (1 - w);
+  let clawR = -0.28 + 0.14 * Math.sin(TAU * ph + 0.6 + Math.PI) * w + 0.08 * Math.sin(t * 1.9 + seed * 5) * (1 - w);
   let inL = 0;
   let inR = 0;
+  let openL = 0.08 + 0.7 * snaps(t + seed * 3, 2.2 + seed * 1.6);
+  let openR = 0.08 + 0.7 * snaps(t + seed * 3 + 1.1, 2.6 + seed * 1.3);
 
   const st = a.st;
   if (st === ZS_ATTACK) {
-    // крепость обнуляет stT на каждом ударе (ворота — раз в 0,5 с, человек — раз в 0,8 с): замах с 0, щипок к ~0,2 с,
-    // дальше клешня возвращается наизготовку; клешни чередуются от удара к удару (по времени удара)
+    // крепость обнуляет stT на каждом ударе (ворота — раз в 0,5 с, человек — раз в 0,8 с): клешня раскрывается
+    // и заносится, щипок — схлопнулась к ~0,15 с, дальше возвращается наизготовку; клешни чередуются от удара к удару
     const u = a.stT;
     const lead = Math.floor((a.t - a.stT) * 2 + seed * 2) & 1;
     const strike = u < 0.1 ? -1.15 * smooth(0, 0.1, u) : u < 0.2 ? -1.15 + 1.5 * smooth(0.1, 0.2, u) : 0.35 - 0.9 * smooth(0.2, 0.5, u);
-    if (lead) clawR = strike;
-    else clawL = strike;
-    if (lead) clawL = -0.55;
-    else clawR = -0.55;
+    const open = u < 0.1 ? smooth(0, 0.08, u) : 1 - smooth(0.1, 0.15, u);
+    if (lead) {
+      clawR = strike;
+      openR = open;
+      clawL = -0.55;
+      openL = 0.45;
+    } else {
+      clawL = strike;
+      openL = open;
+      clawR = -0.55;
+      openR = 0.45;
+    }
     pitch = 0.05 + 0.2 * smooth(0.08, 0.18, u) * (1 - smooth(0.25, 0.45, u));
+    stride = 0;
   } else if (st === ZS_CLIMB) {
+    // по стене: тройки по очереди тянутся вперёд-вверх к стене и подтягивают, клешни цепляются выше
     const c = a.t * 13;
+    ph = c / TAU;
     clawL = -2.3 + 0.5 * Math.sin(c);
     clawR = -2.3 - 0.5 * Math.sin(c);
-    legL = -0.55 + 0.35 * Math.sin(c * 1.3);
-    legR = -0.55 - 0.35 * Math.sin(c * 1.3);
-    liftL = liftR = 0.05;
+    openL = 0.5 + 0.4 * Math.sin(c);
+    openR = 0.5 - 0.4 * Math.sin(c);
+    legRx = -0.5;
+    stride = 1.2;
+    lift = 0.14;
     roll = 0.12 * Math.sin(c) + tilt;
     pitch = -0.08;
     bodyY = BODY_Y + 0.04 * Math.abs(Math.sin(c));
   } else if (st === ZS_TOP) {
+    // на гребне: клешни над головой и грозно щёлкают
     clawL = -1.9 + 0.35 * Math.sin(a.t * 7);
     clawR = -1.9 + 0.35 * Math.cos(a.t * 7);
+    openL = 0.5 + 0.5 * Math.sin(a.t * 14);
+    openR = 0.5 + 0.5 * Math.cos(a.t * 14);
     inL = inR = -0.3;
     bodyY = BODY_Y - 0.08 + 0.05 * Math.abs(Math.sin(a.t * 7));
     roll = 0.08 * Math.sin(a.t * 3.5) + tilt;
+    ph = a.t * 2.2;
+    stride = 0.3;
+    lift = 0.06;
   } else if (st === ZS_DROP) {
     clawL = clawR = -2.6;
-    splay = 0.5;
+    openL = openR = 0.9;
+    spread = 1.25;
     pitch = 0.3;
+    stride = 0;
+    onBody = true;
   } else if (st === ZS_HOP) {
     // сальто вперёд из лодки: ножки поджаты, клешни обнимают себя
     const u = Math.min(1, a.stT / HOP_S);
     pitch = Math.PI * 2 * smooth(0.05, 0.95, u);
-    splay = -0.6 * Math.sin(Math.PI * u);
-    legL = legR = 0.5 * Math.sin(Math.PI * u);
+    spread = 1 - 0.3 * Math.sin(Math.PI * u);
+    legRx = 0.5 * Math.sin(Math.PI * u);
     clawL = clawR = 0.25;
+    openL = openR = 0;
     inL = inR = 0.35;
     bodyY = BODY_Y + 0.1 * Math.sin(Math.PI * u);
+    stride = 0;
+    onBody = true;
   }
-  // вздрогнул: откинулся, клешни вверх, сплющился
+  // вздрогнул: откинулся, клешни вверх и раскрыты, сплющился
   if (a.hit > 0) {
     pitch -= 0.35 * a.hit;
     clawL -= 0.8 * a.hit;
     clawR -= 0.8 * a.hit;
+    openL = Math.max(openL, 0.8 * a.hit);
+    openR = Math.max(openR, 0.8 * a.hit);
     sq *= 1 - 0.1 * a.hit;
   }
-  // гибель: прыжок и на спину, ножки сучат, уходит в землю
+  // гибель: прыжок и на спину, ножки сучат, клешни дёргаются, уходит в землю
   let sink = 0;
   let scale = size;
   if (a.die > 0) {
     const d1 = smooth(0, 0.35, a.die);
-    const wig = smooth(0.25, 0.4, a.die) * (1 - smooth(0.8, 0.97, a.die));
+    wig = smooth(0.25, 0.4, a.die) * (1 - smooth(0.8, 0.97, a.die));
     pitch = -Math.PI * d1;
     roll = 0.25 * Math.sin(Math.PI * d1);
     bodyY = BODY_Y - 0.5 * d1 + 0.35 * Math.sin(Math.PI * d1);
-    legL = 0.55 * Math.sin(a.t * 30) * wig;
-    legR = 0.55 * Math.sin(a.t * 30 + 2) * wig;
-    liftL = liftR = 0;
     clawL = -0.6 + 0.6 * Math.sin(a.t * 24) * wig;
     clawR = -0.6 + 0.6 * Math.sin(a.t * 24 + 1.5) * wig;
-    splay = 0.3 * wig;
+    openL = 0.5 + 0.5 * Math.sin(a.t * 31) * wig;
+    openR = 0.5 + 0.5 * Math.sin(a.t * 27 + 1) * wig;
+    spread = 1 + 0.15 * wig;
+    stride = 0;
+    onBody = true;
     const gone = smooth(0.6, 1, a.die);
     scale = size * (1 - 0.9 * gone);
     sink = 0.35 * gone;
@@ -241,11 +319,28 @@ function crabPose(look: CrabLook, a: MobAnim, out: MobPose): void {
   out.armL.multiplyMatrices(b, _loc);
   setBone(_loc, SHOULDER[0], SHOULDER[1] - BODY_Y, SHOULDER[2], clawR, -inR, 0);
   out.armR.multiplyMatrices(b, _loc);
-  setBone(_tmp, -HIP[0], HIP[1] - BODY_Y + liftL, HIP[2], legL, 0, -splay);
-  out.legL.multiplyMatrices(b, _tmp);
-  setBone(_tmp, HIP[0], HIP[1] - BODY_Y + liftR, HIP[2], legR, 0, splay);
-  out.legR.multiplyMatrices(b, _tmp);
+  // верхние пальцы: от шарнира, раскрываются вверх
+  setBone(_loc, -HINGE[0] * look.clawL, HINGE[1] * look.clawL, HINGE[2] * look.clawL, -0.75 * openL, 0, 0);
+  out.head.multiplyMatrices(out.armL, _loc);
+  setBone(_loc, HINGE[0] * look.clawR, HINGE[1] * look.clawR, HINGE[2] * look.clawR, -0.75 * openR, 0, 0);
+  out.extra.multiplyMatrices(out.armR, _loc);
+  // тройки ножек: на земле — от корня (опорная стоит в мире), в кувырке и на спине — вместе с панцирем, сучат
+  const A = legPhase(ph, travel * stride);
+  const aZ = A.z;
+  const aL = A.lift;
+  const B = legPhase(ph + 0.5, travel * stride);
+  const base = onBody ? _tmp.multiplyMatrices(b, _loc.makeTranslation(0, -BODY_Y, 0)) : _root;
+  const k = 0.55 * Math.sin(a.t * 30) * wig;
+  for (let g = 0; g < 2; g++) {
+    const z = g === 0 ? aZ : B.z;
+    const up = (g === 0 ? aL : B.lift) * lift;
+    // поворот тройки вокруг линии бёдер: сдвиг к бедру, поворот, обратно
+    setBoneS(_loc, 0, HIP[1] + up, z, legRx + (g === 0 ? k : -k), 0, 0, spread, 1, spread);
+    _loc.multiply(_hip);
+    (g === 0 ? out.legL : out.legR).multiplyMatrices(base, _loc);
+  }
 }
+const _hip = new THREE.Matrix4().makeTranslation(0, -HIP[1], 0);
 
 /** Особый вариант договора (MobDef.when у mobs-a): пока его нет в этой копии kit.ts — поле через пересечение типов */
 export type CrewDef = MobDef & { when?: number };
@@ -263,8 +358,10 @@ function crabDef(look: CrabLook): CrewDef {
       { bone: 'body', geo: eyesGeo(), glow: true },
       { bone: 'armL', geo: clawGeo(look, -1, look.clawL) },
       { bone: 'armR', geo: clawGeo(look, 1, look.clawR) },
-      { bone: 'legL', geo: legsGeo(look, -1) },
-      { bone: 'legR', geo: legsGeo(look, 1) },
+      { bone: 'head', geo: fingerGeo(look, -1, look.clawL) },
+      { bone: 'extra', geo: fingerGeo(look, 1, look.clawR) },
+      { bone: 'legL', geo: tripodGeo(look, 0) },
+      { bone: 'legR', geo: tripodGeo(look, 1) },
     ],
     pose: (a, out) => crabPose(look, a, out),
   };

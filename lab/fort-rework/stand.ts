@@ -8,6 +8,8 @@ import { ALL_MOBS } from '../../client/fort/mobs/index.ts';
 import { MOB_STRIDE, buildPreview, type MobAnim, type MobDef } from '../../client/fort/mobs/kit.ts';
 import { mobRoot } from '../../client/fort/mobs/renderer.ts';
 import { ApprovedMobRenderer } from '../../client/fort/approved/renderer.ts';
+import { V1_MOBS } from './v1/index.ts';
+import { V1_SIEGE } from './v1/siege.ts';
 
 /** Одна поза моба на стенде: состояние сервера, скорость, как идёт время состояния */
 export interface Pose {
@@ -19,6 +21,12 @@ export interface Pose {
   mode?: 'loop' | 'blow' | 'hold' | 'hit' | 'die' | 'windup';
   blow?: number;
   flags?: number;
+  /** признаки flags держатся только первые flagsFor с позы, потом снимаются (щит разбит, лекарь погас) */
+  flagsFor?: number;
+  /** секунд с последней смены признаков — задать вручную (иначе стенд считает сам) */
+  flagT?: number;
+  /** с этой секунды позы начинается гибель (пузырь надулся — хлопок) */
+  dieAt?: number;
   stage?: number;
   rage?: boolean;
   /** красная/цветная метка на земле на время позы (радиус, цвет) */
@@ -42,10 +50,16 @@ export interface StandEntry {
   poses: Record<string, Pose>;
   /** порядок показа «по кругу» */
   cycle: string[];
+  /** «Было»: что показать вместо этого (старая модель v1:…, старые позы) — переключатель «Было / Стало» */
+  was?: Partial<StandEntry>;
+  /** осадный GLB из первого варианта (v1, до 31.10) — для «Было» */
+  glbV1?: boolean;
 }
 
 interface Card {
   e: StandEntry;
+  /** «Стало» — как задано; e — то, что показано сейчас (стало или было) */
+  base: StandEntry;
   el: HTMLElement;
   cam: THREE.PerspectiveCamera;
   ctl: OrbitControls;
@@ -97,9 +111,20 @@ const disc = new THREE.Mesh(new THREE.CircleGeometry(1, 48), new THREE.MeshBasic
 for (const m of [ring, disc]) { m.rotation.x = -Math.PI / 2; m.position.y = 0.02; m.visible = false; m.renderOrder = 2; scene.add(m); }
 
 const glb = new ApprovedMobRenderer(scene);
+const glbOld = new ApprovedMobRenderer(scene, V1_SIEGE);
 const glbRoot = new THREE.Matrix4();
+// «дорожка» под осадным мобом на походке: полосы едут со скоростью моба в игре — видно, стоит ли стопа
+const tread = new THREE.Group();
+{
+  const stripe = new THREE.MeshStandardMaterial({ color: 0x9c7a46, roughness: 1 });
+  for (let i = -6; i <= 6; i++) {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 0.09), stripe);
+    m.rotation.x = -Math.PI / 2; m.position.set(0, 0.012, i * 0.625); m.receiveShadow = true; tread.add(m);
+  }
+  tread.visible = false; scene.add(tread);
+}
 const cards: Card[] = [];
-const byDef = new Map(ALL_MOBS.map((d) => [d.id, d] as [string, MobDef]));
+const byDef = new Map([...ALL_MOBS, ...V1_MOBS].map((d) => [d.id, d] as [string, MobDef]));
 
 /** Ограничение снизу (липкая полоса выбора) — сюда не рисуем */
 let bottomInset = 0;
@@ -109,11 +134,11 @@ export function glbReady(): Promise<void> { return glb.ready; }
 export function glbError(): string | null { return glb.error; }
 
 function restAnim(seed: number): MobAnim {
-  return { t: 12, gait: 0, speed: 0, st: 0, stT: 0, hit: 0, die: 0, seed, rage: false, flags: 0, stage: 0, path: 0 };
+  return { t: 12, gait: 0, speed: 0, st: 0, stT: 0, hit: 0, die: 0, seed, rage: false, flags: 0, flagT: 99, stage: 0, path: 0 };
 }
 
 /** Приклеить стенд к элементу карточки */
-export function attach(el: HTMLElement, e: StandEntry, onPose?: (name: string) => void): { setPose(name: string | null): void } {
+export function attach(el: HTMLElement, e: StandEntry, onPose?: (name: string) => void): { setPose(name: string | null): void; setWas(on: boolean): void } {
   const cam = new THREE.PerspectiveCamera(32, 1, 0.1, 300);
   const h = Math.max(e.height, (e.span ?? 0) * 0.75);
   const d = h * 2.2 + 2.6;
@@ -129,31 +154,49 @@ export function attach(el: HTMLElement, e: StandEntry, onPose?: (name: string) =
   ctl.autoRotateSpeed = 0.9;
   ctl.addEventListener('start', () => { ctl.autoRotate = false; });
   ctl.update();
-  const card: Card = { e, el, cam, ctl, anim: restAnim(0.5), pose: e.cycle[0], auto: true, t: 0, onPose };
-  if (e.def) {
-    const def = byDef.get(e.def);
-    if (def) {
-      card.view = buildPreview(def);
-      card.view.group.visible = false;
-      card.view.group.rotation.y = 0.35;
-      scene.add(card.view.group);
-    }
-  }
+  const card: Card = { e, base: e, el, cam, ctl, anim: restAnim(0.5), pose: e.cycle[0], auto: true, t: 0, onPose };
+  buildView(card);
   cards.push(card);
   if (e.glb !== undefined) {
     void glb.ready.then(() => {
       for (const p of Object.values(e.poses)) if (p.clip && !p.dur) p.dur = glb.duration(e.glb!, p.clip);
     });
+    if (e.was?.glbV1 && e.was.poses) {
+      const old = e.was.poses;
+      void glbOld.ready.then(() => { for (const p of Object.values(old)) if (p.clip && !p.dur) p.dur = glbOld.duration(e.glb!, p.clip); });
+    }
   }
   return {
     setPose(name) {
       card.auto = name === null;
-      card.pose = name ?? e.cycle[0];
+      card.pose = name && card.e.poses[name] ? name : card.e.cycle[0];
       card.t = 0;
       resetAnim(card);
       card.onPose?.(card.pose);
     },
+    setWas(on) {
+      card.e = on && card.base.was ? { ...card.base, ...card.base.was } : card.base;
+      if (!card.e.poses[card.pose]) card.pose = card.e.cycle[0];
+      card.t = 0;
+      resetAnim(card);
+      buildView(card);
+      card.onPose?.(card.pose);
+    },
   };
+}
+
+/** Процедурная модель карточки (e.def): собрать заново — при переключении «Было / Стало» */
+function buildView(card: Card): void {
+  if (card.view) {
+    scene.remove(card.view.group);
+    card.view = undefined;
+  }
+  const def = card.e.def ? byDef.get(card.e.def) : undefined;
+  if (!def) return;
+  card.view = buildPreview(def);
+  card.view.group.visible = false;
+  card.view.group.rotation.y = 0.35;
+  scene.add(card.view.group);
 }
 
 function resetAnim(c: Card): void {
@@ -185,7 +228,11 @@ function step(c: Card, dt: number): void {
   a.t += dt;
   a.st = p.st;
   a.speed = p.speed ?? 0;
-  a.flags = p.flags ?? 0;
+  // признаки: держатся flagsFor с начала позы; сменились — отсчёт flagT с нуля (как в крепости)
+  const flags = p.flags && (p.flagsFor === undefined || c.t < p.flagsFor) ? p.flags : 0;
+  a.flagT = flags !== a.flags ? 0 : (a.flagT ?? 99) + dt;
+  if (p.flagT !== undefined) a.flagT = p.flagT;
+  a.flags = flags;
   a.stage = p.stage ?? 0;
   a.rage = !!p.rage;
   a.gait = (a.gait + (a.speed * dt) / MOB_STRIDE) % 1;
@@ -195,7 +242,7 @@ function step(c: Card, dt: number): void {
   if (p.mode === 'windup') a.stT = Math.min(a.stT, 0.19);
   if (p.mode === 'hit') { const k = c.t % 1; a.hit = Math.max(0, 1 - k * 3); }
   else a.hit = Math.max(0, a.hit - dt * 3);
-  a.die = p.mode === 'die' ? Math.min(1, c.t / 1.2) : 0;
+  a.die = p.mode === 'die' ? Math.min(1, c.t / 1.2) : p.dieAt !== undefined && c.t > p.dieAt ? Math.min(1, (c.t - p.dieAt) / 1.1) : 0;
 }
 
 const _v = new THREE.Vector3();
@@ -208,7 +255,8 @@ export function freezeAll(pose: string | null, t: number): void {
     if (!pose) { c.auto = true; continue; }
     const name = c.e.poses[pose] ? pose : c.e.cycle[0];
     c.auto = false; c.pose = name; c.t = 0; resetAnim(c); c.anim.gait = 0.25;
-    step(c, t);
+    // мелкими шагами, как в кадре: признаки и их отсчёт (flagT) меняются по ходу позы
+    for (let k = 0; k < t - 1e-6; k += 1 / 30) step(c, Math.min(1 / 30, t - k));
     c.onPose?.(c.pose);
     c.ctl.autoRotate = false;
   }
@@ -238,15 +286,24 @@ function frame(now: number): void {
       c.view.group.position.y = lift;
       c.view.update(c.anim, c.anim.hit * 0.8);
     } else if (c.e.glb !== undefined) {
-      glb.begin();
+      const R = c.e.glbV1 ? glbOld : glb;
+      R.begin();
       mobRoot(glbRoot, 0, lift, 0, Math.PI - 0.35);
       const pz = c.e.poses[c.pose];
       if (pz.clip) {
-        const dur = glb.duration(c.e.glb, pz.clip);
-        const time = pz.mode === 'die' ? Math.min(1, c.t / Math.max(0.1, pz.dur)) * dur : pz.mode === 'loop' || !pz.mode ? c.t % dur : Math.min(c.t, dur);
-        glb.addClip(c.e.glb, glbRoot, pz.clip, time, pz.mode === 'hit' ? Math.max(0, 1 - (c.t % 1) * 4) * 0.6 : 0);
+        const dur = R.duration(c.e.glb, pz.clip);
+        let time = pz.mode === 'die' ? Math.min(1, c.t / Math.max(0.1, pz.dur)) * dur : pz.mode === 'loop' || !pz.mode ? c.t % dur : Math.min(c.t, dur);
+        if ((pz.clip === 'walk' || pz.clip === 'walk_folded') && pz.speed) {
+          // как в игре: клип походки — на MOB_STRIDE пути, у башни — на оборот колеса
+          const per = c.e.glb === 26 ? Math.PI * 2 * 0.48 : MOB_STRIDE;
+          time = ((c.anim.path ?? 0) / per % 1) * dur;
+          tread.visible = true;
+          tread.rotation.y = -0.35;
+          tread.children.forEach((m, i) => { m.position.z = ((i - 6) * 0.625 - ((c.anim.path ?? 0) % 0.625)); });
+        }
+        R.addClip(c.e.glb, glbRoot, pz.clip, time, pz.mode === 'hit' ? Math.max(0, 1 - (c.t % 1) * 4) * 0.6 : 0);
       }
-      glb.end();
+      R.end();
     }
     if (p.ring) {
       const [rad, color] = p.ring;
@@ -272,9 +329,10 @@ function frame(now: number): void {
     renderer.render(scene, c.cam);
     if (c.view) c.view.group.visible = false;
     ring.visible = disc.visible = false;
-    if (c.e.glb !== undefined) { glb.begin(); glb.end(); }
+    if (c.e.glb !== undefined) { const R = c.e.glbV1 ? glbOld : glb; R.begin(); R.end(); }
+    tread.visible = false;
   }
 }
 requestAnimationFrame(frame);
 
-Object.assign(window, { __stand: { cards, freezeAll, glb, renderer } });
+Object.assign(window, { __stand: { cards, freezeAll, glb, glbOld, renderer } });

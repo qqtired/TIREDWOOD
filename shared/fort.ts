@@ -81,6 +81,8 @@ export const POP_GATE = 220;
 export const POP_CRYSTAL = 220;
 export const POP_PLAYER = 30;
 export const POP_ZOMBIE = 100;
+/** Пузырь дошёл до цели — надувается на виду столько тиков (0,6 с), потом хлопок: видно, кого лопнуть заранее */
+export const POP_FUSE_TICKS = 36;
 
 /** Состояния зомби (в снимке) */
 export const ZS_WALK = 0;

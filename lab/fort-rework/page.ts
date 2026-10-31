@@ -88,6 +88,26 @@ function mobCard(m: MobCard): HTMLElement {
   });
   cyc.addEventListener('click', () => { auto = true; cyc.classList.add('on'); stand.setPose(null); });
   for (const [k, b] of buttons) b.addEventListener('click', () => { auto = false; cyc.classList.remove('on'); stand.setPose(k); });
+  if (m.was) {
+    // доработанные модели: «Было» — первый вариант (v1) со старыми позами, «Стало» — как сейчас в игре
+    const was = h('div', 'k-seg fr-seg fr-was');
+    for (const [on, label] of [[true, 'Было'], [false, 'Стало']] as const) {
+      const b = h('button', on ? '' : 'is-active', label);
+      b.type = 'button';
+      b.setAttribute('aria-pressed', String(!on));
+      b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        for (const x of was.children) { x.classList.toggle('is-active', x === b); x.setAttribute('aria-pressed', String(x === b)); }
+        card.classList.toggle('is-was', on);
+        const poses = on ? m.was!.poses ?? m.poses : m.poses;
+        for (const [k, pb] of buttons) pb.hidden = !poses[k];
+        stand.setWas(on);
+      });
+      b.addEventListener('pointerdown', (e) => e.stopPropagation());
+      was.append(b);
+    }
+    view.append(was);
+  }
 
   const head = h('div', 'fr-mob-h', `<h3>${m.name}</h3><span class="role">${m.role}</span>`);
   const body = h('div', 'fr-mob-b');

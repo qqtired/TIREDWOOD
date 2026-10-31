@@ -1,10 +1,12 @@
 // Пузырь «Жаба-помидор»: круглая томатная жаба с бородавками из варенья, широкой ухмылкой и розовым горловым
 // пузырём, который то и дело надувается («ква!»). Передвигается прыжками: присела — оттолкнулась — задние лапы
-// вытянуты, передние тянутся к земле. Гибель: надувается шаром, отрывается от земли, как воздушный шарик,
-// дрожит — «пуф!»: брызги и облачко, а глаза ещё мгновение висят в воздухе, моргают и падают.
+// вытянуты, передние тянутся к земле. Дошёл до цели — 0,6 с надувается на виду (POP_FUSE_TICKS, ZS_ATTACK): шар
+// и горловой мешок растут, отрывается от земли, как воздушный шарик, лапки болтаются, дрожь нарастает — видно, кого
+// лопнуть заранее. Хлопок (гибель) — сразу: брызги и облачко, а глаза ещё мгновение висят в воздухе, моргают и падают.
 import * as THREE from 'three';
 import { Z_BLOATER } from '../../../shared/fortkinds.ts';
-import { ZS_ATTACK } from '../../../shared/fort.ts';
+import { POP_FUSE_TICKS, ZS_ATTACK } from '../../../shared/fort.ts';
+import { TICK_RATE } from '../../../shared/constants.ts';
 import { type MobAnim, type MobDef, type MobPose } from './kit.ts';
 import {
   EYE, ball, blink, bump, clamp01, hide, jamOn, join, lerp, linkS, mix, seedFrac, seedScale, seg, smooth, taper,
@@ -33,6 +35,8 @@ const ARM_Y = 0.5;
 const ARM_Z = 0.3;
 const HIP_Y = 0.37;
 const HIP_Z = -0.22;
+/** Надувание у цели до хлопка, с */
+const FUSE_S = POP_FUSE_TICKS / TICK_RATE;
 
 // ------------------------------------------------------------------ геометрия
 
@@ -140,12 +144,22 @@ function pose(a: MobAnim, out: MobPose): void {
   let lift = 0;
 
   if (a.st === ZS_ATTACK) {
-    // надувается и подпрыгивает на месте — сейчас рванёт
-    const q = (a.stT / 0.5) % 1;
-    puff = 1.12 + bump(q) * 0.12;
-    sac = 1.15 + bump(q) * 0.3;
-    hop = 0.12 * bump(q);
-    jitter = 0.03;
+    // фитиль: надувается шаром на виду, мешок раздут, всплывает над землёй, лапки болтаются, дрожь нарастает,
+    // в конце два судорожных вдоха — сейчас рванёт
+    const u = clamp01(a.stT / FUSE_S);
+    const grow = smooth(u);
+    const gasp = u > 0.68 ? bump(seg(u, 0.68, 0.84)) * 0.07 + bump(seg(u, 0.84, 1)) * 0.09 : 0;
+    puff = 1 + 0.55 * grow + gasp;
+    squash = 1 + 0.12 * grow;
+    sac = lerp(1.1, 1.75, grow) + gasp * 2;
+    lift = 0.32 * grow * grow + Math.sin(a.t * 6) * 0.02 * grow;
+    hop = 0;
+    jitter = 0.01 + 0.045 * u * u;
+    pitch = -0.12 * grow;
+    legsRx = -0.35 * grow + Math.sin(a.t * 17) * 0.12 * grow;
+    armsRx = -0.45 * grow + Math.sin(a.t * 15 + 1) * 0.12 * grow;
+    feetZ = 0;
+    eyes = 1;
     yaw = 0;
   }
 
@@ -158,21 +172,21 @@ function pose(a: MobAnim, out: MobPose): void {
     pitch -= 0.2 * h;
   }
 
-  // гибель: шар, всплыл, дрожит — «пуф!»; глаза висят, моргают и падают
+  // гибель — хлопок сразу (сервер уже ударил): последний «пф» за 0,1 с; глаза висят, моргают и падают
   const d = a.die;
-  const POP = 0.36;
+  const POP = 0.09;
   let gone = false;
   if (d > 0) {
-    const inflate = smooth(seg(d, 0, 0.3));
-    puff = 1 + 0.62 * inflate;
-    squash = 1 + 0.16 * inflate;
-    sac = lerp(sac, 0.85, inflate);
-    lift = 0.65 * smooth(seg(d, 0.08, POP));
-    jitter = 0.05 * seg(d, 0.2, POP);
+    const k = seg(d, 0, POP);
+    puff = 1.55 + 0.15 * k;
+    squash = 1.12;
+    sac = 1.7;
+    lift = 0.32;
+    jitter = 0.04;
     hop = 0;
-    pitch = -0.15 * inflate;
-    legsRx = -0.3 * inflate;
-    armsRx = -0.4 * inflate;
+    pitch = -0.12;
+    legsRx = -0.35;
+    armsRx = -0.45;
     feetZ = 0;
     yaw = 0;
     eyes = 1;

@@ -1,10 +1,12 @@
 // Пузырь «Рыба-фуга на ножках»: коралловый шар с кремовым брюхом, губами бантиком, плавниками и колючками,
-// ковыляет на тонких ножках в жёлтых резиновых сапогах. От удара колючки топорщатся. Перед взрывом раздувается
-// вдвое и дрожит, иглы встают дыбом — «пуф!»: шар исчезает в облачке, во все стороны летят брызги варенья,
-// а сапоги ещё мгновение стоят сами по себе и падают.
+// ковыляет на тонких ножках в жёлтых резиновых сапогах. От удара колючки топорщатся. Дошёл до цели — 0,6 с надувается
+// на виду (POP_FUSE_TICKS, ZS_ATTACK): иглы дыбом, встаёт на цыпочки, дрожь нарастает, в конце два судорожных вдоха —
+// видно, кого лопнуть заранее. Хлопок (гибель) — сразу, урон уже прошёл: шар исчезает в облачке, во все стороны летят
+// брызги варенья, а сапоги ещё мгновение стоят сами по себе и падают.
 import * as THREE from 'three';
 import { Z_BLOATER } from '../../../shared/fortkinds.ts';
-import { ZS_ATTACK } from '../../../shared/fort.ts';
+import { POP_FUSE_TICKS, ZS_ATTACK } from '../../../shared/fort.ts';
+import { TICK_RATE } from '../../../shared/constants.ts';
 import { type MobAnim, type MobDef, type MobPose } from './kit.ts';
 import {
   EYE, TAU, ball, biped, bump, clamp01, hide, jamOn, join, linkS, mix, orient, paint, seedScale, seg, smooth, taper,
@@ -32,6 +34,8 @@ const RZ = 0.63;
 const HIP = 0.34;
 const HIP_X = 0.2;
 const EYE_Y = 0.3;
+/** Надувание у цели до хлопка, с */
+const FUSE_S = POP_FUSE_TICKS / TICK_RATE;
 
 // ------------------------------------------------------------------ геометрия
 
@@ -117,12 +121,17 @@ function pose(a: MobAnim, out: MobPose): void {
   let lift = 0;
 
   if (a.st === ZS_ATTACK) {
-    // надувается и трясётся — сейчас рванёт
-    const q = (a.stT / 0.5) % 1;
-    puff = 1.12 + bump(q) * 0.14;
-    spikes = 1.25 + bump(q) * 0.3;
-    jitter = 0.04;
-    roll = 0;
+    // фитиль: дошёл до цели и надувается на виду — иглы сразу дыбом, шар растёт, дрожь нарастает, на цыпочки,
+    // в конце два судорожных вдоха — сейчас рванёт
+    const u = clamp01(a.stT / FUSE_S);
+    const grow = smooth(u);
+    const gasp = u > 0.68 ? bump(seg(u, 0.68, 0.84)) * 0.07 + bump(seg(u, 0.84, 1)) * 0.09 : 0;
+    puff = 1 + 0.5 * grow + gasp;
+    spikes = 1 + 0.45 * smooth(seg(u, 0, 0.2)) + 0.55 * grow + gasp * 2;
+    jitter = 0.01 + 0.05 * u * u;
+    lift = 0.1 * grow;
+    pitch = -0.12 * grow;
+    roll = yaw = 0;
   }
 
   const h = a.hit;
@@ -132,18 +141,18 @@ function pose(a: MobAnim, out: MobPose): void {
     pitch -= 0.25 * h;
   }
 
-  // гибель: раздувается и дрожит (0…0,34), «пуф!» — брызги и облачко, сапоги стоят и падают
+  // гибель — хлопок сразу (сервер уже ударил): последний «пф» за 0,1 с, брызги и облачко, сапоги стоят и падают
   const d = a.die;
-  const POP = 0.34;
+  const POP = 0.09;
   let gone = false;
   if (d > 0) {
-    const inflate = smooth(seg(d, 0, 0.28));
-    puff = 1 + 0.55 * inflate;
-    spikes = 1 + 0.95 * inflate;
-    jitter = 0.05 * seg(d, 0.18, POP);
-    lift = 0.12 * inflate;
+    const k = seg(d, 0, POP);
+    puff = 1.5 + 0.15 * k;
+    spikes = 1.9 + 0.3 * k;
+    jitter = 0.04;
+    lift = 0.1;
     roll = yaw = 0;
-    pitch = -0.1 * inflate;
+    pitch = -0.12;
     gone = d >= POP;
   }
 

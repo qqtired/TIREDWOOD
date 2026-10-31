@@ -1,7 +1,9 @@
 // Леший (Z_LESHY) — босс 42, 84, 126 … Ходячее дерево: кряжистый ствол в коре с витыми бороздами, глаза-дупла светятся
 // сиреневым, нос-сучок, моховая борода и брови, на макушке — ветвистые рога с листвой и ягодами варенья, на плече —
-// мухомор; руки-ветви с пальцами-прутиками (обе — одной частью), внизу — юбка корней, по ней и шагает. Варенье —
-// пятнами по коре и потёками с макушки.
+// мухомор; руки-ветви с пальцами-прутиками (обе — одной частью), внизу — клубень и две
+// «ноги» из корней: по четыре корня справа и слева (legL, legR) переступают по очереди от пройденного пути — опорная
+// стоит в мире, не скользит; ствол переваливается на опорную и приседает на каждом шаге. Варенье — пятнами по коре и
+// потёками с макушки.
 // Атаки (полное предупреждение — позой): корни (ZS_LS_ROOTS) — руки медленно поднимаются над головой, ствол
 // откидывается, корни растопырены и дрожат; удар — руки вниз, в землю, ствол вперёд; целебная роща (ZS_LS_HEAL) —
 // руки к небу, качается, крона дышит; прятки — уходит под землю винтом (ZS_LS_SINK), под землёй (ZS_LS_UNDER) ползёт
@@ -18,7 +20,7 @@ import { LS_RISE_TICKS, LS_SINK_TICKS, LS_UNDER_Y } from '../../../shared/fortbo
 import { Z_LESHY } from '../../../shared/fortkinds.ts';
 import { ARMY, colored, merge, setChildS, type MobAnim, type MobDef, type MobPose } from './kit.ts';
 import {
-  TAU, backOut, blob, clamp01, hide, jamDrip, jamSpot, jolt, lathe, mix, paint, ramp, ribbon, setPivot, tube, walkAmount,
+  TAU, backOut, blob, clamp01, hide, jamDrip, jamSpot, jolt, lathe, mix, newStep, paint, ramp, ribbon, setPivot, stepAt, tube, walkAmount,
 } from './set-f-shapes.ts';
 
 const BARK = 0x6f5a3c;
@@ -160,10 +162,15 @@ function bodyGeo(): THREE.BufferGeometry {
   return merge(parts);
 }
 
-/** Руки-ветви (обе одной частью) в осях кости: начало — середина плеч; пальцы-прутики, листики */
-function armsGeo(): THREE.BufferGeometry {
+/** Шаг корней: путь за цикл (две «ноги» по разу), доля опоры, подъём корней в переносе, м */
+const STRIDE = 1.9;
+const DUTY = 0.6;
+const ROOT_LIFT = 0.5;
+
+/** Рука-ветвь в осях кости: начало — середина плеч, сама рука — на стороне s; пальцы-прутики, листики */
+function armGeo(s: number): THREE.BufferGeometry {
   const parts: THREE.BufferGeometry[] = [];
-  for (const s of [-1, 1]) {
+  {
     const pts: Array<[number, number, number]> = [[s * SHOULDER_X, 0, 0], [s * 1.4, -0.25, 0.1], [s * 1.75, -0.95, 0.25], [s * 1.8, -1.75, 0.4], [s * 1.7, -2.2, 0.5]];
     parts.push(paint(tube(pts, (u) => 0.3 - 0.15 * u, 8, 6, true, true), (p, _n, o) => {
       o.copy(cBark).lerp(cBarkDark, 0.3 + 0.3 * Math.sin(p.y * 9 + p.x * 3));
@@ -177,22 +184,28 @@ function armsGeo(): THREE.BufferGeometry {
   return merge(parts);
 }
 
-/** Юбка корней: клубень у земли и восемь корней в стороны (по ним шагает; под землёй — холм) */
-function rootsGeo(): THREE.BufferGeometry {
-  const parts: THREE.BufferGeometry[] = [
+/** Клубень у земли, из него растут корни (под землёй — холм); мох сбоку */
+function bulbGeo(): THREE.BufferGeometry {
+  return merge([
     paint(lathe([[0.001, 0.0], [1.3, 0.08], [1.33, 0.45], [1.2, 0.95], [0.001, 1.05]], 14), (p, _n, o) => {
       o.setHex(ROOT).lerp(new THREE.Color(MOSS_DARK), p.y < 0.25 ? 0.35 : 0);
     }),
-  ];
+    paint(blob(0.4, 0.14, 0.34, 7, 4).translate(-1.0, 0.55, 0.65), (_p, _n, o) => o.setHex(MOSS)),
+  ]);
+}
+
+/** «Нога» из четырёх корней одного бока (side = 1 — +X модели): основания глубоко в клубне, кончики на земле */
+function rootsGeo(side: 1 | -1): THREE.BufferGeometry {
+  const parts: THREE.BufferGeometry[] = [];
   for (let i = 0; i < 8; i++) {
     const a = (i / 8) * TAU + 0.2;
-    const len = 2.05 + 0.35 * Math.sin(i * 1.9);
     const dx = Math.sin(a);
     const dz = Math.cos(a);
-    parts.push(paint(tube([[dx * 0.95, 0.6, dz * 0.95], [dx * 1.45, 0.45, dz * 1.45], [dx * (len - 0.2), 0.12, dz * (len - 0.2)], [dx * len + dz * 0.15, 0.04, dz * len - dx * 0.15]],
-      (u) => 0.26 - 0.19 * u, 6, 5, true), (p, _n, o) => o.setHex(ROOT).lerp(new THREE.Color(BARK_DARK), 0.4 * Math.abs(Math.sin(p.x * 5 + p.z * 4)))));
+    if (Math.sign(dx) !== side) continue;
+    const len = 2.05 + 0.35 * Math.sin(i * 1.9);
+    parts.push(paint(tube([[dx * 0.55, 0.62, dz * 0.55], [dx * 1.45, 0.45, dz * 1.45], [dx * (len - 0.2), 0.12, dz * (len - 0.2)], [dx * len + dz * 0.15, 0.04, dz * len - dx * 0.15]],
+      (u) => 0.27 - 0.2 * u, 6, 5, true), (p, _n, o) => o.setHex(ROOT).lerp(new THREE.Color(BARK_DARK), 0.4 * Math.abs(Math.sin(p.x * 5 + p.z * 4)))));
   }
-  parts.push(paint(blob(0.4, 0.14, 0.34, 7, 4).translate(-1.0, 0.55, 0.65), (_p, _n, o) => o.setHex(MOSS)));
   return merge(parts);
 }
 
@@ -224,6 +237,8 @@ function rageGeo(): THREE.BufferGeometry {
 }
 
 const ID = new THREE.Matrix4();
+const _stA = newStep();
+const _stB = newStep();
 
 /** Голубой сучок (окно) в дупле на груди */
 function knotGeo(): THREE.BufferGeometry {
@@ -239,8 +254,10 @@ export const BOSS_LESHY: MobDef = {
   height: 6.8,
   parts: [
     { bone: 'body', geo: bodyGeo() },
-    { bone: 'armL', geo: armsGeo() },
-    { bone: 'legL', geo: rootsGeo() },
+    { bone: 'armL', geo: merge([armGeo(1), armGeo(-1)]) },
+    { bone: 'tail', geo: bulbGeo() },
+    { bone: 'legL', geo: rootsGeo(1) },
+    { bone: 'legR', geo: rootsGeo(-1) },
     { bone: 'head', geo: eyesGeo(ARMY.eye, 1, 0), glow: true },
     // окно: голубой сучок в дупле на груди
     { bone: 'extra', geo: knotGeo(), glow: true },
@@ -250,18 +267,25 @@ export const BOSS_LESHY: MobDef = {
     const t = a.t;
     const s = a.stT;
     const w = walkAmount(a.speed, 0.7);
-    const p = a.gait - Math.floor(a.gait);
-    // тяжёлая поступь: ствол качается с боку на бок, приседает на каждый шаг, корни перебирают
-    let y = -0.08 * Math.abs(Math.sin(TAU * p)) * w;
+    // шаг — от пройденного пути (как у паучка): корни-«ноги» +X (фаза p) и −X (p + ½) переступают по очереди
+    const path = a.path ?? a.gait * 1.25;
+    const p = path / STRIDE - Math.floor(path / STRIDE);
+    // тяжёлая поступь: ствол переваливается на опорную «ногу» (+X опирается около p ≈ 0,3, −X — около 0,8)
+    // и приседает сразу после каждого шага
+    const sway = Math.cos(TAU * (p - 0.3));
+    let y = -0.11 * (0.5 + 0.5 * Math.cos(2 * TAU * (p - 0.06))) * w;
     let rx = 0.06 * w;
     let ry = 0.05 * Math.sin(TAU * p) * w;
-    let rz = 0.055 * Math.sin(TAU * p) * w + 0.025 * Math.sin(t * 0.9 + a.seed * 5) * (1 - w);
-    let armRx = 0.14 * Math.sin(TAU * p) * w + 0.04 * Math.sin(t * 1.3);
+    let rz = -0.065 * sway * w + 0.025 * Math.sin(t * 0.9 + a.seed * 5) * (1 - w);
+    let armRx = 0.04 * Math.sin(t * 1.3);
+    let armSwing = 0.14 * Math.sin(2 * TAU * p) * w;
     let armRz = 0.05 * Math.sin(t * 1.1 + 1);
     let armRy = 0;
     let armSx = 1;
-    let rootRy = 0.12 * Math.sin(TAU * p) * w;
-    let rootSy = 1 - 0.06 * Math.abs(Math.cos(TAU * p)) * w;
+    let rootRy = 0;
+    let rootSy = 1;
+    let stepW = w;
+    let tremble = 0;
     let rootSxz = 1;
     let rootY = 0;
     let eyeSy = (t + a.seed * 5) % 4.6 < 0.14 ? 0.2 : 1;
@@ -282,6 +306,9 @@ export const BOSS_LESHY: MobDef = {
         rootSy = 1 - 0.14 * lift;
         rootRy = Math.sin(t * 23) * 0.04 * lift;
         y = -0.12 * slam;
+        tremble = lift;
+        stepW = 0;
+        armSwing = 0;
         break;
       }
       case ZS_LS_HEAL: {
@@ -293,6 +320,8 @@ export const BOSS_LESHY: MobDef = {
         ry = 0.16 * Math.sin(t * 1.4) * up;
         rz = 0.05 * Math.sin(t * 2.2 + 1) * up;
         scale = 1 + 0.02 * Math.sin(t * 3) * up;
+        stepW = 0;
+        armSwing = 0;
         break;
       }
       case ZS_LS_SINK: {
@@ -304,6 +333,8 @@ export const BOSS_LESHY: MobDef = {
         rootSy = 1 - 0.5 * u;
         rootSxz = 1 + 0.25 * u;
         rootY = -0.3 * u;
+        stepW = 0;
+        armSwing = 0;
         break;
       }
       case ZS_LS_UNDER: {
@@ -315,6 +346,8 @@ export const BOSS_LESHY: MobDef = {
         rootSy = 0.55 + 0.06 * Math.sin(t * 7);
         rootSxz = 1.15;
         rootRy = t * 0.8;
+        stepW = 0;
+        armSwing = 0;
         break;
       }
       case ZS_LS_RISE: {
@@ -324,6 +357,8 @@ export const BOSS_LESHY: MobDef = {
         ry = 1.2 * (1 - clamp01(s / RISE_S));
         armRx = -1.2 * (1 - u) - 0.4 * Math.sin(Math.PI * clamp01(s / RISE_S));
         rootSxz = 1 + 0.2 * Math.sin(Math.PI * clamp01(s / RISE_S));
+        stepW = 0;
+        armSwing = 0;
         break;
       }
       case ZS_BOSS_OPEN: {
@@ -334,6 +369,8 @@ export const BOSS_LESHY: MobDef = {
         armRx = 0.22;
         armRz = 0.12 * Math.sin(t * 1.3 + 0.5);
         eyeSy = 0.45;
+        stepW = 0;
+        armSwing = 0;
         break;
       }
     }
@@ -354,6 +391,8 @@ export const BOSS_LESHY: MobDef = {
       sink = 2.4 * ramp(0.68, 1, d);
       armRx = mix(armRx, 0.5, ramp(0, 0.5, d));
       armRz = 0;
+      armSwing = 0;
+      stepW = 0;
       rx *= 1 - u;
       rz *= 1 - u;
       ry *= 1 - u;
@@ -364,8 +403,18 @@ export const BOSS_LESHY: MobDef = {
     } else {
       setPivot(out.body, ID, 0, 0.6, 0, 0, y, 0, rx, ry, rz, scale, scale, scale);
     }
-    setChildS(out.armL, out.body, 0, SHOULDER_Y, 0, armRx, armRy, armRz, armSx, 1, 1);
-    setPivot(out.legL, ID, 0, 0, 0, 0, rootY - sink, 0, 0, rootRy, 0, rootSxz, rootSy, rootSxz);
+    // руки качаются в такт шагам
+    setChildS(out.armL, out.body, 0, SHOULDER_Y, 0, armRx + armSwing, armRy, armRz, armSx, 1, 1);
+    // клубень — общий для корней; «ноги» от него: опорная стоит в мире (едет назад со скоростью хода), переносимая
+    // поднимается внешним краем и кончиками вперёд; в замахе корней — дрожат
+    setPivot(out.tail, ID, 0, 0, 0, 0, rootY - sink, 0, 0, rootRy, 0, rootSxz, rootSy, rootSxz);
+    for (let g = 0; g < 2; g++) {
+      const side = g === 0 ? 1 : -1;
+      const st = stepAt(p + g * 0.5, DUTY, DUTY * STRIDE * stepW, ROOT_LIFT * stepW, g === 0 ? _stA : _stB);
+      const k = st.up / ROOT_LIFT;
+      const shake = tremble * Math.sin(t * 27 + g * 2) * 0.05;
+      setPivot(g === 0 ? out.legL : out.legR, out.tail, side * 1.1, 0, 0, 0, st.up + Math.abs(shake), st.dz + shake, -0.1 * k, 0, side * 0.16 * k);
+    }
     setPivot(out.head, out.body, 0, EYE_Y, 0.9, 0, 0, 0, 0, 0, 0, 1, eyeSy, 1);
     if (open && d === 0) {
       const pulse = 1 + 0.08 * Math.sin(t * 5);
