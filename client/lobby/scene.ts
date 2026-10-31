@@ -2551,7 +2551,8 @@ export class LobbyScene implements Scene {
     this.kites.draw(this.me, this.hasSelf ? this.pose : null, dt, this.clock.renderTick / TICK_RATE);
     this.me.slotView(act === ACT_SLOT);
     // у бильярдного стола камера прямо над своей головой — себя не рисуем, иначе шапка закрывает ближний борт
-    if (act === ACT_BILLIARDS) this.me.root.visible = false;
+    // (то же у болельщика: камера над столом, своя шапка закрывала бы кадр)
+    if (act === ACT_BILLIARDS || this.billiards.watching) this.me.root.visible = false;
     // в кресле «Ракушки» камера за спинкой смотрит на табло — себя не рисуем
     if (this.quiz?.hidesSelf(act, this.arg)) this.me.root.visible = false;
     this.updateRemotes(dt);

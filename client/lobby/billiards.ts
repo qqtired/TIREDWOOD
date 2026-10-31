@@ -41,6 +41,10 @@ interface Anim {
   end: { pos: number[]; on: number };
 }
 
+/** Камера болельщика: смещение к своей стороне, высота, на сколько цель за центром, угол обзора (подобрано снимками: лампы над столом,
+ *  головы игроков у длинных сторон и вывеска остаются за кадром, весь стол с бортами между табло и полоской) */
+const WATCH_CAM = { dx: 0.9, y: 3.0, look: 0.13, fov: 50 };
+
 export interface BilliardsDeps {
   scene: THREE.Scene;
   hudRoot: HTMLElement;
@@ -431,10 +435,10 @@ export class BilliardsClient {
    *  На узком экране телефона — с торца у битка, длинной стороной вдоль экрана. */
   cameraPose(): { px: number; py: number; pz: number; lx: number; ly: number; lz: number; fov: number } | null {
     if (this.watchTable >= 0) {
-      // болельщик: над столом, с той стороны, где стоит; весь стол влезает между табло и полоской
+      // болельщик: круто сверху, чуть со своей стороны стола; лампы остаются у верхнего края кадра, себя не рисуем (scene.ts)
       const t = BL_TABLES[this.watchTable];
       const sx = this.watchSide;
-      return { px: t.x + sx * 1.5, py: 3.15, pz: t.z, lx: t.x + sx * 0.1, ly: BL_SURFACE_Y, lz: t.z, fov: 56 };
+      return { px: t.x + sx * WATCH_CAM.dx, py: WATCH_CAM.y, pz: t.z, lx: t.x - sx * WATCH_CAM.look, ly: BL_SURFACE_Y, lz: t.z, fov: WATCH_CAM.fov };
     }
     if (!this.seated) return null;
     const t = BL_TABLES[this.table];
