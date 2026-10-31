@@ -72,6 +72,7 @@ export interface HordeHost {
   killed(z: Zombie, by: number): void;
   /** Фактически снятая прочность: для статистики, независимо от добивания и наград. */
   damageDealt?(by: number, amount: number): void;
+  sapped?(by: number): void;
   event(e: FortEvent): void;
 }
 

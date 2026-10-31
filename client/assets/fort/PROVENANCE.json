@@ -111,6 +111,38 @@
       "prompt": "a glowing cyan magic crystal on a small stone pedestal with a little round shield emblem",
       "bytes": 13236,
       "size": "256x256"
+    },
+    "rank-gunner": {
+      "file": "rank-gunner.webp",
+      "use": "итоги игры: звание «лучший стрелок» (MODES2, 31.10.2026)",
+      "prompt": "a round target (bullseye) with a bright paintball splash and a single arrow-like bolt stuck in the center",
+      "bytes": 20242,
+      "size": "256x256",
+      "note": "Codex CLI imagegen, тот же stylePrompt; оригиналы 1254×1254 PNG уменьшены до 256×256 и перекодированы в WebP (canvas.toDataURL, качество 0,86)"
+    },
+    "rank-fixer": {
+      "file": "rank-fixer.webp",
+      "use": "итоги игры: звание «ремонтник» (MODES2, 31.10.2026)",
+      "prompt": "a crossed wooden mallet and a big wrench lying over a few repaired wooden planks with nails",
+      "bytes": 19892,
+      "size": "256x256",
+      "note": "Codex CLI imagegen, тот же stylePrompt; оригиналы 1254×1254 PNG уменьшены до 256×256 и перекодированы в WebP (canvas.toDataURL, качество 0,86)"
+    },
+    "rank-sapper": {
+      "file": "rank-sapper.webp",
+      "use": "итоги игры: звание «сапёр» (MODES2, 31.10.2026)",
+      "prompt": "a pair of big garden-shears / bolt cutters just cutting a thick ship rope in two, frayed rope ends flying apart",
+      "bytes": 21804,
+      "size": "256x256",
+      "note": "Codex CLI imagegen, тот же stylePrompt; оригиналы 1254×1254 PNG уменьшены до 256×256 и перекодированы в WebP (canvas.toDataURL, качество 0,86)"
+    },
+    "rank-builder": {
+      "file": "rank-builder.webp",
+      "use": "итоги игры: звание «зодчий» (MODES2, 31.10.2026)",
+      "prompt": "a small stone watchtower with a little red flag, with a mason's trowel leaning against it",
+      "bytes": 16064,
+      "size": "256x256",
+      "note": "Codex CLI imagegen, тот же stylePrompt; оригиналы 1254×1254 PNG уменьшены до 256×256 и перекодированы в WebP (canvas.toDataURL, качество 0,86)"
     }
   }
 }

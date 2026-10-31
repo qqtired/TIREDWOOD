@@ -220,7 +220,7 @@ export interface DungeonHudApi {
   results(r: HudResults | null): void;
   banner(title: string, sub: string, style: HudBannerStyle): void;
   /** маленькая плашка под волной (2,5 с); тот же key — обновить текст той же плашки */
-  toast(key: string, text: string, style?: 'ok' | 'warn'): void;
+  toast(key: string, text: string, style?: 'ok' | 'warn' | 'tip'): void;
   /** звёздочка нового уровня прыгает в угол / вспышка */
   levelFlash(level: number): void;
   arrows(list: HudArrow[]): void;

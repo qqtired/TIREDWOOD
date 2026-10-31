@@ -18,6 +18,7 @@ export interface RaceRoomHooks {
   result(c: Client, row: RaceResultRow, reward: RcReward | null): void;
   /** Итоги показаны — этих вернуть на набережную */
   over(clients: Client[]): void;
+  again?(clients: Client[], track: RaceTrackId): void;
   announce(text: string): void;
 }
 
@@ -65,6 +66,7 @@ export class RaceRoom implements Room {
           if (c) this.hooks.result(c, row, reward);
         },
         over: () => this.hooks.over([...this.byClient.keys()]),
+        again: () => this.hooks.again?.([...this.byClient.keys()], track),
         announce: (text) => this.hooks.announce(text),
       },
       { ...this.opts, track },
@@ -129,6 +131,7 @@ export class RaceRoom implements Room {
     this.race?.removeKart(k.id);
     this.byClient.delete(c);
     this.byKart.delete(k);
+    this.race?.checkAgain();
   }
 
   /** Колпак дурака надели или сняли — новый наряд уйдёт в ближайшем списке картов. */
@@ -155,7 +158,10 @@ export class RaceRoom implements Room {
     if (k && this.race) this.race.onInputs(k, inputs, count);
   }
 
-  onMessage(_c: Client, _msg: ClientMsg): void {}
+  onMessage(c: Client, msg: ClientMsg): void {
+    const k = this.byClient.get(c);
+    if (msg.t === 'rcAgain' && k) this.race?.voteAgain(k);
+  }
 
   step(): void {
     if (!this.idle) this.race!.step();

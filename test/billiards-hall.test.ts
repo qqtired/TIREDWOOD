@@ -93,6 +93,42 @@ test('offer without enough tokens is refused with a reason; no escrow, balance u
   assert.equal(b.c.profile!.billiardsEscrow, null);
 });
 
+test('free counter-offer refunds the opposing stake and starts a free match on acceptance', () => {
+  const env = setup();
+  const a = login(env.hub, 'BlOfferA'), b = login(env.hub, 'BlOfferB');
+  const balances = [a.c.profile!.tokens, b.c.profile!.tokens];
+  sit(env, a);
+  bl(env, a, { a: 'offer', amount: 50 });
+  assert.equal(a.c.profile!.tokens, balances[0] - 50);
+  sit(env, b);
+  bl(env, b, { a: 'offer', amount: 0 });
+  const tb = table(env);
+  assert.deepEqual(tb.offer, { by: 1, amount: 0, round: '' });
+  assert.equal(tb.note, 'BlOfferB предлагает сыграть без ставки');
+  assert.equal(a.c.profile!.billiardsEscrow, null);
+  assert.deepEqual([a.c.profile!.tokens, b.c.profile!.tokens], balances);
+  bl(env, a, { a: 'accept', amount: 0 });
+  assert.equal(tb.phase, 'match');
+  assert.equal(tb.bet, 0);
+  assert.deepEqual([a.c.profile!.billiardsEscrow, b.c.profile!.billiardsEscrow], [null, null]);
+  assert.deepEqual([a.c.profile!.tokens, b.c.profile!.tokens], balances);
+});
+
+test('a paid counter-offer is refused and keeps the original offer and escrow', () => {
+  const env = setup();
+  const a = login(env.hub, 'BlPaidA'), b = login(env.hub, 'BlPaidB');
+  sit(env, a); sit(env, b);
+  bl(env, a, { a: 'offer', amount: 50 });
+  const offer = { ...table(env).offer! }, escrow = { ...a.c.profile!.billiardsEscrow! };
+  const balance = a.c.profile!.tokens;
+  bl(env, b, { a: 'offer', amount: 20 });
+  assert.equal(lastOf(b.s, 'blErr')?.text, 'Соперник уже предложил партию — прими её');
+  assert.deepEqual(table(env).offer, offer);
+  assert.deepEqual(a.c.profile!.billiardsEscrow, escrow);
+  assert.equal(a.c.profile!.tokens, balance);
+  assert.equal(b.c.profile!.billiardsEscrow, null);
+});
+
 test('match on a bet: both stakes reserved once, winner takes the whole bank, tokens conserved, no double spend', () => {
   const env = setup();
   const a = login(env.hub, 'BlTesterA'), b = login(env.hub, 'BlTesterB');

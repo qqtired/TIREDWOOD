@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import { autoMove, DK_COUNT_TICKS } from '../shared/durak.ts';
 import { BJ_COUNT_TICKS, BJ_DEALER_TICKS } from '../shared/blackjack.ts';
 import { xpForLevel } from '../shared/levels.ts';
+import { TABLE_XP_DURAK } from '../shared/tables2.ts';
 import { allOf, lastOf, login, placeAt, setupHub, steps } from './kit.ts';
 
 test('real Hub Durak batch reserves once and credits XP only on conserved net profit',()=>{
@@ -21,7 +22,8 @@ test('real Hub Durak batch reserves once and credits XP only on conserved net pr
   for(let ch=0;ch<players.length;ch++){
     assert.equal(players[ch].c.profile!.durakEscrow,null);
     assert.equal(players[ch].c.profile!.tokens,before[ch].tokens+(ch===winner?20:-10));
-    assert.equal(players[ch].c.profile!.xp,before[ch].xp+(ch===winner?20:0));
+    // П-4: за доигранный дурак с людьми каждому +15 опыта (TABLE_XP_DURAK), победителю сверх того +20 с чистой прибыли
+    assert.equal(players[ch].c.profile!.xp,before[ch].xp+TABLE_XP_DURAK+(ch===winner?20:0));
   }
 });
 test('real Hub free Blackjack can win at zero balance without XP or escrow',()=>{

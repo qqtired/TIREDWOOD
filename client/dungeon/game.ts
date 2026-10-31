@@ -21,6 +21,7 @@ import { Journal } from './journal.ts';
 import { eliteHpFraction, MobRenderer, WALK_REF, type ClipKey } from './mobs.ts';
 import { getKvashnyaPose } from './kvashnya-pose.ts';
 import { DungeonSfx } from './sfx.ts';
+import { DungeonTips, TIP_TEXT } from './tips.ts';
 import type { RunSource } from './source.ts';
 import { ACT_ATTACK, ACT_LOOP, ACT_SPECIAL, ACT_STUN, type BuildingKind, type DgView, type MobKind, type VBoss, type VBuilding, type VFx } from './view.ts';
 import { beaconEmitter, chargeBundleGeo, crystalGeo, emberClusterGeo, flywheelGeo, rockClusterGeo, wingedFireflyGeo } from './weaponvisuals.ts';
@@ -142,6 +143,8 @@ export class DungeonGame {
   private queue: DgEvent[] = [];
   private lastMv = { x: 0, y: 0 };
   private qHeld = false;
+  /** три подсказки первого спуска (tips.ts) */
+  private readonly tips = new DungeonTips();
   private seed = 0;
   private aspect = 16 / 9;
   private bossZoom = 0;
@@ -292,6 +295,7 @@ export class DungeonGame {
     this.queue = [];
     this.lastMv = { x: 0, y: 0 };
     this.qHeld = false;
+    this.tips.reset();
     this.acc = 0;
     this.ended = false;
     this.endShownAt = -1;
@@ -412,8 +416,9 @@ export class DungeonGame {
       return true;
     }
     if (this.ended) {
-      if (down && code === 'KeyR') this.again();
-      return code === 'KeyR';
+      // итоги: E — «Ещё раз», как в крепости, катерах и каланче (R здесь — только переброс карточек)
+      if (down && !e.repeat && code === 'KeyE') this.again();
+      return code === 'KeyE';
     }
     if (this.paused) return true;
     const v = this.view;
@@ -436,7 +441,10 @@ export class DungeonGame {
     }
     // Пробел и Shift — рывок (Shift нажимает кнопка «рывок» из оболочки на телефоне)
     if (code === 'Space' || code === 'ShiftLeft') {
-      if (down && !e.repeat) this.push({ t: 0, k: 'dash' });
+      if (down && !e.repeat) {
+        this.push({ t: 0, k: 'dash' });
+        this.tips.noteDash();
+      }
       return true;
     }
     if (code === 'KeyQ') {
@@ -458,6 +466,7 @@ export class DungeonGame {
   private setQ(down: boolean): void {
     if (down === this.qHeld) return;
     this.qHeld = down;
+    this.tips.noteQ(down, this.view ? this.view.tick / DG_HZ : 0);
     this.push({ t: 0, k: 'q', on: down ? 1 : 0 });
   }
 
@@ -623,6 +632,11 @@ export class DungeonGame {
       }
     }
     this.wasChest = !!v.chest;
+    // подсказки первого спуска: раз в 10 шагов проверяем, не пора ли
+    if (this.steps % 10 === 0 && !this.ended) {
+      const tip = this.tips.next(v);
+      if (tip) hud.toast(`tip-${tip}`, TIP_TEXT[tip], 'tip');
+    }
     if (v.stage !== this.lastStage) {
       this.lastStage = v.stage;
       this.d.sfx.setTension(v.stage === 'boss' ? 0.8 : v.stage === 'wave' ? 0.3 : 0);

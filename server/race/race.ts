@@ -149,12 +149,15 @@ export interface RaceHooks {
   result?(k: Kart, row: RaceResultRow, reward: RcReward | null): void;
   /** Итоги показаны — всех обратно */
   over?(): void;
+  /** Большинство людей хочет следующий заезд на той же трассе. */
+  again?(): void;
   /** Строка в общий чат */
   announce?(text: string): void;
 }
 
 export interface RaceOptions {
   track?: RaceTrackId;
+  again?: boolean;
   seed?: number;
   /** Умение всех ботов (по умолчанию — по очереди обычный, лёгкий, сильный) */
   botSkill?: KartSkill;
@@ -183,6 +186,7 @@ export class Race {
   /** Гонка кончилась (итоги показаны) или закрыта: люди ушли */
   closed = false;
   readonly karts = new Map<number, Kart>();
+  readonly again = new Set<number>();
   readonly traps: Trap[] = [];
   /** Тик, когда ящик снова появится (0 — на месте) */
   readonly crateBack: number[];
@@ -191,6 +195,7 @@ export class Race {
   private readonly roll: () => number;
   private readonly botSkill: KartSkill | null;
   private readonly minKarts: number;
+  private readonly againEnabled: boolean;
   private raceStart = 0;
   private finished = 0;
   /** Пошли последние 30 с */
@@ -218,6 +223,7 @@ export class Race {
     this.roll = opts.roll ?? this.rng;
     this.botSkill = opts.botSkill ?? null;
     this.minKarts = opts.minKarts ?? RC_MIN_KARTS;
+    this.againEnabled = opts.again ?? false;
     this.crateBack = this.track.crates.map(() => 0);
   }
 
@@ -237,7 +243,7 @@ export class Race {
     placeOnGrid(k.state, this.track, slot);
     this.karts.set(k.id, k);
     // приветствие — первым сообщением, до снимков
-    sink.sendJson({ t: 'race', track: this.trackId, id: k.id, tick: this.tick, phase: this.phase, phaseEnd: this.phaseEnd, karts: this.roster() });
+    sink.sendJson({ t: 'race', track: this.trackId, id: k.id, tick: this.tick, phase: this.phase, phaseEnd: this.phaseEnd, karts: this.roster(), ...(this.againEnabled ? { again: true } : {}) });
     this.rosterDirty = true;
     return k;
   }
@@ -267,6 +273,7 @@ export class Race {
   removeKart(id: number): void {
     const k = this.karts.get(id);
     if (!k || k.gone) return;
+    this.again.delete(id);
     if (!k.isBot && k.finishPlace && this.phase === RC_RACE) {
       // место доехавшего уже не меняется: places() держит финишировавших впереди по порядку финиша
       const [row, reward] = this.resultOf(k);
@@ -300,6 +307,27 @@ export class Race {
 
   onInputs(k: Kart, inputs: Input[], count: number): void {
     k.inq.push(inputs, count);
+  }
+
+  voteAgain(k: Kart): void {
+    if (!this.againEnabled || this.closed || this.phase !== RC_RESULTS || k.isBot || k.gone || this.karts.get(k.id) !== k || this.again.has(k.id)) return;
+    this.again.add(k.id);
+    this.checkAgain();
+  }
+
+  /** После ухода вызывается комнатой, когда её списки клиентов уже обновлены. */
+  checkAgain(): void {
+    if (!this.againEnabled || this.closed || this.phase !== RC_RESULTS) return;
+    for (const id of this.again) {
+      const k = this.karts.get(id);
+      if (!k || k.isBot || k.gone) this.again.delete(id);
+    }
+    const need = Math.floor(this.humanCount / 2) + 1;
+    this.broadcast({ t: 'rcAgain', ids: [...this.again], need });
+    if (this.again.size >= need) {
+      this.closed = true;
+      this.hooks.again?.();
+    }
   }
 
   roster(): KartInfo[] {
@@ -713,6 +741,7 @@ export class Race {
         ? `🏁 Гонка: ${podium.map((r) => `${r.place}. ${r.nick}${r.bot ? ' (бот)' : ''}`).join(', ')}`
         : '🏁 Гонка: никто не доехал до финиша',
     );
+    this.checkAgain();
   }
 
   // ------------------------------------------------------------ снимки

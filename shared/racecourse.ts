@@ -28,6 +28,21 @@ export function nextRaceTrack(id: RaceTrackId): RaceTrackId {
   return RACE_TRACKS[(i + 1) % RACE_TRACKS.length].id;
 }
 
+/**
+ * Голоса за трассу у круга старта: сколько голосов у каждой (в порядке RACE_TRACKS) и кто впереди.
+ * Голосов нет — впереди трасса по умолчанию (одна, жребия нет); поровну — впереди несколько, решает жребий.
+ */
+export function tallyTrackVotes(votes: Iterable<unknown>): { counts: number[]; leaders: RaceTrackId[] } {
+  const counts = RACE_TRACKS.map(() => 0);
+  for (const v of votes) {
+    const i = RACE_TRACKS.findIndex((t) => t.id === v);
+    if (i >= 0) counts[i]++;
+  }
+  const max = Math.max(...counts);
+  if (max === 0) return { counts, leaders: [DEFAULT_TRACK] };
+  return { counts, leaders: RACE_TRACKS.filter((_, i) => counts[i] === max).map((t) => t.id) };
+}
+
 /** Поле лучшего круга в статистике профиля для трассы */
 export const RACE_RECORD: Record<RaceTrackId, 'rcBestLapHarborV3' | 'rcBestLapHillsV3'> = {
   harbor: 'rcBestLapHarborV3',

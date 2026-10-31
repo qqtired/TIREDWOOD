@@ -18,9 +18,11 @@ import {
 } from '../../shared/fortwaves.ts';
 import { FM_EARLY } from '../../shared/fortnet.ts';
 import { namesLine, recView, wavesText, type FortRecIntro } from '../../shared/fortrecord.ts';
+import { FT_TOK_RANK, pickRanks } from '../../shared/fortranks.ts';
 import { FEATURES, SIEGE_FEATURES, planWave, type LastEvent, type WavePlan } from './director.ts';
 import { siegeBossNumber } from '../../shared/fortsiege.ts';
 import { FortLedger, settle, type FortRun, type SettleFinal } from './ledger.ts';
+import { addRankCount, rankCounts } from './ranks.ts';
 import { BOAT_BOUNTY, GREN_BUY, waveBonus, type Loadout } from '../../shared/fortarsenal.ts';
 import { BTN_FT_GRENADE, BTN_FT_HEAVY, armFort, fortAfter, fortBefore, gunInHands, makeFortStep } from '../../shared/fortgun.ts';
 import { buildFort, outsideFort, type FortMap } from '../../shared/fortmap.ts';
@@ -110,6 +112,7 @@ export interface FortHumanInfo {
 }
 
 export interface FortHooks {
+  ranks?: boolean;
   /** Новый одобренный пакет; по умолчанию только явный FORTRESS_SIEGE=1. */
   siege?: boolean;
   /** Итог игры тому, кто дождался итогов: строка таблицы, жетоны (null — ни одной волны), победа, сколько волн отбито */
@@ -133,6 +136,7 @@ let navCache: FortNav | null = null;
 
 export class FortGame implements HordeHost, EventHost {
   readonly siegeEnabled: boolean;
+  readonly ranksEnabled: boolean;
   readonly map: FortMap;
   readonly world: CollisionWorld;
   readonly horde: Horde;
@@ -197,6 +201,7 @@ export class FortGame implements HordeHost, EventHost {
   constructor(hooks: FortHooks = {}) {
     this.hooks = hooks;
     this.siegeEnabled = hooks.siege ?? process.env.FORTRESS_SIEGE === '1';
+    this.ranksEnabled = hooks.ranks ?? false;
     this.map = buildFort();
     this.world = new CollisionWorld(this.map);
     navCache ??= new FortNav(this.map);
@@ -511,8 +516,18 @@ export class FortGame implements HordeHost, EventHost {
     // рекорд — против того, что был до этой игры (сама игра уже стоит в таблице с последней отбитой волны)
     const prev = this.recBase?.wave ?? 0;
     const record = this.cleared > prev;
+    const awards = this.ranksEnabled ? pickRanks([...this.players.values()].map(p => ({
+      id: p.id, damage: p.run.arsenal.damage, invest: p.run.arsenal.invest, ...rankCounts(p.run),
+    }))) : null;
     const rows: FortResultRow[] = [];
-    for (const p of this.players.values()) rows.push(this.payout(p, { mvp: p === mvp, record, win }, win)!);
+    for (const p of this.players.values()) {
+      const ranks = awards?.get(p.id);
+      // Хотя бы одна отбитая волна защищает от накрутки жетонов пустой игрой.
+      const coins = this.players.size >= 2 && this.cleared >= 1 ? FT_TOK_RANK * (ranks?.length ?? 0) : 0;
+      const row = this.payout(p, { mvp: p === mvp, record, win, ...(awards ? { ranks: coins } : {}) }, win)!;
+      if (ranks) row.ranks = ranks;
+      rows.push(row);
+    }
     rows.sort((a, b) => b.pts - a.pts || b.k - a.k);
     const top = (this.hooks.top?.() ?? []).slice(0, FORT_TOP);
     this.broadcast({ t: 'fend', win, wave: this.cleared, mvp: mvp ? mvp.id : 0, rows, top: [...top], record, prev, run: this.runId, ...(surr ? { surr: true } : {}) });
@@ -751,6 +766,12 @@ export class FortGame implements HordeHost, EventHost {
 
   damageDealt(by: number, amount: number): void {
     this.arsenal.recordDamage(by, amount);
+  }
+
+  sapped(by: number): void {
+    if (!this.ranksEnabled || by <= 0 || by >= 250) return;
+    const p = this.players.get(by);
+    if (p) addRankCount(p.run, 'sapped');
   }
 
   event(e: FortEvent): void {

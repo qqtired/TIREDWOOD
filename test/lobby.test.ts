@@ -375,12 +375,11 @@ test('пока идёт гонка, отсчёт не начинается; по
   assert.deepEqual(st.names, ['Опоздал']);
 });
 
-test('E в круге «Старт» выбирает следующую трассу и оставляет игрока в очереди', () => {
+test('E у гаража трассу не выбирает: голосуют клавишами 1 и 2 в круге', () => {
   const { hub } = setupLobby();
   const a = login(hub, 'Любопытный');
   goUse(hub, a.c, spot(hub, 'garage'));
   assert.equal(a.c.room?.kind, 'lobby');
-  assert.equal(hub.lobby.kartStatus().track, 'hills');
-  assert.equal(hub.lobby.kartStatus().hostId, hub.lobby.playerOf(a.c)!.slot);
-  assert.match(lastOf(a.s, 'toast')!.text, /Солнечный серпантин/);
+  assert.equal(hub.lobby.kartStatus().track, 'harbor');
+  assert.match(lastOf(a.s, 'toast')!.text, /голосованием|Встань в круг/);
 });

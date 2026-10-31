@@ -20,6 +20,7 @@ export function fortEnabled(v: string | undefined, dev: boolean): boolean {
 }
 
 export interface FortRoomHooks {
+  ranks?: boolean;
   outfitOf(p: Profile): Outfit;
   /** Итог игры человеку, дождавшемуся итогов (reward null — ни одной отбитой волны) */
   result(c: Client, row: FortResultRow, reward: FtReward | null, win: boolean, wave: number): void;
@@ -48,6 +49,7 @@ export class FortRoom implements Room {
   constructor(hooks: FortRoomHooks) {
     this.hooks = hooks;
     this.game = new FortGame({
+      ranks: hooks.ranks,
       result: (p, row, reward, win, wave) => {
         const c = this.byPlayer.get(p);
         if (c) hooks.result(c, row, reward, win, wave);

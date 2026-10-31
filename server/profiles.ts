@@ -12,6 +12,8 @@ import { livewellCap, type SellWhat } from '../shared/fishlivewell.ts';
 import { RECENT_ROWS, type RecentRow } from '../shared/messages.ts';
 import { DEFAULT_OUTFIT, PALETTE, itemById, sanitizeOutfit, type Outfit } from '../shared/outfit.ts';
 import { sanitizeName } from '../shared/text.ts';
+import { mskDayNum } from '../shared/fishrules.ts';
+import { TABLE_XP_BILLIARDS, TABLE_XP_DAILY_GAMES, TABLE_XP_DURAK } from '../shared/tables2.ts';
 import { FISHING_RESET_VERSION, LEVELS_VERSION, levelChange, levelFromXp, safeXp, type LevelUp } from '../shared/levels.ts';
 import { RateLimiter } from './ratelimit.ts';
 import { emptyStats, type Profile, type State, type Store } from './store.ts';
@@ -276,6 +278,17 @@ export class Profiles {
     const change = this.addModeXp(p, Math.floor(n));
     this.store.markDirty();
     if (change) this.onLevel?.(p, change);
+  }
+
+  /** Опыт за доигранную партию с людьми; общий лимит дурака и бильярда, без жетонов. */
+  tableGameXp(p: Profile, kind: 'durak' | 'billiards'): { xp: number; n: number } {
+    const day = mskDayNum(this.now());
+    if (p.stats.txDay !== day) { p.stats.txDay = day; p.stats.txGames = 0; }
+    if (p.stats.txGames >= TABLE_XP_DAILY_GAMES) return { xp: 0, n: p.stats.txGames };
+    p.stats.txGames++;
+    const xp = kind === 'durak' ? TABLE_XP_DURAK : TABLE_XP_BILLIARDS;
+    this.modeXp(p, xp);
+    return { xp, n: p.stats.txGames };
   }
 
   private addModeXp(p: Profile, amount: number): LevelUp | null {

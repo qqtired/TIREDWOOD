@@ -71,6 +71,7 @@ export interface SettleFinal {
   mvp: boolean;
   record: boolean;
   win: boolean;
+  ranks?: number;
 }
 
 /**
@@ -84,9 +85,10 @@ export function settle(run: FortRun, final: SettleFinal | null): FtReward | null
   const win = final?.win ? FT_TOK_WIN : 0;
   const mvp = final?.mvp ? FT_TOK_MVP : 0;
   const record = final?.record && run.waves > 0 ? FT_TOK_RECORD : 0;
-  const total = waves + kills + win + mvp + record;
+  const ranks = final?.ranks ?? 0;
+  const total = waves + kills + win + mvp + record + ranks;
   if (total <= 0) return null;
   run.paidWaves = run.tokWaves;
   run.paidKillTok = killTok;
-  return { total, n: run.waves, waves, kills, win, mvp, record };
+  return { total, n: run.waves, waves, kills, win, mvp, record, ...(ranks > 0 ? { ranks } : {}) };
 }

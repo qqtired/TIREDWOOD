@@ -1086,7 +1086,7 @@ export class DungeonHud implements DungeonHudApi {
     win.append(stats);
 
     const acts = el('div', 'dg-actions');
-    acts.append(button('green', 'Ещё раз', 'R', () => this.act.again()), button('cream', 'На набережную', 'Esc', () => this.act.toLobby()));
+    acts.append(button('green', 'Ещё раз', 'E', () => this.act.again()), button('cream', 'На набережную', 'Esc', () => this.act.toLobby()));
     win.append(acts);
     L.append(win);
   }
@@ -1112,8 +1112,8 @@ export class DungeonHud implements DungeonHudApi {
     this.bannerTimer = window.setTimeout(() => b.classList.remove('show'), BANNER_MS);
   }
 
-  /** Маленькая плашка под волной на 2,5 с: «Волна 4 выстояна», «12 врагов озверели»; тот же key — та же плашка */
-  toast(key: string, text: string, style: 'ok' | 'warn' = 'ok'): void {
+  /** Маленькая плашка под волной на 2,5 с: «Волна 4 выстояна», «12 врагов озверели»; тот же key — та же плашка. tip — подсказка первого спуска (tips.ts), латунная, 7 с */
+  toast(key: string, text: string, style: 'ok' | 'warn' | 'tip' = 'ok'): void {
     let t = this.toastEls.get(key);
     if (!t) {
       const root = el('div', `dg-toast ${style}`);
@@ -1137,7 +1137,7 @@ export class DungeonHud implements DungeonHudApi {
         tt.root.remove();
         if (this.toastEls.get(key) === tt) this.toastEls.delete(key);
       }, 300);
-    }, 2500);
+    }, style === 'tip' ? 7000 : 2500);
     tt.root.classList.remove('out');
   }
 

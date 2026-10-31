@@ -11,7 +11,7 @@ import type { Ui } from '../scene.ts';
 import { TOUCH } from '../touch.ts';
 import { coinHtml, h, iconImg } from '../ui/kit/dom.ts';
 import { uiIcon } from '../ui/kit/icons.ts';
-import { ModeCount, ModeResults, ModeSpeed, ModeStand, capHtml, esc, keysRow, placeHtml } from '../ui/kit/modes.ts';
+import { ModeCount, ModeResults, ModeSpeed, ModeStand, capHtml, esc, keysRow, placeHtml, type ResultsAction } from '../ui/kit/modes.ts';
 import { PRIO } from '../ui/kit/topcenter.ts';
 import { paintScreen, preparePaint } from './paint.ts';
 import { SpeedLines } from './speedlines.ts';
@@ -75,6 +75,8 @@ export class RaceHud {
   onLeave: () => void = () => {};
   /** Итоги появились (сцена отпускает мышь: кнопки окна нажимаются) */
   onResults: () => void = () => {};
+  /** Э-7: «Ещё заезд» мышью (на клавиатуре — E, ловит сцена) */
+  onAgain: () => void = () => {};
   readonly root: HTMLElement;
   private readonly ui: Ui;
   private readonly trackName: string;
@@ -111,6 +113,9 @@ export class RaceHud {
   private last: Record<string, string | number | boolean> = {};
   private visible = false;
   private over = false;
+  /** Э-7 «Ещё заезд»: включено ли голосование (флаг сервера), кто нажал и сколько голосов нужно */
+  private again = { on: false, ids: [] as readonly number[], need: 1, myId: 0 };
+  private resArgs: { rows: readonly RaceResultRow[]; myId: number; colorOf: (id: number) => string } | null = null;
 
   constructor(root: HTMLElement, track: Track, kit: RaceKit) {
     this.root = root;
@@ -207,6 +212,7 @@ export class RaceHud {
     this.results.scrim.classList.add('rc-scrim');
     this.results.onAction = (id) => {
       if (id === 'leave') this.onLeave();
+      else if (id === 'again') this.onAgain();
     };
     this.setItem(ITEM_NONE, false, 0);
     this.applyVisible();
@@ -255,6 +261,8 @@ export class RaceHud {
   /** Новый заезд: убрать итоги, кляксы, отсчёт и баннеры прошлого. */
   reset(): void {
     this.hideResults();
+    this.again = { on: false, ids: [], need: 1, myId: 0 };
+    this.resArgs = null;
     this.paintLayer.innerHTML = '';
     this.root.querySelector('.rc-party')?.remove();
     this.count.set(null);
@@ -272,6 +280,17 @@ export class RaceHud {
   /** place 0 — ещё не известно; lap — текущий круг (1…laps) */
   setStanding(place: number, total: number, lap: number, laps: number): void {
     this.stand.set(place, total, lap, laps);
+  }
+
+  /**
+   * Э-8 «Обгон!»: место сменилось насовсем — цифра места подпрыгивает золотом (обогнал) или краснеет (обогнали),
+   * сверху строка «↑ 2-е · обошёл Ник» / «↓ 3-е · Ник обошёл тебя».
+   */
+  overtake(up: boolean, place: number, who: string | null): void {
+    if (this.over) return;
+    this.stand.pulse(up ? 'up' : 'down');
+    const text = up ? `↑ ${place}-е${who ? ` · обошёл ${who}` : ''}` : `↓ ${place}-е${who ? ` · ${who} обошёл тебя` : ''}`;
+    this.ui.top.toast({ key: 'rc-pass', tone: up ? 'good' : 'warn', icon: uiIcon('kart'), title: text, life: 1900 });
   }
 
   /** Время гонки и лучший круг, мс (null — нет) */
@@ -529,8 +548,6 @@ export class RaceHud {
    * своя строка — золотом. Строки — по местам; кто не доехал, стоит по пройденному пути бледнее.
    */
   showResults(rows: readonly RaceResultRow[], myId: number, colorOf: (id: number) => string): void {
-    const me = rows.find((r) => r.id === myId);
-    const title = me && me.place > 0 ? (me.place === 1 ? 'Победа!' : `${me.place}-е место`) : 'Гонка окончена';
     this.over = true;
     this.ui.top.clearHero(K_WRONG);
     this.ui.top.clearToasts(K_EV);
@@ -538,6 +555,20 @@ export class RaceHud {
     this.charge.hidden = true;
     this.item.hidden = true;
     this.speed.root.hidden = true;
+    this.resArgs = { rows, myId, colorOf };
+    this.again.myId = myId;
+    this.paintResults();
+    this.last.resLeft = '';
+    this.onResults();
+  }
+
+  /** Окно итогов из последних данных (голоса «Ещё заезд» меняют кнопки и пилюли на месте, без новой анимации) */
+  private paintResults(): void {
+    const args = this.resArgs;
+    if (!args) return;
+    const { rows, myId, colorOf } = args;
+    const me = rows.find((r) => r.id === myId);
+    const title = me && me.place > 0 ? (me.place === 1 ? 'Победа!' : `${me.place}-е место`) : 'Гонка окончена';
     this.results.show({
       mode: 'race',
       eyebrow: `Картинг · ${this.trackName} · ${RC_LAPS} круга`,
@@ -550,16 +581,39 @@ export class RaceHud {
         dim: r.place <= 0,
         cells: [
           placeHtml(r.place > 0 ? r.place : i + 1),
-          `<span class="k-who"><i class="mo-dot" style="background:${esc(colorOf(r.id))}"></i><span>${esc(r.nick)}</span>${r.bot ? '<span class="k-pill k-pill--sm">бот</span>' : ''}</span>`,
+          `<span class="k-who"><i class="mo-dot" style="background:${esc(colorOf(r.id))}"></i><span>${esc(r.nick)}</span>${r.bot ? '<span class="k-pill k-pill--sm">бот</span>' : ''}${this.again.ids.includes(r.id) ? '<span class="k-pill k-pill--good k-pill--sm">ещё!</span>' : ''}</span>`,
           r.place > 0 && r.time > 0 ? fmtRaceTime(r.time) : 'не доехал',
           r.best > 0 ? fmtRaceTime(r.best) : '—',
           r.tokens > 0 ? `+${r.tokens}` : '—',
         ],
       })),
-      actions: [{ id: 'leave', label: 'На набережную', key: 'Esc', tone: 'go' }],
+      actions: this.resultActions(myId),
     });
-    this.last.resLeft = '';
-    this.onResults();
+  }
+
+  /** Кнопки итогов: «Ещё заезд» (E) — только если сервер включил голосование; «На набережную» (Esc) */
+  private resultActions(myId: number): ResultsAction[] {
+    const a = this.again;
+    if (!a.on) return [{ id: 'leave', label: 'На набережную', key: 'Esc', tone: 'go' }];
+    const voted = a.ids.includes(myId);
+    const small = voted ? `ты за · ${a.ids.length} из ${a.need}` : a.ids.length > 0 ? `уже ${a.ids.length} из ${a.need}` : a.need > 1 ? `нужно ${a.need}` : '';
+    return [{ id: 'again', label: 'Ещё заезд', key: 'E', tone: 'go', small }, { id: 'leave', label: 'На набережную', key: 'Esc', tone: 'ghost' }];
+  }
+
+  /** Э-7: голосование включено (приветствие гонки) */
+  enableAgain(on: boolean): void {
+    this.again.on = on;
+  }
+
+  /** Э-7: голоса «Ещё заезд» с сервера */
+  setAgain(ids: readonly number[], need: number, myId: number): void {
+    this.again = { on: this.again.on, ids, need, myId };
+    if (this.results.shown) this.paintResults();
+  }
+
+  /** Можно ли сейчас нажать «Ещё заезд» (итоги на экране, голосование включено, я ещё не нажал) */
+  get canAgain(): boolean {
+    return this.results.shown && this.again.on && !this.again.ids.includes(this.again.myId);
   }
 
   setResultsLeft(sec: number): void {

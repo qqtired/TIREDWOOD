@@ -63,6 +63,7 @@ export function keysRow(items: ReadonlyArray<readonly [string | readonly string[
 export class ModeStand {
   readonly root: HTMLElement;
   private readonly place: HTMLElement;
+  private readonly placeBox: HTMLElement;
   private readonly of: HTMLElement;
   private readonly lap: HTMLElement;
   private readonly laps: HTMLElement;
@@ -78,6 +79,7 @@ export class ModeStand {
     this.root.innerHTML = `<div class="mo-stand-main"><span class="mo-place"><span>—</span><small>/6</small></span>
       <div class="mo-stand-side"><span class="mo-lap">Круг <b>1</b>/<span>3</span></span><span class="mo-time">0:00.0</span></div></div>
       <div class="mo-stand-foot" hidden>${icon ? `<img class="k-ic" src="${icon}" alt="">` : ''}лучший <b></b></div>`;
+    this.placeBox = this.root.querySelector('.mo-place')!;
     this.place = this.root.querySelector('.mo-place > span')!;
     this.of = this.root.querySelector('.mo-place > small')!;
     this.lapRow = this.root.querySelector('.mo-lap')!;
@@ -96,6 +98,14 @@ export class ModeStand {
     put(this.lap, String(lap));
     put(this.laps, String(laps));
     this.lapRow.hidden = laps <= 0;
+  }
+
+  /** Место сменилось насовсем: цифра подпрыгивает золотом (up — обогнал) или краснеет (обогнали) */
+  pulse(dir: 'up' | 'down'): void {
+    const b = this.placeBox;
+    b.classList.remove('is-up', 'is-down');
+    void b.offsetWidth;
+    b.classList.add(dir === 'up' ? 'is-up' : 'is-down');
   }
 
   setTime(text: string): void {

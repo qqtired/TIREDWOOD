@@ -1680,6 +1680,19 @@ export class Sound {
   }
 
   /** Толчок картов или удар о стену: глухой «бум» (strength — скорость удара, м/с). */
+  /** Картинг, обгон: короткий тихий «вжух» вверх (обогнал) или глухой вниз (обогнали); не чаще раза в секунду. */
+  overtake(up: boolean): void {
+    if (!this.ok || !this.once('overtake', 1)) return;
+    const d = this.out(null, this.sfx, 0, 2);
+    if (up) {
+      this.noise(d, 0.3, 'bandpass', 700, 3400, 2.2, 0.06, 0, 0.06);
+      this.tone(d, 520, 940, 0.18, 'sine', 0.045, 0.02);
+    } else {
+      this.noise(d, 0.24, 'bandpass', 1900, 520, 1.6, 0.05, 0, 0.04);
+      this.tone(d, 310, 190, 0.2, 'sine', 0.04, 0.02);
+    }
+  }
+
   kartBump(pos: V3 | null, strength: number): void {
     if (!this.ok) return;
     const d = this.out(pos, this.sfx, 0, 3);

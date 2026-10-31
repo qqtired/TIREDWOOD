@@ -4,6 +4,7 @@
 // лучшие забеги крепости одной строкой. Кнопки «Ещё раз» (E — закрыть итоги, новая игра начнётся сама) и
 // «На набережную» (Esc). Мышью — кликом, без мыши — клавишами.
 import type { FortResultRow, FortRunRec } from '../../../shared/fort.ts';
+import { FORT_RANKS, FT_TOK_RANK } from '../../../shared/fortranks.ts';
 import { recWhen, wavesText } from '../../../shared/fortrecord.ts';
 import { setCoinText } from '../../ui/coin.ts';
 import { coinHtml } from '../../ui/kit/dom.ts';
@@ -25,6 +26,23 @@ export interface ResultsData {
   run?: number;
   /** Сдались голосованием у белого флага (волна, на которой сдались, — не отбита и не считается) */
   surr?: boolean;
+}
+
+/**
+ * Звания защитников (Ф-3, сервер: server/fort/game.ts finish, названия — shared/fortranks.ts): карточки в два столбца под
+ * лучшим защитником. Звания есть и у одиночки (просто итог игры), а «+5» у карточки — только когда сервер за них платит:
+ * защитников двое и больше и отбита хотя бы одна волна. Это независимый кусочек: убрать звания — убрать этот блок.
+ */
+export function ranksHtml(rows: readonly FortResultRow[], myId: number, paid: boolean): string {
+  const cards: string[] = [];
+  for (const rank of FORT_RANKS) {
+    const who = rows.filter((x) => x.ranks?.includes(rank.id));
+    if (!who.length) continue;
+    const own = who.some((x) => x.id === myId);
+    const names = who.map((x) => (x.id === myId ? `<b class="is-own">${escapeHtml(x.name)}</b>` : escapeHtml(x.name))).join(', ');
+    cards.push(`<div class="ft-rank${own ? ' is-own' : ''}">${fortImg('rank-' + rank.id, 'ft-rank-ic')}<span><b>${rank.name}</b><small>${names}</small></span>${paid ? `<span class="k-pill k-pill--gold k-pill--sm">+${FT_TOK_RANK}</span>` : ''}</div>`);
+  }
+  return cards.length ? `<div class="ft-ranks">${cards.join('')}</div>` : '';
 }
 
 export interface ResultsHost {
@@ -80,6 +98,7 @@ export class Results {
     const mvp = d.mvp
       ? `<div class="ft-mvp">${fortImg('medal-gold', 'ft-mvp-ic')}<span><b>${escapeHtml(d.mvp.name)}</b> — лучший защитник · сбил ${num(d.mvp.k)} · добыл ${num(d.mvp.pts)} ${fortImg('gold', 'ft-nug')}</span></div>`
       : '';
+    const ranks = ranksHtml(rows, d.myId, rows.length >= 2 && d.wave >= 1);
     const body = rows.map((x) => `<tr${x.id === d.myId ? ' class="is-own"' : ''}><td><span class="k-who">${escapeHtml(x.name)}${x.id === d.myId ? ' <span class="k-pill k-pill--gold k-pill--sm">ты</span>' : ''}</span></td>`
       + `<td class="k-r">${num(x.k)}</td><td class="k-r">${num(x.d)}</td><td class="k-r">${num(x.pts)}</td><td class="k-r">${num(x.waves)}</td><td class="k-r">${x.tokens > 0 ? `+${num(x.tokens)}` : '—'}</td></tr>`).join('');
     const total = rows.length > 1 ? `<tr class="ft-total"><td>Вся команда</td><td class="k-r">${num(kills)}</td><td class="k-r">${num(deaths)}</td><td class="k-r">${num(gold)}</td><td class="k-r"></td><td class="k-r"></td></tr>` : '';
@@ -95,6 +114,7 @@ export class Results {
       </div>
       <div class="k-win-body">
         ${mvp}
+        ${ranks}
         <table class="k-table"><thead><tr><th>Защитник</th><th class="k-r">Сбил</th><th class="k-r">Повален</th><th class="k-r">Золото</th><th class="k-r">Волн</th><th class="k-r">Жетоны</th></tr></thead>
         <tbody>${body}${total}</tbody></table>
         <div class="k-reward ft-reward" hidden></div>

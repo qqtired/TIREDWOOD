@@ -204,6 +204,8 @@ export type ClientMsg =
   | DgClientMsg
   | RatClientMsg
   | BilliardsClientMsg
+  | { t: 'blCheer'; table: number; side: number }
+  | { t: 'rcAgain' }
   | GiftClientMsg
   | LoadClientMsg
   | JukeClientMsg
@@ -266,6 +268,7 @@ export type ClientMsg =
   | { t: 'reel'; i: number; k: number[]; u: number; d?: number }
   | { t: 'durak'; table: number; a: DurakAct; card?: number; on?: number }
   | { t: 'blackjack'; table: number; a: BlackjackAct; rev: number; amount?: number }
+  /** Голос за трассу картинга: ты стоишь в круге старта, голос можно менять до старта (большинство, ничья — жребий) */
   | { t: 'kartTrack'; track: RaceTrackId }
   | { t: 'stormLight' }
   | { t: 'lobbyMenu'; open: boolean };
@@ -326,10 +329,12 @@ export interface KartStatus {
   laps: number;
   /** Гонка и итоги: карты для табло (позиции — отдельно, в kpos) */
   karts?: BoardKart[];
+  /** Отсчёт: трасса, которая поедет сейчас (впереди по голосам; при ничьей до жребия — первая из ничьих). Гонка и итоги: трасса заезда */
   track?: RaceTrackId;
-  /** Первый вошедший в круг выбирает трассу; id — номер игрока на набережной. */
-  hostId?: number;
-  hostNick?: string;
+  /** Отсчёт: голоса — пары [номер игрока на набережной, номер трассы в RACE_TRACKS] */
+  ballots?: Array<[number, number]>;
+  /** Отсчёт: ничья, жребий уже брошен — выпала эта трасса (за несколько секунд до старта) */
+  draw?: RaceTrackId;
 }
 
 /**
@@ -470,6 +475,7 @@ export type ServerMsg =
   | ({ t: 'dgSt' } & DgStatus)
   | RatServerMsg
   | BilliardsServerMsg
+  | { t: 'blCheer'; table: number; pid: number; nick: string; side: number; text: string }
   | GiftServerMsg
   | LoadServerMsg
   | JukeServerMsg
@@ -542,6 +548,7 @@ export type ServerMsg =
     plane?: PlaneView;
     /** «Подземелье» (флаг сервера DUNGEON): рекорды для таблички у пещеры; нет поля — режим выключен */
     dg?: DgStatus;
+    tables2?: boolean;
     /** Ферма (флаг сервера FARM, shared/farmnet.ts): калитка на Улице Аттракционов */
     farm?: FarmStatus;
   }
@@ -637,7 +644,8 @@ export type ServerMsg =
   | ({ t: 'pbReward' } & PbReward)
   // --- картинг
   // id — свой номер в снимках
-  | { t: 'race'; id: number; tick: number; phase: number; phaseEnd: number; karts: KartInfo[]; track?: RaceTrackId }
+  | { t: 'race'; id: number; tick: number; phase: number; phaseEnd: number; karts: KartInfo[]; track?: RaceTrackId; again?: boolean }
+  | { t: 'rcAgain'; ids: number[]; need: number }
   | { t: 'rroster'; karts: KartInfo[] }
   | { t: 'rev'; k: number; e: RaceEvent[] }
   | { t: 'raceEnd'; results: RaceResultRow[]; track?: RaceTrackId }

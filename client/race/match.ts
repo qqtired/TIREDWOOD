@@ -28,6 +28,7 @@ import type { Settings } from '../settings.ts';
 import type { Toasts } from '../ui/toasts.ts';
 import type { MapDot, RaceHud } from './hud.ts';
 import { KART_COLORS, Kart3D, makeKartPose, type KartFx, type KartPose } from './kart3d.ts';
+import { PlaceWatch } from './overtake.ts';
 import { KartPredictor } from './predict.ts';
 import type { RaceWorld } from './world.ts';
 
@@ -154,6 +155,9 @@ export class RaceMatch {
   private gridEnd = 0;
   private raceStart = 0;
   private myPlace = 0;
+  /** Э-8: следит за своим местом; места всех карт в этом снимке */
+  private readonly passWatch = new PlaceWatch();
+  private readonly placeNow = new Map<number, number>();
   private total = 0;
   private selfPainted = false;
   /** Свой пузырь — из снимка сервера (KM_BUBBLE) */
@@ -257,6 +261,7 @@ export class RaceMatch {
       case 'race':
         this.myId = m.id;
         this.ready = true;
+        this.d.hud.enableAgain(!!m.again);
         this.setPhase(m.phase, m.phaseEnd);
         this.setRoster(m.karts);
         this.d.hud.banner(`🏁 ${this.d.world.track.name} <small>${(this.d.world.track.length / 1000).toFixed(2).replace('.', ',')} км · ${RC_LAPS} круга</small>`, 2600);
@@ -269,6 +274,9 @@ export class RaceMatch {
         break;
       case 'raceEnd':
         this.onEnd(m.results);
+        break;
+      case 'rcAgain':
+        this.d.hud.setAgain(m.ids, m.need, this.myId);
         break;
       case 'raceReward':
         this.onReward(m);
@@ -352,6 +360,8 @@ export class RaceMatch {
     world.setTraps(this.trapList, n.traps);
 
     this.total = n.karts;
+    this.placeNow.clear();
+    for (let i = 0; i < n.karts; i++) this.placeNow.set(this.list[i].id, this.list[i].place);
     this.seen.clear();
     const es = this.snap;
     for (let i = 0; i < n.karts; i++) {
@@ -383,6 +393,7 @@ export class RaceMatch {
       this.seen.add(k.id);
     }
     for (const id of this.remotes.keys()) if (!this.seen.has(id)) this.dropRemote(id);
+    this.watchPass(h.tick);
 
     if (h.flags & SNAP_HAS_SELF) {
       if (h.flags & SNAP_SELF_RESET || !this.hasSelf) {
@@ -393,6 +404,16 @@ export class RaceMatch {
         this.predictor.reconcile(h.ack, this.selfSnap);
       }
     }
+  }
+
+  /** Э-8: обгон или тебя обогнали — цифра места, строка сверху и тихий «вжух». Первые 2 с после старта (свалка на решётке) молчим. */
+  private watchPass(tick: number): void {
+    const running = this.phase === RC_RACE && this.gridEnd > 0 && tick - this.gridEnd > 2 * TICK_RATE && !this.predictor.state.done;
+    const ev = this.passWatch.update(performance.now(), this.myId, this.placeNow, running);
+    if (!ev) return;
+    const who = ev.who === null ? null : this.nickOf(ev.who);
+    this.d.hud.overtake(ev.up, ev.to, who);
+    this.d.sound.overtake(ev.up);
   }
 
   // ------------------------------------------------------------ события гонки

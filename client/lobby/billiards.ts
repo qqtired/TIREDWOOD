@@ -41,6 +41,10 @@ interface Anim {
   end: { pos: number[]; on: number };
 }
 
+/** Камера болельщика: смещение к своей стороне, высота, на сколько цель за центром, угол обзора (подобрано снимками: лампы над столом,
+ *  головы игроков у длинных сторон и вывеска остаются за кадром, весь стол с бортами между табло и полоской) */
+const WATCH_CAM = { dx: 0.9, y: 3.0, look: 0.13, fov: 50 };
+
 export interface BilliardsDeps {
   scene: THREE.Scene;
   hudRoot: HTMLElement;
@@ -57,6 +61,10 @@ export interface BilliardsDeps {
   pointerFree(): boolean;
   /** Тени статичные: появился или пропал зал — пересчитать */
   refreshShadows(): void;
+  /** К-2: болельщик у стола — мышь свободна (кнопки «Давай, ник!»), true — взял / false — вернул обычный вид */
+  watching?(on: boolean, byUser: boolean): void;
+  /** К-2: кто-то рядом крикнул «Давай, ник!» за сторону стола — облачко над ним и шум у стола */
+  cheered?(msg: { table: number; pid: number; nick: string; side: number; text: string }): void;
 }
 
 const _ray = new THREE.Raycaster();
@@ -69,6 +77,13 @@ export class BilliardsClient {
   readonly hud: BilliardsHud;
   /** Бильярд есть на сервере (пришёл хоть один стол) */
   on = false;
+  /** К-2 (флаг сервера TABLES2): у занятого стола E — смотреть партию сверху; приходит в приветствии набережной */
+  tables2 = false;
+  /** Какую партию смотрим (−1 — никакую) и до какого момента кнопки «Давай, ник!» неактивны (мс) */
+  private watchTable = -1;
+  /** С какой стороны стола камера болельщика: −1 — запад, 1 — восток (где он стоял) */
+  private watchSide = 1;
+  private cheerUntil = 0;
   private readonly d: BilliardsDeps;
   private readonly views: Array<BlTableView | null> = Array.from({ length: BL_TABLE_COUNT }, () => null);
   private readonly anims: Array<Anim | null> = Array.from({ length: BL_TABLE_COUNT }, () => null);
@@ -126,6 +141,52 @@ export class BilliardsClient {
     return this.table;
   }
 
+  // ------------------------------------------------------------ К-2: смотреть партию
+
+  get watching(): boolean {
+    return this.watchTable >= 0;
+  }
+
+  /** Можно ли смотреть партию у стола t: флаг включён, я не за столом, идёт чужая партия */
+  canWatch(t: number): boolean {
+    const v = this.views[t];
+    if (!this.tables2 || !this.on || this.seated || !v || v.phase !== 'match') return false;
+    return !v.seats.some((s) => s?.pid === this.d.me().pid);
+  }
+
+  /** Камера плавно поднимается над столом, сверху табло с никами, снизу «Давай, ник!» (1 / 2). */
+  watch(t: number): boolean {
+    if (this.watchTable === t) return true;
+    if (!this.canWatch(t)) return false;
+    this.watchTable = t;
+    this.watchSide = this.camPos.x < BL_TABLES[t].x ? -1 : 1;
+    this.cheerUntil = 0;
+    this.hud.onCheer = (side) => this.cheer(side);
+    this.hud.onStopWatch = () => this.stopWatch(true);
+    this.hud.watch(t);
+    const v = this.views[t];
+    if (v) this.hud.setView(v);
+    this.d.watching?.(true, true);
+    return true;
+  }
+
+  /** Вернуть обычный вид. byUser — по кнопке или шагу; иначе (партия кончилась, ушли с набережной) мышь просим тихо. */
+  stopWatch(byUser = false): void {
+    if (this.watchTable < 0) return;
+    this.watchTable = -1;
+    this.hud.hide();
+    this.d.watching?.(false, byUser);
+  }
+
+  /** 1 / 2: крикнуть «Давай, ник!» за сторону; не чаще раза в 2 с (как на сервере) */
+  private cheer(side: number): void {
+    const now = performance.now();
+    if (this.watchTable < 0 || now < this.cheerUntil) return;
+    this.cheerUntil = now + 2000;
+    this.hud.cheerCooldown(2000);
+    this.d.send({ t: 'blCheer', table: this.watchTable, side });
+  }
+
   // ------------------------------------------------------------ сообщения
 
   onMessage(msg: ServerMsg): boolean {
@@ -141,6 +202,9 @@ export class BilliardsClient {
         if (msg.table >= 0 && msg.table < BL_TABLE_COUNT && (msg.table !== this.table || this.oppTurn())) {
           this.remoteAim[msg.table] = { ang: msg.ang, pw: msg.pw, at: performance.now(), hit: 0 };
         }
+        return true;
+      case 'blCheer':
+        if (this.tables2) this.d.cheered?.(msg);
         return true;
       case 'blErr':
         if (msg.table === this.table || msg.table < 0) {
@@ -168,7 +232,7 @@ export class BilliardsClient {
     if (v.table === this.table) {
       this.hud.setView(v);
       this.hud.setBalance(this.d.me().tokens);
-    }
+    } else if (v.table === this.watchTable) this.hud.setView(v);
   }
 
   private onShot(s: BlShotWire): void {
@@ -226,6 +290,7 @@ export class BilliardsClient {
   /** Сцена: встал к столу (table, side) или отошёл (−1). */
   setSeat(table: number, side: number): void {
     if (table === this.table && side === this.side) return;
+    if (table >= 0) this.stopWatch();
     this.charging = null;
     this.pending = -1;
     this.hud.setPower(null);
@@ -369,6 +434,12 @@ export class BilliardsClient {
   /** Камера у своего стола: высоко со своей стороны, весь стол — над панелью (подобрано под 16:9, стол до 72 % высоты).
    *  На узком экране телефона — с торца у битка, длинной стороной вдоль экрана. */
   cameraPose(): { px: number; py: number; pz: number; lx: number; ly: number; lz: number; fov: number } | null {
+    if (this.watchTable >= 0) {
+      // болельщик: круто сверху, чуть со своей стороны стола; лампы остаются у верхнего края кадра, себя не рисуем (scene.ts)
+      const t = BL_TABLES[this.watchTable];
+      const sx = this.watchSide;
+      return { px: t.x + sx * WATCH_CAM.dx, py: WATCH_CAM.y, pz: t.z, lx: t.x - sx * WATCH_CAM.look, ly: BL_SURFACE_Y, lz: t.z, fov: WATCH_CAM.fov };
+    }
     if (!this.seated) return null;
     const t = BL_TABLES[this.table];
     if (this.d.camera().aspect < 0.9) return { px: t.x, py: 2.85, pz: t.z - 1.7, lx: t.x, ly: BL_SURFACE_Y, lz: t.z - 0.95, fov: 50 };
@@ -394,7 +465,7 @@ export class BilliardsClient {
     const v = this.views[table];
     if (!v) return 'бильярд';
     const seated = v.seats.filter(Boolean).length;
-    if (v.phase === 'match') return `идёт партия ${v.seats[0]?.nick ?? '?'} ${v.score[0]}:${v.score[1]} ${v.seats[1]?.nick ?? '?'}${v.seats.some((s) => s?.pid === this.d.me().pid) ? ' — вернуться' : ''}`;
+    if (v.phase === 'match') return `идёт партия ${v.seats[0]?.nick ?? '?'} ${v.score[0]}:${v.score[1]} ${v.seats[1]?.nick ?? '?'}${v.seats.some((s) => s?.pid === this.d.me().pid) ? ' — вернуться' : this.tables2 ? ' — смотреть' : ''}`;
     if (v.offer && seated < 2) return `принять партию ${v.offer.amount ? `на ${v.offer.amount} 🪙` : 'без ставки'} — ждёт ${v.seats[v.offer.by]?.nick ?? ''}`;
     if (seated >= 2) return 'бильярд — у стола двое';
     return seated ? `бильярд — встать напротив ${v.seats.find(Boolean)?.nick ?? ''}` : 'бильярд — тренировка или партия';
@@ -430,6 +501,15 @@ export class BilliardsClient {
           this.aimSentAt = now;
           this.d.send({ t: 'bl', a: 'aim', table: this.table, ang: this.ang, pw: this.charging ? this.power : 0 });
         }
+      }
+    }
+    // болельщик: счёт на табло обновляется, когда шары остановились; партия кончилась — обычный вид
+    if (this.watchTable >= 0) {
+      const wv = this.views[this.watchTable];
+      if (!wv || wv.phase === 'open') this.stopWatch();
+      else {
+        this.hud.setAnimating(!!this.anims[this.watchTable]);
+        this.hud.tick(now);
       }
     }
     // чужие столы: кий бьющего, пока он целится, и удар
@@ -497,6 +577,7 @@ export class BilliardsClient {
 
   /** Ушли с набережной: всё спрятать, кроме самих столов. */
   reset(): void {
+    this.stopWatch();
     this.setSeat(-1, -1);
     for (let t = 0; t < BL_TABLE_COUNT; t++) {
       this.anims[t] = null;
@@ -506,6 +587,7 @@ export class BilliardsClient {
 
   /** Сервер выключил бильярд (или вошли туда, где его нет). */
   off(): void {
+    this.stopWatch();
     if (this.on) this.d.refreshShadows();
     this.on = false;
     this.view3d.setVisible(false);
