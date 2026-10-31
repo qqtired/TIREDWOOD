@@ -17,6 +17,9 @@ import { PRIO, type TopCenter } from '../ui/kit/topcenter.ts';
 import type { Hud } from './hud.ts';
 import './ui.css';
 
+/** Чем сбили (наборы PAINT4) — у каждого своя картинка в ленте */
+const P4_HOW = new Set(['squirt', 'can', 'bow', 'bucket']);
+
 /** Начало ключей своих плашек, тостов и баннеров: при уходе со склада убираем только их */
 const PB = 'pb-';
 const SCORE_KEY = 'pb-score';
@@ -74,6 +77,11 @@ class PbVitals {
   private ammoHtml = '';
   private ammoCls = '';
   private awpOn = false;
+  /** Наборы PAINT4: ведёрко на G (ячейка появляется с первым вызовом) и своя строка патронов у лука */
+  private bucket: HTMLElement | null = null;
+  private bucketKey = '';
+  private kitKey = '';
+  private readonly arms: HTMLElement;
 
   constructor(slot: HTMLElement) {
     this.root = h('div', 'k-vitals pb-vitals pb-only');
@@ -87,7 +95,7 @@ class PbVitals {
     this.armorBar = this.armor.appendChild(h('span', 'k-meter k-meter--thin k-meter--info', meterIn));
     this.armor.hidden = true;
     // в пейнтболе оружие не переключают клавишами: AWP берут на складе, пустая — снова маркер (клавиш на ячейках нет)
-    const arms = this.root.appendChild(h('div', 'k-vitals-arms'));
+    const arms = this.arms = this.root.appendChild(h('div', 'k-vitals-arms'));
     this.marker = arms.appendChild(h('div', 'k-arm is-on', `${iconImg('marker', '')}<span>Маркер</span>`));
     this.awp = arms.appendChild(h('div', 'k-arm is-off', `${iconImg('awp', '')}<span>AWP</span>`));
     this.ammoBox = this.root.appendChild(h('div', 'k-vitals-ammo'));
@@ -129,6 +137,7 @@ class PbVitals {
 
   /** reload — доля перезарядки (у AWP — затвора) 0…1, null — нет; low — с какого остатка полоса красная */
   setAmmo(ammo: number, max: number, reload: number | null, low: number): void {
+    if (this.ammoKey) this.ammoKey.hidden = this.awpOn;
     const r = reload === null ? -1 : Math.round(reload * 50) / 50;
     const html = this.awpOn ? `<small class="pb-awp-l">AWP ·</small>${ammo}` : `${ammo}<small>/ ${max}</small>`;
     if (html !== this.ammoHtml) {
@@ -139,6 +148,39 @@ class PbVitals {
     if (cls !== this.ammoCls) this.ammoBar.className = this.ammoCls = cls;
     this.ammoBox.classList.toggle('is-empty', ammo <= 0 && r < 0);
     setMeter(this.ammoBar, r >= 0 ? r : max > 0 ? ammo / max : 0);
+  }
+
+  /** PAINT4: в первой ячейке — свой набор (иконка и подпись); AWP — своей ячейкой, как была */
+  setKit(icon: string, name: string): void {
+    const key = icon + '|' + name;
+    if (key === this.kitKey) return;
+    this.kitKey = key;
+    this.marker.innerHTML = `${iconImg(icon, '')}<span>${esc(name)}</span>`;
+  }
+
+  /** PAINT4: ведёрко на G — «1» готово, иначе сколько секунд ждать (как граната крепости: .k-arm--count) */
+  setBucket(ready: boolean, left: number): void {
+    if (!this.bucket) {
+      this.bucket = this.arms.appendChild(h('div', 'k-arm k-arm--count', `${iconImg('bucket', '')}<span></span>${TOUCH ? '' : '<kbd class="k-key k-key--sm k-key--tr">G</kbd>'}`));
+    }
+    const key = ready ? 'r' : String(left);
+    if (key === this.bucketKey) return;
+    this.bucketKey = key;
+    put(this.bucket.querySelector('span')!, ready ? '1' : `${left} с`);
+    this.bucket.classList.toggle('is-empty', !ready);
+  }
+
+  /** PAINT4, лук: вместо «24 / 30» — сила натяжения или «стрела…»; frac — полоса, tone — цвет полосы */
+  setAmmoHtml(html: string, frac: number, tone: string): void {
+    if (html !== this.ammoHtml) {
+      this.ammoHtml = html;
+      this.ammoNum.innerHTML = html;
+    }
+    const cls = `k-meter k-meter--thin${tone === 'gold' ? '' : tone ? ` k-meter--${tone}` : ' k-meter--info'}`;
+    if (cls !== this.ammoCls) this.ammoBar.className = this.ammoCls = cls;
+    this.ammoBox.classList.remove('is-empty');
+    if (this.ammoKey) this.ammoKey.hidden = true;
+    setMeter(this.ammoBar, frac);
   }
 
   setDash(ready: number): void {
@@ -215,6 +257,10 @@ class PbDown {
     if (how === 'drown') who = killer ? `Столкнул в воду ${nameHtml(killer, kTeam)}` : 'Искупался в море';
     else if (!killer) who = 'Самоустранился';
     else if (how === 'awp') who = `Снял из AWP ${nameHtml(killer, kTeam)}`;
+    else if (how === 'squirt') who = `Облил из брызгалки ${nameHtml(killer, kTeam)}`;
+    else if (how === 'can') who = `Окатил из лейки ${nameHtml(killer, kTeam)}`;
+    else if (how === 'bow') who = `Подстрелил из лука ${nameHtml(killer, kTeam)}`;
+    else if (how === 'bucket') who = `Опрокинул ведро краски ${nameHtml(killer, kTeam)}`;
     else who = `Попал ${nameHtml(killer, kTeam)}`;
     this.who.innerHTML = who;
     put(this.time, '');
@@ -417,6 +463,12 @@ export class PaintballUi {
     pb.showReward = (text: string) => this.results.reward(text);
     pb.hideEnd = () => this.hideEnd();
     Object.defineProperty(pb, 'endShown', { get: () => this.results.shown, configurable: true });
+    // наборы PAINT4 (paint4/client.ts): ячейка набора, ведёрко на G, сила лука, слот для карточек
+    const p4 = pb as unknown as Record<string, unknown>;
+    p4.p4Kit = (icon: string, name: string) => this.vitals.setKit(icon, name);
+    p4.p4Bucket = (ready: boolean, left: number) => this.vitals.setBucket(ready, left);
+    p4.p4Ammo = (html: string, frac: number, tone: string) => this.vitals.setAmmoHtml(html, frac, tone);
+    p4.p4Slot = () => this.kit.slots.bc;
   }
 
   /** Итоги на экране (мышь отпущена — кнопки нажимаются) */
@@ -492,7 +544,7 @@ export class PaintballUi {
     // снят из AWP — золотой ярлык; в голову — картинка в золотом кольце; утонул — круг; сам — белый флаг
     const mid = how === 'awp'
       ? `<span class="k-pill k-pill--gold k-pill--xs pb-awp${head ? ' pb-head' : ''}">AWP</span>`
-      : iconImg(how === 'drown' ? 'buoy' : how === 'self' ? 'white-flag' : head ? 'headshot' : 'paint', head ? 'k-ic pb-head' : 'k-ic');
+      : iconImg(how === 'drown' ? 'buoy' : how === 'self' ? 'white-flag' : head ? 'headshot' : P4_HOW.has(how) ? how : 'paint', head ? 'k-ic pb-head' : 'k-ic');
     this.feed.push(`${killer ? nameHtml(killer, kTeam) : ''}${mid}${nameHtml(victim, vTeam)}`, { own: mine });
   }
 

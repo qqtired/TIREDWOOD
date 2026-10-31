@@ -20,13 +20,13 @@ import { FISH_ISLE_FIRST, FISH_NPCS } from '../../shared/fishplaces.ts';
 import { ISLE_SPAWN } from '../../shared/maps/isle.ts';
 import { FP_BITE, FP_REEL } from '../../shared/fishing.ts';
 import { BOATS } from '../../shared/fishboat.ts';
-import { OB_SNAP_RANGE } from '../../shared/ownboat.ts';
+import { OB_SNAP_RANGE, PARK, PARK_DECK_Y, PARK_RAMP } from '../../shared/ownboat.ts';
 import { FISH_XP_LEVELS, fishLevel } from '../../shared/fishprogress.ts';
 import { RC_LAPS, RC_MAX_KARTS } from '../../shared/kart.ts';
 import { JUKE_RATE_MS, JUKE_SERVER_R, JUKE_SONGS, fmtSongTime, jukeUseDist, songPrice } from '../../shared/jukebox.ts';
 import { RAT_CENTER, RAT_CHEER_MS, RAT_CHEER_R, isRatIndex } from '../../shared/ratrace.ts';
 import {
-  ACT_BILLIARDS, ACT_BOAT, ACT_DANCE, ACT_DURAK, ACT_FERRY, ACT_FERRY_RIDE, ACT_FISH, ACT_LAUGH, ACT_NONE, ACT_OWNBOAT, ACT_PLANE, ACT_REGATTA, ACT_RESPECT, ACT_RIDE, ACT_SIT, ACT_SLOT,
+  ACT_BANANA, ACT_BILLIARDS, ACT_BOAT, ACT_DANCE, ACT_DURAK, ACT_FERRY, ACT_FERRY_RIDE, ACT_FISH, ACT_LAUGH, ACT_NONE, ACT_OWNBOAT, ACT_PLANE, ACT_REGATTA, ACT_RESPECT, ACT_RIDE, ACT_SIT, ACT_SLOT,
   ACT_WARDROBE, ACT_WAVE, ACT_WHEEL, EMOTE_TICKS, KART_CHECK_EVERY, KART_COUNT_TICKS, LOBBY_CAPACITY, LOBBY_SNAP_EVERY, PAIR_ACCEPT_RANGE, PAIR_ACTS, PAIR_ASK_TICKS, PAIR_TICKS, STOP_EMOTE,
   holdMask, isAboard, isFerry, isHeld,
   isPair, isRiding, pairReach, stepHeld,
@@ -76,6 +76,7 @@ import { Jukebox } from './jukebox.ts';
 import { BoatRadios } from './boatradio.ts';
 import { PlaneHall } from './plane.ts';
 import { OwnBoats, buyBoat } from './ownboats.ts';
+import { Bananas } from './banana.ts';
 import { sellFromBoat } from './fishlivewell.ts';
 import { PLANE_EXIT } from '../../shared/plane.ts';
 import { Weather, type WeatherMode } from './weather.ts';
@@ -232,11 +233,13 @@ export class LobbyRoom implements Room {
   readonly plane: PlaneHall | null;
   /** Свои лодки рыбаков (флаг сервера ISLE, нужна FISH2; server/lobby/ownboats.ts): null — их нет */
   readonly ownboats: OwnBoats | null;
+  /** Банан за своей лодкой (BANANA вместе с ISLE): null — выключен. */
+  readonly bananas: Bananas | null;
   readonly kite: boolean;
   /** Своя лодка игрока появилась или исчезла (pid, номер лодки) — для радио на лодке */
   readonly ownBoatHooks: Array<(pid: number, i: number, on: boolean) => void> = [];
 
-  constructor(hub: Hub, roll?: () => number, now?: () => number, durakDeck?: () => number[], weather: WeatherMode = 'auto', blackjackDeck?: () => number[], eventOptions: { storm?: boolean; pirates?: boolean; devStorm?: boolean; devPirates?: boolean; jukebox?: boolean; billiards?: boolean; plane?: boolean; isle?: boolean; kite?: boolean } = {}) {
+  constructor(hub: Hub, roll?: () => number, now?: () => number, durakDeck?: () => number[], weather: WeatherMode = 'auto', blackjackDeck?: () => number[], eventOptions: { storm?: boolean; pirates?: boolean; devStorm?: boolean; devPirates?: boolean; jukebox?: boolean; billiards?: boolean; plane?: boolean; isle?: boolean; kite?: boolean; banana?: boolean } = {}) {
     this.hub = hub;
     this.kite = eventOptions.kite === true;
     this.now = now ?? Date.now;
@@ -539,7 +542,42 @@ export class LobbyRoom implements Room {
     this.plane = eventOptions.plane ? this.makePlane() : null;
     if (!this.plane) for (const box of this.map.planeBoxes) this.world.setEnabled(box, false);
     this.ownboats = eventOptions.isle && this.fishing2 ? this.makeOwnBoats() : null;
+    this.bananas = eventOptions.banana && this.ownboats ? this.makeBananas(this.ownboats) : null;
     if (!this.ownboats) for (const box of this.map.parkBoxes) this.world.setEnabled(box, false);
+  }
+
+  private makeBananas(boats: OwnBoats): Bananas {
+    return new Bananas(boats, {
+      tick: () => this.tick,
+      players: () => this.players.values(),
+      can: (p) => !!p.client.profile && !p.client.ephemeral,
+      board: (p, arg) => {
+        this.release(p);
+        p.action = ACT_BANANA;
+        p.arg = arg;
+        p.actionUntil = 0;
+        p.selfReset = true;
+      },
+      seat: (p, x, y, z, yaw) => {
+        const st = p.state;
+        st.x = x;
+        st.y = y;
+        st.z = z;
+        st.vx = st.vy = st.vz = 0;
+        st.grounded = 1;
+        p.heldYaw = yaw;
+      },
+      land: (p, at) => {
+        p.action = ACT_NONE;
+        p.arg = 0;
+        p.heldYaw = at.yaw;
+        this.teleport(p, at.x, at.y, at.z);
+      },
+      send: (p, msg) => p.client.sink.sendJson(msg),
+      broadcast: (msg) => this.broadcast(msg),
+      toast: (p, text) => this.hub.toast(p.client, text),
+      announce: (text) => this.hub.announce(text),
+    });
   }
 
   /** Свои лодки: посадка, места, рыбалка с якоря, высадка, покупка у Семёна — через комнату (server/lobby/ownboats.ts) */
@@ -769,6 +807,7 @@ export class LobbyRoom implements Room {
       this.ownboats.rejoin(p);
       c.sink.sendJson(this.ownboats.full());
     }
+    if (this.bananas) c.sink.sendJson(this.bananas.full());
     if (!c.ephemeral) this.broadcastRoster();
     return true;
   }
@@ -781,6 +820,7 @@ export class LobbyRoom implements Room {
     this.release(p, true);
     this.plane?.drop(p);
     this.ownboats?.drop(p);
+    this.bananas?.drop(p);
     this.arcade?.leave(p.slot);
     this.aqua.drop(p.slot);
     this.circle.delete(p);
@@ -868,7 +908,10 @@ export class LobbyRoom implements Room {
         if (!c.closed && !c.lostAt && this.hub.limits.hit(`${msg.a === 'crInk' ? 'qzInk' : 'qz'}:${c.id}`, msg.a === 'crInk' ? 20 : 10, 1000)) this.quiz?.message(p.slot, msg);
         return;
       case 'ob':
-        if (this.ownboats && this.hub.limits.hit(`ob:${c.id}`, 8, 1000)) this.ownboats.message(p, msg);
+        if (!this.bananas?.aboard(p) && this.ownboats && this.hub.limits.hit(`ob:${c.id}`, 8, 1000)) this.ownboats.message(p, msg);
+        return;
+      case 'bn':
+        if (this.bananas && this.hub.limits.hit(`bn:${c.id}`, 8, 1000)) this.bananas.message(p, msg);
         return;
       case 'emote':
         this.onEmote(p, msg.e);
@@ -1267,6 +1310,28 @@ export class LobbyRoom implements Room {
     const isleCmd = /^\/isle(?:\s+(\w+))?\s*$/i.exec(text);
     if (isleCmd) {
       this.devIsle(c, isleCmd[1]?.toLowerCase());
+      return true;
+    }
+    // /banana — проверка банана (BANANA): своя «Волжанка», 6-й уровень рыбалки и на мостик стоянки; /banana pier — только
+    // на мостик (только разработка или DEV_GO=1)
+    const bananaCmd = /^\/banana(?:\s+(pier))?\s*$/i.exec(text);
+    if (bananaCmd && this.bananas && c.profile) {
+      if (!bananaCmd[1]) {
+        const f = c.profile.fishing;
+        f.xp = Math.max(f.xp, FISH_XP_LEVELS[6]);
+        f.boats = [...new Set([...(f.boats ?? []), 'volzhanka'])];
+        this.hub.store.markDirty();
+        this.hub.sendMe(c);
+        this.hub.toast(c, '🍌 Проверка: «Волжанка» твоя — вызывай её у таблички свободного места');
+      }
+      const p = this.playerOf(c);
+      if (p) {
+        this.release(p, true);
+        // pier — на край мостка у места 1, к банану лицом (до банана у этого места ~5 м)
+        p.heldYaw = bananaCmd[1] ? Math.PI / 2 : Math.PI;
+        if (bananaCmd[1]) this.teleport(p, PARK.x - 5.6, PARK_DECK_Y, PARK.z + 3.9);
+        else this.teleport(p, PARK.x, PARK_DECK_Y, PARK.z + PARK_RAMP + 1.5);
+      }
       return true;
     }
     if (/^\/season(\s|$)/.test(text)) {
@@ -1735,6 +1800,14 @@ export class LobbyRoom implements Room {
 
   /** Встать: освободить автомат, место, место рыбалки или в катере (эмоции не трогает). В поездке — только force (вышел из игры). */
   private release(p: LobbyPlayer, force = false): void {
+    if (this.bananas?.aboard(p)) {
+      if (force) {
+        this.bananas.drop(p);
+        p.action = ACT_NONE;
+        p.arg = 0;
+      }
+      return;
+    }
     // в своей лодке: «встать» с удочки на якоре — обратно на сиденье; силой (вышел из игры) — с места
     if (this.ownboats?.aboard(p)) {
       if (!force) {
@@ -1811,6 +1884,7 @@ export class LobbyRoom implements Room {
     this.regatta?.step();
     this.plane?.step();
     this.ownboats?.step();
+    this.bananas?.step();
     this.checkPairs();
     // музыкальный автомат: песня доиграла — следующая (раз в треть секунды; время — по часам, не по тикам)
     if (this.juke && this.tick % 10 === 0 && this.juke.step(this.now())) this.broadcastJuke();
@@ -2051,6 +2125,10 @@ export class LobbyRoom implements Room {
   }
 
   private processPlayer(p: LobbyPlayer): void {
+    if (this.bananas?.aboard(p)) {
+      this.bananas.consume(p);
+      return;
+    }
     // в своей лодке входы — лодке (штурману) или просто съедаются (пассажиры не ходят): server/lobby/ownboats.ts
     if (this.ownboats?.aboard(p)) {
       this.ownboats.consume(p);

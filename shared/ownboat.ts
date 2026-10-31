@@ -499,6 +499,20 @@ function collide(s: ObState, kind: BoatKind): void {
   if (d2 > WORLD_R) hit(s, -s.x / d2, -s.z / d2, d2 - WORLD_R);
 }
 
+/** Что-то на воде длиной length и шириной beam (банан на тросе, shared/banana.ts) — из берегов и причалов, как корпус лодки */
+export function obPushOut(p: { x: number; z: number; yaw: number }, length: number, beam: number): void {
+  const s = _push;
+  s.x = p.x;
+  s.z = p.z;
+  s.yaw = p.yaw;
+  s.v = 0;
+  collide(s, { length, beam } as BoatKind);
+  p.x = s.x;
+  p.z = s.z;
+}
+
+const _push = makeObState();
+
 /** Можно ли бросить якорь здесь: не ближе 12 м к причалам, мосткам и баркасу и не у стоянки */
 export function canAnchorAt(x: number, z: number): boolean {
   if (nearDock(x, z, 0)) return false;

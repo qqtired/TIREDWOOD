@@ -1,5 +1,20 @@
 # Иконки интерфейса TIREDWOOD (client/assets/ui/icons)
 
+## Дополнение 6 — четыре набора пейнтбола (флаг `PAINT4`), 31.10.2026
+
+Иконки карточек выбора набора и ячеек HUD: `squirt.webp` (Брызгалка), `can.webp` (Лейка), `bow.webp` (Лук), `bucket.webp` (ведёрко краски на G). Маркер берёт уже готовую `marker.webp`. Codex CLI (`codex exec -m gpt-6-astra`, встроенный `image_gen`, прозрачный фон), **одна иконка на вызов**, по одному вызову с первого раза, без правок руками. Общий стиль — тот же, что ниже («Общий стиль»), промпт = Subject + общий стиль. Штатный `post.mjs`: 256×256 WebP с альфой, 12–16 КБ.
+
+- **`squirt.webp`** — Subject: a chunky friendly toy paint squirt gun (a pump-action water pistol repurposed for a paintball game): rounded tomato-red plastic body with a cream-white pump handle under a short barrel with a small nozzle, a round translucent tank on top half-filled with bright tangerine-orange liquid paint, a few orange paint droplets squirting out of the nozzle. Toy-like, rounded, playful, harmless.
+  - сессия Codex `01a19351-1cd7-7543-8671-73c3e40b6b4a`, исходник 1024×1024, sha256 1b2636e5e7ca…, в игре 12 КБ
+- **`can.webp`** — Subject: a sturdy old galvanized zinc garden watering can repurposed as a paint sprayer: silver-grey zinc body with a terracotta-red painted band and rivets, a top carry handle, a long spout ending in a wide round brass sprinkler rose, a fan of thick raspberry-red paint drops spraying out of the rose. Cozy everyday garden object, playful, harmless.
+  - сессия Codex `01a19351-1cd5-7a62-b2c5-57d12683e22c`, исходник 1024×1024, sha256 e7842c337d0f…, в игре 14 КБ
+- **`bow.webp`** — Subject: a small wooden recurve bow with a red-and-cream wrapped leather grip and a cream bowstring, with one arrow nocked: the arrow has a light wooden shaft, red-and-white feather fletching and instead of a point a soft round paint-ball tip filled with raspberry-red paint (a harmless toy paint arrow). Warm honey-colored wood grain. Playful, harmless.
+  - сессия Codex `01a19351-1cd6-76b0-b213-c813338a6359`, исходник 1024×1024, sha256 d3573a96bc0c…, в игре 13 КБ
+- **`bucket.webp`** — Subject: a small tin paint bucket with a wire bail handle and a wooden grip, tipped slightly, overflowing with thick glossy tangerine-orange paint that drips down its side in fat rounded drips, a few paint drops in the air. Cozy everyday object, playful, harmless.
+  - сессия Codex `01a19352-a866-7540-9f82-af064ddef1a5`, исходник 1024×1024, sha256 791e67698d6b…, в игре 15 КБ
+
+Концепт-лист пяти краскомётов в ряд (маркер, брызгалка, лейка, лук, ведёрко; 1536×1024, сессия `01a19352-a867-7e73-afd5-e3fc2f8ea6e7`) — только ориентир для 3D-моделей (`client/paintball/paint4/kits3d.ts`), в репозиторий не кладём.
+
 ## Дополнение 5 — воздушный змей, 12.10.2026
 
 `kite.webp` — эмоция/занятие 7 на набережной. Codex CLI, встроенный `image_gen`, один вызов, прозрачный фон. Кораллово-мятный змей с деревянными спицами, катушкой и кремово-коралловыми бантами; общий стиль ниже сохранён. Штатный `post.mjs`: 256×256 WebP с альфой, 13,2 КБ, непрозрачных пикселей на границе исходника нет. Исходник, полный промпт и точный receipt сохранены версионно в [`../../kite/v1/`](../../kite/v1/PROVENANCE.md).

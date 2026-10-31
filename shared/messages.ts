@@ -12,6 +12,7 @@ import type { FortEvent, FortPlayerRow, FortResultRow, FortRunRec, FortStatus, F
 import type { FortRecIntro, FortRecKind } from './fortrecord.ts';
 import type { FortSurrender } from './fortsurrender.ts';
 import type { Outfit } from './outfit.ts';
+import type { P4Event } from './paint4.ts';
 import type { BlackjackAct, BlackjackView } from './blackjack.ts';
 import type { BilliardsClientMsg, BilliardsServerMsg } from './billiards.ts';
 import type { RaceTrackId } from './racecourse.ts';
@@ -33,6 +34,7 @@ import type { RadioClientMsg, RadioServerMsg } from './boatradio.ts';
 import type { RatClientMsg, RatRaceView, RatServerMsg } from './ratrace.ts';
 import type { PlaneClientMsg, PlaneServerMsg, PlaneView } from './plane.ts';
 import type { ObClientMsg, ObServerMsg } from './ownboat.ts';
+import type { BnClientMsg, BnServerMsg } from './banana.ts';
 import type { KickClientMsg, KickServerMsg } from './votekick.ts';
 import type { DgClientMsg, DgServerMsg, DgStatus } from './dungeon/api.ts';
 import type { ArcadeClientMsg, ArcadeServerMsg } from './arcade/net.ts';
@@ -43,6 +45,8 @@ export type RoomKind = 'lobby' | 'paintball' | 'race' | 'fort' | 'skill' | 'hide
 
 export interface RosterEntry {
   id: number;
+  /** Набор краскомёта (только при PAINT4). */
+  kit?: number;
   level?: number;
   name: string;
   team: 0 | 1;
@@ -208,6 +212,7 @@ export type ClientMsg =
   | RegattaClientMsg
   | PlaneClientMsg
   | ObClientMsg
+  | BnClientMsg
   /** re — переподключение: код, с которым закрылось прошлое соединение (сервер пишет причину в журнал);
    *  rs — вернуться в ту же сессию после обрыва: сколько JSON-сообщений сессии клиент уже принял */
   | { t: 'hello'; v: number; key?: string; nick?: string; code?: string; smoke?: string; re?: number; rs?: number }
@@ -234,6 +239,7 @@ export type ClientMsg =
   | { t: 'code' }
   | { t: 'leave' }
   | { t: 'pull' }
+  | { t: 'pbKit'; k: number }
   /**
    * Рыбалка: забросить, подсечь (n — последнее событие поплавка, которое видел), рыбу — в альбом или продать;
    * рыбалка 2.0: рыба в руках — keep (в рюкзак) или release (отпустить, shared/fishrelease.ts)
@@ -263,6 +269,7 @@ export type ClientMsg =
 
 /** События тика пейнтбола (компактные массивы). */
 export type GameEvent =
+  | P4Event
   // выстрел: кто, откуда, куда, чем кончился (0 — стена, 1 — игрок, 2 — в никуда), нормаль стены
   | ['shot', number, number, number, number, number, number, number, number, number, number, number]
   // выстрел из AWP — те же поля, что у 'shot'
@@ -465,6 +472,7 @@ export type ServerMsg =
   | RegattaServerMsg
   | PlaneServerMsg
   | ObServerMsg
+  | BnServerMsg
   | HideServerMsg
   | FarmServerMsg
   | FarmPondServerMsg
@@ -613,7 +621,8 @@ export type ServerMsg =
   | { t: 'blackjack'; v: BlackjackView }
   | { t: 'blackjackError'; message: string; rev: number }
   // --- пейнтбол
-  | { t: 'welcome'; id: number; tick: number; team: 0 | 1; seed: number; phase: number; phaseEnd: number; roster: RosterEntry[]; botSkill: string }
+  | { t: 'welcome'; id: number; tick: number; team: 0 | 1; seed: number; phase: number; phaseEnd: number; roster: RosterEntry[]; botSkill: string; p4?: boolean }
+  | { t: 'pbKit'; k: number }
   | { t: 'roster'; players: RosterEntry[] }
   | { t: 'ev'; k: number; e: GameEvent[] }
   | { t: 'slot'; reels: number[]; bonus: SlotBonus; auto: boolean }

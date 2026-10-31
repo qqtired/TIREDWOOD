@@ -12,7 +12,8 @@ const RING = 256;
 /** Что делать вокруг шага входа inp (набережная: препятствия аквапарка). prev — метка времени прошлого входа (NaN — неизвестна). */
 export interface StepHook {
   before(s: PlayerState, inp: Input, prevViewTick: number): Input | void;
-  after(s: PlayerState, inp: Input, ev: StepEvents): void;
+  /** canFire — можно ли стрелять в этом входе (наборы пейнтбола, client/paintball/paint4/client.ts) */
+  after(s: PlayerState, inp: Input, ev: StepEvents, canFire?: boolean): void;
 }
 
 interface Entry {
@@ -77,7 +78,7 @@ export class Predictor {
   private advance(s: PlayerState, inp: Input, canFire: boolean, prevVt: number, ev: StepEvents): void {
     const stepInput = this.hook?.before(s, inp, prevVt) ?? inp;
     this.hold = stepHeld(s, this.hold, stepInput, this.world, canFire, this.seed, ev);
-    this.hook?.after(s, stepInput, ev);
+    this.hook?.after(s, stepInput, ev, canFire);
   }
 
   /** Метка времени входа seq, пока он в истории (NaN — нет). */

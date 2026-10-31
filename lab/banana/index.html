@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="ru" data-skin="retro2" data-hud="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Банан за катером · TIREDWOOD Lab</title>
+  <meta name="description" content="Идея В-7: надувной банан на троих за своей лодкой. Модель, анимации, правила и живой стенд на коде игры." />
+  <style>
+    :root { --bg: #f6f1e7; --card: #fffdf8; --ink: #2f2530; --dim: #6d6168; --line: #e3d8c6; --gold: #e9a92a; --coral: #e2483c; --mint: #3fae7d; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font: 400 16px/1.5 Rubik, system-ui, sans-serif; }
+    main { max-width: 1240px; margin: 0 auto; padding: 28px 16px 64px; }
+    .eyebrow { color: var(--coral); font-weight: 800; letter-spacing: .06em; text-transform: uppercase; font-size: 13px; }
+    h1 { margin: 4px 0 6px; font-size: 40px; line-height: 1.1; font-weight: 800; }
+    h2 { margin: 36px 0 12px; font-size: 24px; font-weight: 800; }
+    .lead { max-width: 860px; color: var(--dim); font-size: 18px; margin: 0; }
+    .stage { position: relative; margin-top: 18px; border-radius: 18px; overflow: hidden; background: #cfe8f4; box-shadow: 0 10px 30px rgba(60, 40, 20, .18); aspect-ratio: 16 / 9; }
+    #bn-canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+    /* HUD игры поверх стенда: тот же .k-hud, что в игре (kit.css), без масштаба страницы */
+    #bn-hud { position: absolute; inset: 0; pointer-events: none; }
+    #bn-hud .k-hud { --hud-k: .85; }
+    .bar { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; margin-top: 14px; }
+    .group { display: flex; gap: 6px; align-items: center; }
+    .group > span { color: var(--dim); font-size: 14px; margin-right: 4px; }
+    button { font: 700 15px/1 Rubik, system-ui, sans-serif; padding: 10px 14px; border-radius: 12px; border: 2px solid var(--line); background: var(--card); color: var(--ink); cursor: pointer; }
+    button:hover { border-color: var(--gold); }
+    button.is-on { background: var(--gold); border-color: #c98a17; color: #2b1d05; }
+    .poses-only { display: none; }
+    body[data-mode='poses'] .poses-only { display: flex; }
+    body[data-mode='poses'] .ride-only { display: none; }
+    label { display: flex; gap: 8px; align-items: center; color: var(--dim); font-size: 14px; }
+    input[type=range] { width: 140px; accent-color: var(--gold); }
+    .note { margin: 10px 0 0; color: var(--dim); font-size: 15px; }
+    .note kbd { display: inline-block; min-width: 24px; padding: 2px 6px; border: 2px solid var(--ink); border-bottom-width: 3px; border-radius: 6px; background: #fff; font: 800 13px/1.2 Rubik, sans-serif; text-align: center; }
+    #bn-stats { margin-top: 6px; color: var(--dim); font-size: 14px; font-variant-numeric: tabular-nums; min-height: 21px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; }
+    .card { background: var(--card); border: 2px solid var(--line); border-radius: 16px; padding: 16px 18px; }
+    .card h3 { margin: 0 0 6px; font-size: 18px; }
+    .card p { margin: 0; color: var(--dim); }
+    .card .num { display: inline-block; width: 28px; height: 28px; margin-right: 8px; border-radius: 50%; background: var(--gold); color: #2b1d05; font-weight: 800; text-align: center; line-height: 28px; }
+    .concepts { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+    figure { margin: 0; background: var(--card); border: 2px solid var(--line); border-radius: 16px; overflow: hidden; }
+    figure.is-pick { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(233, 169, 42, .35); }
+    figure img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
+    figcaption { padding: 10px 14px; font-size: 15px; }
+    figcaption b { color: var(--ink); }
+    table { width: 100%; border-collapse: collapse; background: var(--card); border: 2px solid var(--line); border-radius: 16px; overflow: hidden; }
+    td, th { padding: 9px 14px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; font-size: 15px; }
+    th { width: 34%; color: var(--dim); font-weight: 600; }
+    tr:last-child td, tr:last-child th { border-bottom: 0; }
+    .ask { border-left: 4px solid var(--coral); }
+    @media (max-width: 640px) { h1 { font-size: 30px; } .stage { aspect-ratio: 4 / 5; } }
+  </style>
+</head>
+<body data-mode="ride">
+<main>
+  <div class="eyebrow">Лаборатория · идея В-7</div>
+  <h1>Банан за катером</h1>
+  <p class="lead">Своя лодка рыбака тянет надувной банан на троих. Водитель резко поворачивает — банан заносит, седоков клонит.
+    Седоки держатся на A/D. Упал — всплеск и 5 секунд на «E — обратно». Кто дольше продержался — строкой в чат.</p>
+
+  <div class="stage">
+    <canvas id="bn-canvas"></canvas>
+    <div id="bn-hud"></div>
+  </div>
+  <div class="bar">
+    <div class="group"><span>Стенд</span><button class="is-on" data-mode="ride">Заезд</button><button data-mode="poses">Позы и анимации</button></div>
+    <div class="group"><span>Камера</span><button class="is-on" data-cam="game">Как в игре</button><button data-cam="pier">С пирса</button><button data-cam="orbit">Мышью</button></div>
+    <div class="group poses-only"><label>Скорость <input id="bn-speed" type="range" min="0" max="20" step="0.5" value="0" /></label>
+      <label>Поворот <input id="bn-lat" type="range" min="-2.5" max="2.5" step="0.05" value="0" /></label>
+      <label>Крен седока <input id="bn-tilt" type="range" min="-1" max="1" step="0.02" value="0" /></label></div>
+    <div class="group poses-only"><button data-act="fall">Упасть</button><button data-act="back">Обратно (E)</button></div>
+  </div>
+  <p class="note ride-only">Ты сидишь спереди (оранжевый). Метка на плашке уехала вправо — жми <kbd>A</kbd>, влево — <kbd>D</kbd>; дольше 0,4 с на краю — падаешь.
+    В воде — <kbd>E</kbd>, пока не кончились 5 секунд. Водит бот: круг вокруг пирса и каждые 6 секунд — резкая «змейка».</p>
+  <p class="note poses-only">Ползунки: скорость — подпрыгивание и задранный нос, поворот — крен наружу, крен седока — как его клонит (у края одна варежка отпускает ручку).
+    «Упасть» — средний седок летит дугой в воду, «Обратно» — прыжок на место. Третий седок плавает рядом. Мышью — вращать.</p>
+  <div id="bn-stats"></div>
+
+  <h2>Как играется</h2>
+  <div class="grid">
+    <div class="card"><h3><span class="num">1</span>Прицепить</h3><p>Хозяин своей лодки за штурвалом жмёт <b>B</b> на малом ходу. У стоянки в чат уходит приглашение: «садись у стоянки за домом Семёна».</p></div>
+    <div class="card"><h3><span class="num">2</span>Сесть</h3><p>Любой игрок, без уровня рыбалки: подошёл по мосткам к банану — «E — сесть на банан». Мест три, банан должен стоять.</p></div>
+    <div class="card"><h3><span class="num">3</span>Стряхнуть</h3><p>Водитель газует и резко виляет. Банан по инерции уходит по дуге шире лодки — седоков клонит наружу. Заднего трясёт сильнее.</p></div>
+    <div class="card"><h3><span class="num">4</span>Держаться</h3><p>Плашка равновесия: метка уехала — жми клавишу с другой стороны (она подсвечена). Первые 2 секунды после посадки держишься крепко.</p></div>
+    <div class="card"><h3><span class="num">5</span>Плюх!</h3><p>Упал — дуга с кувырком, брызги, всплеск. 5 секунд на «E — обратно», иначе Гоша вылавливает и везёт на стоянку.</p></div>
+    <div class="card"><h3><span class="num">6</span>Итог в чат</h3><p>Причалили или все в воде — строка всем: «🍌 Банан за лодкой «Волжанка» Tired: дольше всех продержался Tester7 — 0:48 · Tester8 0:31 · падений: 3».</p></div>
+  </div>
+
+  <h2>Концепты</h2>
+  <div class="concepts">
+    <figure><img src="concept-a.jpg" alt="Классический банан" loading="lazy" /><figcaption><b>А.</b> Классический: жёлтые поплавки, красные ручки.</figcaption></figure>
+    <figure class="is-pick"><img src="concept-b.jpg" alt="Банан с лицом" loading="lazy" /><figcaption><b>Б. По нему модель.</b> Лицо на носу, коралловые поплавки и ручки — читается издалека, со своим характером.</figcaption></figure>
+    <figure><img src="concept-c.jpg" alt="Спортивный банан" loading="lazy" /><figcaption><b>В.</b> Спортивный: полоски, оранжевые поплавки, жилеты.</figcaption></figure>
+  </div>
+
+  <h2>Модель и анимации</h2>
+  <table>
+    <tr><th>Модель</th><td>Blender без окна, скрипт <code>tools/banana/build_banana.py</code> → <code>client/assets/banana/banana.glb</code>, исходник <code>tools/banana/banana.blend</code>. Изогнутый корпус с «секциями», два поплавка, три ручки с накладками, лицо с обеих сторон носа, зелёный кончик, плодоножка, кольцо троса.</td></tr>
+    <tr><th>Треугольники и отрисовки</th><td id="bn-tris">~3 тыс. треугольников (бюджет предмета — 4 тыс.). Все бананы мира — 1 отрисовка (инстансы), все тросы — ещё 1.</td></tr>
+    <tr><th>Банан</th><td>Покачивание у причала · подпрыгивание на гребнях (чаще с ростом скорости) · нос задран на ходу · крен наружу в повороте · «отыгрывает» в другую сторону, когда седок упал · сминается под севшим · трос провисает, когда ослаб.</td></tr>
+    <tr><th>Седок</th><td>Сидит верхом и держится за ручку · клонится по крену · на краю «висит» — наружная варежка отпускает и машет · падает дугой с кувырком · плывёт по грудь в воде, гребёт и смотрит на банан · прыжок обратно на место.</td></tr>
+    <tr><th>Звук</th><td>Падение — обычный всплеск игры (тот же, что при падении с причала), возврат — тихий «плюх», как у русалки.</td></tr>
+  </table>
+
+  <h2>Решить владельцу</h2>
+  <div class="grid">
+    <div class="card ask"><h3>Награда</h3><p>Сейчас без жетонов: иначе друзья накручивают, сидя за медленной лодкой. Можно потом — +1 🪙 за каждые 10 с без падения седоку и водителю за каждого стряхнутого (до 12 🪙/мин).</p></div>
+    <div class="card ask"><h3>«Любая лодка»</h3><p>Банан цепляется к своим лодкам рыбаков — их водят игроки. Катера регаты — гонка на одного, «Ласточка» и «Удалая» ходят сами по пути: им некому «резко поворачивать».</p></div>
+  </div>
+</main>
+<script type="module" src="../../client/boat/bananalab.ts"></script>
+</body>
+</html>

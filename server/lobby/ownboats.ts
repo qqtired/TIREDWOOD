@@ -97,6 +97,12 @@ export class OwnBoats {
     return null;
   }
 
+  /** Поза и штурман лодки для прицепленного банана. */
+  boatInfo(i: number): { s: ObState; pid: number; nick: string; owner: LobbyPlayer | null; driver: LobbyPlayer | null } | null {
+    const b = Number.isInteger(i) && i >= 0 ? this.boats[i] : null;
+    return b ? { s: b.s, pid: b.pid, nick: b.nick, owner: b.owner, driver: b.seats[0] } : null;
+  }
+
   /** Кто занял берт (у берта, швартуется или подходит по вызову) */
   private atBerth(berth: number): Boat | null {
     for (const b of this.boats) {

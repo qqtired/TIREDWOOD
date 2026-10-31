@@ -43,6 +43,8 @@ export const ACT_PLANE = 20;
 export const ACT_OWNBOAT = 21;
 /** На «Ракушке»: аргумент — место из shared/quiz/venue.ts; встать только через unuse. */
 export const ACT_QUIZ = 23;
+/** На банане за своей лодкой (флаг BANANA, shared/banana.ts): аргумент — лодка × 4 + место, +64 — в воде; шагом не встать */
+export const ACT_BANANA = 24;
 
 /** Помахать, «устал», смех — 3 с; танец — до первого шага */
 export const EMOTE_TICKS = 180;
@@ -81,13 +83,13 @@ export function isHeld(action: number): boolean {
   return (
     action === ACT_SIT || action === ACT_SLOT || action === ACT_WARDROBE || action === ACT_DURAK || action === ACT_FISH || action === ACT_BOAT ||
     action === ACT_RIDE || action === ACT_WHEEL || action === ACT_REGATTA || action === ACT_FERRY || action === ACT_FERRY_RIDE ||
-    action === ACT_BILLIARDS || action === ACT_PLANE || action === ACT_OWNBOAT || action === ACT_QUIZ
+    action === ACT_BILLIARDS || action === ACT_PLANE || action === ACT_OWNBOAT || action === ACT_QUIZ || action === ACT_BANANA
   );
 }
 
 /** Едет: катер в поездке, кабинка колеса, катер регаты или лодка Семёна в рейсе — двигает сервер, встать нельзя */
 export function isRiding(action: number): boolean {
-  return action === ACT_RIDE || action === ACT_WHEEL || action === ACT_REGATTA || action === ACT_FERRY_RIDE || action === ACT_PLANE || action === ACT_OWNBOAT;
+  return action === ACT_RIDE || action === ACT_WHEEL || action === ACT_REGATTA || action === ACT_FERRY_RIDE || action === ACT_PLANE || action === ACT_OWNBOAT || action === ACT_BANANA;
 }
 
 /** Сидит в лодке Семёна: ждёт отхода или уже плывёт */
