@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="ru" data-skin="retro2" data-hud="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="../../client/assets/ui/icons/pin.webp">
+<title>TIREDWOOD — что улучшить дальше</title>
+<link rel="stylesheet" href="../quiz/v2/v2-fonts.css">
+<link rel="stylesheet" href="../../client/ui/kit/tokens.css">
+<link rel="stylesheet" href="../../client/ui/kit/kit.css">
+<link rel="stylesheet" href="ideas.css">
+</head>
+<body>
+<header class="ix-head">
+  <img src="../../client/assets/ui/icons/pin.webp" alt="">
+  <div>
+    <p class="k-eyebrow">TIREDWOOD · идеи и хвосты · 31.10</p>
+    <h1>Что улучшить дальше</h1>
+    <p class="ix-sub">8 агентов прошли по всей игре и принесли 100 идей. Я объединил повторы, убрал слабое, спорное с правилами и уже сделанное — осталось 59 идей и 28 хвостов.</p>
+  </div>
+</header>
+
+<main class="ix-main">
+  <section class="ix-sec ix-sum">
+    <div class="ix-card">
+      <p class="k-eyebrow">Что сильнее всего мешает</p>
+      <p><b>Друзья не видят друг друга.</b> Вечером 2–8 человек расходятся по комнатам: с площади не видно, кто где и что идёт, позвать нечем, пираты и шторм при двоих не бывают, а из Подземелья тебя даже не слышно.</p>
+      <p>Второе — <b>нет повода вернуться завтра</b>: жетоны некуда тратить, уровень почти ничего не даёт.</p>
+    </div>
+    <div class="ix-card">
+      <p class="k-eyebrow">Что предлагаю первым</p>
+      <p><b>11 идей ★</b> — дёшево и видно сразу. Начать с пакета «Собраться вместе»: <b>Н-1, О-1, Н-3, Ф-1, Ф-2, Э-5</b> — афиша у спавна, «Позвать», пираты при двоих, голос из пещеры, бои в чате. Это около двух дней.</p>
+      <p>Хвосты «Ракушки» <b>Х-1–Х-8</b> — к ближайшему релизу.</p>
+    </div>
+    <div class="ix-card">
+      <p class="k-eyebrow">Что нужно от тебя</p>
+      <p>Ответь кодами: <b>«делаем Н-1, О-1, К-1 и Х-1–Х-8»</b> или просто «бери ★». Можно нажимать карточки — список соберётся внизу.</p>
+      <p>Заодно реши спорное: AWP (Э-1), бот в Telegram (О-2), кейс со скинами (Э-4), пираты по рынде (Н-4).</p>
+    </div>
+  </section>
+
+  <section class="ix-sec">
+    <h2>Топ ★ — советую взять первым</h2>
+    <p class="ix-lead">Нажми строку — откроется карточка с подробностями. S — до пары часов, M — полдня–день, L — несколько дней.</p>
+    <div class="ix-top" id="top"></div>
+  </section>
+
+  <section class="ix-sec" id="ideas">
+    <h2>Все идеи</h2>
+    <div class="ix-filters" id="filters">
+      <div class="ix-frow">
+        <span class="ix-flabel">Раздел</span>
+        <div class="k-seg ix-seg" id="fSec"></div>
+      </div>
+      <div class="ix-frow">
+        <span class="ix-flabel">Цена</span>
+        <div class="k-seg ix-seg" id="fCost"></div>
+        <button class="k-btn k-btn--ghost k-btn--sm ix-star" id="fStar" type="button" aria-pressed="false">★ Только рекомендую</button>
+        <span class="ix-count" id="fCount"></span>
+      </div>
+    </div>
+    <div id="groups"></div>
+    <p class="ix-empty" id="empty" hidden>Под эти фильтры ничего нет — сними один из них.</p>
+  </section>
+
+  <section class="ix-sec" id="tails">
+    <h2>Хвосты — что сломано или обещано и не сделано</h2>
+    <p class="ix-lead">Конкретные недочёты, которые нашли агенты: что не так, где в коде, правка в одну строку. Хвосты «Ракушки» 1.1 отмечены «к релизу» — их стоит починить до выкладки. Строку тоже можно нажать — она попадёт в список.</p>
+    <div id="tailGroups"></div>
+  </section>
+
+  <section class="ix-sec" id="bold">
+    <h2>Смелое — большие ставки</h2>
+    <p class="ix-lead">На несколько дней каждая. Сначала — страница-лаборатория, в игру только после твоего «да». Фильтры сверху действуют и здесь.</p>
+    <div class="ix-bold" id="boldGrid"></div>
+  </section>
+
+  <section class="ix-sec">
+    <h2>Что убрал и почему</h2>
+    <ul class="ix-drop">
+      <li><b>«Ласточка» с кракеном и Севой</b> — ты убрал их 30.10. Игрокам про «катер до маяка» отвечает В-2: прокат у Семёна, без кракена.</li>
+      <li><b>Идеи «Ракушки», которые ты не взял 30.10</b> (A5, C2–C5, C8, C10, D1–D5, E2, E4–E6, F2) — ждут на <a href="../quiz/next/">её странице</a>. После релиза советую C3 «Зал отвечает» и D1 «Смешнее всех»: в них играют все сразу.</li>
+      <li><b>Камера от первого лица у автоматов</b> (просьба с доски 04.10) — уже сделана. Можно ответить игрокам «готово».</li>
+      <li><b>«Вылазка недели» в Подземелье</b> — уже предлагали 15.10, ты не взял.</li>
+      <li><b>Чебуречная-аврал, прятки на набережной</b> — самые тяжёлые для площади: там уже 79 программ из 80.</li>
+      <li><b>Бонус за вход по дням, сезоны, копилка недели</b> — повод вернуться лучше даёт П-1 «Три дела дня», без обязаловки.</li>
+      <li><b>Доход острова и опыт за рыбу</b> — твоё решение, не трогаю.</li>
+    </ul>
+    <p class="ix-note">Полный список с файлами и причинами — в сводке ведущего. Всё новое — за флагом, на сайт только с твоего «да».</p>
+  </section>
+</main>
+
+<div class="ix-pick" id="pick">
+  <span class="ix-pick-l">Беру <b id="pickN">0</b>:</span>
+  <span class="ix-pick-list" id="pickList"></span>
+  <button class="k-btn k-btn--ghost k-btn--sm" id="pickReset" type="button">Рекомендованное</button>
+  <button class="k-btn k-btn--ghost k-btn--sm" id="pickClear" type="button">Очистить</button>
+  <button class="k-btn k-btn--gold k-btn--sm" id="pickCopy" type="button">Скопировать</button>
+</div>
+<script type="module" src="ideas.js"></script>
+</body>
+</html>
