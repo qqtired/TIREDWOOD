@@ -156,7 +156,7 @@ export class FortProps {
       if (st.kind === 'tower') continue;
       // постоянного размера на экране (как ники желеек), вдали и вплотную — прячутся
       const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ transparent: true, depthWrite: false, sizeAttenuation: false }));
-      const baseY = st.y + (st.kind === 'shop' ? 3.6 : st.kind === 'bell' ? 2.9 : st.kind === 'flag' ? 5.4 : 2.3);
+      const baseY = st.y + (st.kind === 'shop' ? 3.6 : st.kind === 'bell' ? 2.9 : st.kind === 'flag' ? 5.4 : st.kind === 'crystal' ? 3.5 : 2.3);
       sprite.position.set(st.x, baseY, st.z);
       sprite.scale.set(LABEL_W, LABEL_H, 1);
       sprite.renderOrder = 6;

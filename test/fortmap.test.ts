@@ -46,9 +46,23 @@ function walk(w: CollisionWorld, s: PlayerState, pts: ReadonlyArray<readonly [nu
   for (let t = 0; t < 30; t++) stepFort(f, s, inp, w, false, 1, ev, load);
 }
 
+test('кристалл чинят с любой стороны: со двора с трёх сторон постамента и с края террасы', () => {
+  const st = map.stations.find((x) => x.kind === 'crystal')!;
+  // где реально стоит желейка: вплотную к постаменту (полкорпуса 0,42) и у перил террасы
+  for (const [x, y, z] of [[0, 0, 0.85], [1.75, 0, 2.6], [-1.75, 0, 2.6], [1.75, 0, 0.85], [0, TERRACE.h, 5.75], [1.2, TERRACE.h, 5.75]]) {
+    assert.ok(Math.abs(world.groundBelow(x, y + 0.05, z) - y) < 1e-6, `опора под (${x}, ${y}, ${z})`);
+    assert.ok(freeAt(world, x, y, z), `свободно в (${x}, ${y}, ${z})`);
+    const d = Math.hypot(x - st.x, z - st.z);
+    // клиент (запас 0,35, высота 1,5) и сервер (запас 0,6, высота 1,6)
+    assert.ok(d <= st.r + 0.35 && Math.abs(y - st.y) <= 1.5, `клиент достаёт из (${x}, ${y}, ${z})`);
+    assert.ok(d <= st.r + 0.6 && Math.abs(y - st.y) <= 1.6, `сервер достаёт из (${x}, ${y}, ${z})`);
+  }
+});
+
 test('точки появления и стойки — на опоре и не в стене', () => {
   assert.equal(map.spawns.length, 6);
-  for (const p of [...map.spawns, ...map.stations]) {
+  // кристалл — стойка-область вокруг кристалла (чинят с любой стороны), её проверяет тест ниже
+  for (const p of [...map.spawns, ...map.stations.filter((st) => st.kind !== 'crystal')]) {
     assert.ok(Math.abs(world.groundBelow(p.x, p.y + 0.05, p.z) - p.y) < 1e-6, `опора под (${p.x}, ${p.y}, ${p.z})`);
     assert.ok(freeAt(world, p.x, p.y, p.z), `свободно в (${p.x}, ${p.y}, ${p.z})`);
     assert.ok(insideFort(p.x, p.z) || p.y >= WALL_H - 1e-9, 'стойки и точки появления — в крепости или на стенах');

@@ -18,6 +18,7 @@ import {
 } from '../../shared/fortbosses.ts';
 import { Z_SHIELD, isBossKind } from '../../shared/fortkinds.ts';
 import { CRYSTAL, GATE } from '../../shared/fortmap.ts';
+import { WALL_DMG } from '../../shared/fort50.ts';
 import { bossSpeed, raging, type BossCtx } from './bosses.ts';
 import {
   AT_CRYSTAL, AT_GATE, addAt, begin, breachCheck, enterYard, insideYard, open, pauseOf, rageCheck, r2, targetOf, walk,
@@ -149,6 +150,7 @@ function rootsLand(c: BossCtx, z: Zombie): void {
   if (z.chase === AT_GATE) {
     if (host.gateUp()) host.hitGate(c.horde.dmgOf(z, LS_ROOT_GATE));
   } else if (z.chase === AT_CRYSTAL) host.hitCrystal(c.horde.dmgOf(z, LS_ROOT_CRYSTAL));
+  if (host.fort50Enabled) host.hitWallAt?.(z.toX, z.toZ, 3.2, c.horde.dmgOf(z, WALL_DMG.leshy), 1);
   z.atk = (z.atk + 1) & 255;
   host.event(['blast', ZS_LS_ROOTS, r2(z.toX), r2(z.toY), r2(z.toZ), LS_ROOT_R]);
 }

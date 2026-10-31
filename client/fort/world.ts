@@ -5,7 +5,7 @@
 // arsenal3d.ts. Статика склеена по материалам, тени от солнца считаются один раз (и заново — когда ворота падают
 // или встают).
 import * as THREE from 'three';
-import { FORT, GATE, INSIDE, ROADS, SHOP_COUNTER, THROAT_Z, type FortMap } from '../../shared/fortmap.ts';
+import { FORT, GATE, INSIDE, ROADS, SHOP_COUNTER, THROAT_Z, buildFort, type FortMap } from '../../shared/fortmap.ts';
 import type { MapBox } from '../../shared/maps/types.ts';
 import { makeRng } from '../../shared/math.ts';
 import { Gulls, buildDeco, fitShadow, mergeColored, paint, place, staticMesh, updateFloaters, type Floater } from '../render/kit.ts';
@@ -97,7 +97,8 @@ export class FortWorld {
 
     this.buildGround();
     this.buildRoads();
-    this.castle = new CastleDecor(scene, map);
+    // кладка — из целой карты (разрезанные по участкам боксы дали бы швы); проломы рисует client/fort/f50/walls3d.ts
+    this.castle = new CastleDecor(scene, map.sections ? buildFort() : map);
     this.buildYardProps(map);
     buildShore(this.scene);
     this.buildForest();

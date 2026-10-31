@@ -2,7 +2,8 @@
 // на радиус шаркуна) и поля расстояний (Дейкстра по 8 соседям) — до кристалла и до каждой точки липучек. Считаются
 // один раз при запуске. Ворота в полях — проход: пока створки целы, зомби встают перед ними (это решает horde.ts).
 // Здесь же препятствия у земли — прямоугольники, из которых зомби выталкиваются (скользят вдоль стен).
-import { CLIMBS, PEDESTAL, type FortMap } from '../../shared/fortmap.ts';
+import { CLIMBS, GATE, PEDESTAL, type FortMap } from '../../shared/fortmap.ts';
+import { WALL_SECTIONS, wallOuterPoint } from '../../shared/fort50.ts';
 
 export const NAV_CELL = 0.5;
 /** Запас на радиус: центр зомби в свободной клетке не ближе этого к препятствию */
@@ -78,6 +79,11 @@ export class FortNav {
   readonly toCrystal: Float32Array;
   /** До каждой точки липучек (CLIMBS) */
   readonly toClimb: Float32Array[];
+  /** Статические подходы к сквозным участкам (у обвалов — null). */
+  readonly toWall: Array<Float32Array | null>;
+  private readonly rectSections: number[] = [];
+  private readonly fields = new Map<number, Float32Array>();
+  private readonly gateCells: Uint8Array;
   /** Препятствия у земли: x0, z0, x1, z1 подряд */
   readonly rects: Float64Array;
   readonly rectCount: number;
@@ -95,6 +101,7 @@ export class FortNav {
     map.boxes.forEach((b, i) => {
       if (b.max[1] <= 0.05 || b.min[1] >= LOW) return;
       if (i === map.gateBox) gateRect = rects.length / 4;
+      this.rectSections.push(map.sections?.findIndex((ids, sec) => WALL_SECTIONS[sec].kind === 'passage' && ids.includes(i)) ?? -1);
       rects.push(b.min[0], b.min[2], b.max[0], b.max[2]);
     });
     this.rects = Float64Array.from(rects);
@@ -103,10 +110,12 @@ export class FortNav {
 
     const n = this.cols * this.rows;
     this.free = new Uint8Array(n);
+    this.gateCells = new Uint8Array(n);
     for (let r = 0; r < this.rows; r++) {
       const cz = this.z0 + (r + 0.5) * NAV_CELL;
       for (let c = 0; c < this.cols; c++) {
         const cx = this.x0 + (c + 0.5) * NAV_CELL;
+        this.gateCells[r * this.cols + c] = Number(cx >= GATE.x0 && cx <= GATE.x1 && cz >= GATE.face && cz <= GATE.z1);
         let ok = 1;
         for (let k = 0; k < this.rectCount; k++) {
           if (k === gateRect) continue;
@@ -127,6 +136,41 @@ export class FortNav {
       const pz = c.z + c.nz * 0.9;
       return this.field((x, z) => Math.hypot(x - px, z - pz) < 0.8);
     });
+    this.toWall = WALL_SECTIONS.map((s, sec) => {
+      if (s.kind !== 'passage') return null;
+      const p = wallOuterPoint(sec, 0.9);
+      return this.field((x, z) => Math.hypot(x - p.x, z - p.z) < 0.8);
+    });
+  }
+
+  /** Состояние проломов принадлежит игре; общий кэш хранит только неизменяемые поля. */
+  fieldFor(mask: number, gateUp: boolean): Float32Array {
+    if (!mask) return this.toCrystal;
+    const key = mask * 2 + Number(gateUp);
+    const cached = this.fields.get(key);
+    if (cached) return cached;
+    const free = new Uint8Array(this.free.length);
+    for (let i = 0; i < free.length; i++) {
+      const x = this.x0 + (i % this.cols + 0.5) * NAV_CELL;
+      const z = this.z0 + (Math.floor(i / this.cols) + 0.5) * NAV_CELL;
+      let ok = 1;
+      for (let k = 0; k < this.rectCount; k++) {
+        if (k === this.gateRect || this.rectSections[k] >= 0 && (mask & (1 << this.rectSections[k]))) continue;
+        const o = k * 4;
+        if (x > this.rects[o] - NAV_R && x < this.rects[o + 2] + NAV_R && z > this.rects[o + 1] - NAV_R && z < this.rects[o + 3] + NAV_R) { ok = 0; break; }
+      }
+      free[i] = ok;
+    }
+    const D = PEDESTAL;
+    const field = this.field((x, z) => rectDist(x, z, D.x0, D.z0, D.x1, D.z1) < 1.3, free, gateUp);
+    this.fields.set(key, field);
+    return field;
+  }
+
+  /** Дыра до земли, в том числе точка лазанья / высадки над ней. */
+  openSectionAt(mask: number, x: number, z: number, pad = 0): number {
+    return WALL_SECTIONS.findIndex((s, sec) => s.kind === 'passage' && (mask & (1 << sec)) !== 0
+      && x >= s.hole[0] - pad && x <= s.hole[1] + pad && z >= s.hole[2] - pad && z <= s.hole[3] + pad);
   }
 
   /** Номер клетки точки (−1 — за картой) */
@@ -143,12 +187,12 @@ export class FortNav {
   }
 
   /** Поле расстояний от свободных клеток, где source(x, z) — правда (считаем в float64: ключи кучи — тоже) */
-  private field(source: (x: number, z: number) => boolean): Float32Array {
+  private field(source: (x: number, z: number) => boolean, free = this.free, gateCost = false): Float32Array {
     const n = this.cols * this.rows;
     const d = new Float64Array(n).fill(NAV_FAR);
     const heap = new MinHeap();
     for (let i = 0; i < n; i++) {
-      if (!this.free[i]) continue;
+      if (!free[i]) continue;
       const x = this.x0 + ((i % this.cols) + 0.5) * NAV_CELL;
       const z = this.z0 + (Math.floor(i / this.cols) + 0.5) * NAV_CELL;
       if (!source(x, z)) continue;
@@ -167,10 +211,10 @@ export class FortNav {
         const nr = r + dr;
         if (nc < 0 || nr < 0 || nc >= cols || nr >= this.rows) continue;
         const j = nr * cols + nc;
-        if (!this.free[j]) continue;
+        if (!free[j]) continue;
         // по диагонали — только если оба угловых соседа свободны (не срезать углы стен)
-        if (dc !== 0 && dr !== 0 && (!this.free[r * cols + nc] || !this.free[nr * cols + c])) continue;
-        const nd = di + w * NAV_CELL;
+        if (dc !== 0 && dr !== 0 && (!free[r * cols + nc] || !free[nr * cols + c])) continue;
+        const nd = di + w * NAV_CELL + (gateCost && this.gateCells[i] && !this.gateCells[j] ? 30 : 0);
         if (nd < d[j]) {
           d[j] = nd;
           heap.push(nd, j);
@@ -269,10 +313,11 @@ export class FortNav {
   }
 
   /** Вытолкнуть круг из препятствий (дважды — для углов). gateUp — створки стоят. */
-  collide(p: { x: number; z: number }, r: number, gateUp: boolean): void {
+  collide(p: { x: number; z: number }, r: number, gateUp: boolean, mask = 0): void {
     for (let pass = 0; pass < 2; pass++) {
       for (let k = 0; k < this.rectCount; k++) {
         if (k === this.gateRect && !gateUp) continue;
+        if (this.rectSections[k] >= 0 && (mask & (1 << this.rectSections[k]))) continue;
         const o = k * 4;
         const x0 = this.rects[o];
         const z0 = this.rects[o + 1];

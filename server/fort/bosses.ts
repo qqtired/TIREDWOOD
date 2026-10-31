@@ -14,6 +14,7 @@ import {
   ROCK_GATE_DMG, ROCK_R, STOMP_DMG, STOMP_R,
 } from '../../shared/fortkinds.ts';
 import { CRYSTAL, GATE, PEDESTAL, THROAT_Z, WALL_H } from '../../shared/fortmap.ts';
+import { WALL_DMG, WALL_NORTH, WALL_NORTH_PASSAGES, WALL_SECTIONS, wallOuterPoint } from '../../shared/fort50.ts';
 import type { Horde, HordeHost, HordeTarget, Zombie } from './horde.ts';
 
 /** Что боссу нужно от орды: хозяин (люди, ворота, события) и сама орда (подкрепления, урон волны, круг босса) */
@@ -171,6 +172,7 @@ export function stepBaron(c: BossCtx, z: Zombie): void {
       if (host.gateUp()) host.hitGate(c.horde.dmgOf(z, BOSS_GATE_DMG));
     } else if (attack === ZS_BOSS_BOMB && z.chase === 0 && !covered) host.hitCrystal(c.horde.dmgOf(z, BOSS_CRYSTAL_DMG));
     else if (ground && Math.hypot(CRYSTAL.x - z.toX, CRYSTAL.z - z.toZ) < r) host.hitCrystal(c.horde.dmgOf(z, BOSS_CRYSTAL_DMG));
+    if (host.fort50Enabled) host.hitWallAt?.(z.toX, z.toZ, r, c.horde.dmgOf(z, WALL_DMG.baron), 1);
     z.atk = (z.atk + 1) & 255;
     host.event(['blast', attack, r2(z.toX), r2(z.toY), r2(z.toZ), r]);
     open(z);
@@ -255,7 +257,10 @@ export function stepRam(c: BossCtx, z: Zombie): void {
       rammed(c, z);
       if (--z.t > 0) return;
       // удар: ворота (если метили их и они стоят) или кристалл
-      if (z.chase === AT_GATE) {
+      if (host.fort50Enabled && z.wallSec >= 0) {
+        const point = wallOuterPoint(z.wallSec, 0);
+        host.hitWall?.(z.wallSec, c.horde.dmgOf(z, WALL_DMG.ram), point.x, 1.5, point.z);
+      } else if (z.chase === AT_GATE) {
         if (host.gateUp()) host.hitGate(c.horde.dmgOf(z, RAM_GATE_DMG));
       } else if (z.chase === AT_CRYSTAL) host.hitCrystal(c.horde.dmgOf(z, RAM_CRYSTAL_DMG));
       z.atk = (z.atk + 1) & 255;
@@ -305,6 +310,15 @@ function chargeWarn(c: BossCtx, z: Zombie): void {
   z.toX = 0;
   z.toY = gate ? 1.5 : 0.8;
   z.toZ = gate ? GATE.face - r - 0.2 : PEDESTAL.z0 - r - 0.3;
+  z.wallSec = -1;
+  if (c.host.fort50Enabled && ++z.wallAttackCount % 2 === 0) {
+    z.wallSec = c.host.weakestWall?.(WALL_NORTH_PASSAGES) ?? -1;
+    if (z.wallSec >= 0) {
+      const point = wallOuterPoint(z.wallSec, r + 0.4);
+      z.chase = 0;
+      z.toX = point.x; z.toY = 1.5; z.toZ = point.z;
+    }
+  }
   z.state = ZS_CHARGE_WARN;
   z.t = BOSS_WARN_TICKS;
   z.yaw = Math.atan2(-(z.toX - z.x), -(z.toZ - z.z));
@@ -395,6 +409,7 @@ export function stepGolem(c: BossCtx, z: Zombie): void {
       }
       z.atk = (z.atk + 1) & 255;
       host.event(['blast', ZS_QUAKE, r2(z.toX), r2(z.toY), r2(z.toZ), QUAKE_R]);
+      if (host.fort50Enabled) host.hitWallAt?.(z.x, z.z, 8, c.horde.dmgOf(z, WALL_DMG.quake), 1);
       open(z);
       return;
     case ZS_BOSS_OPEN:
@@ -413,7 +428,14 @@ function throwRock(c: BossCtx, z: Zombie): void {
   const gate = c.host.gateUp();
   const targets = c.host.targets();
   const target = !(gate && index % 2 === 0) && targets.length ? targets[(index >> 1) % targets.length] : null;
-  if (target) {
+  z.wallSec = c.host.fort50Enabled && ++z.wallAttackCount % 2 === 0 ? c.host.weakestWall?.(WALL_NORTH) ?? -1 : -1;
+  if (z.wallSec >= 0) {
+    const s = WALL_SECTIONS[z.wallSec];
+    z.chase = 0;
+    z.toX = (s.span[0] + s.span[1]) / 2;
+    z.toY = WALL_H;
+    z.toZ = s.face;
+  } else if (target) {
     z.chase = target.id;
     z.toX = target.x;
     z.toY = target.y + 0.8;
@@ -439,11 +461,13 @@ function throwRock(c: BossCtx, z: Zombie): void {
 
 function rockLands(c: BossCtx, z: Zombie): void {
   const { host } = c;
-  const covered = roofCheck(c, z);
+  const wall = host.fort50Enabled && z.wallSec >= 0;
+  const covered = !wall && roofCheck(c, z);
   for (const p of host.targets()) {
     if (blastReaches(c, z, p, ROCK_R)) host.hitPlayer(z.id, p.id, c.horde.dmgOf(z, ROCK_DMG));
   }
-  if (z.chase === AT_GATE) {
+  if (wall) host.hitWall?.(z.wallSec, c.horde.dmgOf(z, WALL_DMG.rock), z.toX, z.toY, z.toZ);
+  else if (z.chase === AT_GATE) {
     if (host.gateUp()) host.hitGate(c.horde.dmgOf(z, ROCK_GATE_DMG));
   } else if (z.chase === AT_CRYSTAL && !covered) host.hitCrystal(c.horde.dmgOf(z, ROCK_CRYSTAL_DMG));
   z.atk = (z.atk + 1) & 255;

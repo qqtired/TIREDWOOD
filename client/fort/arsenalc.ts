@@ -442,7 +442,7 @@ export class ArsenalClient {
         return [`ворота ${Math.round((g / max) * 100)} % · ремонт и укрепление`, 0, true];
       }
       case 'crystal':
-        return [`кристалл ${Math.round((this.host.crystal() / this.crystalMax) * 100)} % · подлечить и укрепить`, 0, true];
+        return [`кристалл ${Math.round((this.host.crystal() / this.crystalMax) * 100)} % · починить и укрепить`, 0, true];
       case 'tower': {
         const type = this.tail.type[st.arg] ?? -1;
         if (type < 0) return ['место для башни · баллиста, пушка, котёл, жаровня', 0, true];

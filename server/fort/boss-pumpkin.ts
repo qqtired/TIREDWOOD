@@ -14,6 +14,7 @@ import {
 } from '../../shared/fortbosses.ts';
 import { BOSS_RAGE_SPEED, ZK, Z_BLOATER, Z_PUMPKIN, isWalkerKind } from '../../shared/fortkinds.ts';
 import { CRYSTAL, GATE, PEDESTAL, WALL_H } from '../../shared/fortmap.ts';
+import { WALL_DMG, WALL_NORTH, WALL_SECTIONS } from '../../shared/fort50.ts';
 import { bossSpeed, packSize, raging, type BossCtx } from './bosses.ts';
 import {
   AT_CRYSTAL, AT_GATE, WALL_WALK_Z, addAt, begin, blastReaches, breachCheck, enterYard, insideYard, open, pauseOf,
@@ -161,11 +162,18 @@ function roll(c: BossCtx, z: Zombie): void {
   const { host } = c;
   const inside = z.chase === AT_CRYSTAL;
   const left = Math.max(1, z.t);
+  const fromX = z.x;
   z.x += (rollToX(z) - z.x) / left;
   z.z += (rollToZ(z) - z.z) / left;
   z.toX = z.x;
   if (inside) z.toZ = z.z;
   const r = ZK[Z_PUMPKIN].r;
+  if (host.fort50Enabled && !inside) for (const sec of WALL_NORTH) {
+    const s = WALL_SECTIONS[sec], key = -sec - 1;
+    if (z.hits.includes(key) || Math.max(fromX, z.x) < s.span[0] || Math.min(fromX, z.x) > s.span[1]) continue;
+    z.hits.push(key); // номера людей положительные; участок получает один удар за перекат
+    host.hitWall?.(sec, c.horde.dmgOf(z, WALL_DMG.pumpkin), Math.max(s.span[0], Math.min(s.span[1], z.x)), WALL_H, s.face);
+  }
   for (const p of host.targets()) {
     if (p.air || z.hits.includes(p.id)) continue;
     // снаружи: трясётся ход стены над ним; рядом по земле — тоже под тыкву

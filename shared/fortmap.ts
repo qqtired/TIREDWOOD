@@ -3,7 +3,8 @@
 // 'deck' — земля (её рисует сам мир крепости), 'brick' — каменная кладка, 'concrete' — светлый камень (бруствер,
 // ступени, постамент), 'wood' — ворота и ящики. Ворота — отдельный бокс: пали — его убирают (CollisionWorld.setEnabled).
 import { Builder } from './maps/builder.ts';
-import type { GameMap, SpawnPoint } from './maps/types.ts';
+import type { GameMap, MapBox, SpawnPoint } from './maps/types.ts';
+import { WALL_SECTIONS } from './fort50.ts';
 
 /** Высота стен (верх хода по стене), бруствер снаружи: высота и толщина, зубцы на нём */
 export const WALL_H = 3.4;
@@ -24,6 +25,9 @@ export const TERRACE = { x0: -10, x1: 10, z0: 5, z1: 11, h: 2.2 };
 /** Постамент кристалла; кристалл висит над ним */
 export const PEDESTAL = { x0: -1.3, x1: 1.3, z0: 1.3, z1: 3.9, h: 1.0 };
 export const CRYSTAL = { x: 0, y: 2.55, z: 2.6 };
+/** Стойка кристалла: радиус по земле от центра и высота (двор y=0, верх постамента 1, терраса 2,2 — все в пределах 1,5) */
+export const CRYSTAL_REACH = 3.3;
+export const CRYSTAL_REACH_Y = 1.1;
 
 export type FortStationKind = 'bell' | 'gate' | 'crystal' | 'tower' | 'shop' | 'flag';
 
@@ -122,6 +126,8 @@ export interface FortMap extends GameMap {
   /** Номер бокса створок ворот в boxes */
   gateBox: number;
   stations: FortStation[];
+  /** Номера боксов, которые выключаются при проломе / обвале участка. */
+  sections?: number[][];
 }
 
 const STONE = 0xcbbfa6;
@@ -129,7 +135,7 @@ const STONE_DARK = 0xb3a68c;
 const TRIM = 0xdfd5bf;
 const WOOD = 0x8a5a34;
 
-export function buildFort(): FortMap {
+export function buildFort(opts?: { sections?: boolean }): FortMap {
   const b = new Builder(false);
   const H = WALL_H;
   const P = H + PARAPET_H;
@@ -235,10 +241,11 @@ export function buildFort(): FortMap {
   const st = (kind: FortStationKind, x: number, y: number, z: number, r: number, arg: number): void => {
     stations.push({ id: stations.length, kind, x, y, z, r, arg });
   };
-  // колокол — в углу террасы (не за спиной у тех, кто появляется), кристалл — у края террасы над ним
+  // колокол — в углу террасы (не за спиной у тех, кто появляется). Кристалл чинят с любой стороны (31.10, просьба
+  // владельца): стойка — в центре кристалла на средней высоте, достаёт и со двора вокруг постамента, и с края террасы.
   st('bell', -8.2, R.h, 9.4, 1.6, 0);
   st('gate', 0, 0, -11.6, 2.4, 0);
-  st('crystal', 0, R.h, 5.8, 1.4, 0);
+  st('crystal', CRYSTAL.x, CRYSTAL_REACH_Y, CRYSTAL.z, CRYSTAL_REACH, 0);
   TOWER_SPOTS.forEach((t, i) => st('tower', t.x, t.y, t.z, 1.6, i));
   st('shop', SHOP_SPOT.x, R.h, SHOP_SPOT.z, 2.4, 0);
   // белый флаг — всегда последняя: номера стоек выше не сдвигаются
@@ -252,7 +259,7 @@ export function buildFort(): FortMap {
   b.deco.push({ kind: 'buoy', x: 26, z: 46, color: 0xf2c230 });
   b.deco.push({ kind: 'boat', x: 44, z: 60, yaw: 0.8, color: 0xe8e2d4 });
 
-  return {
+  const map: FortMap = {
     name: 'Старая крепость',
     boxes: b.boxes,
     spawns,
@@ -263,6 +270,45 @@ export function buildFort(): FortMap {
     gateBox,
     stations,
   };
+  if (opts?.sections) splitSections(map);
+  return map;
+}
+
+/** Режем только кладку стены и её верх; карта для рисования без опции остаётся прежней. */
+function splitSections(map: FortMap): void {
+  const boxes: MapBox[] = [];
+  let gateBox = map.gateBox;
+  const sections: number[][] = WALL_SECTIONS.map(() => []);
+  map.boxes.forEach((box, original) => {
+    let pieces: Array<{ box: MapBox; sec: number }> = [{ box, sec: -1 }];
+    WALL_SECTIONS.forEach((section, sec) => {
+      const wall = box.mat === 'brick' && box.min[1] === 0 && section.kind === 'passage';
+      const top = box.mat === 'concrete' && (box.min[1] === WALL_H || box.min[1] === WALL_H + PARAPET_H);
+      if (!wall && !top) return;
+      const h = section.hole;
+      const axis = section.nx ? 2 : 0;
+      const lo = h[axis === 0 ? 0 : 2], hi = h[axis === 0 ? 1 : 3];
+      pieces = pieces.flatMap((piece) => {
+        const b = piece.box;
+        if (piece.sec >= 0 || b.max[0] <= h[0] || b.min[0] >= h[1] || b.max[2] <= h[2] || b.min[2] >= h[3]) return [piece];
+        const cuts = [b.min[axis], ...[lo, hi].filter((v) => v > b.min[axis] && v < b.max[axis]), b.max[axis]];
+        return cuts.slice(0, -1).map((a, i) => {
+          const part: MapBox = { ...b, min: [...b.min], max: [...b.max] };
+          part.min[axis] = a;
+          part.max[axis] = cuts[i + 1];
+          return { box: part, sec: a >= lo && cuts[i + 1] <= hi ? sec : -1 };
+        });
+      });
+    });
+    if (original === map.gateBox) gateBox = boxes.length;
+    for (const piece of pieces) {
+      if (piece.sec >= 0) sections[piece.sec].push(boxes.length);
+      boxes.push(piece.box);
+    }
+  });
+  map.boxes = boxes;
+  map.gateBox = gateBox;
+  map.sections = sections;
 }
 
 /** Внутри стен (во дворе, на террасе, в проезде под воротами) */

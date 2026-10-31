@@ -23,6 +23,7 @@
 |---|---|---|
 | Ферма: выбор семян, репутация, доход всей фермы | `client/farm/ui/`, `shared/farm*.ts` | [farm/review3.md](farm/review3.md), `farm-review3.test.ts` |
 | Осадные волны и модели крепости | `server/fort/siege.ts`, `shared/fortsiege.ts`, `client/fort/approved/` | [fort-approved/gameplay.md](fort-approved/gameplay.md), `fort-approved-{siege,clock,replay}.test.ts` |
+| «Крепость 50» (флаг `FORT50`): 50 волн, ломаемые стены и ремонт, камни со стены, лагерь Барона с катапультой; без флага — щит на J и кристалл с любой стороны | `shared/fort50.ts` (числа и сообщения), `server/fort/{walls,camp}.ts`, `client/fort/f50/` (вид стен `walls3d.ts`, лагерь `camp3d.ts`, подсказки и E `f50c.ts`, строка «Стены» `wallrow.ts`, звуки `sfx.ts`); стенд лагеря `tools/fort50-camp/` | [fort50/tech.md](fort50/tech.md), бриф [fort50/brief.md](fort50/brief.md), `fort50-{waves,walls,camp}.test.ts`, `fortmap.test.ts` (кристалл) |
 | Регата «Белые скалы» | `shared/regatta*.ts`, `client/lobby/regattaland.ts`, `tools/regatta/` | [regatta/README.md](regatta/README.md), `regatta-{banks,world}.test.ts` |
 | Длинные трассы картинга | `shared/maps/{ring,hills}.ts`, `shared/kart.ts` | [karting-v3.md](karting-v3.md), `racecourse.test.ts` |
 | Архивы рекордов по курсам | `server/store.ts`, `shared/economy.ts`, `client/ui/records.ts` | [course-records.md](course-records.md), `course-records-migration.test.ts` |
@@ -250,6 +251,7 @@
 | `fort-mobs/` | стенд мобов крепости: любая модель с позами и хитбоксом |
 | `fort-preview/` | контролируемое превью босса крепости |
 | `fort-turrets/` | стенд башен крепости: бой понарошку |
+| `fort50-camp/` | стенд лагеря Барона «Крепости 50»: стадии сборки, замах и выстрел катапульты, поджог, факел |
 | `farm/` | `layout.mjs` — из `docs/farm/level/layout.json` собирает `shared/farmlayout.ts` |
 | `plaza3/` | `layout.mjs` — из `docs/plaza3/level/layout.json` собирает `shared/plaza3/layout.ts` (`--check` — только сверить); `signs.mjs` — места и размеры вывесок из якорей `anchor_sign_*` моделей (`--write` — в `layout.json`); `cols.mjs` — твёрдое мест, которое держит модель (`col_*` Семёна, витрины, бильярда, мола, ряды скалы), в `colliders` раскладки (`--write`; без аргумента — только сверка) |
 | `farm-sim/` | симуляция экономики фермы (`sim.mjs`, итоги — `RESULTS.md`) |

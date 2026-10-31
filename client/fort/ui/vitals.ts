@@ -140,7 +140,7 @@ export class FortPrompt {
   private station: { text: string; price: number; can: boolean; afford: boolean } | null = null;
   private ladder: 'up' | 'down' | null = null;
   private resume = false;
-  private repair: { left: number; progress: number } | null = null;
+  private repair: { left: number; progress: number; label: string; icon: string } | null = null;
   private key = '';
 
   constructor(slot: HTMLElement) {
@@ -172,15 +172,16 @@ export class FortPrompt {
     this.render();
   }
 
-  setRepair(left: number, progress: number): void {
-    this.repair = left > 0 ? {left:Math.ceil(left*10)/10,progress:Math.round(Math.max(0,Math.min(1,progress))*100)/100} : null;
+  /** Полоса работы «держи и стой»: ремонт (ворота, кристалл, стена) или поджог лагеря — label и icon */
+  setRepair(left: number, progress: number, label = 'Ремонт', icon = 'hammer'): void {
+    this.repair = left > 0 ? {left:Math.ceil(left*10)/10,progress:Math.round(Math.max(0,Math.min(1,progress))*100)/100,label,icon} : null;
     this.render();
   }
 
   private render(): void {
     const s = this.station;
     const repair = this.repair;
-    const key = this.resume ? 'resume' : repair ? `r|${repair.left}|${repair.progress}` : s ? `s|${s.text}|${s.price}|${s.can}|${s.afford}` : this.ladder ? `l|${this.ladder}` : '';
+    const key = this.resume ? 'resume' : repair ? `r|${repair.label}|${repair.left}|${repair.progress}` : s ? `s|${s.text}|${s.price}|${s.can}|${s.afford}` : this.ladder ? `l|${this.ladder}` : '';
     if (key === this.key) return;
     this.key = key;
     this.root.hidden = key === '';
@@ -190,7 +191,7 @@ export class FortPrompt {
       return;
     }
     if (repair) {
-      this.root.innerHTML = `${fortImg('hammer','k-ic')}<span>Ремонт ${repair.left.toFixed(1)} с</span><span class="k-meter k-meter--good ft-repair-meter" style="--v:${repair.progress}"><i class="k-meter-fill"></i></span><span class="k-prompt-note">Движение и выстрел прервут работу</span>`;
+      this.root.innerHTML = `${fortImg(repair.icon,'k-ic')}<span>${repair.label} ${repair.left.toFixed(1)} с</span><span class="k-meter k-meter--good ft-repair-meter" style="--v:${repair.progress}"><i class="k-meter-fill"></i></span><span class="k-prompt-note">Движение и выстрел прервут работу</span>`;
       return;
     }
     if (s) {

@@ -9,7 +9,7 @@ import {
   FLY_CRYSTAL_DMG, FLY_DIVE_TICKS, FLY_R, FLY_RECOVER_TICKS, FLY_WARN_TICKS,
   CLIMB_DROP_TICKS, CLIMB_SPEED, CLIMB_TOP_TICKS, FORT_MAX_ALIVE, POP_CRYSTAL, POP_GATE, POP_PLAYER, POP_R, POP_ZOMBIE, ZK, ZS_ATTACK, ZS_CLIMB,
   ZS_DROP, ZS_TOP, ZS_WALK, Z_AGGRO, Z_BLOATER, Z_CLIMBER, Z_GATE_EVERY, Z_GATE_GAP, Z_HIT_EVERY, Z_KINDS, Z_STUCK_TICKS,
-  Z_BOSS, Z_FLYER, ZS_BOSS_APPROACH, ZS_BOSS_BOMB, ZS_BOSS_GATE, ZS_BOSS_OPEN, ZS_BOSS_PULSE,
+  Z_BOSS, Z_BRUTE, Z_FLYER, ZS_BOSS_APPROACH, ZS_BOSS_BOMB, ZS_BOSS_GATE, ZS_BOSS_OPEN, ZS_BOSS_PULSE,
   ZS_FLY_DIVE, ZS_FLY_RECOVER, ZS_FLY_WARN, ZS_BARREL, ZS_PLANT, ZS_SPIT, ZS_CHARGE, ZS_CHARGE_WARN, ZS_QUAKE, ZS_STOMP, ZS_THROW,
   ZS_BOAT, ZS_HOP,
   ZS_KRAKEN_DIVE, ZS_KRAKEN_SPIT, ZS_TENT_REST, ZS_TENT_SLAM, Z_KRAKEN, Z_TENTACLE,
@@ -38,6 +38,10 @@ import { stepBoat, stepHop, type SeaCtx } from './sea.ts';
 import { krakenArmor, stepKraken, stepTentacle, tentacleRage } from './kraken.ts';
 import { enemyHpScale, planCounts, type WavePlan } from './director.ts';
 import { FortNav, rectDist } from './nav.ts';
+import {
+  CAMP_AGGRO, CAMP_LEASH, f50Force, STONE_HALF, STONE_OUT, STONE_STUN_TICKS, STONE_WALKERS, WALL_DPS_ARMORED, WALL_DPS_BRUTE, WALL_SECTIONS, wallOuterPoint,
+} from '../../shared/fort50.ts';
+import { Z_WALKER } from '../../shared/fortkinds.ts';
 import { Siege } from './siege.ts';
 import { BOAT_ANCHOR_FLAG, SIEGE_SLOT_RESERVE, Z_ROPECRAB, ZS_SIEGE_APPROACH, ZS_SIEGE_OPEN, ZS_SIEGE_ACTION, ZS_SIEGE_WINDUP, ZS_SIEGE_DEPLOY, Z_JAMPUMP, Z_MILLER, siegeBodyMul } from '../../shared/fortsiege.ts';
 
@@ -55,6 +59,11 @@ export interface HordeTarget {
 
 export interface HordeHost {
   readonly tick: number;
+  readonly fort50Enabled?: boolean;
+  wallUp?(sec: number): boolean;
+  weakestWall?(sections: readonly number[]): number;
+  hitWall?(sec: number, dmg: number, x: number, y: number, z: number): void;
+  hitWallAt?(x: number, z: number, r: number, dmg: number, max?: number): void;
   /** Створки ворот стоят */
   gateUp(): boolean;
   hitGate(dmg: number): void;
@@ -83,6 +92,9 @@ export class Zombie {
   tier = 0;
   /** Абордажник с лодки */
   crew = false;
+  /** Страж лагеря живёт в общем пуле, но не входит в счёт волны. */
+  guard = false;
+  guardHome: { x: number; z: number; cx: number; cz: number; slot: number } | null = null;
   /** Щит щитоносца (прочность), бочка подрывника, отсчёт лекаря, рядом чемпион */
   shield = 0;
   carry = false;
@@ -102,6 +114,10 @@ export class Zombie {
   road = 0;
   /** Липучка: номер точки на стене (−1 — уже во дворе или не липучка) */
   climb = -1;
+  /** Тяжёлый Ф50: участок, который ломает; −1 — обычный путь. */
+  wallSec = -1;
+  /** Чередование рывков / камней / ударов по строению Ф50, отдельно от прежнего ритма атак. */
+  wallAttackCount = 0;
   /** Бьёт: перезарядка удара и счётчик ударов (для взмаха на клиенте) */
   atkCd = 0;
   atk = 0;
@@ -172,6 +188,8 @@ const _attack = { x: 0, y: 0, z: 0 };
 
 export class Horde {
   readonly nav: FortNav;
+  field: Float32Array;
+  breachMask = 0;
   readonly zombies: Zombie[] = [];
   readonly siege: Siege;
   private readonly host: HordeHost;
@@ -206,6 +224,7 @@ export class Horde {
   constructor(nav: FortNav, host: HordeHost, rng: () => number) {
     this.siege = new Siege(this, host);
     this.nav = nav;
+    this.field = nav.toCrystal;
     this.host = host;
     this.rng = rng;
     this.bossCtx = { host, horde: this };
@@ -226,12 +245,18 @@ export class Horde {
 
   /** В волне: ещё не вышли + живые + экипажи в лодках */
   get left(): number {
-    return this.pending + this.alive + this.cargo;
+    return this.pending + this.alive - this.guards + this.cargo;
+  }
+
+  get guards(): number {
+    let count = 0;
+    for (const z of this.zombies) if (z.alive && z.guard) count++;
+    return count;
   }
 
   /** Все вышли и все сбиты */
   get cleared(): boolean {
-    return this.pending === 0 && this.alive === 0 && this.siege.pending === 0;
+    return this.pending === 0 && this.alive === this.guards && this.siege.pending === 0;
   }
 
   /** Убрать всех (новая игра) */
@@ -290,6 +315,33 @@ export class Horde {
 
   get defenders(): number { return this.hpHumans; }
 
+  get force(): number { return this.plan?.f50 ? f50Force(this.wave) : Math.max(1, this.wave); }
+
+  updateField(mask = this.breachMask): void {
+    this.breachMask = mask;
+    const field = this.nav.fieldFor(mask, this.host.gateUp());
+    if (this.field === field) return;
+    this.field = field;
+    for (const z of this.zombies) { z.bestD = 1e9; z.stuck = 0; }
+  }
+
+  /** Если стены под высадкой больше нет, ставим на землю снаружи и идём через пролом. */
+  landAtBreach(z: Zombie, x: number, zz: number, pad = 0): boolean {
+    if (!this.breachMask) return false;
+    const sec = this.nav.openSectionAt(this.breachMask, x, zz, pad);
+    if (sec < 0) return false;
+    const point = wallOuterPoint(sec, ZK[z.kind].r + 0.4);
+    z.x = WALL_SECTIONS[sec].nx ? point.x : x;
+    z.z = WALL_SECTIONS[sec].nz ? point.z : zz;
+    z.y = 0;
+    z.climb = -1;
+    z.state = ZS_WALK;
+    z.siegeCarrier = 0;
+    z.vx = z.vz = z.t = 0;
+    z.bestD = 1e9; z.stuck = 0;
+    return true;
+  }
+
   /** Круг босса этой волны (0 — первый, 1 — II …) */
   get bossTier(): number { return this.plan?.bossTier ?? 0; }
 
@@ -346,11 +398,11 @@ export class Horde {
   hpFor(kind: number, tier: number, hpHumans = this.hpHumans): number {
     if (isBossKind(kind)) {
       if (this.plan && this.plan.boss === kind) return this.plan.bossHp * bossTeamMul(hpHumans) / bossTeamMul(this.plan.defenders);
-      return BOSS_BASE_HP * waveHpMul(Math.max(1, this.wave)) * bossTeamMul(hpHumans) * (kind === Z_GOLEM ? 3 : 1);
+      return BOSS_BASE_HP * waveHpMul(this.force) * bossTeamMul(hpHumans) * (kind === Z_GOLEM ? 3 : 1);
     }
     const scale = this.plan?.siegeHpScale !== undefined && siegeBodyMul(kind, 2) > 1
       ? this.plan.siegeHpScale * (hpHumans === this.hpHumans ? 1 : enemyHpScale(this.wave, hpHumans) / enemyHpScale(this.wave, this.hpHumans))
-      : this.plan ? this.hpScale * teamHpMul(hpHumans) / teamHpMul(this.hpHumans) : teamHpMul(hpHumans) * waveHpMul(Math.max(1, this.wave));
+      : this.plan ? this.hpScale * teamHpMul(hpHumans) / teamHpMul(this.hpHumans) : teamHpMul(hpHumans) * waveHpMul(this.force);
     return ZK[kind].hp * scale * (TIER_HP[tier] ?? 1) * siegeBodyMul(kind, hpHumans);
   }
 
@@ -397,6 +449,9 @@ export class Horde {
     z.kind = kind;
     z.tier = isBossKind(kind) ? 0 : Math.max(0, Math.min(2, tier | 0));
     z.crew = false;
+    z.guard = false;
+    z.guardHome = null;
+    z.wallAttackCount = 0;
     z.state = isBossKind(kind) ? ZS_BOSS_APPROACH : ZS_WALK;
     if (kind >= Z_ROPECRAB && !isBossKind(kind)) z.state = ZS_SIEGE_APPROACH;
     z.anchor = false;
@@ -412,7 +467,19 @@ export class Horde {
     z.vz = 0;
     z.road = road;
     z.climb = kind === Z_CLIMBER ? climbFor(road, this.rng()) : -1;
-    z.shield = kind === Z_SHIELD ? shieldHp(Math.max(1, this.wave), hpHumans) * (1 + 0.5 * z.tier) : 0;
+    z.wallSec = -1;
+    if (this.host.fort50Enabled && (kind === Z_BRUTE || kind === Z_ARMORED) && z.id % 2 === 0) {
+      const ids = road === 0 ? ['nw', 'w1', 'w2'] : road === 2 ? ['ne', 'e1', 'e2'] : [(z.id / 2) % 2 === 0 ? 'nw' : 'ne'];
+      let distance = Infinity;
+      for (const id of ids) {
+        const sec = WALL_SECTIONS.findIndex((s) => s.id === id);
+        if (!this.host.wallUp?.(sec)) continue;
+        const p = wallOuterPoint(sec, ZK[kind].r + 0.4);
+        const d = Math.hypot(z.x - p.x, z.z - p.z);
+        if (d < distance) { distance = d; z.wallSec = sec; }
+      }
+    }
+    z.shield = kind === Z_SHIELD ? shieldHp(this.force, hpHumans) * (1 + 0.5 * z.tier) : 0;
     z.carry = kind === Z_SAPPER;
     z.healT = kind === Z_MEDIC ? 60 + Math.floor(this.rng() * HEAL_EVERY) : 0;
     z.hasted = false;
@@ -440,6 +507,26 @@ export class Horde {
 
   // ------------------------------------------------------------ урон
 
+  /** Камень со стены: прямой урон без брони, с обычным учётом вклада и наград. */
+  stoneHit(sec: number, by: number): number {
+    const s = WALL_SECTIONS[sec];
+    const dmg = STONE_WALKERS * this.hpFor(Z_WALKER, 0);
+    let killed = 0;
+    for (const z of this.zombies) {
+      if (!z.alive) continue;
+      const along = s.nx ? z.z - s.stack[2] : z.x - s.stack[0];
+      const out = s.nx ? (z.x - s.face) * s.nx : (z.z - s.face) * s.nz;
+      if (Math.abs(along) > STONE_HALF || out < 0 || out > STONE_OUT) continue;
+      const climbing = z.kind === Z_CLIMBER && z.state === ZS_CLIMB;
+      if (!climbing && (z.y >= 1.5 || z.kind === Z_BOAT)) continue;
+      if (z.wallSec === sec && z.state === ZS_ATTACK) z.atkCd = STONE_STUN_TICKS;
+      this.hurt(z, climbing ? z.hp : dmg, by, 0, z.x, z.y + ZK[z.kind].hcy, z.z);
+      if (!z.alive) killed++;
+    }
+    this.drainPops();
+    return killed;
+  }
+
   /**
    * Попадание (выстрел — by = номер стрелка, краскомёт — 0). ox, oz — откуда стреляли (для щита: спереди держит,
    * голову не закрывает). Чугунок гасит попадание в тело на броню волны (не меньше 30 % проходит), голову — нет.
@@ -455,7 +542,7 @@ export class Horde {
     if (!(dmg > 0)) return;
     let mark = head ? 1 : 0;
     if (!head && z.kind === Z_ARMORED) {
-      const armor = armorFor(Math.max(1, this.wave)) * (1 + 0.5 * z.tier);
+      const armor = armorFor(this.force) * (1 + 0.5 * z.tier);
       dmg = Math.max(dmg * ARMOR_MIN_PASS, dmg - armor);
       mark = 3;
     }
@@ -613,6 +700,7 @@ export class Horde {
     boat.stage = n - 1 | (boat.anchor ? BOAT_ANCHOR_FLAG : 0);
     this.cargo--;
     z.crew = true;
+    z.wallSec = -1;
     z.climb = boat.x < 0 ? CLIMB_SEA_W : CLIMB_SEA_E;
     z.state = ZS_HOP;
     z.t = HOP_TICKS;
@@ -662,7 +750,7 @@ export class Horde {
           && !host.traceAttack(b.x, y, b.z, p.x, p.y + 0.8, p.z, _attack)) host.hitPlayer(b.id, p.id, this.dmgOf(b, BARREL_PLAYER));
       }
       // своим — слабо (BARREL_ZOMBIE), и соседних подрывников не трогает: один взрыв не рвёт остальные бочки
-      const hit = BARREL_ZOMBIE * waveHpMul(Math.max(1, this.wave));
+      const hit = BARREL_ZOMBIE * waveHpMul(this.force);
       for (const o of this.zombies) {
         if (!o.alive || o === b || o.kind === Z_SAPPER) continue;
         if (Math.hypot(o.x - b.x, o.y - b.y, o.z - b.z) >= BARREL_R) continue;
@@ -693,7 +781,7 @@ export class Horde {
           && !host.traceAttack(b.x, b.y + 0.8, b.z, p.x, p.y + 0.8, p.z, _attack)) host.hitPlayer(b.id, p.id, this.dmgOf(b, POP_PLAYER));
       }
       // по своим — как 100 HP шаркуна на этой волне: цепочка пузырей остаётся оружием и на высоких волнах
-      const popZ = POP_ZOMBIE * waveHpMul(Math.max(1, this.wave));
+      const popZ = POP_ZOMBIE * waveHpMul(this.force);
       for (const o of this.zombies) {
         if (!o.alive || o === b) continue;
         if (Math.hypot(o.x - b.x, o.y - b.y, o.z - b.z) >= POP_R) continue;
@@ -734,6 +822,15 @@ export class Horde {
     for (const z of this.zombies) {
       if (!z.alive) continue;
       if (z.atkCd > 0) z.atkCd--;
+      if (z.guard) {
+        if (z.kind === Z_SPITTER) this.stepSpitter(z, gateUp);
+        else this.stepGround(z, gateUp);
+        continue;
+      }
+      if (z.climb >= 0 && (z.state === ZS_CLIMB || z.state === ZS_TOP || z.state === ZS_DROP)) {
+        const c = CLIMBS[z.climb];
+        this.landAtBreach(z, c.x, c.z, 0.5);
+      }
       if (this.siege.step(z)) continue;
       if (z.state === ZS_HOP) stepHop(z);
       else if (z.kind === Z_BOAT) stepBoat(this.seaCtx, z);
@@ -758,7 +855,7 @@ export class Horde {
       const r = ZK[z.kind].r;
       _p.x = z.x;
       _p.z = z.z;
-      this.nav.collide(_p, r, gateUp);
+      this.nav.collide(_p, r, gateUp, this.breachMask);
       z.x = _p.x;
       z.z = _p.z;
       // створки стоят — встаём в Z_GATE_GAP от них (сверху видно, по кому стрелять)
@@ -766,6 +863,31 @@ export class Horde {
     }
     this.drainPops();
     this.record(tick);
+  }
+
+  /** В передышке у лагеря остаются только стражи: без расписания и осадных атак. */
+  stepGuards(): void {
+    const gate = this.host.gateUp();
+    for (const z of this.zombies) {
+      if (!z.alive || !z.guard) continue;
+      if (z.atkCd > 0) z.atkCd--;
+      if (z.kind === Z_SPITTER) this.stepSpitter(z, gate);
+      else this.stepGround(z, gate);
+    }
+    this.separate();
+    for (const z of this.zombies) if (z.alive && z.guard) {
+      _p.x = z.x; _p.z = z.z;
+      this.nav.collide(_p, ZK[z.kind].r, gate, this.breachMask);
+      z.x = _p.x; z.z = _p.z;
+    }
+    this.record(this.host.tick);
+  }
+
+  private guardTarget(z: Zombie, p: HordeTarget): boolean {
+    const home = z.guardHome;
+    return !!home && p.y < 1 && !insideFort(p.x, p.z)
+      && Math.hypot(p.x - home.cx, p.z - home.cz) <= CAMP_LEASH
+      && Math.hypot(p.x - z.x, p.z - z.z) < CAMP_AGGRO;
   }
 
   /** Flyers use 3D approaches over the parapet and commit to a fixed mark before the dive. */
@@ -882,6 +1004,7 @@ export class Horde {
     if (!insideFort(z.x, z.z)) {
       let best = Infinity;
       for (const p of host.targets()) {
+        if (z.guard && !this.guardTarget(z, p)) continue;
         const d = Math.hypot(p.x - z.x, p.z - z.z);
         if (d < SPIT_MIN || d > SPIT_RANGE) continue;
         // на стене — в первую очередь
@@ -986,12 +1109,18 @@ export class Horde {
     let dz = 0;
     let attacking = false;
     let field: Float32Array | null = null;
+    if (z.wallSec >= 0 && !host.wallUp?.(z.wallSec)) { z.wallSec = -1; z.bestD = 1e9; z.stuck = 0; }
+    if (z.climb >= 0) {
+      const c = CLIMBS[z.climb];
+      if (this.nav.openSectionAt(this.breachMask, c.x, c.z, 0.5) >= 0) z.climb = -1;
+    }
 
     // человек на земле по ту же сторону стены (подрывник и лекарь заняты своим)
     let target: HordeTarget | null = null;
-    let best = z.chase ? Z_AGGRO + 2 : Z_AGGRO;
-    const busy = z.kind === Z_SAPPER || z.kind === Z_MEDIC;
+    let best = z.guard ? CAMP_AGGRO : z.chase ? Z_AGGRO + 2 : Z_AGGRO;
+    const busy = z.kind === Z_SAPPER || z.kind === Z_MEDIC || z.wallSec >= 0;
     if (!busy) for (const p of host.targets()) {
+      if (z.guard && !this.guardTarget(z, p)) continue;
       if (p.y > 1 || insideFort(p.x, p.z) !== inside) continue;
       const d = Math.hypot(p.x - z.x, p.z - z.z);
       if (d < best && !host.traceAttack(z.x, z.y + k.hcy, z.z, p.x, p.y + 0.8, p.z, _attack)) {
@@ -1021,7 +1150,27 @@ export class Horde {
       }
     } else {
       z.chase = 0;
-      if (z.climb >= 0 && !inside) {
+      if (z.guard) {
+        const home = z.guardHome;
+        if (home) {
+          const distance = Math.hypot(home.x - z.x, home.z - z.z);
+          if (distance > 0.1) { dx = (home.x - z.x) / distance; dz = (home.z - z.z) / distance; }
+        }
+      } else if (z.wallSec >= 0) {
+        const point = wallOuterPoint(z.wallSec, k.r + 0.4);
+        field = this.nav.toWall[z.wallSec];
+        if (Math.hypot(point.x - z.x, point.z - z.z) < 0.7) {
+          attacking = true;
+          const s = WALL_SECTIONS[z.wallSec];
+          z.yaw = Math.atan2(s.nx, s.nz);
+          if (z.atkCd === 0) {
+            z.atkCd = Z_GATE_EVERY;
+            z.atk = (z.atk + 1) & 255;
+            const dps = z.kind === Z_BRUTE ? WALL_DPS_BRUTE : WALL_DPS_ARMORED;
+            host.hitWall?.(z.wallSec, this.dmgOf(z, dps * Z_GATE_EVERY / TICK_RATE), point.x - s.nx * (k.r + 0.4), 1.2, point.z - s.nz * (k.r + 0.4));
+          }
+        }
+      } else if (z.climb >= 0 && !inside) {
         const c = CLIMBS[z.climb];
         const cx = c.x + c.nx * (k.r + 0.05);
         const cz = c.z + c.nz * (k.r + 0.05);
@@ -1037,7 +1186,7 @@ export class Horde {
         }
         field = this.nav.toClimb[z.climb];
       } else {
-        field = this.nav.toCrystal;
+        field = this.field;
         if (!inside && gateUp && Math.abs(z.x) < GATE.x1 - 0.15 && z.z < GATE.face && z.z + k.r >= GATE.face - Z_GATE_GAP - 0.2) {
           // перед створками: бьём ворота
           attacking = true;
@@ -1073,7 +1222,11 @@ export class Horde {
         let gx = 0;
         let gz = 0;
         let gd = Infinity;
-        if (z.climb >= 0 && !inside) {
+        if (z.wallSec >= 0) {
+          const point = wallOuterPoint(z.wallSec, k.r + 0.4);
+          gx = point.x; gz = point.z;
+          gd = Math.hypot(gx - z.x, gz - z.z);
+        } else if (z.climb >= 0 && !inside) {
           const c = CLIMBS[z.climb];
           gx = c.x + c.nx * (k.r + 0.05);
           gz = c.z + c.nz * (k.r + 0.05);

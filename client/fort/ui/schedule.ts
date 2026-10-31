@@ -14,8 +14,15 @@ export interface BossInfo {
   super: boolean;
 }
 
+let last = FORT_LAST_WAVE;
+
 export function lastWave(): number {
-  return FORT_LAST_WAVE;
+  return last;
+}
+
+/** «Крепость 50»: последняя волна забега — 50 (сервер прислал стены Ф50); без флага — как было */
+export function setLastWave(n: number): void {
+  last = n;
 }
 
 /** Дуга от первого увиденного остатка текущей паузы. Колокол сокращает остаток, а не перезапускает дугу. */

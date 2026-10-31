@@ -11,6 +11,7 @@ import type { RouletteColor, RouletteLogRow, RouletteView } from './roulette.ts'
 import type { FortEvent, FortPlayerRow, FortResultRow, FortRunRec, FortStatus, FortTowerRow, FortWaveCard, FtReward } from './fort.ts';
 import type { FortRecIntro, FortRecKind } from './fortrecord.ts';
 import type { FortSurrender } from './fortsurrender.ts';
+import type { F50State } from './fort50.ts';
 import type { Outfit } from './outfit.ts';
 import type { BlackjackAct, BlackjackView } from './blackjack.ts';
 import type { BilliardsClientMsg, BilliardsServerMsg } from './billiards.ts';
@@ -644,6 +645,8 @@ export type ServerMsg =
   | { t: 'fend'; win: boolean; wave: number; mvp: number; rows: FortResultRow[]; top?: FortRunRec[]; record?: boolean; prev?: number; run?: number; surr?: boolean }
   // голосование «сдаться» у белого флага (shared/fortsurrender.ts): состояние всем в крепости
   | ({ t: 'fsurr' } & FortSurrender)
+  // «Крепость 50» (FORT50=1): стены, камни, лагерь — shared/fort50.ts
+  | ({ t: 'f50' } & F50State)
   | ({ t: 'fortReward' } & FtReward)
   // рекорд после отбитой волны: k — team (побит рекорд крепости), tie (повторён), me (свой); prev — что было до этой игры
   | { t: 'frec'; k: FortRecKind; wave: number; prev: number; first?: boolean }
