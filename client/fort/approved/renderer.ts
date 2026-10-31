@@ -8,17 +8,20 @@ import { Z_ROPECRAB, Z_JAMPUMP, Z_CANOPY, Z_FOREMAN, Z_CRABCRANE, Z_MILLER, Z_SI
 } from '../../../shared/fortsiege.ts';
 import { bakeFortModel, fortBakedMaterial, frameAt, type BakedMob } from './bake.ts';
 
-export const APPROVED_ASSETS = [
-  { kind: Z_ROPECRAB, id: 'ropecrab', name: 'Канатник', url: new URL('../../assets/fort/approved/ropecrab-r2-07.glb', import.meta.url).href },
-  { kind: Z_JAMPUMP, id: 'jampump', name: 'Смоливщик', url: new URL('../../assets/fort/approved/jampump-r2-06.glb', import.meta.url).href },
-  { kind: Z_CANOPY, id: 'canopy', name: 'Зонтиковик', url: new URL('../../assets/fort/approved/canopy-r2-07.glb', import.meta.url).href },
-  { kind: Z_FOREMAN, id: 'foreman', name: 'Старшина осады', url: new URL('../../assets/fort/approved/foreman-r2-06.glb', import.meta.url).href },
+// r4-01 (31.10, М-6…М-12): шаг совпадает с путём (клип походки = MOB_STRIDE 1,25 м), живые подготовка, атака и
+// «открыто»; Зонтиковик, Старшина и Гриб-пружинка пересобраны. Исходники и v1 — concepts_blender/fort-mobs/.
+export const APPROVED_ASSETS: readonly ApprovedAsset[] = [
+  { kind: Z_ROPECRAB, id: 'ropecrab', name: 'Канатник', url: new URL('../../assets/fort/approved/ropecrab-r4-01.glb', import.meta.url).href },
+  { kind: Z_JAMPUMP, id: 'jampump', name: 'Смоливщик', url: new URL('../../assets/fort/approved/jampump-r4-01.glb', import.meta.url).href },
+  { kind: Z_CANOPY, id: 'canopy', name: 'Зонтиковик', url: new URL('../../assets/fort/approved/canopy-r4-01.glb', import.meta.url).href },
+  { kind: Z_FOREMAN, id: 'foreman', name: 'Старшина осады', url: new URL('../../assets/fort/approved/foreman-r4-01.glb', import.meta.url).href },
   { kind: Z_CRABCRANE, id: 'crabcrane', name: 'Краб-Кран', url: new URL('../../assets/fort/approved/crabcrane-r2-06.glb', import.meta.url).href },
-  { kind: Z_MILLER, id: 'miller', name: 'Мельничиха', url: new URL('../../assets/fort/approved/miller-r2-06.glb', import.meta.url).href },
-  { kind: Z_SIEGE_TOWER, id: 'siegetower', name: 'Осадная башня', url: new URL('../../assets/fort/approved/siegetower-r3-03.glb', import.meta.url).href },
+  { kind: Z_MILLER, id: 'miller', name: 'Мельничиха', url: new URL('../../assets/fort/approved/miller-r4-01.glb', import.meta.url).href },
+  { kind: Z_SIEGE_TOWER, id: 'siegetower', name: 'Осадная башня', url: new URL('../../assets/fort/approved/siegetower-r4-01.glb', import.meta.url).href },
   { kind: Z_BATTERY, id: 'battery', name: 'Полевая батарея', url: new URL('../../assets/fort/approved/battery-r3-03.glb', import.meta.url).href },
-  { kind: Z_SPRING, id: 'spring', name: 'Живой грибочек', url: new URL('../../assets/fort/approved/spring-r3-01.glb', import.meta.url).href },
-] as const;
+  { kind: Z_SPRING, id: 'spring', name: 'Живой грибочек', url: new URL('../../assets/fort/approved/spring-r4-01.glb', import.meta.url).href },
+];
+export interface ApprovedAsset { kind: number; id: string; name: string; url: string }
 
 interface Slot { id: string; baked: BakedMob; mesh: THREE.InstancedMesh; anim: THREE.InstancedBufferAttribute; tint: THREE.InstancedBufferAttribute; target: THREE.InstancedBufferAttribute; n: number }
 const CAP = 72;
@@ -35,10 +38,10 @@ export class ApprovedMobRenderer {
   private quality: Quality = 'high';
   private readonly slots = new Map<number, Slot>();
 
-  constructor(parent: THREE.Object3D) {
+  constructor(parent: THREE.Object3D, assets: readonly ApprovedAsset[] = APPROVED_ASSETS) {
     this.group.name = 'fort-approved-models'; parent.add(this.group);
     const loader = new GLTFLoader();
-    this.ready = Promise.all(APPROVED_ASSETS.map(async spec => ({ spec, gltf: await loader.loadAsync(spec.url) })))
+    this.ready = Promise.all(assets.map(async spec => ({ spec, gltf: await loader.loadAsync(spec.url) })))
       .then(async loaded => {
         for (const { spec, gltf } of loaded) {
           const baked = bakeFortModel(gltf, spec.id);
@@ -70,7 +73,17 @@ export class ApprovedMobRenderer {
     const slot = this.slots.get(kind);
     if (!slot || slot.n === CAP) return false;
     let key = 'idle', time = a.t;
+    const walking = a.speed > .08, atkT = a.atkT ?? 99;
     if (a.die > 0) { key = 'death'; time = a.die * this.duration(kind, key); }
+    else if (kind === Z_CANOPY && a.st === ZS_SIEGE_OPEN) {
+      // замок сбит: навес складывается (1,2 с), дальше идёт или стоит без навеса
+      if (a.stT < 1.2 || !slot.baked.clips.walk_folded) { key = a.stT < 1.2 && slot.baked.clips.canopy_break ? 'canopy_break' : 'cover_disabled'; time = a.stT; }
+      else if (walking) { key = 'walk_folded'; time = a.gait * this.duration(kind, key); }
+      else { key = 'cover_disabled'; time = a.stT; }
+    }
+    else if (kind === Z_CANOPY && a.st === ZS_SIEGE_ACTION) { key = walking ? 'walk' : 'idle'; time = walking ? a.gait * this.duration(kind, key) : a.t; }
+    else if (kind === Z_ROPECRAB && a.st === ZS_SIEGE_ACTION && slot.baked.clips.reel) { key = 'reel'; time = a.stT; }
+    else if ((kind === Z_SPRING || kind === Z_SIEGE_TOWER) && a.st === ZS_SIEGE_ACTION && a.atkT !== undefined) { key = 'attack'; time = Math.min(atkT, this.duration(kind, key)); }
     else if (a.st === ZS_SIEGE_OPEN || a.st === ZS_BOSS_OPEN) { key = kind === Z_CANOPY ? 'cover_disabled' : 'open'; time = a.stT; }
     else if (a.st === ZS_SIEGE_DEPLOY) {
       key = slot.baked.clips.deploy ? 'deploy' : kind === Z_CRABCRANE ? 'anchor_set' : kind === Z_MILLER ? 'crank' : kind === Z_ROPECRAB ? 'route_attach' : kind === Z_FOREMAN ? 'device_set' : 'windup';

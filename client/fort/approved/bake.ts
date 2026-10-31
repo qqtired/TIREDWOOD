@@ -5,6 +5,8 @@ import type { GLTF } from 'three/addons/loaders/GLTFLoader.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 export const POSE_FPS = 24;
+/** Петли: походки, стойка, тяга каната Канатника, Зонтиковик без навеса */
+const LOOPS = new Set(['walk', 'idle', 'reel', 'walk_folded', 'cover_disabled']);
 export interface ClipRows { start: number; frames: number; duration: number; loop: boolean }
 export interface BakedMob { geo: THREE.BufferGeometry; tex: THREE.DataTexture; clips: Record<string, ClipRows>; height: number; triangles: number; parts: number }
 
@@ -73,7 +75,7 @@ export function bakeFortModel(gltf: GLTF, id: string): BakedMob {
   for (const clip of gltf.animations) {
     const key = clip.name.startsWith(id + '_') ? clip.name.slice(id.length + 1) : clip.name;
     const frames = Math.ceil(clip.duration * POSE_FPS) + 1;
-    clips[key] = { start: rows, frames, duration: clip.duration, loop: key === 'walk' || key === 'idle' };
+    clips[key] = { start: rows, frames, duration: clip.duration, loop: LOOPS.has(key) };
     rows += frames;
   }
   const width = joints.length * 3, data = new Float32Array(width * rows * 4);

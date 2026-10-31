@@ -49,6 +49,11 @@ b { font-weight: 800; }
 .fr-mob.v-polish { border-color: #e2b04f; }
 .fr-view { position: relative; height: 270px; cursor: grab; touch-action: none; background: #9fd3ef; }
 .fr-view:active { cursor: grabbing; }
+.fr-was { position: absolute; z-index: 5; right: 8px; top: 8px; padding: 3px; }
+.fr-was > button { min-height: 28px; padding: 3px 10px; font-size: var(--fs-13); }
+/* узкие карточки (?compact): переключатель вниз, чтобы не наезжал на подпись позы */
+.fr-compact .fr-was { top: auto; bottom: 8px; }
+.fr-mob.is-was .fr-view { outline: 3px solid var(--w-line-strong); outline-offset: -3px; }
 .fr-view-tag { position: absolute; z-index: 4; left: 8px; top: 8px; padding: 3px 8px; border-radius: 8px; background: rgba(28, 20, 24, .72); color: #fff3de; font: 700 var(--fs-13)/1.2 var(--font-text); pointer-events: none; }
 .fr-poses { display: flex; flex-wrap: wrap; gap: 4px; padding: 8px 10px 0; }
 .fr-poses button { min-height: 28px; padding: 3px 8px; border: 1px solid var(--w-line-strong); border-radius: 8px; background: var(--w-surf-3); color: var(--w-surf-text); font: 700 var(--fs-13)/1 var(--font-text); cursor: pointer; }

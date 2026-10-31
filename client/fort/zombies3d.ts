@@ -26,7 +26,7 @@ import { ALL_MOBS } from './mobs/index.ts';
 import { ApprovedMobRenderer } from './approved/renderer.ts';
 import { SiegePhaseClock, siegeElapsed, siegeSnapshotElapsed } from './approved/phase-clock.ts';
 import { BoardingAnchors } from './approved/anchors.ts';
-import { Z_ROPECRAB, BOAT_ANCHOR_FLAG, ZS_BOARD, ZS_SIEGE_APPROACH, ZS_SIEGE_OPEN, ZS_SIEGE_DEPLOY, ZS_SIEGE_ACTION } from '../../shared/fortsiege.ts';
+import { Z_ROPECRAB, Z_CANOPY, BOAT_ANCHOR_FLAG, ZS_BOARD, ZS_SIEGE_APPROACH, ZS_SIEGE_OPEN, ZS_SIEGE_DEPLOY, ZS_SIEGE_ACTION } from '../../shared/fortsiege.ts';
 import { MOB_STRIDE, type MobAnim, type MobDef } from './mobs/kit.ts';
 import { MobRenderer, mobRoot, mobSeed } from './mobs/renderer.ts';
 
@@ -56,6 +56,7 @@ const _q = new THREE.Quaternion();
 const _e = new THREE.Euler(0, 0, 0, 'YXZ');
 const _up = new THREE.Vector3(0, 1, 0);
 const _p = new THREE.Vector3();
+const _claw = new THREE.Vector3();
 const _s = new THREE.Vector3();
 const _c = new THREE.Color();
 const _c2 = new THREE.Color();
@@ -151,6 +152,9 @@ class Track {
   firstAt = -1;
   /** Отсчёт метки (wind) в прошлом кадре: вырос при том же состоянии — сервер начал его заново */
   lastWind = 0;
+  /** Признаки ZF_* прошлого кадра и когда сменились (щит разбит, лекарь засветился): моделям — anim.flagT */
+  lastFlags = -1;
+  flagsAt = -99;
   /** Идёт задом (сдвиг против курса): моделям — скорость со знаком минус */
   back = false;
   /** Постоянный seed особи — вариант модели, рост, походка (у всех игроков одинаковый) */
@@ -845,7 +849,14 @@ export class Zombies3D {
       mix = 0.25;
     }
     const anim = this.animOf(tr, r, time);
-    if (kind === Z_ROPECRAB && !tr.dead && [ZS_SIEGE_DEPLOY,ZS_SIEGE_ACTION,ZS_SIEGE_OPEN].includes(r.st)) this.anchors.add(r.x,r.y,r.z+1,r.tx,r.ty,r.tz,BOAT_ANCHOR_FLAG,r.st,anim.stT);
+    if (kind === Z_BLOATER && r.st === ZS_ATTACK && !tr.dead) {
+      // пузырь надувается у цели — сейчас лопнет: красное мигание всё чаще (POP_FUSE_TICKS = 0,6 с)
+      const u = Math.min(1, anim.stT / 0.6);
+      _tint.set(0xff3b2a);
+      mix = (0.15 + 0.4 * u) * (0.65 + 0.35 * Math.sin(time * (12 + 30 * u)));
+    }
+    // канат Канатника идёт из его левой клешни; крюк улетает на 1,5 с развёртывания — когда модель его бросает
+    if (kind === Z_ROPECRAB && !tr.dead && [ZS_SIEGE_DEPLOY,ZS_SIEGE_ACTION,ZS_SIEGE_OPEN].includes(r.st)) this.anchors.add(r.x,r.y,r.z+1,r.tx,r.ty,r.tz,BOAT_ANCHOR_FLAG,r.st,anim.stT,_claw.set(-.88,.72,.96).applyMatrix4(_root),1.5);
     const drawn = this.approved.has(kind) ? this.approved.add(kind, _root, anim, tr.flash * .85, mix > 0 ? _tint : null, mix, r) : this.mobs.add(kind, tr.seed, _root, anim, tr.flash * .85, mix > 0 ? _tint : null, mix);
     if (!drawn) return false;
     const sc = SCALES[kind] ?? SCALES[0];
@@ -917,7 +928,18 @@ export class Zombies3D {
     a.die = tr.dead ? Math.min(1, (time - tr.deadAt) / Math.max(.01, this.dieSeconds(tr.kind))) : 0;
     a.rage = (r.flags & ZF_RAGE) !== 0;
     a.flags = r.flags;
+    // смена признаков (щит разбит, лекарь засветился и погас) — модели доигрывают её по времени
+    if (r.flags !== tr.lastFlags) {
+      if (tr.lastFlags >= 0) tr.flagsAt = time;
+      tr.lastFlags = r.flags;
+    }
+    a.flagT = time - tr.flagsAt;
     a.stage = r.stage;
+    a.atkT = tr.lastAtk >= 0 ? tr.atkT : 99;
+    // поднятые канатом, башней или пружинкой летят на стену в позе прыжка (руки вверх, ноги поджаты), а не шагают по воздуху
+    if (r.st === ZS_BOARD) { a.st = tr.kind === Z_CLIMBER ? ZS_DROP : ZS_HOP; a.speed = 0; }
+    // Зонтиковик всегда в «навес раскрыт» (ACTION): удар по воротам — по счётчику ударов, как у обычных
+    if (tr.kind === Z_CANOPY && r.st === ZS_SIEGE_ACTION && tr.lastAtk >= 0 && tr.atkT < 0.6) { a.st = ZS_ATTACK; a.stT = tr.atkT; }
     return a;
   }
 

@@ -1,12 +1,14 @@
 // Щитоносец «Бобр с дверью» (свой образ набора B): бобр утащил с набережной целую дверь — с окошком, петлями
 // и латунной ручкой — и прёт её перед собой как щит. Над дверью — круглая голова с зубами-лопатами (бить туда),
 // сзади торчит хвост-весло. Атака — стучит дверью в ворота («тук-тук»), от попадания прячется за дверь;
-// гибель — на спину, дверь плашмя падает вперёд («бах!»). Хореография общая со щитоносцами — b-shield.ts.
+// дверь разбили — разваливается пополам по доскам (половина с окошком и ручкой), куски разлетаются, бобр бежит без
+// двери в панике; гибель — на спину, дверь плашмя падает вперёд («бах!»). Хореография общая со
+// щитоносцами — b-shield.ts.
 import * as THREE from 'three';
 import { Z_SHIELD } from '../../../shared/fortkinds.ts';
 import { type MobAnim, type MobDef, type MobPose } from './kit.ts';
 import { EYE, ball, jamOn, join, lathe, mix, paint, paintTris, taper } from './b-parts.ts';
-import { shieldPose, type ShieldRig } from './b-shield.ts';
+import { shieldPose, splitTris, type ShieldRig } from './b-shield.ts';
 
 const FUR = 0x8b5a3a;
 const FUR_DARK = 0x6e4429;
@@ -21,7 +23,13 @@ const BRASS = 0xe2b443;
 const GLASS = 0x9fd6f0;
 const SOCKET = 0x3a1650;
 
-const RIG: ShieldRig = { hip: 0.38, hipX: 0.16, steps: 3, neckY: 0.77, neckZ: 0.05, eyeY: 0.29, shieldY: 0.34, shieldZ: 0.42, duck: 0.32 };
+/** Плечо руки (от таза) — руки отдельные кости, держат дверь за края */
+const SHOULDER = [0.29, 0.6, 0.02] as const;
+const RIG: ShieldRig = {
+  hip: 0.38, hipX: 0.16, steps: 3, neckY: 0.77, neckZ: 0.05, eyeY: 0.29, shieldY: 0.34, shieldZ: 0.42, duck: 0.32,
+  shoulderY: SHOULDER[1], shoulderZ: SHOULDER[2], reach: 0.32,
+  shards: [[-0.2, 0, 0], [0.2, 0, 0]],
+};
 
 // ------------------------------------------------------------------ геометрия
 
@@ -33,12 +41,17 @@ function bodyGeo(): THREE.BufferGeometry {
   const tail = ball(0.17, 0, 0.02, -0.52, (x, _y, z) => ((Math.abs(x) * 9 + z * 9) % 1 < 0.18 ? mix(TAIL, NOSE, 0.5) : TAIL), 1, 0.2, 1.75, 9, 5);
   tail.rotateX(-0.25);
   const tailRoot = taper([[0, 0.06, -0.24], [0, 0.03, -0.34]], 0.09, 0.07, FUR_DARK, 2, 6, false);
-  // руки держат дверь за края
-  const arms = [-1, 1].flatMap((sx) => [
-    taper([[sx * 0.29, 0.6, 0.02], [sx * 0.39, 0.42, 0.16], [sx * 0.36, 0.36, 0.34]], 0.075, 0.062, FUR, 5, 5, false),
-    ball(0.072, sx * 0.36, 0.36, 0.36, FUR_DARK, 1, 0.9, 1, 6, 4),
-  ]);
-  return join([torso, tail, tailRoot, ...arms, jamOn(0, 0.3, 0, 0.36, 0.42, 0.33, 1.2, 2.4, 0.1, 0.12)]);
+  // плечи — бугорки, из них растут руки (отдельные кости)
+  const shoulders = [-1, 1].map((sx) => ball(0.085, sx * SHOULDER[0], SHOULDER[1], SHOULDER[2], FUR, 1, 1, 1, 5, 3));
+  return join([torso, tail, tailRoot, ...shoulders, jamOn(0, 0.3, 0, 0.36, 0.42, 0.33, 1.2, 2.4, 0.1, 0.12)]);
+}
+
+/** Обе руки одной частью (от линии плеч): в позе «держит щит за края», в позе «держит дверь за край» */
+function armsGeo(): THREE.BufferGeometry {
+  return join([-1, 1].flatMap((sx) => [
+    taper([[sx * SHOULDER[0], 0, 0], [sx * (SHOULDER[0] + 0.1), -0.18, 0.14], [sx * (SHOULDER[0] + 0.07), -0.24, 0.32]], 0.075, 0.062, FUR, 5, 5, false),
+    ball(0.072, sx * (SHOULDER[0] + 0.07), -0.24, 0.34, FUR_DARK, 1, 0.9, 1, 6, 4),
+  ]));
 }
 
 function headGeo(): THREE.BufferGeometry {
@@ -72,6 +85,9 @@ function doorGeo(): THREE.BufferGeometry {
   return join([slab, ...battens, brace, ...hinges, knob, glass, ...frame, smear]);
 }
 
+/** Дверь пополам по доскам: левая пара досок и правая с окошком и ручкой — кости wingL и wingR */
+const SHARDS = splitTris(doorGeo(), 2, (x) => (x < 0 ? 0 : 1));
+
 /** Короткая нога с большой перепончатой ступнёй */
 function legGeo(): THREE.BufferGeometry {
   return join([
@@ -96,7 +112,9 @@ export const shieldBeaver: MobDef = {
     { bone: 'body', geo: bodyGeo() },
     { bone: 'head', geo: headGeo() },
     { bone: 'extra', geo: eyesGeo(), glow: true },
-    { bone: 'prop', geo: doorGeo() },
+    { bone: 'armL', geo: armsGeo() },
+    { bone: 'wingL', geo: SHARDS[0] },
+    { bone: 'wingR', geo: SHARDS[1] },
     { bone: 'legL', geo: legGeo() },
     { bone: 'legR', geo: legGeo() },
   ],

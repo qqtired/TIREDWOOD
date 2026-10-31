@@ -7,7 +7,7 @@ import { DT, TICK_RATE, WATER_Y } from '../../shared/constants.ts';
 import {
   BOSS_ARMOR, BOSS_BOMB_R, BOSS_PULSE_R,
   FLY_CRYSTAL_DMG, FLY_DIVE_TICKS, FLY_R, FLY_RECOVER_TICKS, FLY_WARN_TICKS,
-  CLIMB_DROP_TICKS, CLIMB_SPEED, CLIMB_TOP_TICKS, FORT_MAX_ALIVE, POP_CRYSTAL, POP_GATE, POP_PLAYER, POP_R, POP_ZOMBIE, ZK, ZS_ATTACK, ZS_CLIMB,
+  CLIMB_DROP_TICKS, CLIMB_SPEED, CLIMB_TOP_TICKS, FORT_MAX_ALIVE, POP_CRYSTAL, POP_FUSE_TICKS, POP_GATE, POP_PLAYER, POP_R, POP_ZOMBIE, ZK, ZS_ATTACK, ZS_CLIMB,
   ZS_DROP, ZS_TOP, ZS_WALK, Z_AGGRO, Z_BLOATER, Z_CLIMBER, Z_GATE_EVERY, Z_GATE_GAP, Z_HIT_EVERY, Z_KINDS, Z_STUCK_TICKS,
   Z_BOSS, Z_BRUTE, Z_FLYER, ZS_BOSS_APPROACH, ZS_BOSS_BOMB, ZS_BOSS_GATE, ZS_BOSS_OPEN, ZS_BOSS_PULSE,
   ZS_FLY_DIVE, ZS_FLY_RECOVER, ZS_FLY_WARN, ZS_BARREL, ZS_PLANT, ZS_SPIT, ZS_CHARGE, ZS_CHARGE_WARN, ZS_QUAKE, ZS_STOMP, ZS_THROW,
@@ -122,6 +122,8 @@ export class Zombie {
   /** Бьёт: перезарядка удара и счётчик ударов (для взмаха на клиенте) */
   atkCd = 0;
   atk = 0;
+  /** Пузырь: тиков до хлопка (надувается на виду, 0 — не надувается) */
+  fuse = 0;
   /** Кого преследует (номер человека, 0 — никого) */
   chase = 0;
   /** Таймер подъёма, стояния на стене, прыжка */
@@ -486,6 +488,7 @@ export class Horde {
     z.hasted = false;
     z.atkCd = 0;
     z.atk = 0;
+    z.fuse = 0;
     z.chase = 0;
     z.t = 0;
     z.bestD = 1e9;
@@ -1101,9 +1104,23 @@ export class Horde {
     this.stepGround(z, gateUp);
   }
 
+  /** Пузырь дошёл до цели: стоит и надувается POP_FUSE_TICKS на виду (успей лопнуть заранее), потом хлопок */
+  private lightFuse(z: Zombie): void {
+    z.fuse = POP_FUSE_TICKS;
+    z.state = ZS_ATTACK;
+  }
+
   /** Ходок: цель (человек рядом, точка липучки, ворота, кристалл), удар или шаг по полю. */
   stepGround(z: Zombie, gateUp: boolean): void {
     const k = ZK[z.kind];
+    if (z.fuse > 0) {
+      // надувается: стоит на месте, через POP_FUSE_TICKS лопается, даже если цель ушла
+      z.state = ZS_ATTACK;
+      z.vx *= 0.6;
+      z.vz *= 0.6;
+      if (--z.fuse === 0) this.kill(z, 0);
+      return;
+    }
     const host = this.host;
     const inside = insideFort(z.x, z.z);
     let dx = 0;
@@ -1140,7 +1157,7 @@ export class Horde {
           z.atkCd = Z_HIT_EVERY;
           z.atk = (z.atk + 1) & 255;
           if (z.kind === Z_BLOATER) {
-            this.kill(z, 0);
+            this.lightFuse(z);
             return;
           }
           host.hitPlayer(z.id, target.id, this.dmgOf(z, k.hit));
@@ -1196,7 +1213,7 @@ export class Horde {
             z.atkCd = Z_GATE_EVERY;
             z.atk = (z.atk + 1) & 255;
             if (z.kind === Z_BLOATER) {
-              this.kill(z, 0);
+              this.lightFuse(z);
               return;
             }
             host.hitGate(this.dmgOf(z, (k.gateDps * Z_GATE_EVERY) / TICK_RATE));
@@ -1210,7 +1227,7 @@ export class Horde {
               z.atkCd = Z_GATE_EVERY;
               z.atk = (z.atk + 1) & 255;
               if (z.kind === Z_BLOATER) {
-                this.kill(z, 0);
+                this.lightFuse(z);
                 return;
               }
               host.hitCrystal(this.dmgOf(z, (k.crystalDps * Z_GATE_EVERY) / TICK_RATE));
