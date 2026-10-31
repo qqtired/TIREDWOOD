@@ -278,16 +278,16 @@ describe('C1 «Горячо!»', () => {
     assert.deepEqual(warmLines(lines).map((l) => l.id), [1, 7, 2, 3, 4, 5, 6], 'по времени отметки, вместе тепло и горячо');
   });
 
-  it('табло: карточка «ГОРЯЧО!» с последним текстом и счётом; без горячих — нет', () => {
+  it('табло: «ГОРЯЧО» с последним текстом и счётом (новая раскладка, решение №19); без горячих — нет', () => {
     const hot = stub();
     paintBoard(hot.ctx, base({ phase: 'game', mode: 'riddle', riddle: riddle({ hot: 2, hotText: 'пароход' }) }), NOW);
-    assert.ok(hot.texts.includes('ГОРЯЧО!'));
+    assert.ok(hot.texts.includes('ГОРЯЧО'));
     assert.ok(hot.texts.includes('пароход'));
     assert.ok(hot.texts.includes('2'));
     assert.ok(hot.texts.includes('ТЕПЛО'));
     const none = stub();
     paintBoard(none.ctx, base({ phase: 'game', mode: 'riddle', riddle: riddle() }), NOW);
-    assert.ok(!none.texts.includes('ГОРЯЧО!'));
+    assert.ok(!none.texts.includes('ГОРЯЧО'));
     assert.equal(boardAnimating(base({ phase: 'game', mode: 'riddle', riddle: riddle({ warm: 0, hot: 1 }) })), true);
   });
 });

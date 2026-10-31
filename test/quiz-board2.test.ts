@@ -1,9 +1,10 @@
-// Табло «Загадки», новая раскладка раунда (board-riddle2.ts, ?board2): рисует тему, число «тепло», подсказки, «мимо», очередь,
+// Табло «Загадки», новая раскладка раунда (board-riddle2.ts; в игре по умолчанию «Панели», ?board2=lines — «Линии»): рисует тему, число «тепло», подсказки, «мимо», очередь,
 // «загадывает Ник», «загадка N из M»; «горячо», «проверяем», «ждём слово»; текст не мельче 40 px холста. Холст-заглушка, как в
 // quiz-ui3.test.ts. Главное и главный сценарий, крайних случаев нет.
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { paintBoard } from '../client/lobby/quiz/ui/board.ts';
+import { paintRiddleRoundNow } from '../client/lobby/quiz/ui/board-riddle.ts';
 import { paintRiddleAsk2, paintRiddleRound2, type RiddleStyle } from '../client/lobby/quiz/ui/board-riddle2.ts';
 import { QZ, type QzBoard, type QzRiddleBoard } from '../shared/quiz/types.ts';
 
@@ -103,15 +104,16 @@ describe('табло «Загадки», ждём слово', () => {
   });
 });
 
-describe('без ?board2 табло рисуется прежним', () => {
-  it('paintBoard по умолчанию — прежняя шапка «· Предмет» и карточка «ТЕПЛО»; новая раскладка рисует тему пилюлей', () => {
+describe('по умолчанию — новая раскладка («Панели», решение №19); прежняя осталась в коде для отката', () => {
+  it('paintBoard рисует тему пилюлей и «загадывает Ник»; прежний раунд — шапка «· Предмет» и карточка «ТЕПЛО»', () => {
     const r = riddle();
+    const next = stub();
+    paintBoard(next.ctx, board(r), NOW);
+    assert.ok(next.texts.includes('Предмет') && !next.texts.includes('·  Предмет'), 'новая шапка');
+    assert.ok(next.texts.includes('загадывает'));
     const old = stub();
-    paintBoard(old.ctx, board(r), NOW);
+    paintRiddleRoundNow(old.ctx, board(r), r, NOW, 2048, 1024);
     assert.ok(old.texts.includes('·  Предмет'), 'прежняя шапка');
     assert.ok(old.texts.includes('ТЕПЛО'));
-    const next = round(r, 'lines');
-    assert.ok(!next.texts.includes('·  Предмет'));
-    assert.ok(next.texts.includes('Предмет'));
   });
 });

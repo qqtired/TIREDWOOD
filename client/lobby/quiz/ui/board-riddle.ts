@@ -7,10 +7,10 @@ import { PAD, centerText, pill, timeBar } from './board-base.ts';
 import { C, DISPLAY, TEXT, badge, clip, confetti, fit, font, icon, leftSec, mmss, quizImg, rr, title } from './paint.ts';
 import { paintRiddleAsk2, paintRiddleRound2, type RiddleStyle } from './board-riddle2.ts';
 
-/** ?board2 — новая раскладка раунда и «ждём слово» (board-riddle2.ts) на панелях — выбор владельца 31.10 (docs/ui3/brief.md, №19);
- *  ?board2=lines — второй вариант, «линии». Без параметра рисуется прежнее табло ниже (откат — просто не включать).
+/** Новая раскладка раунда и «ждём слово» (board-riddle2.ts) в виде «Панели» — включена: выбор владельца 31.10 (docs/ui3/brief.md, №19).
+ *  Откат — RIDDLE2 = false: рисуется прежнее табло ниже. ?board2=lines — второй вариант, «линии».
  *  Прежние round() и ask() вынесены для стенда tools/quiz-board */
-const RIDDLE2: boolean = typeof location !== 'undefined' && new URLSearchParams(location.search).has('board2');
+const RIDDLE2: boolean = true;
 const RIDDLE2_STYLE: RiddleStyle = typeof location !== 'undefined' && new URLSearchParams(location.search).get('board2') === 'lines' ? 'lines' : 'panels';
 export { round as paintRiddleRoundNow, ask as paintRiddleAskNow };
 
