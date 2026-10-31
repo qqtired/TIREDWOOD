@@ -55,6 +55,8 @@ Environment=KITE=1
 Environment=QUIZ=1
 # «Ракушка»: загружать свои паки может только Tired — слово владельца 2026-10-30 («пока разреши только моему персонажу»)
 Environment=QUIZ_UPLOADERS=Tired
+# UI 3.0: HUD «Веранда v3», вывески v3, табло «Панели», меню входа на живой набережной — «да» владельца 2026-10-31
+Environment=UI3=1
 StateDirectory=game-opus
 StateDirectoryMode=0700
 Restart=always
