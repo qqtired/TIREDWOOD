@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>HUD v3 · Веранда</title>
+<meta name="description" content="Третья версия нового HUD TIREDWOOD: Веранда v2 с правками и ультимативная Веранда v3 на настоящем HUD игры">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M32 6c-13 0-22 13-22 30 0 13 9 22 22 22s22-9 22-22C54 19 45 6 32 6z' fill='%23ff8a1c'/%3E%3Ccircle cx='25' cy='30' r='5' fill='%23fff'/%3E%3Ccircle cx='39' cy='30' r='5' fill='%23fff'/%3E%3Ccircle cx='26' cy='31' r='2.4' fill='%23222'/%3E%3Ccircle cx='40' cy='31' r='2.4' fill='%23222'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../page.css">
+<link rel="stylesheet" href="page.css">
+</head>
+<body>
+<!-- Лаборатория UI 3.0, третья версия (30.10): «Веранда v2» с правками владельца и ультимативная «Веранда v3». Прошлые
+     страницы — ../index.html и ../v2/ (не трогать). Экраны — ../scene.html в iframe, бильярд — ../billiards.html. -->
+<main class="pg">
+  <header class="pg-top">
+    <div class="pg-brand"><span class="pg-jelly" aria-hidden="true"></span>TIREDWOOD · лаборатория<span class="pg-ver">UI 3.0 · v3</span></div>
+    <h1 class="pg-title">HUD v3: ультимативная Веранда</h1>
+    <p class="pg-intro">Ты выбрал «Веранду v2» с двумя правками — зазор под портретом и ники попроще — и попросил ещё один вариант,
+      ультимативный: «продумай вообще всё — бейджи, чат, уведомления, таблички». Здесь v2 с правками и v3 рядом на тех же экранах игры.</p>
+    <p class="pg-v1"><a href="../v2/">Вторая версия — Веранда v2 и Причал v2</a><a href="../">Первая — четыре направления</a></p>
+  </header>
+
+  <section class="pg-sec" id="dirs" aria-labelledby="dirs-h">
+    <h2 id="dirs-h">Что нового</h2>
+    <p class="pg-lead">Нажми на карточку — экраны ниже переоденутся. Наброски сверху — imagegen: по ним задавалось направление.</p>
+    <div class="pg-cards pg-cards--v2" role="radiogroup" aria-label="Вариант HUD"></div>
+  </section>
+
+  <section class="pg-sec" id="view" aria-labelledby="view-h">
+    <h2 id="view-h">Экраны игры</h2>
+    <div class="pg-bar">
+      <div class="pg-seg pg-scenes" role="radiogroup" aria-label="Экран"></div>
+      <div class="pg-seg pg-vars" role="radiogroup" aria-label="Вариант"></div>
+    </div>
+    <p class="pg-look"></p>
+    <div class="pg-main"></div>
+  </section>
+
+  <section class="pg-sec" id="side" aria-labelledby="side-h">
+    <h2 id="side-h">v2 и v3 рядом</h2>
+    <p class="pg-lead">Тот же экран: слева v2 с правками, справа v3. Нажми на экран — откроется крупно.</p>
+    <div class="pg-grid pg-side"></div>
+  </section>
+
+  <section class="pg-sec" id="detail" aria-labelledby="detail-h">
+    <h2 id="detail-h">Что продумано в v3 — по деталям</h2>
+    <p class="pg-lead">Одна и та же часть экрана: слева v2 с правками, справа v3. Под названием — что поменялось и зачем.</p>
+    <div class="pg-stack pg-detail"></div>
+  </section>
+
+  <section class="pg-sec" id="modes" aria-labelledby="modes-h">
+    <h2 id="modes-h">Режимы в деле</h2>
+    <p class="pg-lead">Сверка нашла экраны, которых здесь не было: бой, поклёвка и лодка, гонки, ферма, телефон, «Ракушка» 1.1. Сняты прямо
+      из игры; слева — как сейчас, справа — v3. Нажми на кадр — экран откроется целиком.</p>
+    <div class="pg-stack pg-modes"></div>
+  </section>
+
+  <section class="pg-sec" id="tags" aria-labelledby="tags-h">
+    <h2 id="tags-h">Ники и реплики над головами</h2>
+    <p class="pg-lead">В игре это надписи в мире, здесь — их макет над желейкой и над Семёном.</p>
+    <div class="pg-grid pg-tags"></div>
+  </section>
+
+  <section class="pg-sec" id="fort" aria-labelledby="fort-h">
+    <h2 id="fort-h">Крепость: верх и мини-карта</h2>
+    <p class="pg-lead">Предложение: не понравится — оставим как сейчас. Первая строка — как в игре.</p>
+    <div class="pg-stack pg-fort"></div>
+  </section>
+
+  <section class="pg-sec" id="billiards" aria-labelledby="bl-h">
+    <h2 id="bl-h">Бильярд: понятная ставка</h2>
+    <p class="pg-lead">Без изменений с первой страницы — ждёт твоего слова. Вид стола не трогаем, меняется середина панели: сначала выбираешь,
+      как играть; ставка появляется только в «Партии на жетоны»; без жетонов — «на жетоны» закрыта с подсказкой.</p>
+    <div class="pg-bl">
+      <h3>Сейчас</h3>
+      <div class="pg-bl-now"></div>
+      <div class="pg-bl-head">
+        <h3>Предлагаем — можно нажимать</h3>
+        <div class="pg-seg pg-bal" role="radiogroup" aria-label="Жетонов у игрока">
+          <span class="pg-seg-label">Жетонов у игрока:</span>
+        </div>
+      </div>
+      <div class="pg-bl-new"></div>
+    </div>
+  </section>
+
+  <footer class="pg-sec pg-foot">
+    <h2>Что дальше</h2>
+    <p>Выбери: «Веранда v2» с правками, «Веранда v3» — или смесь («v3, но чат как в v2»). После выбора перенесу в игру одной заменой;
+      нынешний вид останется в коде — откат одной строкой.</p>
+  </footer>
+</main>
+<noscript><p class="pg-noscript">Для лаборатории нужен JavaScript.</p></noscript>
+<script src="page.js"></script>
+</body>
+</html>

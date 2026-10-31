@@ -1,0 +1,406 @@
+/* ================================================================ вариант HUD «Веранда v3» (data-hud="veranda3") — СИСТЕМА
+   Ультимативная «Веранда»: одна система форм на весь HUD.
+   ТРИ ФОРМЫ:
+     • табличка — слива, скошенные углы, ОДНА золотая волосяная кайма. Три высоты: S 24 · M 36 · L 44.
+       Крупные вещи (карточки режимов, верх крепости) — та же табличка с крупным скосом и ромбиками-звёздочками в углах.
+     • медальон — круг: кайма → дорожка 4 px со шкалой → тёмная подставка. Всё, у чего есть прогресс или портрет:
+       бейдж, плитки, уровень режима, здоровье, таймер волны. Размеры: S 36 · M 44 · L 52.
+     • кремовый билет — только личные награды и новости (это «Сообщения», v/veranda3-msg.css).
+   РИТМ: отступ от края 16, шаг 4, зазор между блоками угла 12, одна клавиша (кремовый колпачок: строчная 24, угловая 20),
+   табличные цифры. Главное число — крупно и золотом, подпись — тише и мельче.
+   Сообщения (событие, тосты и награды, чат и голос, «+N», реплики) — в v/veranda3-msg.css, токены общие (--v3-*). */
+
+[data-hud='veranda3'] {
+  /* --- формы (SVG 9-slice). Все — одна волосяная кайма 1 px, без внутренней второй линии */
+  /* табличка: скос 6 */
+  --v3-plate: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Cpath d='M6.5.5h11l6 6v11l-6 6h-11l-6-6v-11z' fill='%232e1d26' fill-opacity='.96' stroke='%23d4a552'/%3E%3C/svg%3E");
+  /* табличка «выбрано»: та же форма, кайма светлее и толще (выбранное оружие, срочная подсказка) */
+  --v3-plate-on: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Cpath d='M6.9 1.25h10.2l5.65 5.65v10.2l-5.65 5.65H6.9l-5.65-5.65V6.9z' fill='%233d2632' stroke='%23ffd35a' stroke-width='1.5'/%3E%3C/svg%3E");
+  /* крупная табличка: скос 10 и четыре ромбика-звёздочки в углах — только карточки режимов и верх крепости */
+  --v3-card: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='36'%3E%3Cpath d='M10.5.5h15l10 10v15l-10 10h-15l-10-10v-15z' fill='%232e1d26' fill-opacity='.96' stroke='%23d4a552'/%3E%3Cpath d='M7.6 4.4l.75 1.9 1.9.75-1.9.75-.75 1.9-.75-1.9-1.9-.75 1.9-.75zM28.4 4.4l.75 1.9 1.9.75-1.9.75-.75 1.9-.75-1.9-1.9-.75 1.9-.75zM7.6 25.2l.75 1.9 1.9.75-1.9.75-.75 1.9-.75-1.9-1.9-.75 1.9-.75zM28.4 25.2l.75 1.9 1.9.75-1.9.75-.75 1.9-.75-1.9-1.9-.75 1.9-.75z' fill='%23e8bd6a'/%3E%3C/svg%3E");
+  /* рамка мини-карт — крупная табличка без звёздочек (карта внутри обрезана тем же скосом) */
+  --v3-octa: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='36'%3E%3Cpath d='M10.5.5h15l10 10v15l-10 10h-15l-10-10v-15z' fill='%232e1d26' stroke='%23d4a552'/%3E%3C/svg%3E");
+  /* лента события («Сообщения») и капсула (поле чата, «+N») — тоже одна кайма */
+  --v3-ribbon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='40'%3E%3Cpath d='M.8.5h46.4L39 20l8.2 19.5H.8L9 20z' fill='%232e1d26' fill-opacity='.96' stroke='%23d4a552'/%3E%3C/svg%3E");
+  --v3-capsule: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='32'%3E%3Cpath d='M9.5.5h21l9 15.5-9 15.5h-21L.5 16z' fill='%232e1d26' fill-opacity='.96' stroke='%23d4a552'/%3E%3C/svg%3E");
+  /* кремовый билет и кремовая табличка — личные награды, новости, реплики («Сообщения») */
+  --v3-ticket: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='16'%3E%3Cpath d='M.5.5h23v5a2.5 2.5 0 0 0 0 5v5H.5v-5a2.5 2.5 0 0 0 0-5z' fill='%23fff3de' stroke='%23a8742e'/%3E%3C/svg%3E");
+  --v3-cream: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Cpath d='M5.5.5h13l5 5v13l-5 5h-13l-5-5v-13z' fill='%23fff3de' stroke='%23b98a3e'/%3E%3C/svg%3E");
+
+  /* --- цвет */
+  --v3-gold: #d4a552; --v3-gold-hi: #ffd35a; --v3-plum: #2e1d26; --v3-ink: #2a1720;
+  --v3-cream-text: #fff3de; --v3-dim: #ecd8b6; --v3-red: #ff6a5c;
+  --v3-track: rgba(20, 10, 15, .92);
+  --v3-disc: radial-gradient(circle at 50% 34%, #4a3240, #261920 76%);
+  --v3-brass: radial-gradient(circle at 50% 28%, #fff4c4, #f1c45a 48%, #b7822c 100%);
+  /* тонкая золотая линия-разделитель (тает к краям): горизонтальная и вертикальная */
+  --v3-rule: linear-gradient(90deg, transparent, rgba(212, 165, 82, .5) 10%, rgba(212, 165, 82, .5) 90%, transparent);
+  --v3-rule-v: linear-gradient(180deg, transparent, rgba(212, 165, 82, .5) 18%, rgba(212, 165, 82, .5) 82%, transparent);
+  /* одна тень на весь HUD: тёмный контур по форме + мягкая тень вниз — читается на небе, воде и плитке */
+  --v3-drop: drop-shadow(0 0 1px rgba(22, 11, 16, .75)) drop-shadow(0 2px 3px rgba(14, 6, 10, .32));
+
+  /* --- ритм: шаг 4, три высоты табличек, три размера медальонов, один зазор между блоками угла */
+  --v3-u: 4px; --v3-gap: 12px;
+  --v3-h-s: 24px; --v3-h-m: 36px; --v3-h-l: 44px;
+  --v3-md-s: 36px; --v3-md-m: 44px; --v3-md-l: 52px;
+  --v3-ring: 4px;
+  /* движение: одно мягкое появление при загрузке */
+  --v3-ease: cubic-bezier(.2, .8, .2, 1);
+}
+
+/* ---------------------------------------------------------------- токены кита (палитра «Веранды») */
+[data-hud='veranda3'][data-skin='retro2'], [data-hud='veranda3'] [data-skin='retro2'] {
+  --h-surf-solid: #2e1d26; --h-surf-text: #fff3de; --h-surf-dim: #ecd8b6; --h-surf-faint: #d6bd93;
+  --h-surf-2: rgba(255, 236, 205, .08); --h-surf-2-border: 1px solid rgba(255, 220, 160, .18); --h-surf-3: rgba(16, 8, 12, .42);
+  --h-line: rgba(255, 220, 160, .16); --h-line-strong: rgba(232, 184, 98, .5);
+  --h-panel-bg: #2e1d26;
+  --h-panel-border: 1px solid #d4a552;
+  --h-panel-shadow: 0 0 0 1px rgba(22, 11, 16, .6), 0 10px 24px rgba(14, 6, 10, .4);
+  --h-gold-text: #ffd35a; --h-good-text: #a8e28c; --h-bad-text: #ff8f7e; --h-info-text: #94e2d4; --h-special-text: #d0bcff;
+  --h-ghost-bg: rgba(255, 240, 220, .1); --h-ghost-text: #fff3de; --h-ghost-border: 1px solid rgba(232, 184, 98, .55);
+  --h-ghost-bg-hover: rgba(255, 240, 220, .18); --h-ghost-drop: none;
+  --h-track: rgba(14, 7, 11, .6); --h-track-border: 1px solid rgba(255, 220, 160, .16); --h-trail: rgba(255, 243, 222, .38);
+  --h-ring-face: radial-gradient(circle at 40% 32%, #4a3240, #261920 78%);
+  --h-accent-k: 85%; --h-accent-to: #fff3de; --h-sil: brightness(0) invert(.94) opacity(.3);
+  --h-info: #6fcdbf; --h-info-soft: rgba(111, 205, 191, .18);
+  --h-lamp-band: none; --h-lamp-ring: none;
+  --h-lamp-dot: transparent; --h-lamp-dot-size: 0px; --h-lamp-inset: 0px; --h-lamp-dot-glow: none;
+  --plate-bg: rgba(46, 29, 38, .95);
+  --plate-text: #fff3de;
+  --plate-border: 1px solid #d4a552;
+  --plate-shadow: 0 0 0 1px rgba(22, 11, 16, .55), 0 3px 6px rgba(14, 6, 10, .32);
+  --plate-blur: none; --hud-text-shadow: none;
+  --chat-bg: rgba(40, 25, 33, .86); --chat-old: .82; --chat-border: 0 solid transparent; --chat-shadow: inset 0 0 0 1px rgba(212, 165, 82, .3);
+  --nick-1: #ffb070; --nick-2: #a8e28c; --nick-3: #c9c8ff; --nick-4: #ffa2b4; --nick-5: #ffdc7a; --nick-6: #8fdccf;
+  --mh-def: #ffd35a; --mh-fishing: #7fdccd; --mh-farm: #a2d872; --mh-fort: #ffa65e; --mh-race: #ff806c; --mh-dungeon: #e6bc66;
+  --mh-paintball: #ff9d45; --mh-hide: #cba6ff; --mh-skill: #a3c6f5; --mh-pirates: #ff7d6a; --mh-regatta: #84cfe8; --m-ink-h: #2a1720;
+  --h-disp-font: Rubik, system-ui, sans-serif; --h-disp-weight: 800; --h-disp-case: none; --h-disp-word: normal; --h-disp-track: 0;
+}
+
+/* ---------------------------------------------------------------- одна клавиша на весь HUD: кремовый колпачок со сливовой буквой */
+[data-hud='veranda3'] :is(.k-hud, .voice-hud) {
+  --key-bg: #fff3de; --key-text: #3a2230; --key-border: 1px solid #1e1016; --key-shadow: 0 1.5px 0 #1e1016; --key-radius: 5px; --key-weight: 800;
+  --hero-text: #fff3de; --hero-step-ink: #2a1720;
+  --hero-outline: 2px 0 0 #2a1720, -2px 0 0 #2a1720, 0 2px 0 #2a1720, 0 -2px 0 #2a1720, 1.5px 1.5px 0 #2a1720, -1.5px 1.5px 0 #2a1720, 1.5px -1.5px 0 #2a1720, -1.5px -1.5px 0 #2a1720;
+  --slot-gap: 8px;
+  font-variant-numeric: tabular-nums;
+}
+/* строчная клавиша — 24 (в подсказках, рядах клавиш, тексте) */
+[data-hud='veranda3'] .k-hud .k-key { min-width: 24px; height: 24px; padding: 0 6px; font-size: 14px; }
+/* малая и угловая клавиша — 20 (на плитках, оружии, кнопках, эмоциях, в панели бойца) */
+[data-hud='veranda3'] .k-hud .k-key:is(.k-key--sm, .k-key--tr, .k-key--tl, .k-key--br, .k-key--bl) { min-width: 20px; height: 20px; padding: 0 4px; font-size: 13px; }
+[data-hud='veranda3'] .k-hud .k-key.k-key--lg { min-width: 38px; height: 38px; padding: 0 10px; font-size: 18px; }
+/* блоки углов — один зазор 12 (у бейджа нет свеса — зазор под ним честный) */
+[data-hud='veranda3'] .k-hud > :is(.k-slot--tl, .k-slot--tr, .k-slot--bc, .k-slot--br) { --slot-gap: var(--v3-gap); }
+
+/* ================================================================ ТРИ ФОРМЫ */
+/* 1. табличка — плашки, язычки плиток, ячейки панели бойца, поднос эмоций, предмет и скорость картинга, табло */
+[data-hud='veranda3'] :is(.k-plate, .k-vitals-hp, .k-vitals-ammo, .k-vitals > .k-vitals-dash, .k-arm, .k-tile-cap, .pz-emotes,
+  .k-arm--count > span, .k-prompt, .mo-keys) {
+  border: 1px solid transparent; border-image: var(--v3-plate) 8 fill / 8px / 0 stretch;
+  border-radius: 0; background: none; box-shadow: none; filter: var(--v3-drop);
+}
+/* 1б. крупная табличка с ромбиками — карточки режимов */
+[data-hud='veranda3'] :is(.fi-mode, .farm-card, .farm-quest, .k-panel.fi-catch) {
+  border: 1px solid transparent; border-image: var(--v3-card) 12 fill / 12px / 0 stretch;
+  border-radius: 0; background: none; box-shadow: none; outline: 0; filter: var(--v3-drop);
+}
+/* событие, тосты, «+N», чат и поле ввода оформляют «Сообщения» (v/veranda3-msg.css) теми же формами */
+/* 2. медальон с кольцом-шкалой — общий вид (кольцо уровня в карточках режимов): кайма → дорожка 4 px → подставка */
+[data-hud='veranda3'] .k-ring:not(.k-badge > .k-ring) {
+  width: var(--v3-md-s); height: var(--v3-md-s);
+  background: conic-gradient(var(--c, var(--mode, var(--v3-gold-hi))) calc(var(--p) * 360deg), var(--v3-track) 0);
+  box-shadow: inset 0 0 0 1px var(--v3-gold), 0 0 0 1px rgba(22, 11, 16, .5);
+}
+[data-hud='veranda3'] .k-ring:not(.k-badge > .k-ring)::before { inset: calc(var(--v3-ring) + 1px); background: var(--v3-disc); box-shadow: none; }
+[data-hud='veranda3'] .k-ring:not(.k-badge > .k-ring) > b { color: var(--v3-cream-text); font: 800 16px/1 Rubik, system-ui, sans-serif; }
+
+/* ---------------------------------------------------------------- бейдж: медальон-портрет + табличка жетонов, без свеса */
+/* коробка бейджа 44 = медальон; табличка 36 нарисована внутри (::before) — ни уровень, ни кольцо не выходят за коробку */
+[data-hud='veranda3'] .k-badge { height: var(--v3-md-m); padding: 0 13px 0 calc(var(--v3-md-m) + 9px); gap: 6px;
+  border: 0; border-radius: 0; background: none; box-shadow: none; filter: var(--v3-drop); }
+[data-hud='veranda3'] .k-badge::before { content: ''; position: absolute; z-index: -1; top: 4px; bottom: 4px; left: calc(var(--v3-md-m) / 2); right: 0;
+  border: 1px solid transparent; border-image: var(--v3-plate) 8 fill / 8px / 0 stretch; }
+[data-hud='veranda3'] .k-badge-avatar { position: absolute; left: 5px; top: 5px; width: 34px; height: 34px;
+  --surf-solid: #fffcf6; --surf-text: #2a1720; background: radial-gradient(circle at 42% 30%, #fff6e2, #f0d9b0 80%); box-shadow: none; }
+/* кольцо опыта по ободу портрета: кайма → золото на тёмной дорожке */
+[data-hud='veranda3'] .k-badge > .k-ring { position: absolute; left: 0; top: 0; width: var(--v3-md-m); height: var(--v3-md-m); margin: 0;
+  background: none; border-radius: 50%; box-shadow: inset 0 0 0 1px var(--v3-gold); }
+[data-hud='veranda3'] .k-badge > .k-ring::before { inset: 1px; border-radius: 50%; box-shadow: none;
+  background: conic-gradient(var(--v3-gold-hi) calc(var(--p) * 360deg), var(--v3-track) 0);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - var(--v3-ring)), #000 calc(100% - var(--v3-ring) + .5px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - var(--v3-ring)), #000 calc(100% - var(--v3-ring) + .5px)); }
+/* номер уровня — латунная монетка на кольце внизу справа, целиком внутри коробки бейджа */
+[data-hud='veranda3'] .k-badge > .k-ring > b { position: absolute; right: -6px; bottom: 0; display: grid; place-items: center;
+  min-width: 20px; height: 20px; padding: 0 4px; border-radius: 10px; background: var(--v3-brass); color: #3a2208;
+  font: 800 14px/1 Rubik, system-ui, sans-serif; box-shadow: 0 0 0 1.5px var(--v3-ink); }
+/* жетоны — главное число: крупно и золотом */
+[data-hud='veranda3'] .k-badge-tokens { gap: 6px; color: var(--gold-text); font: 800 22px/1 Rubik, system-ui, sans-serif; letter-spacing: -.01em; }
+[data-hud='veranda3'] .k-badge-tokens > .k-coin { width: 20px; height: 20px; }
+
+/* ---------------------------------------------------------------- плитки: медальон 52 со шкалой по ободу + язычок со счётом */
+[data-hud='veranda3'] .k-tiles { gap: 8px; }
+[data-hud='veranda3'] .k-tile { min-width: var(--v3-md-l); gap: 0; }
+[data-hud='veranda3'] .k-tile-face { width: var(--v3-md-l); height: var(--v3-md-l); margin: 0; border: 0; border-radius: 50%; background: var(--v3-disc);
+  box-shadow: inset 0 0 0 1px var(--v3-gold), inset 0 0 0 calc(var(--v3-ring) + 1px) var(--v3-track), 0 0 0 1px rgba(22, 11, 16, .5);
+  filter: drop-shadow(0 2px 3px rgba(14, 6, 10, .35)); }
+[data-hud='veranda3'] .k-tile-face > img, [data-hud='veranda3'] .k-tile-face:has(> .k-meter) > img { width: 32px; height: 32px; margin: 0; }
+/* шкала плитки — кольцо по ободу (поверх тёмной дорожки) */
+[data-hud='veranda3'] .k-tile-face > .k-meter { position: absolute; inset: 1px; width: auto; height: auto; border: 0; border-radius: 50%; background: none;
+  background-image: conic-gradient(var(--c) calc(var(--v) * 360deg), transparent 0);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - var(--v3-ring)), #000 calc(100% - var(--v3-ring) + .5px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - var(--v3-ring)), #000 calc(100% - var(--v3-ring) + .5px)); }
+[data-hud='veranda3'] .k-tile-face > .k-meter > i { display: none; }
+/* клавиша плитки — в правом верхнем углу коробки, не выходит за неё (зазор под бейджем остаётся честным) */
+[data-hud='veranda3'] .k-tile-face > :is(.k-key--tr, .k-key--sm.k-key--tr) { top: 0; right: 0; }
+[data-hud='veranda3'] .k-tile--warn .k-tile-face { box-shadow: inset 0 0 0 1.5px var(--v3-red), inset 0 0 0 calc(var(--v3-ring) + 1px) rgba(90, 16, 16, .92), 0 0 0 1px rgba(22, 11, 16, .5); }
+[data-hud='veranda3'] .k-tile--own .k-tile-face { box-shadow: inset 0 0 0 2px var(--v3-gold-hi), inset 0 0 0 calc(var(--v3-ring) + 1px) var(--v3-track), 0 0 0 1px rgba(22, 11, 16, .5); }
+/* язычок: табличка S, чуть заходит на обод; число — золотом, подпись — тише */
+[data-hud='veranda3'] .k-tile-cap { position: relative; z-index: 1; min-width: 44px; margin-top: -6px; padding: 2px 6px 3px; gap: 0;
+  font: 800 15px/1.1 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .k-tile-cap > b, [data-hud='veranda3'] .k-tile-cap > span { color: var(--gold-text); }
+[data-hud='veranda3'] .k-tile--warn .k-tile-cap > span { color: var(--bad-text); }
+[data-hud='veranda3'] .k-tile-cap > small { font: 600 13px/1.1 Rubik, system-ui, sans-serif; color: var(--surf-dim); }
+
+/* ---------------------------------------------------------------- подсказка внизу: табличка M, одна клавиша */
+[data-hud='veranda3'] .k-prompt { min-height: var(--v3-h-m); gap: 10px; padding: 2px 16px; font: 700 15px/1.2 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .k-prompt-sep { width: 1px; height: 20px; background: var(--v3-rule-v); }
+[data-hud='veranda3'] .k-prompt-note { font-size: 14px; }
+[data-hud='veranda3'] .k-prompt--off { opacity: .82; }
+/* срочная — та же табличка с яркой каймой, без свечения */
+[data-hud='veranda3'] .k-prompt--urgent { border-image-source: var(--v3-plate-on); box-shadow: none; }
+[data-hud='veranda3'] .fi-prompt .fi-wait { gap: 6px; }
+[data-hud='veranda3'] .fi-prompt .fi-wait img { width: 24px; height: 24px; }
+[data-hud='veranda3'] .fi-k { gap: 6px; font: 700 15px/1.2 Rubik, system-ui, sans-serif; color: var(--plate-text); }
+
+/* ---------------------------------------------------------------- эмоции: один поднос, номер — угловой клавишей внутри подноса */
+[data-hud='veranda3'] .pz-emotes { grid-template-columns: repeat(var(--emote-count, 6), 28px); gap: 8px; padding: 9px 10px 5px 14px; }
+[data-hud='veranda3'] .pz-emote { position: relative; }
+[data-hud='veranda3'] .pz-emote > .k-key { position: absolute; left: -9px; top: -7px; z-index: 1; }
+[data-hud='veranda3'] .pz-emote-face, [data-hud='veranda3'] .pz-emote-face .k-ic { width: 28px; height: 28px; }
+[data-hud='veranda3'] .pz-emote-five .k-ic { width: 20px; height: 26px; }
+
+/* ---------------------------------------------------------------- служебная строка (FPS) — табличка S, третичный текст */
+[data-hud='veranda3'] :is(.pz-stats, .rc-stats, .ft-stats) { width: max-content; min-height: var(--v3-h-s); padding: 2px 9px; display: flex; align-items: center;
+  border: 1px solid transparent; border-image: var(--v3-plate) 8 fill / 6px / 0 stretch; border-radius: 0; background: none; box-shadow: none;
+  color: var(--surf-dim); font: 600 13px/1.2 Rubik, system-ui, sans-serif; }
+/* в крепости — ровно по ширине мини-карты над ней */
+[data-hud='veranda3'] .ft-stats { width: 120px; margin: 0; justify-content: center; transform: none; }
+
+/* ================================================================ КАРТОЧКИ РЕЖИМОВ — одно устройство:
+   шапка (медальон уровня · название · прогресс справа золотом) → разделы через тонкую золотую линию → числа справа */
+[data-hud='veranda3'] :is(.fi-odds, .farm-card-next, .farm-card > .farm-quest, .fi-catch-foot) { border-top: 0; background: var(--v3-rule) top / 100% 1px no-repeat; }
+
+/* рыбалка */
+[data-hud='veranda3'] .fi-mode { width: 292px; gap: 6px; padding: 8px 12px 10px 8px; }
+[data-hud='veranda3'] .fi-mode-head { column-gap: 8px; row-gap: 1px; }
+[data-hud='veranda3'] .fi-mode-t b { font: 800 15px/1.15 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .fi-mode-t span { color: var(--gold-text); font: 800 15px/1 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .fi-perk { gap: 4px; font-size: 13px; }
+[data-hud='veranda3'] .fi-perk .fi-ic { width: 16px; height: 16px; }
+[data-hud='veranda3'] .fi-odds { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 5px 10px; padding-top: 7px; }
+[data-hud='veranda3'] .fi-odds-legend { grid-column: 1 / -1; gap: 2px 14px; }
+[data-hud='veranda3'] .fi-odds-bar { height: 8px; border-radius: 1px; }
+[data-hud='veranda3'] .fi-odds-t { color: var(--gold-text); font: 700 14px/1.1 Rubik, system-ui, sans-serif; letter-spacing: 0; text-transform: none; }
+[data-hud='veranda3'] .fi-odds-legend > span { font-size: 13px; line-height: 1.15; }
+[data-hud='veranda3'] .fi-odds-legend > span b { color: var(--plate-text); }
+[data-hud='veranda3'] .fi-mode > .k-pop { left: 16px; }
+
+/* улов: та же карточка; редкость — табличка цвета редкости, «Новый вид!» — золотом справа */
+[data-hud='veranda3'] .k-panel.fi-catch { width: 288px; gap: 8px; padding: 12px 14px 12px; }
+[data-hud='veranda3'] .fi-tier { min-height: 22px; padding: 2px 10px; border-radius: 0; font-size: 13px;
+  clip-path: polygon(5px 0, calc(100% - 5px) 0, 100% 5px, 100% calc(100% - 5px), calc(100% - 5px) 100%, 5px 100%, 0 calc(100% - 5px), 0 5px); }
+[data-hud='veranda3'] .fi-catch-head .k-pill--gold { min-height: 0; padding: 0; border: 0; background: none; box-shadow: none; color: var(--gold-text); font: 800 14px/1 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .fi-catch-art { height: 88px; margin: 0; border-radius: 0;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--tc) 34%, transparent), transparent), rgba(16, 8, 12, .42);
+  clip-path: polygon(6px 0, calc(100% - 6px) 0, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0 calc(100% - 6px), 0 6px); }
+[data-hud='veranda3'] .fi-catch-art > img { max-height: 80px; }
+[data-hud='veranda3'] .fi-catch-name b { font-size: 24px; }
+[data-hud='veranda3'] .fi-catch-name span { font-size: 22px; }
+[data-hud='veranda3'] .fi-catch-btns { gap: 10px; margin-top: 2px; }
+/* действия: главное (в рюкзак — своё) — латунь с тёмной надписью, второе — слива с золотой каймой; клавиши — те же колпачки */
+[data-hud='veranda3'] .fi-catch-btns .k-btn { min-height: 44px; padding: 5px 8px 6px; border-radius: 4px; text-transform: none; letter-spacing: 0; font: 800 16px/1.1 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .fi-catch-btns .k-btn small { color: inherit; opacity: .86; font: 600 13px/1.1 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .fi-catch-btns .k-btn--go { --tone: #f1c45a; --tone-hi: #fff0b8; --tone-lo: #7a4c10; --tone-ink: #3a2208; }
+[data-hud='veranda3'] .fi-catch-btns .k-btn--info { background: rgba(255, 240, 220, .07); box-shadow: inset 0 0 0 1px var(--v3-gold), 0 2px 0 #160b10; color: var(--v3-cream-text); }
+[data-hud='veranda3'] .fi-catch-timer { height: 4px; border-radius: 0; }
+[data-hud='veranda3'] .fi-catch-next { font-size: 13px; white-space: nowrap; }
+[data-hud='veranda3'] .fi-catch-foot { gap: 8px; padding-top: 7px; font-size: 13px; line-height: 1.25; }
+[data-hud='veranda3'] .fi-catch-foot img { width: 24px; height: 24px; }
+
+/* ферма — как в v2, по слову владельца 30.10: «на ферме в v2 лучше этот блок, перенеси его в v3». Две плашки (уровень и задание
+   Семечкина), рамка с двойной каймой, монетка уровня, корзинка, капсула награды, латунная клавиша E и шкала шагов — значения v2. */
+[data-hud='veranda3'] { --v3-card-v2: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='36'%3E%3Cpath d='M6.5.5h23l6 6v23l-6 6h-23l-6-6v-23z' fill='%232e1d26' fill-opacity='.96' stroke='%23d4a552'/%3E%3Cpath d='M3.5 8.5h5v-5h19v5h5v19h-5v5h-19v-5h-5z' fill='none' stroke='%23d4a552' stroke-opacity='.45' stroke-width='.8'/%3E%3Cpath d='M5.6 3.9l1.7 1.7-1.7 1.7-1.7-1.7zM30.4 3.9l1.7 1.7-1.7 1.7-1.7-1.7zM5.6 28.7l1.7 1.7-1.7 1.7-1.7-1.7zM30.4 28.7l1.7 1.7-1.7 1.7-1.7-1.7z' fill='%23e8bd6a'/%3E%3C/svg%3E"); }
+[data-hud='veranda3'] .k-plate.farm-card, [data-hud='veranda3'] .k-plate.farm-quest { border-image-source: var(--v3-card-v2); border-radius: 10px; }
+[data-hud='veranda3'] .farm-card + .farm-quest { margin-top: -4px; }
+[data-hud='veranda3'] .farm-card { width: 284px; grid-template-columns: 40px minmax(0, 1fr) auto; column-gap: 8px; row-gap: 1px; padding: 7px 13px 8px 11px; }
+[data-hud='veranda3'] .farm-card > .k-ring.k-ring--sm.k-ring--mode { width: 36px; height: 36px; background: conic-gradient(var(--mode) calc(var(--p) * 360deg), rgba(14, 7, 11, .6) 0);
+  box-shadow: 0 0 0 1px #d4a552; }
+[data-hud='veranda3'] .farm-card > .k-ring.k-ring--sm.k-ring--mode::before { inset: 3.5px; background: radial-gradient(circle at 40% 32%, #4a3240, #261920 78%);
+  box-shadow: inset 0 0 0 1px rgba(255, 220, 160, .16); }
+[data-hud='veranda3'] .farm-card > .k-ring.k-ring--sm.k-ring--mode > b { font-size: 15px; line-height: 1; }
+[data-hud='veranda3'] .farm-card-name { font-size: 15px; }
+[data-hud='veranda3'] .farm-card-xp b { color: var(--gold-text); }
+[data-hud='veranda3'] .farm-card > .farm-card-next { margin-top: 4px; padding-top: 5px; border-top: 0;
+  background: linear-gradient(90deg, transparent, rgba(212, 165, 82, .45) 12%, rgba(212, 165, 82, .45) 88%, transparent) top / 100% 1px no-repeat; }
+[data-hud='veranda3'] .farm-card-next .k-ic { width: 22px; height: 22px; }
+/* строка карточки «Ур. N откроет …» на 3–4 уровне длиннее рамки и вылезала за неё (так и в «Сейчас»; в игре — nowrap в client/farm/farm.css) — переносим на вторую строку */
+[data-hud='veranda3'] .farm-card-next { flex-wrap: wrap; row-gap: 1px; white-space: normal; }
+[data-hud='veranda3'] .farm-card-estate.k-btn--icon.k-btn--sm { width: 34px; height: 34px; border: 1px solid rgba(232, 184, 98, .55); border-image: none; border-radius: 10px;
+  background: rgba(255, 240, 220, .1); box-shadow: none; }
+[data-hud='veranda3'] .farm-card-estate .k-ic { width: 26px; height: 26px; }
+[data-hud='veranda3'] .farm-card-estate > .k-key.k-key--sm.k-key--br { right: -8px; bottom: -9px; min-width: 22px; height: 22px; padding: 0 5px; border-radius: 6px; }
+[data-hud='veranda3'] .farm-quest { width: 284px; padding: 8px 13px 9px; }
+[data-hud='veranda3'] .farm-quest .k-eyebrow { color: var(--gold-text); font: 700 14px/1.2 Rubik, system-ui, sans-serif; letter-spacing: 0; text-transform: none; }
+[data-hud='veranda3'] .farm-quest-prize.k-pill--sm { min-height: 22px; padding: 2px 8px; border: 1px solid transparent; background: rgba(255, 205, 74, .16); box-shadow: none;
+  color: var(--gold-text); font: 700 13px/1 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .farm-quest-t { margin: 3px 0 6px; font: 600 14px/1.3 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .farm-quest-t > .k-key.k-key--sm { min-width: 26px; height: 24px; padding: 2px 7px 0; border: 1px solid #6b420c; border-radius: 13px 13px 4px 4px;
+  background: var(--v3-brass); color: #3a2208; box-shadow: 0 2px 0 #5a3410, inset 0 -1px 0 rgba(122, 76, 10, .4); font-size: 14px; line-height: 1; }
+[data-hud='veranda3'] .farm-quest-steps { gap: 4px; }
+[data-hud='veranda3'] .farm-quest-steps i { height: 4px; border-radius: 1px; transform: skewX(-30deg); background: rgba(14, 7, 11, .6); }
+[data-hud='veranda3'] .farm-quest-steps i.is-cur { background: var(--v3-gold-hi); }
+[data-hud='veranda3'] .farm-quest-steps i.is-done { background: var(--good); }
+
+/* ================================================================ РЕЖИМЫ */
+/* картинг: место — главное число; круг и время — сбоку за золотой линией */
+[data-hud='veranda3'] .mo-stand { min-height: var(--v3-h-l); padding: 3px 14px 4px 12px; }
+[data-hud='veranda3'] .mo-place { color: var(--gold-text); font: 800 34px/.95 Rubik, system-ui, sans-serif; letter-spacing: -.02em; }
+[data-hud='veranda3'] .mo-place small { font-size: 15px; }
+[data-hud='veranda3'] .mo-stand-side { gap: 2px; border-left: 0; padding-left: 10px; background: var(--v3-rule-v) left / 1px 100% no-repeat; }
+[data-hud='veranda3'] .mo-time { color: var(--gold-text); font: 800 18px/1 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .mo-lap { font-size: 14px; }
+/* мини-карта — крупная табличка, карта обрезана тем же скосом */
+[data-hud='veranda3'] .mo-map { width: auto; padding: 6px; border: 1px solid transparent; border-image: var(--v3-octa) 12 fill / 12px / 0 stretch;
+  border-radius: 0; background: none; box-shadow: none; filter: var(--v3-drop); }
+/* размер карты в игре задаёт код (инлайн-стиль) — перебиваем, чтобы рамка стала меньше */
+[data-hud='veranda3'] .mo-map > img { display: block; width: 148px !important; height: 116px !important; object-fit: contain;
+  clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px), 0 8px); }
+[data-hud='veranda3'] .mo-keys { min-height: var(--v3-h-m); gap: 4px 12px; padding: 2px 16px; }
+[data-hud='veranda3'] .mo-key { gap: 5px; font-size: 14px; }
+[data-hud='veranda3'] .mo-key .k-keys { display: inline-flex; gap: 3px; }
+/* бонус — табличка M с медальоном-подставкой */
+[data-hud='veranda3'] .mo-item { min-height: var(--v3-h-l); gap: 9px; padding: 3px 14px 3px 4px; border: 1px solid transparent; border-image: var(--v3-plate) 8 fill / 8px / 0 stretch;
+  border-radius: 0; background: none; box-shadow: none; filter: var(--v3-drop); }
+[data-hud='veranda3'] .mo-item-ic { width: var(--v3-md-s); height: var(--v3-md-s); border-radius: 50%; background: var(--v3-disc); box-shadow: inset 0 0 0 1px var(--v3-gold); }
+[data-hud='veranda3'] .mo-item.is-ready .mo-item-ic { box-shadow: inset 0 0 0 2px var(--v3-gold-hi); }
+[data-hud='veranda3'] .mo-item-ic img, [data-hud='veranda3'] .mo-item-ic svg { max-width: 26px; max-height: 26px; }
+[data-hud='veranda3'] .mo-item-txt b { font-size: 15px; }
+[data-hud='veranda3'] .mo-speed { min-height: var(--v3-h-m); align-items: center; padding: 2px 12px 2px 14px; }
+[data-hud='veranda3'] .mo-speed b { color: var(--gold-text); font: 800 24px/1 Rubik, system-ui, sans-serif; text-align: right; }
+[data-hud='veranda3'] .mo-speed span { font-size: 13px; }
+
+/* пейнтбол: табло — табличка M (не лента события): счёт золотом, часы посередине за золотыми линиями */
+[data-hud='veranda3'] .k-event:has(> .mo-team) { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 0; width: 316px; max-width: none;
+  min-height: var(--v3-h-m); padding: 0 6px;
+  border: 1px solid transparent; border-image: var(--v3-plate) 8 fill / 8px / 0 stretch; background: none; box-shadow: none; filter: var(--v3-drop); }
+[data-hud='veranda3'] .k-event > .mo-team { padding: 2px 8px 3px; gap: 3px; }
+[data-hud='veranda3'] .mo-team-top b { color: var(--gold-text); font: 800 20px/1 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .mo-team-name { font-size: 13px; }
+[data-hud='veranda3'] .mo-clock { min-width: 56px; padding: 3px 6px; background: none; border-inline: 0;
+  background: var(--v3-rule-v) left / 1px 100% no-repeat, var(--v3-rule-v) right / 1px 100% no-repeat; }
+[data-hud='veranda3'] .mo-clock small { font-size: 13px; }
+[data-hud='veranda3'] .mo-clock b { color: var(--gold-text); font: 800 17px/1 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .mo-clock b.is-hurry { color: var(--bad-text); }
+
+/* ---------------------------------------------------------------- панель бойца: медальон здоровья + таблички M, оружие — таблички L */
+[data-hud='veranda3'] .k-vitals { gap: 8px; align-items: center; }
+/* здоровье: как бейдж — медальон 44 (кольцо = здоровье) и табличка 36 с числом */
+[data-hud='veranda3'] .k-vitals-hp { position: relative; min-width: 0; min-height: var(--v3-h-m); gap: 0; padding: 2px 14px 2px calc(var(--v3-md-m) + 4px); margin-left: 8px; }
+[data-hud='veranda3'] .k-vitals-hp .k-vitals-ic { position: absolute; z-index: 1; left: -9px; top: 50%; width: var(--v3-md-m); height: var(--v3-md-m); margin-top: calc(var(--v3-md-m) / -2);
+  padding: 10px; border-radius: 50%; background: var(--v3-disc); box-shadow: inset 0 0 0 1px var(--v3-gold), inset 0 0 0 calc(var(--v3-ring) + 1px) var(--v3-track); filter: none; }
+/* полоса здоровья становится кольцом медальона (в игре — та же шкала, только кругом) */
+[data-hud='veranda3'] .k-vitals-hp .k-meter { position: absolute; z-index: 2; left: -8px; top: 50%; width: calc(var(--v3-md-m) - 2px); height: calc(var(--v3-md-m) - 2px);
+  margin-top: calc((var(--v3-md-m) - 2px) / -2); border-radius: 50%; background: conic-gradient(var(--c) calc(var(--v) * 360deg), transparent 0);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - var(--v3-ring)), #000 calc(100% - var(--v3-ring) + .5px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - var(--v3-ring)), #000 calc(100% - var(--v3-ring) + .5px)); }
+[data-hud='veranda3'] .k-vitals-hp .k-meter > i { display: none; }
+[data-hud='veranda3'] .k-vitals-num { color: var(--gold-text); font: 800 22px/1 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .k-vitals-num small { font-size: 14px; }
+/* патроны: табличка M, ряд фишек под числом */
+[data-hud='veranda3'] .k-vitals-ammo { min-width: 0; min-height: var(--v3-h-m); gap: 3px; padding: 3px 12px 4px 8px; }
+[data-hud='veranda3'] .k-vitals-ammo .k-meter { height: 4px; border-radius: 0; --c: var(--v3-gold-hi);
+  -webkit-mask: repeating-linear-gradient(90deg, #000 0 3px, transparent 3px 4.5px); mask: repeating-linear-gradient(90deg, #000 0 3px, transparent 3px 4.5px); }
+[data-hud='veranda3'] .k-vitals > .k-vitals-dash { min-height: var(--v3-h-m); padding: 2px 12px 2px 6px; }
+[data-hud='veranda3'] .k-vitals-dash .k-meter { height: 4px; border-radius: 0; }
+[data-hud='veranda3'] .k-vitals-cap { font-size: 13px; }
+/* оружие: таблички L, выбранное — яркая кайма и приподнято; подпись — табличка S под ним */
+[data-hud='veranda3'] .k-vitals-arms { gap: 8px; align-items: center; }
+[data-hud='veranda3'] .k-arm { width: var(--v3-h-l); height: var(--v3-h-l); }
+[data-hud='veranda3'] .k-arm > img { width: 32px; height: 32px; }
+[data-hud='veranda3'] .k-arm > .k-key--tr { top: -6px; right: -6px; }
+[data-hud='veranda3'] .k-arm.is-on { border-image-source: var(--v3-plate-on); box-shadow: none; transform: translateY(-3px); }
+[data-hud='veranda3'] .k-arm:not(.k-arm--count) > span:not(.k-key) { top: calc(100% + 2px); padding: 1px 8px 2px; border-radius: 0; background: var(--v3-plum); font-size: 13px;
+  box-shadow: 0 0 0 1px rgba(212, 165, 82, .6);
+  clip-path: polygon(4px 0, calc(100% - 4px) 0, 100% 4px, 100% calc(100% - 4px), calc(100% - 4px) 100%, 4px 100%, 0 calc(100% - 4px), 0 4px); }
+/* число гранат — табличка S в правом нижнем углу */
+[data-hud='veranda3'] .k-arm.k-arm--count > span:not(.k-key) { inset: auto -7px -7px auto; min-width: 20px; padding: 2px 5px; border-image-width: 6px; color: var(--gold-text); font: 800 13px/1.1 Rubik, system-ui, sans-serif; transform: none; }
+
+/* ---------------------------------------------------------------- ники над головами (в игре — render/leveltag.ts)
+   правка 30.10 (владелец: «плашки с ником чуть лишнее — проще и лаконичнее»): без плашки — имя кремом с мягкой тёмной
+   обводкой и маленький золотой номер уровня перед ним */
+[data-hud='veranda3'] .lab-tag { gap: 5px; padding: 0; border-radius: 0; background: none; box-shadow: none;
+  color: #fff3de; font-size: 16px; font-weight: 800; letter-spacing: .01em;
+  text-shadow: 1px 0 0 #2a1720, -1px 0 0 #2a1720, 0 1px 0 #2a1720, 0 -1px 0 #2a1720, .8px .8px 0 #2a1720, -.8px .8px 0 #2a1720, .8px -.8px 0 #2a1720, -.8px -.8px 0 #2a1720, 0 2px 4px rgba(20, 10, 15, .5); }
+[data-hud='veranda3'] .lab-tag-lv { width: auto; height: auto; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none;
+  color: #ffd35a; font-size: 14px; font-weight: 800; text-shadow: inherit; }
+[data-hud='veranda3'] .lab-tag--npc { gap: 0; }
+[data-hud='veranda3'] .lab-tag--npc span { color: #f3d9a4; font-size: 13px; font-weight: 700; opacity: 1; }
+
+/* ---------------------------------------------------------------- крепость: верх — крупная табличка, мини-карта — та же рамка, что у картинга */
+[data-hud='veranda3'] :is(.ft-command, .ft-fort) {
+  --dg-font: Rubik, system-ui, sans-serif; --dg-font-head: Rubik, system-ui, sans-serif;
+  --dg-text: #fff3de; --dg-text-dim: #ecd8b6;
+  --dg-iron: #2e1d26; --dg-brass: #d4a552; --dg-brass-hi: #ffd35a; --dg-brass-dk: #d4a552; --dg-rivet: none;
+  --dg-line: rgba(255, 220, 160, .16); --dg-pip: rgba(255, 220, 160, .22); --dg-teal: #7fdccd; --dg-red: #ff6a5c; --dg-bar-bg: rgba(14, 7, 11, .6);
+  border: 1px solid transparent; border-radius: 0; background: none; box-shadow: none; filter: var(--v3-drop);
+}
+[data-hud='veranda3'] :is(.ft-command, .ft-fort)::before, [data-hud='veranda3'] :is(.ft-command, .ft-fort)::after { display: none; }
+/* верх крепости — как в v2, по слову владельца 30.10: «в крепости тоже в v2 эта часть удачнее вышла, нужно перенести в v3».
+   Табличка 880 с двойной каймой, крупный заголовок волны, часы-капсула, золото и рекорд — в медальонах-подставках; мини-карта — своя, v3. */
+[data-hud='veranda3'] { --v3v2-disc: radial-gradient(circle at 50% 34%, #4a3240, #261920 76%); --v3v2-ink: #2a1720; --v3v2-gold: #d4a552; }
+[data-hud='veranda3'] .ft-command { width: 880px; height: 56px; grid-template-columns: 196px minmax(0, 1fr) 214px; gap: 10px; padding: 5px 14px; border-radius: 8px;
+  border-image: var(--v3-card-v2) 12 fill / 12px / 0 stretch; font: 700 15px/1.15 Rubik, system-ui, sans-serif; font-feature-settings: 'lnum' 1, 'tnum' 1; }
+[data-hud='veranda3'] .ft-command-structures { border-right: 0;
+  background: linear-gradient(180deg, transparent, rgba(212, 165, 82, .5) 20%, rgba(212, 165, 82, .5) 80%, transparent) right / 1px 100% no-repeat; }
+[data-hud='veranda3'] .ft-phase { grid-template-columns: minmax(0, 1fr) auto; column-gap: 10px; }
+[data-hud='veranda3'] .ft-phase-title { font-weight: 800; font-size: 18px; }
+/* капсула часов и «осталось врагов» — по содержимому, с воздухом по краям (владелец 31.10 про «45»: «отступов мало, слишком сжато») */
+[data-hud='veranda3'] .ft-phase-clock { width: auto; min-width: 76px; height: 40px; padding: 0 14px; font-size: 21px; }
+[data-hud='veranda3'] .ft-phase-left { gap: 7px; }
+[data-hud='veranda3'] .ft-command .ft-tiles { gap: 9px; }
+[data-hud='veranda3'] .ft-command .k-tile { min-width: 50px; gap: 0; }
+/* размеры значков и чисел золота и рекорда задаёт сама игра (fort/ui/ui.css) — здесь только форма медальона */
+/* монета и число — на одной средней линии, как в игре (владелец 31.10: «у монет не по линии выровнены цифры») */
+[data-hud='veranda3'] .ft-command .k-tile-face { margin: 0 5px; border: 0; border-radius: 50%; background: var(--v3v2-disc);
+  box-shadow: inset 0 0 0 1px rgba(212, 165, 82, .5), 0 0 0 1px var(--v3v2-ink), 0 0 0 4.5px rgba(20, 10, 15, .92), 0 0 0 5.5px var(--v3v2-gold);
+  filter: drop-shadow(0 2px 3px rgba(14, 6, 10, .35)); }
+[data-hud='veranda3'] .ft-command .k-tile-face > img { margin: 0; }
+[data-hud='veranda3'] .ft-command .k-tile-cap { position: relative; z-index: 1; min-width: 0; margin-top: 0; padding: 0 6px; gap: 0; border: 1px solid transparent;
+  border-image: none; background: none; box-shadow: none; filter: none; font-family: Rubik, system-ui, sans-serif; font-weight: 800; line-height: 1.1; }
+[data-hud='veranda3'] .ft-command .ft-gold .k-tile-cap { line-height: 1; }
+[data-hud='veranda3'] .ft-command .k-tile-cap > span { color: var(--gold-text); }
+/* прибавка «+165» — над числом, не на цифрах (цифры v3 выше, чем в игре) */
+[data-hud='veranda3'] .ft-command .ft-plus { top: -10px; }
+[data-hud='veranda3'] .ft-fort { width: 120px; padding: 6px; gap: 5px; border-image: var(--v3-octa) 12 fill / 12px / 0 stretch; }
+[data-hud='veranda3'] .ft-map { border: 0; border-radius: 0;
+  clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px), 0 8px); }
+[data-hud='veranda3'] .ft-map-north { top: 3px; font: 800 13px/1 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .ft-bell { padding: 1px 2px 2px; }
+[data-hud='veranda3'] .ft-shield-label { font: 800 14px/1 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .ft-shield-progress { height: 4px; border-radius: 0; }
+
+/* ================================================================ ДВИЖЕНИЕ: одно мягкое появление при загрузке сцены
+   (верх — съезжает сверху, низ — поднимается; соседние блоки — с шагом 60 мс). Без мигания и тряски. */
+@keyframes v3s-down { from { opacity: 0; translate: 0 -6px; } }
+@keyframes v3s-up { from { opacity: 0; translate: 0 6px; } }
+@keyframes v3s-fade { from { opacity: 0; } }
+[data-hud='veranda3'] :is(.k-slot--tl, .k-slot--tr) > :not(.k-pop) { animation: v3s-down .36s var(--v3-ease) both; }
+[data-hud='veranda3'] :is(.k-slot--bc, .k-slot--br) > :not(.k-panel, .k-pop) { animation: v3s-up .36s var(--v3-ease) both; }
+[data-hud='veranda3'] :is(.ft-command, .k-event:has(> .mo-team)) { animation: v3s-down .36s var(--v3-ease) both; }
+[data-hud='veranda3'] :is(.k-slot--tl, .k-slot--tr, .k-slot--bc, .k-slot--br) > :nth-child(2) { animation-delay: .06s; }
+[data-hud='veranda3'] :is(.k-slot--tl, .k-slot--tr, .k-slot--bc, .k-slot--br) > :nth-child(3) { animation-delay: .12s; }
+[data-hud='veranda3'] .lab-tag { animation: v3s-fade .4s var(--v3-ease) .1s both; }
+@media (prefers-reduced-motion: reduce) {
+  [data-hud='veranda3'] :is(.k-slot > *, .ft-command, .k-event, .lab-tag) { animation: none; }
+}

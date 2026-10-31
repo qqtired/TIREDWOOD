@@ -1,0 +1,261 @@
+/* ================================================================ вариант HUD «Вывеска» (data-hud="vyveska")
+   Родня окон «Ретро-парк 2.0» и вывесок площади: плотная бирюзовая эмаль (#105f58, без прозрачности), кремовый кант 2 px,
+   снаружи чернильно-зелёная обводка 2 px и короткая плотная тень, как у жестяной вывески.
+   Против «в эмали хуже читается» (11.10): всё важное — числа, жетоны, уровень, место, счёт, таймеры, подписи к ним — на
+   КРЕМОВЫХ ВСТАВКАХ тёмным жирным текстом, как таблички на вывеске. На эмали — только крупные кремовые подписи и иконки.
+   Текстовые плашки (тосты, событие, подсказка «E», чат) — «табличка в раме»: кремовое поле в бирюзовой раме,
+   иконка — на эмалевом язычке слева. Коралл — действие (клавиша подсказки, главная кнопка), золото — своё (жетоны).
+   Шрифт — только Rubik, без капса на плашках. Окна (.k-window) не трогаем: все правила — под HUD-деталями. */
+
+/* ---------------------------------------------------------------- токены */
+[data-hud='vyveska'][data-skin='retro2'], [data-hud='vyveska'] [data-skin='retro2'] {
+  /* своя палитра «Вывески» (только для правил этого файла) */
+  --vv-en: #105f58; --vv-en-hi: #17736b; --vv-en-lo: #0b4d47;
+  --vv-cream: #fff4dc; --vv-kant: #f3e6c9; --vv-ink: #0a3b37;
+  --vv-text: #10302c; --vv-dim: #3f5e59; --vv-gold-ink: #835000; --vv-red-ink: #b3261e; --vv-good-ink: #1b6e40;
+  --vv-coral: #ff7a5c; --vv-coral-hi: #ff9b81; --vv-coral-lo: #b8442b; --vv-coral-ink: #3b0f05;
+  --vv-drop: 0 0 0 2px var(--vv-ink), 0 4px 0 2px rgba(5, 34, 31, .42);
+  --vv-inset: inset 0 1.5px 0 rgba(10, 59, 55, .2);
+
+  --h-surf-solid: #105f58; --h-surf-text: #fff4dc; --h-surf-dim: #f1e3c3; --h-surf-faint: #e4d5b2;
+  --h-surf-2: rgba(255, 244, 220, .1); --h-surf-2-border: 1px solid rgba(255, 244, 220, .22); --h-surf-3: #0a4842;
+  --h-line: rgba(243, 230, 201, .3); --h-line-strong: rgba(243, 230, 201, .7);
+  --h-panel-bg: #105f58; --h-panel-border: 2px solid #f3e6c9;
+  --h-panel-shadow: 0 0 0 2px #0a3b37, 0 4px 0 2px rgba(5, 34, 31, .42);
+  --h-gold-text: #ffd665; --h-good-text: #a6efbd; --h-bad-text: #ffaaa4; --h-info-text: #b4efe7; --h-special-text: #cdd3ff;
+  --h-ghost-bg: #fff4dc; --h-ghost-text: #0f4a45; --h-ghost-border: 2px solid #0a3b37; --h-ghost-bg-hover: #fffaf0; --h-ghost-drop: 0 2px 0 #0a3b37;
+  --h-track: #083f3a; --h-track-border: 1px solid rgba(0, 0, 0, .25); --h-trail: rgba(255, 244, 220, .42);
+  --h-ring-face: radial-gradient(circle at 40% 35%, #fffaf0, #f3e6c9 75%);
+  --h-accent-k: 100%; --h-accent-to: #000000; --h-sil: brightness(0) invert(.94) opacity(.3);
+  --h-info: #8fd9cf; --h-info-soft: rgba(143, 217, 207, .2);
+  /* важная плашка: золотой кант снаружи тёмной обводки, без лампочек и без свечения; бирюзовая рама внутри — как у табличек */
+  --h-lamp-band: inset 0 0 0 3px #105f58, 0 0 0 2px #0a3b37;
+  --h-lamp-ring: 0 0 0 4.5px #ffcd4a, 0 0 0 6px #0a3b37, 0 5px 0 6px rgba(5, 34, 31, .38);
+  --h-lamp-dot: transparent; --h-lamp-dot-size: 0px; --h-lamp-inset: 0px; --h-lamp-dot-glow: none;
+  /* плашки HUD: сплошная эмаль (без прозрачности — её смешивают через color-mix), кремовый кант, обводка и тень-ступенька */
+  --plate-bg: #105f58;
+  --plate-text: #fff4dc;
+  --plate-border: 2px solid #f3e6c9;
+  --plate-shadow: 0 0 0 2px #0a3b37, 0 4px 0 2px rgba(5, 34, 31, .42);
+  --plate-blur: none; --hud-text-shadow: 0 1px 0 rgba(4, 30, 28, .55);
+  /* чат: кремовые таблички с бирюзовым кантом */
+  --chat-bg: #fff4dc; --chat-old: .82; --chat-border: 0 solid transparent;
+  --chat-shadow: 0 0 0 1.5px #105f58, 0 2px 0 1.5px rgba(5, 34, 31, .3);
+  /* ники в чате — тёмные, читаются на креме */
+  --nick-1: #c0461f; --nick-2: #1b7a48; --nick-3: #4b48c9; --nick-4: #b8336a; --nick-5: #0b6e69; --nick-6: #835000;
+  /* режимы в HUD — светлые тона, читаются на эмали (на кремовых вставках темнеют через --accent-k) */
+  --mh-def: #ffcd4a; --mh-fishing: #7fe3d4; --mh-farm: #9be07a; --mh-fort: #ff9a52; --mh-race: #ff7a5c; --mh-dungeon: #e0b45c;
+  --mh-paintball: #ff9a3c; --mh-hide: #cfa6ff; --mh-skill: #9cc8ff; --mh-pirates: #ff7466; --mh-regatta: #7fd0f2; --m-ink-h: #072b28;
+  /* «вывесочные» надписи в HUD — Rubik 800 без капса (Mono One на плашках читался хуже) */
+  --h-disp-font: Rubik, system-ui, sans-serif; --h-disp-weight: 800; --h-disp-case: none; --h-disp-word: normal; --h-disp-track: 0;
+}
+
+/* ---------------------------------------------------------------- кремовый контекст: тёмный текст на кремовом поле
+   всё, что лежит на креме (таблички в раме, вставки, ярлыки под плитками, строки чата), берёт тёмные значения */
+[data-hud='vyveska'] :is(.k-toast, .k-event:not(:has(> .mo-team)), .k-prompt, .mo-keys, .mo-item, .mo-speed, .k-chat-closed, .k-chat-line,
+  .k-tile-cap, .k-pop, .fi-odds, .fi-perk, .farm-card-next, .farm-quest-t, .fi-catch-next, .fi-catch-foot, .pz-stats, .rc-stats, .pb-stats,
+  .ft-stats, .k-vitals > .k-vitals-dash, .mo-stand-side, .mo-clock, .k-arm > span) {
+  --plate-text: #10302c; --surf-text: #10302c; --surf-dim: #3f5e59; --surf-faint: #4f6c67;
+  --gold-text: #835000; --good-text: #1b6e40; --bad-text: #b3261e; --info-text: #0b6e69; --special-text: #4b48c9;
+  --line: rgba(16, 95, 88, .22); --line-strong: rgba(16, 95, 88, .45);
+  --track: #e2d4b2; --track-border: 0 solid transparent; --trail: rgba(16, 95, 88, .25);
+  --accent-k: 45%; --accent-to: #0b1a1f;
+  text-shadow: none;
+}
+
+/* ---------------------------------------------------------------- клавиши в HUD: кремовый колпачок с тёмной кромкой; в подсказке — коралл */
+[data-hud='vyveska'] .k-hud .k-key { background: #fff4dc; color: #0f4a45; border: 1.5px solid #0a3b37; box-shadow: 0 2px 0 #0a3b37; font-weight: 800; }
+[data-hud='vyveska'] :is(.k-prompt, .fi-catch-btns) .k-key {
+  background: linear-gradient(180deg, #ff9b81, #ff7a5c 60%); color: #3b0f05; border-color: #0a3b37; box-shadow: 0 2px 0 #0a3b37;
+}
+
+/* ---------------------------------------------------------------- бейдж: портрет в кремовом ободке, уровень — кремовый кружок, жетоны — кремовая табличка */
+[data-hud='vyveska'] .k-badge { gap: 6px; height: 44px; padding: 3px 4px; }
+[data-hud='vyveska'] .k-badge-avatar { width: 34px; height: 34px; background: radial-gradient(circle at 35% 30%, #fff8e6, #f1dcb0 70%); box-shadow: 0 0 0 2px #f3e6c9; }
+[data-hud='vyveska'] .k-hud .k-ring { background: conic-gradient(var(--gold) calc(var(--p) * 360deg), #083f3a 0); box-shadow: 0 0 0 1.5px #0a3b37; }
+[data-hud='vyveska'] .k-hud .k-ring--mode { background: conic-gradient(var(--mode) calc(var(--p) * 360deg), #083f3a 0); }
+[data-hud='vyveska'] .k-hud .k-ring::before { background: #fff4dc; box-shadow: inset 0 1.5px 0 rgba(10, 59, 55, .2); }
+[data-hud='vyveska'] .k-hud .k-ring > b { color: #10302c; }
+[data-hud='vyveska'] .k-badge > .k-ring { width: 34px; height: 34px; }
+[data-hud='vyveska'] .k-badge > .k-ring::before { inset: 4px; }
+[data-hud='vyveska'] .k-badge > .k-ring > b { font-size: 17px; }
+[data-hud='vyveska'] .k-badge-tokens {
+  height: 32px; padding: 0 10px 0 6px; border-radius: 999px; background: #fff4dc; box-shadow: inset 0 1.5px 0 rgba(10, 59, 55, .2);
+  color: #835000; font-size: 21px;
+}
+
+/* ---------------------------------------------------------------- плитки: эмалевая клетка, ярлык ПОД ней — кремовая табличка */
+[data-hud='vyveska'] .k-tiles { gap: 12px; }
+[data-hud='vyveska'] .k-tile { gap: 6px; }
+[data-hud='vyveska'] .k-tile-face { width: 52px; height: 52px; }
+[data-hud='vyveska'] .k-tile-face > .k-meter { height: 5px; background: #083f3a; }
+[data-hud='vyveska'] .k-tile-cap {
+  padding: 1px 7px 2px; border-radius: 6px; background: #fff4dc; box-shadow: 0 0 0 2px #105f58, 0 3px 0 2px rgba(5, 34, 31, .35);
+  font-weight: 800;
+}
+[data-hud='vyveska'] .k-tile-cap > small { font-weight: 700; }
+[data-hud='vyveska'] .k-tile--own .k-tile-face { border-color: #ffcd4a; box-shadow: var(--plate-shadow); }
+[data-hud='vyveska'] .k-tile--warn .k-tile-face { border-color: #ff6b5b; box-shadow: var(--plate-shadow); }
+
+/* ---------------------------------------------------------------- всплывающие «+N»: кремовые ярлыки */
+[data-hud='vyveska'] .k-hud .k-pop { border: 2px solid #105f58; background: #fff4dc; box-shadow: 0 2px 0 #0a3b37; }
+
+/* ---------------------------------------------------------------- строка FPS и прочая служебная мелочь: маленькая кремовая табличка */
+[data-hud='vyveska'] :is(.pz-stats, .rc-stats, .pb-stats) {
+  padding: 2px 8px 3px; border-radius: 6px; background: #fff4dc; box-shadow: 0 0 0 1.5px #105f58; color: #3f5e59; font-weight: 600;
+}
+
+/* ---------------------------------------------------------------- «табличка в раме»: кремовое поле внутри бирюзовой рамы 3 px
+   (кант 2 px — border, обводка 2 px — тень, рама — внутренняя тень поверх фона); у тостов и события — эмалевый язычок под иконку */
+[data-hud='vyveska'] :is(.k-toast, .k-event:not(:has(> .mo-team)), .k-prompt, .mo-keys, .mo-item, .mo-speed, .k-chat-closed, .k-vitals > .k-vitals-dash) {
+  background: #fff4dc; box-shadow: inset 0 0 0 3px #105f58, 0 0 0 2px #0a3b37, 0 4px 0 2px rgba(5, 34, 31, .42);
+}
+[data-hud='vyveska'] .k-toast { --vv-tab: 44px; min-height: 42px; padding: 5px 13px 5px 9px; background: linear-gradient(90deg, #105f58 var(--vv-tab), #fff4dc var(--vv-tab)); }
+[data-hud='vyveska'] .k-event:not(:has(> .mo-team)) { --vv-tab: 46px; padding: 6px 13px 6px 9px; background: linear-gradient(90deg, #105f58 var(--vv-tab), #fff4dc var(--vv-tab)); }
+[data-hud='vyveska'] .k-toast::after { display: none; }
+[data-hud='vyveska'] .k-toast-ic { background: none; }
+[data-hud='vyveska'] .k-event-ic { background: rgba(255, 244, 220, .14); box-shadow: inset 0 0 0 2px var(--tone); }
+[data-hud='vyveska'] .k-toast-title, [data-hud='vyveska'] .k-event-title { font-weight: 800; }
+[data-hud='vyveska'] .k-toast-sub, [data-hud='vyveska'] .k-event-sub { font-weight: 600; }
+[data-hud='vyveska'] .k-event-timer { font-size: 19px; }
+/* награда — кант золотой */
+[data-hud='vyveska'] .k-toast--reward { border-color: #ffcd4a; }
+[data-hud='vyveska'] .k-toast--reward .k-toast-title { color: #835000; }
+
+/* подсказка «E — …»: кремовое поле, коралловая клавиша */
+[data-hud='vyveska'] .k-prompt { min-height: 40px; padding: 5px 15px 5px 7px; }
+[data-hud='vyveska'] .k-prompt.k-prompt--off { opacity: 1; padding-left: 15px; }
+[data-hud='vyveska'] .k-prompt-sep { background: rgba(16, 95, 88, .35); }
+[data-hud='vyveska'] .k-prompt-note { font-weight: 600; }
+
+/* ---------------------------------------------------------------- чат: строки — кремовые таблички с бирюзовым кантом */
+[data-hud='vyveska'] .k-chat-line { color: #10302c; font-weight: 500; }
+[data-hud='vyveska'] .k-chat-line.is-sys { color: #3f5e59; }
+[data-hud='vyveska'] .k-chat-line.is-own { box-shadow: var(--chat-shadow), inset 4px 0 0 #e2a21c; }
+[data-hud='vyveska'] .k-chat-closed { min-height: 36px; padding: 4px 14px 4px 6px; color: #10302c; font-weight: 700; }
+[data-hud='vyveska'] .k-voice { width: 38px; height: 38px; }
+
+/* ---------------------------------------------------------------- эмоции: одна эмалевая полка */
+[data-hud='vyveska'] .pz-emotes {
+  padding: 8px 9px 6px; border: 2px solid #f3e6c9; border-radius: 10px; background: #105f58; box-shadow: var(--vv-drop);
+}
+[data-hud='vyveska'] .pz-emote[aria-pressed='true'] .pz-emote-face { background: rgba(255, 205, 74, .3); }
+
+/* ---------------------------------------------------------------- подписи на эмали: крупно и кремом */
+[data-hud='vyveska'] .k-hud .k-eyebrow { font-size: 14px; font-weight: 800; letter-spacing: .04em; }
+[data-hud='vyveska'] .k-hud .k-pill--gold { background: linear-gradient(180deg, #ffdd7a, #ffcd4a 60%); color: #3a2603; box-shadow: 0 0 0 1.5px #0a3b37; }
+
+/* ---------------------------------------------------------------- рыбалка: карточка уровня, шансы, улов */
+[data-hud='vyveska'] .fi-mode { gap: 7px; padding: 8px 6px 7px; }
+[data-hud='vyveska'] .fi-mode-head { column-gap: 8px; }
+[data-hud='vyveska'] .fi-mode-t b { color: #fff4dc; }
+[data-hud='vyveska'] .fi-mode-t span { padding: 2px 7px; border-radius: 6px; background: #fff4dc; box-shadow: var(--vv-inset); color: #10302c; font: 800 14px/1 var(--font-text); }
+[data-hud='vyveska'] .fi-perk .fi-ic { width: 16px; height: 16px; }
+[data-hud='vyveska'] .fi-perk { gap: 4px; padding: 2px 5px; border-radius: 6px; background: #fff4dc; box-shadow: var(--vv-inset); }
+[data-hud='vyveska'] .fi-perk b { color: #10302c; }
+[data-hud='vyveska'] .fi-odds { gap: 5px; padding: 5px 6px 6px; border-top: 0; border-radius: 7px; background: #fff4dc; box-shadow: var(--vv-inset); color: #10302c; }
+[data-hud='vyveska'] .fi-odds-legend { gap: 3px 8px; }
+[data-hud='vyveska'] .fi-odds-bar { border: 0; box-shadow: 0 0 0 1.5px #0a3b37; }
+[data-hud='vyveska'] .fi-odds .fi-dot { box-shadow: 0 0 0 1.5px rgba(10, 59, 55, .5); }
+
+[data-hud='vyveska'] .fi-catch { gap: 8px; padding: 11px 12px 12px; box-shadow: var(--panel-shadow), inset 0 0 0 3px var(--tc); }
+[data-hud='vyveska'] .fi-catch-art { height: 116px; background: radial-gradient(closest-side, color-mix(in srgb, var(--tc) 30%, transparent), transparent), #fff4dc; box-shadow: var(--vv-inset); }
+[data-hud='vyveska'] .fi-catch-name b { color: #fff4dc; }
+[data-hud='vyveska'] .fi-catch-name span { padding: 3px 8px; border-radius: 6px; background: #fff4dc; box-shadow: var(--vv-inset); color: #835000; font-size: 20px; }
+[data-hud='vyveska'] .fi-catch-btns .k-btn--go { --tone: #ff7a5c; --tone-hi: #ff9b81; --tone-lo: #8f3220; --tone-ink: #3b0f05; box-shadow: 0 0 0 2px #0a3b37, 0 var(--btn-drop) 0 2px #0a3b37, var(--btn-hl); }
+[data-hud='vyveska'] .fi-catch-btns .k-btn--info { --tone: #fff4dc; --tone-hi: #fffaf0; --tone-lo: #0a3b37; --tone-ink: #0f4a45; box-shadow: 0 0 0 2px #0a3b37, 0 var(--btn-drop) 0 2px #0a3b37, var(--btn-hl); }
+[data-hud='vyveska'] .fi-catch-next .k-key { min-width: 0; height: 22px; padding: 0 6px; font-size: 13px; }
+[data-hud='vyveska'] .fi-catch-next { padding: 3px 6px; border-radius: 6px; background: #fff4dc; box-shadow: var(--vv-inset); }
+[data-hud='vyveska'] .fi-catch-foot { padding: 4px 7px; border-radius: 6px; background: #fff4dc; box-shadow: var(--vv-inset); }
+
+/* ---------------------------------------------------------------- ферма: карточка уровня и задание */
+[data-hud='vyveska'] .farm-card { padding: 8px 8px 7px; }
+[data-hud='vyveska'] .farm-card-name { color: #fff4dc; }
+[data-hud='vyveska'] .farm-card-xp { align-self: flex-start; padding: 2px 7px; border-radius: 6px; background: #fff4dc; box-shadow: var(--vv-inset); color: #3f5e59; font: 700 14px/1.1 var(--font-text); }
+[data-hud='vyveska'] .farm-card-xp b { color: #10302c; }
+[data-hud='vyveska'] .farm-card-next .k-ic { width: 20px; height: 20px; }
+[data-hud='vyveska'] .farm-card-next { gap: 4px; margin-top: 6px; padding: 3px 5px; border-top: 0; border-radius: 6px; background: #fff4dc; box-shadow: var(--vv-inset); color: #10302c; }
+[data-hud='vyveska'] .farm-card-next .k-dim { color: #3f5e59; }
+[data-hud='vyveska'] .farm-quest { padding: 8px 10px 10px; }
+[data-hud='vyveska'] .farm-quest .k-eyebrow { color: #fff4dc; }
+[data-hud='vyveska'] .farm-quest-t { margin: 5px 0 7px; padding: 4px 7px 5px; border-radius: 6px; background: #fff4dc; box-shadow: var(--vv-inset); color: #10302c; }
+[data-hud='vyveska'] .farm-quest-steps i { background: #083f3a; }
+[data-hud='vyveska'] .farm-tree-bar > i { background: #10302c; }
+
+/* ---------------------------------------------------------------- картинг: место и круг — кремовые таблички на эмали */
+[data-hud='vyveska'] .mo-stand { padding: 5px 6px 6px 5px; }
+[data-hud='vyveska'] .mo-stand-main { gap: 6px; }
+[data-hud='vyveska'] .mo-place { padding: 3px 8px 2px; border-radius: 7px; background: #fff4dc; box-shadow: var(--vv-inset); color: #835000; font-size: 34px; }
+[data-hud='vyveska'] .mo-place small { color: #3f5e59; }
+[data-hud='vyveska'] .mo-stand-side { align-self: stretch; justify-content: center; padding: 3px 9px; border-left: 0; border-radius: 7px; background: #fff4dc; box-shadow: var(--vv-inset); }
+[data-hud='vyveska'] .mo-lap { font-size: 14px; }
+[data-hud='vyveska'] .mo-time { color: #10302c; }
+[data-hud='vyveska'] .mo-map { padding: 4px; }
+[data-hud='vyveska'] .mo-keys { padding: 5px 12px; }
+[data-hud='vyveska'] .mo-key em { color: #3f5e59; font-weight: 700; }
+[data-hud='vyveska'] .mo-item { --vv-tab: 56px; padding: 5px 14px 5px 6px; background: linear-gradient(90deg, #105f58 var(--vv-tab), #fff4dc var(--vv-tab)); }
+[data-hud='vyveska'] .mo-item-ic { width: 42px; height: 42px; background: #0a4842; box-shadow: inset 0 0 0 1.5px rgba(243, 230, 201, .5); }
+[data-hud='vyveska'] .mo-item .mo-ghost { filter: grayscale(1) brightness(1.6); opacity: .5; }
+[data-hud='vyveska'] .mo-speed { padding: 4px 12px 5px; }
+
+/* ---------------------------------------------------------------- пейнтбол: табло — эмаль, счёт и часы на кремовых вставках */
+[data-hud='vyveska'] .k-event:has(> .mo-team) { padding: 3px; gap: 2px; }
+[data-hud='vyveska'] .k-event > .mo-team { --accent-k: 62%; --accent-to: #ffffff; padding: 3px 5px 4px; }
+[data-hud='vyveska'] .mo-team-top b { min-width: 22px; padding: 2px 5px; font-size: 20px; border-radius: 6px; background: #fff4dc; box-shadow: var(--vv-inset); color: #10302c; text-align: center; }
+[data-hud='vyveska'] .mo-clock { border: 0; border-radius: 6px; background: #fff4dc; box-shadow: var(--vv-inset); }
+[data-hud='vyveska'] .mo-clock b { color: #10302c; }
+
+/* ---------------------------------------------------------------- панель бойца: эмалевые клетки, числа на кремовых вставках */
+[data-hud='vyveska'] .k-vitals-hp, [data-hud='vyveska'] .k-vitals-ammo { gap: 4px; min-height: 46px; padding: 5px 8px 6px; }
+[data-hud='vyveska'] .k-vitals-num { padding: 2px 6px 1px; border-radius: 6px; background: #fff4dc; box-shadow: var(--vv-inset); color: #10302c; font-size: 20px; }
+[data-hud='vyveska'] .k-vitals-num small { color: #3f5e59; }
+[data-hud='vyveska'] .k-vitals-hp.is-low .k-vitals-num, [data-hud='vyveska'] .k-vitals-ammo.is-empty .k-vitals-num { color: #b3261e; }
+[data-hud='vyveska'] .k-vitals-hp .k-meter, [data-hud='vyveska'] .k-vitals-ammo .k-meter { height: 5px; background: #083f3a; }
+[data-hud='vyveska'] .k-arm.is-on { border-color: #ffcd4a; box-shadow: var(--plate-shadow); }
+[data-hud='vyveska'] .k-arm > span { border-radius: 6px; background: #fff4dc; box-shadow: 0 0 0 2px #105f58, 0 2px 0 2px rgba(5, 34, 31, .3); color: #10302c; font-weight: 800; }
+[data-hud='vyveska'] .k-arm--count > span { border: 0; }
+[data-hud='vyveska'] .k-vitals > .k-vitals-dash { min-height: 32px; }
+[data-hud='vyveska'] .k-vitals-dash .k-vitals-cap { color: #10302c; font: 700 14px/1 var(--font-text); }
+[data-hud='vyveska'] .k-vitals-dash .k-meter { background: #e2d4b2; }
+
+/* ---------------------------------------------------------------- крепость: верх и рамка мини-карты — эмаль и крем вместо тёмного дерева.
+   Раскладка прежняя: меняем только токены темы (--dg-*) и подложки чисел */
+[data-hud='vyveska'] :is(.ft-command, .ft-fort) {
+  --dg-font: Rubik, system-ui, sans-serif; --dg-font-head: Rubik, system-ui, sans-serif;
+  --dg-text: #fff4dc; --dg-text-dim: #f1e3c3;
+  --dg-iron: #105f58; --dg-iron-edge: #0a3b37;
+  --dg-brass: #ffcd4a; --dg-brass-hi: #ffd665; --dg-brass-dk: #f3e6c9;
+  --dg-rivet: radial-gradient(circle at 50% 50%, #fff4dc 0 1.3px, #0a3b37 2.1px, transparent 2.8px);
+  --dg-line: rgba(243, 230, 201, .28); --dg-pip: rgba(255, 244, 220, .28);
+  --dg-teal: #8fe3d4; --dg-red: #ff6b5b; --dg-bar-bg: #083f3a;
+  box-shadow: 0 0 0 2px #0a3b37, 0 4px 0 2px rgba(5, 34, 31, .42);
+}
+[data-hud='vyveska'] :is(.ft-command, .ft-fort)::before { display: none; }
+[data-hud='vyveska'] .ft-phase-title { color: #fff4dc; font: 800 19px/1.05 var(--font-text); }
+[data-hud='vyveska'] .ft-phase-timer { color: #10302c; font-family: var(--font-text); box-shadow: 0 0 0 1.5px #0a3b37; }
+[data-hud='vyveska'] .ft-phase-timer::before { inset: 3px; background: #fff4dc; }
+[data-hud='vyveska'] .ft-phase-timer.is-hurry { color: #b3261e; }
+[data-hud='vyveska'] .ft-command .ft-hp-pct { padding: 2px 5px; border-radius: 5px; background: #fff4dc; box-shadow: var(--vv-inset); color: #10302c; }
+[data-hud='vyveska'] .ft-command .ft-hp.is-low .ft-hp-pct { color: #b3261e; }
+[data-hud='vyveska'] .ft-command .ft-hp > .k-meter { background: #083f3a; }
+[data-hud='vyveska'] .ft-command .ft-foes { color: #fff4dc; }
+[data-hud='vyveska'] .ft-command .ft-chip.is-new { color: #3a2603; background: linear-gradient(180deg, #ffdd7a, #ffcd4a 60%); box-shadow: 0 0 0 1.5px #0a3b37; }
+[data-hud='vyveska'] .ft-command .k-tile-cap { padding: 0; border-radius: 0; background: none; box-shadow: none; }
+[data-hud='vyveska'] .ft-command .ft-gold .k-tile-cap { padding: 3px 9px 2px; border-radius: 7px; background: #fff4dc; box-shadow: var(--vv-inset); color: #835000; font-size: 23px; }
+[data-hud='vyveska'] .ft-command .ft-record .k-tile-cap { color: #fff4dc; }
+[data-hud='vyveska'] .ft-fort { padding: 5px; }
+[data-hud='vyveska'] .ft-map { border: 2px solid #0a3b37; border-radius: 6px; }
+[data-hud='vyveska'] .ft-shield-label { font: 800 16px/1 var(--font-text); }
+[data-hud='vyveska'] .ft-stats { width: auto; align-self: flex-start; padding: 2px 8px 3px; border-radius: 6px; background: #fff4dc; box-shadow: 0 0 0 1.5px #105f58; color: #3f5e59; font: 600 13px/1.2 var(--font-text); }
+
+/* ---------------------------------------------------------------- подписи над головами (в игре — 3D, здесь макет)
+   ник — кремовая табличка с бирюзовым кантом; уровень — бирюзовый кружок с кремовой цифрой; реплика — кремовая вывеска */
+[data-hud='vyveska'] .lab-tag { gap: 0; color: #10302c; font-size: 16px; text-shadow: none; }
+[data-hud='vyveska'] .lab-tag > b { padding: 2px 10px 3px 12px; border-radius: 7px; background: #fff4dc; box-shadow: 0 0 0 2px #105f58, 0 0 0 3.5px #0a3b37, 0 3px 0 3.5px rgba(5, 34, 31, .3); }
+[data-hud='vyveska'] .lab-tag-lv { position: relative; z-index: 1; width: 26px; height: 26px; margin-right: -6px; border: 2px solid #f3e6c9; background: #105f58; color: #fff4dc; font-size: 13px; font-weight: 800; box-shadow: 0 0 0 1.5px #0a3b37; }
+[data-hud='vyveska'] .lab-tag--npc { gap: 4px; }
+[data-hud='vyveska'] .lab-tag--npc > b { padding-left: 10px; }
+[data-hud='vyveska'] .lab-tag--npc span { padding: 1px 8px 2px; border-radius: 5px; background: #105f58; box-shadow: 0 0 0 1.5px #0a3b37; color: #fff4dc; font-size: 14px; font-weight: 700; opacity: 1; }
+[data-hud='vyveska'] .lab-bubble { padding: 6px 12px 7px; border-radius: 9px; background: #fff4dc; color: #10302c; font-weight: 700;
+  box-shadow: 0 0 0 2px #105f58, 0 0 0 3.5px #0a3b37, 0 4px 0 3.5px rgba(5, 34, 31, .3); }
+[data-hud='vyveska'] .lab-bubble::after { bottom: -10px; border-width: 9px 8px 0; margin-left: -8px; border-top-color: #105f58; }

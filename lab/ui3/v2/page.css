@@ -1,0 +1,15 @@
+/* Вторая версия страницы: две большие карточки с двумя набросками и ссылка на первую версию. Остальное — ../page.css. */
+.pg-v1 { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: -4px 0 0; color: var(--pg-faint); font-size: 15px; }
+.pg-v1 a { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; border: 1px solid var(--pg-line); border-radius: 999px;
+  background: var(--pg-card); color: var(--pg-gold); font-weight: 700; text-decoration: none; }
+.pg-v1 a::before { content: '←'; }
+.pg-v1 a:hover { border-color: var(--pg-gold); }
+
+.pg-cards--v2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.pg-card-refs { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; }
+.pg-card-refs img { aspect-ratio: 3 / 2; object-fit: cover; }
+.pg-card-what { display: grid; gap: 4px; margin: 0; padding: 0 16px; list-style: none; color: var(--pg-dim); font-size: 15px; line-height: 1.4; }
+.pg-card-what li { padding-left: 16px; text-indent: -16px; }
+.pg-card-what li::before { content: '•'; display: inline-block; width: 16px; text-indent: 0; color: var(--pg-gold); font-weight: 900; }
+.pg-card-v1 { padding: 0 16px; color: var(--pg-faint); font-size: 14px; }
+@media (max-width: 720px) { .pg-cards--v2 { grid-template-columns: minmax(0, 1fr); } }

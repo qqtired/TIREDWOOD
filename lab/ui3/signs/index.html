@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Вывески v3 · Веранда</title>
+<meta name="description" content="Вывески, табло и доски TIREDWOOD в стиле нового HUD «Веранда v3»: как сейчас и как предлагаем">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M32 6c-13 0-22 13-22 30 0 13 9 22 22 22s22-9 22-22C54 19 45 6 32 6z' fill='%23ff8a1c'/%3E%3Ccircle cx='25' cy='30' r='5' fill='%23fff'/%3E%3Ccircle cx='39' cy='30' r='5' fill='%23fff'/%3E%3Ccircle cx='26' cy='31' r='2.4' fill='%23222'/%3E%3Ccircle cx='40' cy='31' r='2.4' fill='%23222'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../page.css">
+<link rel="stylesheet" href="page.css">
+</head>
+<body>
+<!-- Лаборатория UI 3.0: вывески и табло в мире (решение №14 в docs/ui3/brief.md, 31.10). Кадры и холсты сняты прямо из игры
+     (ветка mode/ui3; новый вид — ?ui3 в адресе). Пары — в data.js, картинки — в img/. Страницы HUD — ../v3/, ../v2/, ../. -->
+<main class="pg">
+  <header class="pg-top">
+    <div class="pg-brand"><span class="pg-jelly" aria-hidden="true"></span>TIREDWOOD · лаборатория<span class="pg-ver">UI 3.0 · вывески</span></div>
+    <h1 class="pg-title">Вывески и табло в стиле v3</h1>
+    <p class="pg-intro">Ты попросил: «отдельно можешь вывески заредизайнить, которые у нас есть у режимов, электронные» — и добавил
+      таблички мест («Рыбный двор», «Регата», «Примерочная», «Подземелье»…) и деревянные доски. Стиль — как новый HUD: тёмная слива,
+      одна золотая кайма, крем и золото, скошенные углы.</p>
+    <p class="pg-v1"><a href="../v3/">HUD v3 — Веранда</a></p>
+  </header>
+
+  <section class="pg-sec" id="world" aria-labelledby="world-h">
+    <h2 id="world-h">На площади</h2>
+    <p class="pg-lead">Кадры из игры с одной и той же точки: слева как сейчас, справа v3. Нажми на кадр — откроется крупно.
+      Цвет желейки на кадрах разный — это разные тестовые игроки, к вывескам не относится.</p>
+    <div class="sg-list sg-world"></div>
+  </section>
+
+  <section class="pg-sec" id="boards" aria-labelledby="boards-h">
+    <h2 id="boards-h">Электронные табло у режимов</h2>
+    <p class="pg-lead">Сама картинка табло, снятая из игры. Все строки, числа и статусы на месте — поменялось только оформление.</p>
+    <div class="sg-list sg-boards"></div>
+  </section>
+
+  <section class="pg-sec" id="plaques" aria-labelledby="plaques-h">
+    <h2 id="plaques-h">Таблички мест, указатели и доски</h2>
+    <p class="pg-lead">Таблички мест — лицо площади. Деревянные доски остаются досками, на них ложится тот же язык.</p>
+    <div class="sg-list sg-plaques"></div>
+  </section>
+
+  <section class="pg-sec pg-foot" id="rest" aria-labelledby="rest-h">
+    <h2 id="rest-h">Что не трогали</h2>
+    <ul class="sg-rest">
+      <li>Табло картинга, экран чата на крыше, доску почёта с «Последними входами» и джекпот — оставили как сейчас, по твоему слову.</li>
+      <li>Таблички над столами карт и бильярда — ты их не выбрал.</li>
+      <li>Остальные экраны «Ракушки» («Во что играем?», вопросы, сетка) и мольберт — как есть, по твоему слову; табло «Загадки» — новая раскладка, она выше.</li>
+      <li>Экраны автоматов, деревянные столбы, канаты и фонари — это мир, не вывески.</li>
+    </ul>
+    <p>В игре старый вид остаётся в коде рядом: откат — одной строкой. Включим вместе с новым HUD.</p>
+  </section>
+</main>
+
+<dialog class="sg-big" aria-label="Кадр крупно">
+  <figure><img alt=""><figcaption></figcaption></figure>
+</dialog>
+
+<noscript><p class="pg-noscript">Для этой страницы нужен JavaScript.</p></noscript>
+<script src="data.js"></script>
+<script src="page.js"></script>
+</body>
+</html>

@@ -1,0 +1,302 @@
+/* вариант HUD «Светлый 2.0» (id light2) — по брифу docs/ui3/brief.md, референс img/ref-light2.jpg.
+   Эволюция нынешнего «Светлого»: та же светлая основа, но каждая плашка — «наклейка»: фарфор на бумаге,
+   тёмная чернильная обводка 2 px, белая полоса внутри, короткая плотная тень. У карточек режима — эмалевая кромка
+   цвета режима (площадь и рыбалка — бирюза, ферма — трава, крепость — кирпич, картинг — оранжевый, пейнтбол — малина).
+   Иконки — в цветных медальонах, числа — крупные, тёмные, Rubik 800–900. Все селекторы — под [data-hud='light2']. */
+
+/* ---------------------------------------------------------------- свои переменные варианта */
+[data-hud='light2'] {
+  --l2-ink: #1e2a31;                       /* обводка наклейки и весь текст */
+  --l2-ink-a: rgba(30, 42, 49, .5);
+  --l2-cream: #fdf6e9;
+  /* фарфор: блик сверху + тёплый крем поверх лёгкой бумаги */
+  --l2-face: linear-gradient(180deg, rgba(255, 255, 255, .78) 0, rgba(255, 255, 255, .2) 42%, rgba(255, 255, 255, 0) 60%),
+    linear-gradient(180deg, rgba(255, 252, 245, .8), rgba(250, 240, 222, .8)), url('../img/tex/paper.jpg') 0 0 / 320px;
+  /* наклейка: белая полоса внутри обводки + короткая плотная тень «лежит на экране» */
+  --l2-sticker: inset 0 0 0 1.5px #fff, 0 2.5px 0 rgba(22, 32, 38, .55), 0 6px 10px -4px rgba(10, 30, 40, .28);
+  --l2-sticker-sm: inset 0 0 0 1px #fff, 0 2px 0 rgba(22, 32, 38, .5);
+  /* эмалевая кромка режима: по умолчанию бирюза площади и рыбалки */
+  --l2-edge: #14a19a;
+  --l2-edge-w: 5px;
+  /* медальоны плиток: эмаль трёх цветов по очереди */
+  --l2-med-a: #9fdcd3; --l2-med-b: #b8e19c; --l2-med-c: #ffbca8;
+}
+[data-hud='light2'][data-room='farm'] { --l2-edge: #45a33a; }
+[data-hud='light2'][data-room='fort'] { --l2-edge: #c2502e; }
+[data-hud='light2'][data-room='race'] { --l2-edge: #f07a16; }
+[data-hud='light2'][data-room='paintball'] { --l2-edge: #e2466b; }
+
+/* ---------------------------------------------------------------- токены (копия «Светлого» со своими значениями) */
+[data-hud='light2'][data-skin='retro2'], [data-hud='light2'] [data-skin='retro2'] {
+  --h-surf-solid: #fffaf1; --h-surf-text: #1e2a31; --h-surf-dim: #33434b; --h-surf-faint: #4a5a62;
+  --h-surf-2: rgba(30, 42, 49, .06); --h-surf-2-border: 1px solid rgba(30, 42, 49, .16); --h-surf-3: #f1e7d3;
+  --h-line: rgba(30, 42, 49, .16); --h-line-strong: rgba(30, 42, 49, .36);
+  --h-panel-bg: #fdf6e9; --h-panel-border: 2px solid #1e2a31;
+  --h-panel-shadow: inset 0 0 0 2px #fff, 0 3px 0 rgba(22, 32, 38, .55), 0 8px 14px -6px rgba(10, 30, 40, .3);
+  --h-gold-text: #8a5200; --h-good-text: #17703f; --h-bad-text: #b8222f; --h-info-text: #0a6c68; --h-special-text: #4440c0;
+  --h-ghost-bg: #ffffff; --h-ghost-text: #1e2a31; --h-ghost-border: 1.5px solid #1e2a31; --h-ghost-bg-hover: #f4efe4; --h-ghost-drop: 0 2px 0 rgba(22, 32, 38, .5);
+  --h-track: #e6dcc9; --h-track-border: 1px solid rgba(30, 42, 49, .28); --h-trail: rgba(30, 42, 49, .2);
+  --h-ring-face: radial-gradient(circle at 40% 32%, #ffffff, #f4ebd9 78%);
+  --h-accent-k: 62%; --h-accent-to: #0b1a1f; --h-sil: brightness(0) opacity(.3);
+  --h-info: #12958f; --h-info-soft: rgba(18, 149, 143, .16);
+  /* важная плашка: белая полоса внутри, золотой обод между двумя чернильными линиями */
+  --h-lamp-band: inset 0 0 0 1.5px #fff;
+  --h-lamp-ring: 0 0 0 3px #f4b62a, 0 0 0 4.5px #1e2a31, 0 4px 0 3px rgba(22, 32, 38, .45);
+  --h-lamp-dot: transparent; --h-lamp-dot-size: 0px; --h-lamp-inset: 0px; --h-lamp-dot-glow: none;
+  /* плашки HUD: --plate-bg — сплошной крем (идёт в color-mix), фарфор и бумага — правилом ниже */
+  --plate-bg: #fdf6e9;
+  --plate-text: #1e2a31;
+  --plate-border: 2px solid #1e2a31;
+  --plate-shadow: inset 0 0 0 1.5px #fff, 0 2.5px 0 rgba(22, 32, 38, .55), 0 6px 10px -4px rgba(10, 30, 40, .28);
+  --plate-blur: none; --hud-text-shadow: none;
+  --chat-bg: rgba(255, 250, 241, .95); --chat-old: .82; --chat-border: 1.5px solid rgba(30, 42, 49, .62);
+  --chat-shadow: inset 0 0 0 1px #fff, 0 2px 0 rgba(22, 32, 38, .38);
+  --nick-1: #c94a20; --nick-2: #17703f; --nick-3: #4440c0; --nick-4: #b02a62; --nick-5: #0a6c68; --nick-6: #8a5200;
+  /* режимы в HUD — насыщенная эмаль; картинг — оранжевый, пейнтбол — малиновый (как кромки) */
+  --mh-def: #14a19a; --mh-fishing: #0f9a96; --mh-farm: #45a33a; --mh-fort: #c2502e; --mh-race: #f07a16; --mh-dungeon: #a0742a;
+  --mh-paintball: #e2466b; --mh-hide: #8c55d6; --mh-skill: #3c7fd6; --mh-pirates: #c2382e; --mh-regatta: #1d86b8; --m-ink-h: #ffffff;
+  --h-disp-font: Rubik, system-ui, sans-serif; --h-disp-weight: 900; --h-disp-case: none; --h-disp-word: normal; --h-disp-track: 0;
+}
+
+/* клавиши, кнопки и крупные надписи — только в HUD; окна «Ретро-парка» остаются как есть */
+[data-hud='light2'] :is(.k-hud, .voice-hud, .k-hudctx) {
+  --key-bg: #ffffff; --key-text: #1e2a31; --key-border: 1.5px solid #1e2a31; --key-shadow: 0 2px 0 #1e2a31; --key-radius: 6px; --key-weight: 800;
+  --btn-border: 2px solid #1e2a31; --btn-drop-ink: #1e2a31; --btn-hl: inset 0 1.5px 0 rgba(255, 255, 255, .55);
+  --hero-text: #ffffff; --hero-step: 4px; --hero-step-ink: #1e2a31;
+  --hero-outline: 3px 0 0 #1e2a31, -3px 0 0 #1e2a31, 0 3px 0 #1e2a31, 0 -3px 0 #1e2a31, 2px 2px 0 #1e2a31, -2px 2px 0 #1e2a31, 2px -2px 0 #1e2a31, -2px -2px 0 #1e2a31;
+}
+[data-hud='light2'] :is(.k-hud, .voice-hud, .k-hudctx) :is(.k-scrim, .k-window) {
+  --key-bg: #fff6e2; --key-text: #0d524d; --key-border: 1px solid #0a3b37; --key-shadow: 0 1.5px 0 #0a3b37; --key-radius: 6px; --key-weight: 800;
+  --btn-border: 0 solid transparent; --btn-drop-ink: initial; --btn-hl: inset 0 1px 0 rgba(255, 255, 255, .4);
+}
+
+/* ---------------------------------------------------------------- материал: фарфор на бумаге
+   :where — чтобы состояния игры (голос в эфире, жёлтая кнопка «нужен микрофон», катушка рыбалки) перебивали фон */
+[data-hud='light2'] :where(.k-plate, .k-badge, .k-tile-face, .k-toast, .k-event, .k-prompt, .k-chat-closed, .k-chat-input, .k-voice,
+  .k-vitals-hp, .k-vitals-ammo, .k-vitals > .k-vitals-dash, .k-arm, .k-hero-sub, .k-pop, .k-pill--plate, .k-hud .k-panel) {
+  background: var(--l2-face);
+}
+
+/* ---------------------------------------------------------------- эмалевая кромка: карточки режима — слева цветом комнаты,
+   плашки событий и тосты — слева своим тоном (событие — режим/успех/опасность, награда — золото) */
+[data-hud='light2'] .k-plate {
+  padding-left: 14px;
+  box-shadow: inset var(--l2-edge-w) 0 0 var(--l2-edge), var(--plate-shadow);
+}
+[data-hud='light2'] .k-event {
+  padding: 6px 12px 6px 12px;
+  box-shadow: inset var(--l2-edge-w) 0 0 var(--tone), var(--plate-shadow);
+}
+[data-hud='light2'] .k-event.k-lamp { box-shadow: inset var(--l2-edge-w) 0 0 var(--tone), var(--lamp-band), var(--lamp-ring) !important; /* перебивает !important у .k-lamp */ }
+[data-hud='light2'] .k-toast {
+  min-height: 40px; padding: 5px 12px 5px 11px; column-gap: 9px;
+  box-shadow: inset var(--l2-edge-w) 0 0 var(--tone), var(--plate-shadow);
+}
+[data-hud='light2'] .k-toast::after { display: none; }
+[data-hud='light2'] .k-toast--reward { box-shadow: inset var(--l2-edge-w) 0 0 #f2b52c, var(--plate-shadow); }
+
+/* ---------------------------------------------------------------- типографика: тёмная, жирная, без тонких серых подписей */
+[data-hud='light2'] :is(.k-toast-title, .k-event-title) { font-weight: 800; }
+[data-hud='light2'] :is(.k-toast-sub, .k-event-sub, .k-prompt-note, .k-tile-cap > small, .k-vitals-cap, .mo-lap, .mo-speed span,
+  .fi-mode-t span, .fi-perk, .farm-card-xp, .mo-clock small, .mo-key em) { color: var(--surf-dim); font-weight: 600; }
+[data-hud='light2'] .k-toast--reward .k-toast-title { font-weight: 900; }
+[data-hud='light2'] .k-event-timer { font-size: 20px; font-weight: 900; }
+[data-hud='light2'] .k-faint { color: var(--surf-dim); font-weight: 600; }
+[data-hud='light2'] .k-eyebrow { font-weight: 800; }
+
+/* ---------------------------------------------------------------- медальоны иконок */
+[data-hud='light2'] :is(.k-toast-ic, .k-event-ic) {
+  background: radial-gradient(circle at 36% 30%, color-mix(in srgb, var(--tone) 22%, #fff), color-mix(in srgb, var(--tone) 62%, #fff) 72%);
+  box-shadow: 0 0 0 1.5px var(--l2-ink), inset 0 0 0 1.5px rgba(255, 255, 255, .7);
+}
+[data-hud='light2'] .k-toast--reward .k-toast-ic { background: radial-gradient(circle at 36% 30%, #fff3c4, #ffd36a 72%); }
+
+/* плитки: квадратная наклейка, внутри — круглый эмалевый медальон с иконкой */
+[data-hud='light2'] .k-tile { --l2-med: var(--l2-med-a); gap: 4px; }
+[data-hud='light2'] .k-tile:nth-child(3n + 2) { --l2-med: var(--l2-med-b); }
+[data-hud='light2'] .k-tile:nth-child(3n + 3) { --l2-med: var(--l2-med-c); }
+/* :where — свои плитки верха крепости (.ft-command) остаются без подложки */
+[data-hud='light2'] :where(.k-tile-face) {
+  width: 50px; height: 50px; border-radius: 12px;
+  background: radial-gradient(circle at 50% 50%, var(--l2-med) 0 17.5px, rgba(30, 42, 49, .55) 18px 19px, transparent 19.5px), var(--l2-face);
+}
+[data-hud='light2'] :where(.k-tile-face):has(> .k-meter) {
+  background: radial-gradient(circle at 50% 41%, var(--l2-med) 0 15.5px, rgba(30, 42, 49, .55) 16px 17px, transparent 17.5px), var(--l2-face);
+}
+[data-hud='light2'] :where(.k-tile-face) > img { width: 38px; height: 38px; }
+[data-hud='light2'] :where(.k-tile-face):has(> .k-meter) > img { width: 34px; height: 34px; margin-top: -7px; }
+[data-hud='light2'] .k-tile-face > .k-meter { left: 6px; right: 6px; bottom: 5px; height: 4px; box-shadow: 0 0 0 1px rgba(30, 42, 49, .35); }
+[data-hud='light2'] .k-tile--warn .k-tile-face { box-shadow: inset 0 0 0 1.5px #fff, inset 0 0 0 3.5px var(--bad), 0 2.5px 0 rgba(22, 32, 38, .55); }
+[data-hud='light2'] .k-tile--own .k-tile-face { box-shadow: inset 0 0 0 1.5px #fff, inset 0 0 0 3.5px var(--gold), 0 2.5px 0 rgba(22, 32, 38, .55); }
+/* подпись плитки — лёгкий кремовый ярлык без второй толстой рамки */
+[data-hud='light2'] :where(.k-tile-cap) {
+  padding: 2px 6px 3px; border-radius: 7px; background: var(--l2-cream);
+  box-shadow: 0 0 0 1px rgba(30, 42, 49, .3), 0 1.5px 0 1px rgba(22, 32, 38, .22); font-weight: 800;
+}
+
+/* ---------------------------------------------------------------- бейдж: портрет и уровень — медальоны, жетоны крупно */
+[data-hud='light2'] .k-badge { height: 42px; gap: 7px; padding: 3px 12px 3px 3px; }
+[data-hud='light2'] .k-badge-avatar {
+  width: 34px; height: 34px;
+  background: radial-gradient(circle at 40% 30%, #d9f4ef, #8fd3c9 78%);
+  box-shadow: 0 0 0 1.5px var(--l2-ink);
+}
+[data-hud='light2'] .k-ring { box-shadow: 0 0 0 1.5px var(--l2-ink); }
+[data-hud='light2'] .k-ring::before { box-shadow: 0 0 0 1.5px rgba(30, 42, 49, .55); }
+[data-hud='light2'] .k-ring > b { font-weight: 900; }
+[data-hud='light2'] .k-badge > .k-ring { width: 34px; height: 34px; }
+[data-hud='light2'] .k-badge-tokens { gap: 4px; font-weight: 900; font-size: 23px; letter-spacing: -.01em; }
+[data-hud='light2'] .k-badge-tokens .k-coin { width: 24px; height: 24px; }
+[data-hud='light2'] .k-pop { border-width: 1.5px; box-shadow: var(--l2-sticker-sm); font-weight: 900; }
+
+/* ---------------------------------------------------------------- чат, голос, эмоции, подсказка */
+[data-hud='light2'] .k-chat-list { gap: 3px; }
+[data-hud='light2'] .k-chat-line { padding: 3px 9px 4px; border-radius: 7px; font-weight: 500; }
+[data-hud='light2'] .k-chat-line > b { font-weight: 800; }
+[data-hud='light2'] .k-chat-line.is-sys { color: var(--surf-dim); font-style: normal; font-weight: 600; }
+[data-hud='light2'] .k-chat-line.is-own { padding-left: 11px; box-shadow: var(--chat-shadow), inset 4px 0 0 #f2b52c; }
+[data-hud='light2'] .k-chat-closed { min-height: 36px; padding: 3px 13px 3px 5px; color: var(--surf-dim); font-weight: 700; }
+[data-hud='light2'] .k-voice { width: 36px; height: 36px; }
+[data-hud='light2'] .k-voice.is-live { box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .7), 0 2.5px 0 rgba(22, 32, 38, .55), 0 0 0 3px var(--good-soft); }
+[data-hud='light2'] .pz-emotes { gap: 6px; padding: 6px 4px 4px; }
+[data-hud='light2'] .pz-emote { gap: 4px; }
+[data-hud='light2'] .pz-emote-face {
+  border-radius: 50%; background: var(--l2-face);
+  box-shadow: 0 0 0 1.5px var(--l2-ink), inset 0 0 0 1px #fff, 0 2.5px 0 1px rgba(22, 32, 38, .45);
+}
+[data-hud='light2'] .pz-emote-face .k-ic { width: 26px; height: 26px; }
+[data-hud='light2'] .pz-emote-five .k-ic { width: 19px; height: 25px; }
+[data-hud='light2'] .pz-emote[aria-pressed='true'] .pz-emote-face { background: radial-gradient(circle at 36% 30%, #fff3c4, #ffd36a 72%); border-radius: 50%; }
+[data-hud='light2'] .k-prompt { min-height: 38px; padding: 4px 14px 4px 6px; gap: 9px; font-weight: 800; }
+[data-hud='light2'] .pz-hint.k-prompt--off { padding-left: 14px; }
+[data-hud='light2'] .k-prompt--off { opacity: .85; }
+[data-hud='light2'] .k-prompt-sep { width: 1.5px; background: rgba(30, 42, 49, .3); }
+[data-hud='light2'] .pz-stats { padding: 2px 8px 3px; border: 1.5px solid rgba(30, 42, 49, .7); border-radius: 7px; background: var(--l2-cream);
+  box-shadow: 0 1.5px 0 rgba(22, 32, 38, .35); }
+
+/* ---------------------------------------------------------------- карточки режимов: плотнее на 6–8 % */
+[data-hud='light2'] .fi-mode { gap: 7px; padding: 8px 10px 9px 13px; }
+[data-hud='light2'] .fi-mode-t span { font-size: 14px; font-weight: 800; color: var(--surf-text); }
+[data-hud='light2'] .fi-perk b { font-weight: 800; }
+[data-hud='light2'] .fi-odds { gap: 5px; padding-top: 6px; border-top: 1.5px dashed rgba(30, 42, 49, .22); }
+[data-hud='light2'] .fi-odds-bar { box-shadow: 0 0 0 1px rgba(30, 42, 49, .35); border: 0; }
+[data-hud='light2'] .fi-odds-legend { column-gap: 10px; }
+[data-hud='light2'] .fi-odds-legend > span { font-weight: 600; }
+[data-hud='light2'] .fi-odds-legend > span b { font-weight: 900; }
+[data-hud='light2'] .fi-dot { box-shadow: 0 0 0 1.5px var(--l2-ink); }
+[data-hud='light2'] .farm-card { padding: 8px 10px 9px 13px; }
+[data-hud='light2'] .farm-card-name { font-weight: 900; }
+[data-hud='light2'] .farm-card-next { border-top: 1.5px dashed rgba(30, 42, 49, .22); padding-top: 5px; margin-top: 4px; font-weight: 600; }
+[data-hud='light2'] .farm-quest { padding: 8px 10px 10px 13px; }
+[data-hud='light2'] .farm-quest-t { margin: 4px 0 7px; font-weight: 700; color: var(--surf-text); }
+[data-hud='light2'] .farm-quest-steps i { box-shadow: inset 0 0 0 1px rgba(30, 42, 49, .25); }
+
+/* улов: панель-наклейка, цвет редкости — внутренним ободом */
+[data-hud='light2'] .fi-catch { gap: 9px; padding: 12px 14px 14px; box-shadow: inset 0 0 0 2px #fff, inset 0 0 0 5px var(--tc), 0 3px 0 rgba(22, 32, 38, .55), 0 8px 14px -6px rgba(10, 30, 40, .3); }
+[data-hud='light2'] .fi-catch-art { box-shadow: inset 0 0 0 1.5px rgba(30, 42, 49, .2); }
+[data-hud='light2'] .fi-catch-name b { font-weight: 900; }
+[data-hud='light2'] .fi-catch-name span { font-weight: 900; font-size: 24px; }
+[data-hud='light2'] .fi-catch-foot { color: var(--surf-dim); font-weight: 600; }
+[data-hud='light2'] .fi-tier { box-shadow: 0 0 0 1.5px var(--l2-ink); text-shadow: 0 1px 0 rgba(0, 0, 0, .35); }
+
+/* картинг */
+[data-hud='light2'] .mo-stand { padding: 5px 12px 6px 14px; }
+[data-hud='light2'] .mo-place { font-weight: 900; }
+[data-hud='light2'] .mo-time, [data-hud='light2'] .mo-speed b { font-weight: 900; }
+[data-hud='light2'] .mo-map { padding: 5px 5px 5px 9px; }
+[data-hud='light2'] .mo-map > :is(canvas, svg, img) { box-shadow: 0 0 0 1.5px rgba(30, 42, 49, .55); }
+[data-hud='light2'] .mo-keys { padding-left: 12px; }
+[data-hud='light2'] .mo-item { padding: 4px 12px 4px 10px; }
+[data-hud='light2'] .mo-item-ic {
+  border-radius: 50%; width: 42px; height: 42px;
+  background: radial-gradient(circle at 36% 30%, #fff, color-mix(in srgb, var(--l2-edge) 30%, #fff) 78%);
+  box-shadow: 0 0 0 1.5px var(--l2-ink);
+}
+[data-hud='light2'] .mo-speed { padding: 4px 12px 5px 14px; }
+
+/* пейнтбол: табло — наклейка без кромки, счёт крупно */
+[data-hud='light2'] .k-event:has(> .mo-team) { padding: 0; box-shadow: var(--plate-shadow); }
+[data-hud='light2'] .mo-team-name { font-weight: 900; }
+[data-hud='light2'] .mo-team-top b { font-weight: 900; }
+[data-hud='light2'] .mo-clock { background: rgba(30, 42, 49, .06); border-inline: 1.5px solid rgba(30, 42, 49, .22); }
+[data-hud='light2'] .mo-clock b { font-weight: 900; }
+
+/* ---------------------------------------------------------------- панель бойца (крепость, пейнтбол) */
+[data-hud='light2'] .k-vitals { gap: 7px; }
+[data-hud='light2'] .k-vitals-hp { min-width: 136px; min-height: 44px; padding: 5px 11px 6px 9px; gap: 4px; }
+[data-hud='light2'] .k-vitals-ammo { min-width: 98px; min-height: 44px; padding: 5px 11px 6px 8px; gap: 4px; }
+[data-hud='light2'] .k-vitals-num { font-size: 24px; font-weight: 900; }
+[data-hud='light2'] .k-vitals-num small { color: var(--surf-dim); font-weight: 700; }
+[data-hud='light2'] .k-vitals-hp .k-meter, [data-hud='light2'] .k-vitals-ammo .k-meter { height: 5px; box-shadow: 0 0 0 1px rgba(30, 42, 49, .3); }
+[data-hud='light2'] .k-vitals > .k-vitals-dash { min-height: 30px; }
+[data-hud='light2'] .k-vitals-arms { gap: 7px; }
+[data-hud='light2'] .k-arm { width: 48px; height: 48px; border-radius: 12px; }
+[data-hud='light2'] .k-arm > img { width: 34px; height: 34px; }
+[data-hud='light2'] .k-arm.is-on { box-shadow: inset 0 0 0 1.5px #fff, inset 0 0 0 3.5px var(--gold), 0 2.5px 0 rgba(22, 32, 38, .55); }
+[data-hud='light2'] .k-arm > span { border: 1.5px solid var(--l2-ink); border-radius: 7px; background: var(--l2-cream); font-weight: 800;
+  box-shadow: 0 1.5px 0 rgba(22, 32, 38, .45); }
+
+/* крупный баннер и отсчёт — белым с толстой чернильной обводкой (Rubik Mono One — как сейчас) */
+[data-hud='light2'] .k-hero-sub { font-weight: 800; }
+
+/* ---------------------------------------------------------------- крепость: верх и рамка мини-карты — светлый фарфор
+   с кирпичной кромкой; раскладка прежняя, текст тёмный. Свои --dg-* крепости перекрыты здесь. */
+[data-hud='light2'] :is(.ft-command, .ft-fort) {
+  --dg-font: Rubik, system-ui, sans-serif; --dg-font-head: Rubik, system-ui, sans-serif;
+  --dg-text: #1e2a31; --dg-text-dim: #5d4636;
+  --dg-iron: var(--l2-face);
+  --dg-brass: #e09a2c; --dg-brass-hi: #a63d1c; --dg-brass-dk: #1e2a31;
+  --dg-rivet: none; --dg-line: rgba(30, 42, 49, .18); --dg-pip: rgba(30, 42, 49, .16);
+  --dg-teal: #0d8a83; --dg-red: #cc2435; --dg-bar-bg: #e3d6c0;
+}
+[data-hud='light2'] :is(.ft-command, .ft-fort)::before { display: none; }
+[data-hud='light2'] .ft-command {
+  border-radius: 12px;
+  box-shadow: inset 0 5px 0 var(--l2-edge), inset 0 0 0 1.5px #fff, 0 3px 0 rgba(22, 32, 38, .55), 0 8px 14px -6px rgba(10, 30, 40, .3);
+  padding-top: 8px;
+}
+[data-hud='light2'] .ft-command-structures { border-right: 1.5px dashed rgba(30, 42, 49, .22); }
+[data-hud='light2'] .ft-command .ft-hp-pct { font-weight: 900; font-size: 15px; }
+[data-hud='light2'] .ft-command .ft-hp > .k-meter { box-shadow: 0 0 0 1px rgba(30, 42, 49, .3); }
+[data-hud='light2'] .ft-phase-title { font-weight: 900; font-size: 20px; letter-spacing: -.005em; }
+[data-hud='light2'] .ft-phase-clock { color: var(--l2-ink); font-weight: 900; box-shadow: 0 0 0 1.5px var(--l2-ink), 0 2px 0 1.5px rgba(22, 32, 38, .35); }
+[data-hud='light2'] .ft-phase-timer::before { background: #fffaf1; }
+[data-hud='light2'] .ft-command .ft-foes { font-weight: 800; }
+[data-hud='light2'] .ft-command .ft-chip.is-new { background: rgba(194, 80, 46, .14); box-shadow: inset 0 0 0 1.5px #c2502e; }
+[data-hud='light2'] .ft-command .ft-gold .k-tile-cap { color: #8a5200; font-weight: 900; font-size: 26px; }
+[data-hud='light2'] .ft-command .ft-record .k-tile-cap { font-weight: 900; }
+[data-hud='light2'] .ft-fort {
+  border-radius: 12px; padding: 9px 6px 6px;
+  box-shadow: inset 0 4px 0 var(--l2-edge), inset 0 0 0 1.5px #fff, 0 3px 0 rgba(22, 32, 38, .55), 0 8px 14px -6px rgba(10, 30, 40, .3);
+}
+[data-hud='light2'] .ft-map { border: 1.5px solid var(--l2-ink); border-radius: 7px; }
+[data-hud='light2'] .ft-shield-label { font-size: 15px; font-weight: 800; }
+[data-hud='light2'] .ft-map-north { color: #f4e8d0; }
+[data-hud='light2'] .ft-shield-progress { height: 4px; box-shadow: 0 0 0 1px rgba(30, 42, 49, .25); }
+[data-hud='light2'] .ft-stats { font-family: Rubik, system-ui, sans-serif; color: var(--l2-ink); }
+
+/* ---------------------------------------------------------------- подписи над головами (в игре — render/leveltag.ts)
+   ник — белый с толстой чистой чернильной обводкой и «толщиной» снизу, уровень — бирюзовый медальон,
+   реплика — белая наклейка с тёмной обводкой и хвостиком */
+[data-hud='light2'] .lab-tag {
+  gap: 5px; font: 900 18px/1 Rubik, system-ui, sans-serif; color: #fff;
+  -webkit-text-stroke: 5px #1e2a31; paint-order: stroke fill; text-shadow: 0 3px 0 #1e2a31;
+}
+[data-hud='light2'] .lab-tag-lv {
+  width: 24px; height: 24px; border: 2px solid #1e2a31; box-sizing: border-box;
+  background: radial-gradient(circle at 36% 30%, #45c9bd, #0f8f86 75%);
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .85), 0 2px 0 #1e2a31;
+  font-size: 13px; font-weight: 900; -webkit-text-stroke: 0; text-shadow: 0 1px 0 rgba(0, 0, 0, .35);
+}
+[data-hud='light2'] .lab-tag--npc { gap: 3px; }
+[data-hud='light2'] .lab-tag--npc span { font-size: 14px; font-weight: 800; opacity: 1; -webkit-text-stroke: 4px #1e2a31; text-shadow: 0 2px 0 #1e2a31; }
+[data-hud='light2'] .lab-bubble {
+  padding: 6px 12px 7px; border: 2px solid #1e2a31; border-radius: 12px; background: #fffaf1; color: #1e2a31;
+  font: 700 16px/1.2 Rubik, system-ui, sans-serif;
+  box-shadow: inset 0 0 0 1.5px #fff, 0 3px 0 rgba(22, 32, 38, .5);
+}
+[data-hud='light2'] .lab-bubble::before {
+  content: ''; position: absolute; left: 50%; bottom: -10px; margin-left: -10px;
+  border: 10px solid transparent; border-bottom: 0; border-top-color: #1e2a31;
+}
+[data-hud='light2'] .lab-bubble::after { bottom: -7px; border-top-color: #fffaf1; }

@@ -1,0 +1,22 @@
+/* Сцена 1440×900 (телефон — --lab-w × --lab-h из полей сцены vw, vh): подложка под HUD и макет подписей над головами в нынешнем виде игры. */
+html, body { margin: 0; width: var(--lab-w, 1440px); height: var(--lab-h, 900px); overflow: hidden; background: #000; }
+.lab-bg { position: fixed; left: 0; top: 0; width: var(--lab-w, 1440px); height: var(--lab-h, 900px); object-fit: cover; z-index: 0; pointer-events: none; }
+.lab-bg:not([src]) { display: none; }
+
+/* подписи над головами — «Сейчас» (как render/leveltag.ts): белый жирный текст с тёмной обводкой, кружок уровня;
+   реплика — белое облачко с хвостиком. Точка привязки — низ по центру. */
+.lab-world { position: fixed; inset: 0; z-index: 9; pointer-events: none; font-family: Rubik, system-ui, sans-serif; }
+.lab-tag, .lab-bubble { position: absolute; transform: translate(-50%, -100%); white-space: nowrap; }
+.lab-tag { display: flex; align-items: center; gap: 6px; font-size: 17px; font-weight: 800; color: #fff;
+  text-shadow: 0 0 2px #1d2a33, 0 0 2px #1d2a33, 0 1px 3px rgba(0, 0, 0, .6); }
+.lab-tag-lv { font-style: normal; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%;
+  background: #3c7fd6; border: 2px solid #fff; font-size: 12px; text-shadow: none; box-shadow: 0 1px 3px rgba(0, 0, 0, .35); }
+.lab-tag--npc { flex-direction: column; gap: 0; }
+.lab-tag--npc span { font-size: 13px; font-weight: 600; opacity: .9; }
+.lab-bubble { max-width: 300px; padding: 7px 12px; border-radius: 12px; background: #fff; color: #1d2a33; font-size: 16px; font-weight: 600;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .25); }
+.lab-bubble::after { content: ''; position: absolute; left: 50%; bottom: -7px; margin-left: -7px; border: 7px solid transparent; border-bottom: 0; border-top-color: #fff; }
+
+/* разовые анимации появления (баннер «Победа!», цифра отсчёта) в снимке не проигрываем — как в игре при «меньше движения»:
+   иначе через 1–3 с они гаснут и кадр пустой */
+.k-hero.is-play, .k-hero.is-pop, .k-count.is-tick { animation: none !important; }

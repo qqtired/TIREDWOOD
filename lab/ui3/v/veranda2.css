@@ -1,0 +1,333 @@
+/* ================================================================ вариант HUD «Веранда v2» (data-hud="veranda2")
+   Палитра v1 (слива с шоколадом, золотая кайма, кремовые подписи, золотые числа) — без изменений.
+   Новое — форма и устройство: «арт-деко кафе на веранде».
+   - Плашки — не скруглённые карточки, а таблички со скошенными углами и двойной золотой волосяной каймой
+     (рамка — SVG 9-slice через border-image: одна картинка на все размеры, кайма и скосы рисуются вместе,
+     фон и тень прямоугольника не используются — тень идёт по форме через drop-shadow).
+   - Крупные карточки режимов — та же табличка с «ступенчатыми» углами и ромбиком в каждом, как в меню кафе.
+   - Бейдж — медальон-портрет: кольцо уровня обходит портрет, номер уровня — золотая монетка на кольце;
+     жетоны — монета на стопке фишек, как в блэкджеке.
+   - Плитки — круглые «подставки под стакан»: шкала стала кольцом по ободу, счёт — на язычке снизу.
+   - Плашка события — лента с «ласточкиными хвостами»; тосты — кремовые билетики с перфорацией по краям.
+   - Клавиша в подсказке — латунная кнопка-звонок; подсказка, поле чата и ники — капсула со скосами.
+   - Здоровье — капсула с медальоном-сердцем и шкалой-делениями; патроны — шкала-«фишки».
+   - Мини-карты (картинг, крепость) — восьмиугольная золотая рамка.
+   Компактнее «Сейчас» (жалоба «много места»): меньше рамок внутри, плотнее строки, ряд эмоций — на одном подносе,
+   «Шансы сейчас» — подпись и шкала в одну строку, верх крепости уже. */
+
+[data-hud='veranda2'] {
+  /* рамки (SVG 9-slice) — общие на весь HUD */
+  --v2-plate: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Cpath d='M5.5.5h13l5 5v13l-5 5h-13l-5-5v-13z' fill='%232e1d26' fill-opacity='.96' stroke='%23d4a552'/%3E%3Cpath d='M6.7 3h10.6L21 6.7v10.6L17.3 21H6.7L3 17.3V6.7z' fill='none' stroke='%23d4a552' stroke-opacity='.42' stroke-width='.8'/%3E%3C/svg%3E");
+  --v2-plate-on: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Cpath d='M5.5.5h13l5 5v13l-5 5h-13l-5-5v-13z' fill='%233d2632' stroke='%23ffd35a'/%3E%3Cpath d='M6.7 3h10.6L21 6.7v10.6L17.3 21H6.7L3 17.3V6.7z' fill='none' stroke='%23ffd35a' stroke-width='1.4'/%3E%3C/svg%3E");
+  --v2-card: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='36'%3E%3Cpath d='M6.5.5h23l6 6v23l-6 6h-23l-6-6v-23z' fill='%232e1d26' fill-opacity='.96' stroke='%23d4a552'/%3E%3Cpath d='M3.5 8.5h5v-5h19v5h5v19h-5v5h-19v-5h-5z' fill='none' stroke='%23d4a552' stroke-opacity='.45' stroke-width='.8'/%3E%3Cpath d='M5.6 3.9l1.7 1.7-1.7 1.7-1.7-1.7zM30.4 3.9l1.7 1.7-1.7 1.7-1.7-1.7zM5.6 28.7l1.7 1.7-1.7 1.7-1.7-1.7zM30.4 28.7l1.7 1.7-1.7 1.7-1.7-1.7z' fill='%23e8bd6a'/%3E%3C/svg%3E");
+  --v2-ribbon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='40'%3E%3Cpath d='M.8.5h46.4L39 20l8.2 19.5H.8L9 20z' fill='%232e1d26' fill-opacity='.96' stroke='%23d4a552'/%3E%3Cpath d='M5.6 3.4h36.8L35.4 20l7 16.6H5.6l7-16.6z' fill='none' stroke='%23d4a552' stroke-opacity='.45' stroke-width='.8'/%3E%3C/svg%3E");
+  --v2-capsule: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='32'%3E%3Cpath d='M9.5.5h21l9 15.5-9 15.5h-21L.5 16z' fill='%232e1d26' fill-opacity='.96' stroke='%23d4a552'/%3E%3Cpath d='M10.9 3h18.2l7.6 13-7.6 13H10.9L3.3 16z' fill='none' stroke='%23d4a552' stroke-opacity='.42' stroke-width='.8'/%3E%3C/svg%3E");
+  --v2-octa: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48'%3E%3Cpath d='M12.5.5h23l12 12v23l-12 12h-23l-12-12v-23z' fill='%232e1d26' stroke='%23d4a552'/%3E%3Cpath d='M13.7 3.5h20.6L44.5 13.7v20.6L34.3 44.5H13.7L3.5 34.3V13.7z' fill='none' stroke='%23d4a552' stroke-opacity='.5' stroke-width='.8'/%3E%3C/svg%3E");
+  --v2-ticket: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='16'%3E%3Cpath d='M.5.5h23v5a2.5 2.5 0 0 0 0 5v5H.5v-5a2.5 2.5 0 0 0 0-5z' fill='%23fff3de' stroke='%23a8742e'/%3E%3C/svg%3E");
+  --v2-cream: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Cpath d='M5.5.5h13l5 5v13l-5 5h-13l-5-5v-13z' fill='%23fff3de' stroke='%23b98a3e'/%3E%3C/svg%3E");
+  --v2-drop: drop-shadow(0 0 1px rgba(22, 11, 16, .75)) drop-shadow(0 2px 3px rgba(14, 6, 10, .32));
+  --v2-gold: #d4a552; --v2-gold-hi: #ffd35a; --v2-plum: #2e1d26; --v2-ink: #2a1720;
+  --v2-disc: radial-gradient(circle at 50% 34%, #4a3240, #261920 76%);
+  --v2-brass: radial-gradient(circle at 50% 28%, #fff4c4, #f1c45a 48%, #b7822c 100%);
+}
+
+/* ---------------------------------------------------------------- токены (палитра v1) */
+[data-hud='veranda2'][data-skin='retro2'], [data-hud='veranda2'] [data-skin='retro2'] {
+  --h-surf-solid: #2e1d26; --h-surf-text: #fff3de; --h-surf-dim: #ecd8b6; --h-surf-faint: #d6bd93;
+  --h-surf-2: rgba(255, 236, 205, .08); --h-surf-2-border: 1px solid rgba(255, 220, 160, .18); --h-surf-3: rgba(16, 8, 12, .42);
+  --h-line: rgba(255, 220, 160, .16); --h-line-strong: rgba(232, 184, 98, .5);
+  --h-panel-bg: #2e1d26;
+  --h-panel-border: 1px solid #d4a552;
+  --h-panel-shadow: 0 0 0 1px rgba(22, 11, 16, .6), 0 10px 24px rgba(14, 6, 10, .4);
+  --h-gold-text: #ffd35a; --h-good-text: #a8e28c; --h-bad-text: #ff8f7e; --h-info-text: #94e2d4; --h-special-text: #d0bcff;
+  --h-ghost-bg: rgba(255, 240, 220, .1); --h-ghost-text: #fff3de; --h-ghost-border: 1px solid rgba(232, 184, 98, .55);
+  --h-ghost-bg-hover: rgba(255, 240, 220, .18); --h-ghost-drop: none;
+  --h-track: rgba(14, 7, 11, .6); --h-track-border: 1px solid rgba(255, 220, 160, .16); --h-trail: rgba(255, 243, 222, .38);
+  --h-ring-face: radial-gradient(circle at 40% 32%, #4a3240, #261920 78%);
+  --h-accent-k: 85%; --h-accent-to: #fff3de; --h-sil: brightness(0) invert(.94) opacity(.3);
+  --h-info: #6fcdbf; --h-info-soft: rgba(111, 205, 191, .18);
+  --h-lamp-band: none; --h-lamp-ring: none;
+  --h-lamp-dot: transparent; --h-lamp-dot-size: 0px; --h-lamp-inset: 0px; --h-lamp-dot-glow: none;
+  --plate-bg: rgba(46, 29, 38, .95);
+  --plate-text: #fff3de;
+  --plate-border: 1px solid #d4a552;
+  --plate-shadow: 0 0 0 1px rgba(22, 11, 16, .55), 0 3px 6px rgba(14, 6, 10, .32);
+  --plate-blur: none; --hud-text-shadow: none;
+  --chat-bg: rgba(40, 25, 33, .86); --chat-old: .82; --chat-border: 0 solid transparent; --chat-shadow: inset 0 0 0 1px rgba(212, 165, 82, .3);
+  --nick-1: #ffb070; --nick-2: #a8e28c; --nick-3: #c9c8ff; --nick-4: #ffa2b4; --nick-5: #ffdc7a; --nick-6: #8fdccf;
+  --mh-def: #ffd35a; --mh-fishing: #7fdccd; --mh-farm: #a2d872; --mh-fort: #ffa65e; --mh-race: #ff806c; --mh-dungeon: #e6bc66;
+  --mh-paintball: #ff9d45; --mh-hide: #cba6ff; --mh-skill: #a3c6f5; --mh-pirates: #ff7d6a; --mh-regatta: #84cfe8; --m-ink-h: #2a1720;
+  --h-disp-font: Rubik, system-ui, sans-serif; --h-disp-weight: 800; --h-disp-case: none; --h-disp-word: normal; --h-disp-track: 0;
+}
+
+/* клавиши — кремовые колпачки с тёмной сливой (как kbd кафе); баннер — крем с шоколадной обводкой */
+[data-hud='veranda2'] :is(.k-hud, .voice-hud) {
+  --key-bg: #fff3de; --key-text: #3a2230; --key-border: 1px solid #1e1016; --key-shadow: 0 1.5px 0 #1e1016; --key-radius: 6px; --key-weight: 800;
+  --hero-text: #fff3de; --hero-step-ink: #2a1720;
+  --hero-outline: 2px 0 0 #2a1720, -2px 0 0 #2a1720, 0 2px 0 #2a1720, 0 -2px 0 #2a1720, 1.5px 1.5px 0 #2a1720, -1.5px 1.5px 0 #2a1720, 1.5px -1.5px 0 #2a1720, -1.5px -1.5px 0 #2a1720;
+  --slot-gap: 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ================================================================ материал: рамки по форме, тень по форме */
+/* табличка со скосами — плашки, ячейки панели бойца, язычки плиток, поднос эмоций, табло, предмет картинга */
+[data-hud='veranda2'] :is(.k-plate, .k-vitals-hp, .k-vitals-ammo, .k-vitals > .k-vitals-dash, .k-arm, .k-tile-cap, .pz-emotes,
+  .k-arm--count > span, .k-chat-input) {
+  border: 1px solid transparent; border-image: var(--v2-plate) 8 fill / 8px / 0 stretch;
+  background: none; box-shadow: none; filter: var(--v2-drop);
+}
+/* крупные карточки — «ступенчатые» углы с ромбиками */
+[data-hud='veranda2'] :is(.fi-mode, .farm-card, .farm-quest, .mo-stand, .k-panel.fi-catch) {
+  border: 1px solid transparent; border-image: var(--v2-card) 12 fill / 12px / 0 stretch;
+  background: none; box-shadow: none; outline: 0; filter: var(--v2-drop);
+}
+/* капсула со скосами — подсказка, поле чата, ряд клавиш картинга, всплывающие «+N» */
+[data-hud='veranda2'] :is(.k-prompt, .k-chat-closed, .mo-keys, .k-pop) {
+  border: 1px solid transparent; border-image: var(--v2-capsule) 16 12 fill / 50% 11px / 0 stretch;
+  background: none; box-shadow: none; filter: var(--v2-drop);
+}
+/* лента с «ласточкиными хвостами» — плашка события и табло пейнтбола */
+[data-hud='veranda2'] .k-event {
+  border: 1px solid transparent; border-image: var(--v2-ribbon) 20 16 fill / 50% 15px / 0 stretch;
+  background: none; box-shadow: none; filter: var(--v2-drop);
+}
+
+/* ---------------------------------------------------------------- бейдж: медальон-портрет + жетоны-фишки */
+[data-hud='veranda2'] .k-badge { height: 40px; padding: 0 13px 0 56px; gap: 6px;
+  border: 1px solid transparent; border-image: var(--v2-plate) 8 fill / 8px / 0 stretch; background: none; box-shadow: none; filter: var(--v2-drop); }
+[data-hud='veranda2'] .k-badge-avatar { position: absolute; left: 4px; top: 50%; width: 40px; height: 40px; margin-top: -20px;
+  --surf-solid: #fffcf6; --surf-text: #2a1720; background: radial-gradient(circle at 42% 30%, #fff6e2, #f0d9b0 80%); box-shadow: 0 0 0 1px var(--v2-ink); }
+/* кольцо уровня обходит портрет: дорожка тёмная, опыт — золото, снаружи — волосяная кайма */
+[data-hud='veranda2'] .k-badge > .k-ring { position: absolute; left: -1px; top: 50%; width: 50px; height: 50px; margin-top: -25px;
+  background: none; box-shadow: 0 0 0 1px var(--v2-gold); border-radius: 50%; }
+[data-hud='veranda2'] .k-badge > .k-ring::before { inset: 0; border-radius: 50%; box-shadow: none;
+  background: conic-gradient(var(--v2-gold-hi) calc(var(--p) * 360deg), rgba(20, 10, 15, .92) 0);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3.5px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3.5px)); }
+/* номер уровня — золотая монетка на кольце снизу справа */
+[data-hud='veranda2'] .k-badge > .k-ring > b { position: absolute; right: -6px; bottom: -5px; display: grid; place-items: center;
+  min-width: 22px; height: 22px; padding: 0 4px; border-radius: 11px; background: var(--v2-brass); color: #3a2208;
+  font: 800 14px/1 Rubik, system-ui, sans-serif; box-shadow: 0 0 0 1.5px var(--v2-ink); }
+/* жетоны: монета на стопке фишек (как ставка в блэкджеке) и золотое число */
+[data-hud='veranda2'] .k-badge-tokens { gap: 7px; color: var(--gold-text); font: 800 22px/1 Rubik, system-ui, sans-serif; letter-spacing: -.01em; }
+[data-hud='veranda2'] .k-badge-tokens > .k-coin { width: 20px; height: 20px; margin-top: -5px; border-radius: 50%;
+  box-shadow: 0 2.5px 0 -.5px #a8742e, 0 3.5px 0 -.5px var(--v2-ink), 0 6px 0 -.5px #e7ae3c, 0 7px 0 -.5px var(--v2-ink); }
+[data-hud='veranda2'] .k-badge > .k-pop { right: calc(100% + 6px); }
+/* правка 30.10 (владелец: «отступ от профиля до следующей линии нужно увеличить, есть наложение»): кольцо и монетка уровня
+   выступают под бейдж на 9px — следующему ряду (плитки, картинг) нужен свой зазор */
+[data-hud='veranda2'] .k-slot--tr > .k-badge:not(:last-child) { margin-bottom: 14px; }
+
+/* ---------------------------------------------------------------- плитки: «подставки под стакан» */
+[data-hud='veranda2'] .k-tiles { gap: 9px; }
+[data-hud='veranda2'] .k-tile { min-width: 50px; gap: 0; }
+[data-hud='veranda2'] .k-tile-face { width: 44px; height: 44px; margin: 5px 5px 0; border: 0; border-radius: 50%; background: var(--v2-disc);
+  box-shadow: inset 0 0 0 1px rgba(212, 165, 82, .5), 0 0 0 1px var(--v2-ink), 0 0 0 4.5px rgba(20, 10, 15, .92), 0 0 0 5.5px var(--v2-gold);
+  filter: drop-shadow(0 2px 3px rgba(14, 6, 10, .35)); }
+[data-hud='veranda2'] .k-tile-face > img, [data-hud='veranda2'] .k-tile-face:has(> .k-meter) > img { width: 31px; height: 31px; margin: 0; }
+/* шкала плитки — кольцо по ободу подставки */
+[data-hud='veranda2'] .k-tile-face > .k-meter { position: absolute; inset: -4.5px; width: auto; height: auto; border: 0; border-radius: 50%;
+  background: conic-gradient(var(--c) calc(var(--v) * 360deg), transparent 0);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3.5px), #000 calc(100% - 3px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3.5px), #000 calc(100% - 3px)); }
+[data-hud='veranda2'] .k-tile-face > .k-meter > i { display: none; }
+[data-hud='veranda2'] .k-tile-face > .k-key--tr { top: -10px; right: -11px; }
+[data-hud='veranda2'] .k-tile--warn .k-tile-face { box-shadow: inset 0 0 0 2px #ff6a5c, 0 0 0 1px var(--v2-ink), 0 0 0 4.5px rgba(20, 10, 15, .92), 0 0 0 5.5px #ff6a5c; }
+[data-hud='veranda2'] .k-tile--own .k-tile-face { box-shadow: inset 0 0 0 2px var(--v2-gold-hi), 0 0 0 1px var(--v2-ink), 0 0 0 4.5px rgba(20, 10, 15, .92), 0 0 0 5.5px var(--v2-gold); }
+/* язычок со счётом — табличка, чуть заходит на обод */
+[data-hud='veranda2'] .k-tile-cap { position: relative; z-index: 1; margin-top: -2px; padding: 3px 6px 4px; gap: 0; font: 800 14px/1.1 Rubik, system-ui, sans-serif; }
+[data-hud='veranda2'] .k-tile-cap > b, [data-hud='veranda2'] .k-tile-cap > span { color: var(--gold-text); }
+[data-hud='veranda2'] .k-tile--warn .k-tile-cap > span { color: var(--bad-text); }
+[data-hud='veranda2'] .k-tile-cap > small { font: 600 13px/1.1 Rubik, system-ui, sans-serif; color: var(--surf-dim); }
+
+/* ---------------------------------------------------------------- лента события */
+[data-hud='veranda2'] .k-event { grid-template-columns: 28px minmax(0, 1fr) auto; column-gap: 9px; max-width: 420px; padding: 5px 20px 5px 18px; }
+[data-hud='veranda2'] .k-event-ic { width: 28px; height: 28px; background: var(--v2-disc); box-shadow: 0 0 0 1px var(--v2-gold); }
+[data-hud='veranda2'] .k-event-ic img { width: 24px; height: 24px; }
+[data-hud='veranda2'] .k-event-title { font: 800 15px/1.15 Rubik, system-ui, sans-serif; }
+[data-hud='veranda2'] .k-event-sub { font: 500 13px/1.2 Rubik, system-ui, sans-serif; }
+[data-hud='veranda2'] .k-event-timer { color: var(--gold-text); font: 800 18px/1 Rubik, system-ui, sans-serif; }
+[data-hud='veranda2'] .k-event > .k-meter, [data-hud='veranda2'] .k-event .farm-tree-bar { margin-top: 4px; }
+[data-hud='veranda2'] .k-slot--tc > .k-event { margin-bottom: 2px; }
+
+/* ---------------------------------------------------------------- тосты: кремовые билетики с перфорацией */
+[data-hud='veranda2'] .k-toasts { gap: 4px; }
+[data-hud='veranda2'] .k-toast { grid-template-columns: 26px minmax(0, auto); column-gap: 11px; min-width: 180px; min-height: 34px; padding: 3px 12px 3px 10px;
+  border: 1px solid transparent; border-image: var(--v2-ticket) 4 8 fill / 4px 8px / 0 stretch round;
+  background: none; box-shadow: none; color: var(--v2-plum); filter: drop-shadow(0 0 1px rgba(22, 11, 16, .6)) drop-shadow(0 2px 3px rgba(14, 6, 10, .3)); }
+/* линия отрыва между корешком и билетом */
+[data-hud='veranda2'] .k-toast::after { left: 41px; top: 5px; bottom: 5px; width: 0; border-left: 1.5px dashed rgba(138, 90, 40, .55); border-radius: 0; background: none; }
+[data-hud='veranda2'] .k-toast-ic { width: 26px; height: 26px; background: none; }
+[data-hud='veranda2'] .k-toast-ic img { width: 26px; height: 26px; }
+[data-hud='veranda2'] .k-toast-title { font: 800 15px/1.15 Rubik, system-ui, sans-serif; color: var(--v2-plum); }
+[data-hud='veranda2'] .k-toast-sub { font: 600 13px/1.15 Rubik, system-ui, sans-serif; color: #6e4f5a; }
+[data-hud='veranda2'] .k-toast--reward .k-toast-title { color: #8a4f00; font-size: 16px; }
+[data-hud='veranda2'] .k-toast--warn .k-toast-title { color: #b3261e; }
+[data-hud='veranda2'] .k-toast .k-coin { filter: drop-shadow(0 0 .5px #6b3f00); }
+
+/* ---------------------------------------------------------------- подсказка: капсула + латунная кнопка-звонок */
+[data-hud='veranda2'] .k-prompt { min-height: 36px; gap: 9px; padding: 3px 18px 3px 16px; font: 700 15px/1.2 Rubik, system-ui, sans-serif; }
+[data-hud='veranda2'] .k-prompt-sep { height: 16px; background: rgba(212, 165, 82, .45); }
+[data-hud='veranda2'] .k-prompt-note { font-size: 14px; }
+[data-hud='veranda2'] .k-prompt--off { opacity: .82; }
+[data-hud='veranda2'] .k-prompt--urgent { box-shadow: none; filter: drop-shadow(0 0 0 #000) drop-shadow(0 0 1.5px #ffd35a) drop-shadow(0 2px 3px rgba(14, 6, 10, .32)); }
+[data-hud='veranda2'] :is(.k-prompt, .mo-keys, .farm-quest-t) .k-key {
+  min-width: 26px; height: 24px; padding: 2px 7px 0; border: 1px solid #6b420c; border-radius: 13px 13px 4px 4px;
+  background: var(--v2-brass); color: #3a2208; box-shadow: 0 2px 0 #5a3410, inset 0 -1px 0 rgba(122, 76, 10, .4); font-size: 14px; }
+[data-hud='veranda2'] .fi-prompt .fi-wait img { width: 24px; height: 24px; }
+[data-hud='veranda2'] .fi-k { gap: 6px; font: 700 15px/1.2 Rubik, system-ui, sans-serif; color: var(--plate-text); }
+
+/* ---------------------------------------------------------------- эмоции: один поднос, номер — на краю чашки */
+[data-hud='veranda2'] .pz-emotes { grid-template-columns: repeat(var(--emote-count, 6), 28px); gap: 6px; padding: 6px 11px 6px 13px; }
+[data-hud='veranda2'] .pz-emote { position: relative; }
+[data-hud='veranda2'] .pz-emote > .k-key { position: absolute; left: -8px; top: -9px; z-index: 1; min-width: 17px; height: 17px; padding: 0 3px; font-size: 13px; }
+[data-hud='veranda2'] .pz-emote-face, [data-hud='veranda2'] .pz-emote-face .k-ic { width: 28px; height: 28px; }
+[data-hud='veranda2'] .pz-emote-five .k-ic { width: 20px; height: 26px; }
+
+/* ---------------------------------------------------------------- чат и голос */
+[data-hud='veranda2'] .k-chat-line { padding: 3px 9px 4px; }
+[data-hud='veranda2'] .k-chat-list { gap: 3px; }
+[data-hud='veranda2'] .k-chat-closed { min-height: 34px; padding: 3px 16px 3px 12px; color: var(--surf-dim); }
+[data-hud='veranda2'] .k-voice:not(.is-live) { border: 0; background: var(--v2-disc);
+  box-shadow: 0 0 0 1px var(--v2-gold), 0 0 0 3px var(--v2-ink), 0 0 0 4px rgba(212, 165, 82, .55); }
+[data-hud='veranda2'] .k-voice { width: 34px; height: 34px; }
+[data-hud='veranda2'] .k-voice > img { width: 24px; height: 24px; }
+
+/* ---------------------------------------------------------------- карточка рыбалки: плотнее, «Шансы» и шкала в одну строку */
+[data-hud='veranda2'] .k-plate { padding: 6px 11px; }
+[data-hud='veranda2'] .fi-mode { width: 292px; gap: 6px; padding: 8px 12px 9px 10px; }
+[data-hud='veranda2'] .fi-mode-head { column-gap: 8px; row-gap: 1px; }
+[data-hud='veranda2'] .fi-mode .k-ring--sm, [data-hud='veranda2'] .farm-card .k-ring--sm { width: 36px; height: 36px; box-shadow: 0 0 0 1px var(--v2-gold); }
+[data-hud='veranda2'] .fi-mode-t b { font: 800 15px/1.15 Rubik, system-ui, sans-serif; }
+[data-hud='veranda2'] .fi-mode-t span { color: var(--gold-text); font: 800 14px/1 Rubik, system-ui, sans-serif; }
+[data-hud='veranda2'] .fi-odds { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 5px 10px; padding-top: 6px;
+  border-top: 0; background: linear-gradient(90deg, transparent, rgba(212, 165, 82, .45) 12%, rgba(212, 165, 82, .45) 88%, transparent) top / 100% 1px no-repeat; }
+[data-hud='veranda2'] .fi-odds-legend { grid-column: 1 / -1; gap: 2px 14px; }
+[data-hud='veranda2'] .fi-odds-bar { height: 10px; }
+[data-hud='veranda2'] .fi-odds-t { color: var(--gold-text); font: 700 14px/1.1 Rubik, system-ui, sans-serif; letter-spacing: 0; text-transform: none; }
+[data-hud='veranda2'] .fi-odds-legend > span { font-size: 13px; line-height: 1.15; }
+[data-hud='veranda2'] .fi-odds-legend > span b { color: var(--plate-text); }
+[data-hud='veranda2'] .fi-mode > .k-pop { left: 16px; }
+
+/* ---------------------------------------------------------------- улов: карточка меню кафе, плотнее */
+[data-hud='veranda2'] .k-panel.fi-catch { width: 300px; gap: 7px; padding: 12px 14px 12px; }
+[data-hud='veranda2'] .fi-catch::before { content: ''; position: absolute; left: 22px; right: 22px; top: 5px; height: 2px; border-radius: 1px; background: var(--tc); }
+[data-hud='veranda2'] .fi-catch-art { height: 96px; margin: 0; background: radial-gradient(closest-side, color-mix(in srgb, var(--tc) 34%, transparent), transparent), rgba(16, 8, 12, .42);
+  clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px), 0 8px); border-radius: 0; }
+[data-hud='veranda2'] .fi-catch-art > img { max-height: 88px; }
+[data-hud='veranda2'] .fi-catch-name b { font-size: 24px; }
+[data-hud='veranda2'] .fi-catch-btns { gap: 10px; margin-top: 2px; }
+[data-hud='veranda2'] .fi-catch-next { font-size: 13px; white-space: nowrap; }
+[data-hud='veranda2'] .fi-catch-foot { font-size: 13px; line-height: 1.25; }
+
+/* ---------------------------------------------------------------- ферма */
+[data-hud='veranda2'] .farm-card { width: 284px; padding: 7px 13px 8px 11px; row-gap: 1px; }
+[data-hud='veranda2'] .farm-card-name { font-size: 15px; }
+[data-hud='veranda2'] .farm-card-xp b { color: var(--gold-text); }
+[data-hud='veranda2'] .farm-card-next { margin-top: 4px; padding-top: 5px; border-top: 0;
+  background: linear-gradient(90deg, transparent, rgba(212, 165, 82, .45) 12%, rgba(212, 165, 82, .45) 88%, transparent) top / 100% 1px no-repeat; }
+[data-hud='veranda2'] .farm-card-estate.k-btn--icon.k-btn--sm { width: 34px; height: 34px; }
+[data-hud='veranda2'] .farm-quest { width: 284px; padding: 8px 13px 9px; }
+[data-hud='veranda2'] .farm-quest-t { margin: 3px 0 6px; font: 600 14px/1.3 Rubik, system-ui, sans-serif; }
+[data-hud='veranda2'] .farm-quest .k-eyebrow { color: var(--gold-text); font: 700 14px/1.2 Rubik, system-ui, sans-serif; letter-spacing: 0; text-transform: none; }
+[data-hud='veranda2'] .farm-quest-steps i { height: 4px; border-radius: 1px; transform: skewX(-30deg); }
+
+/* ---------------------------------------------------------------- картинг */
+[data-hud='veranda2'] .mo-stand { padding: 5px 14px 6px 12px; }
+[data-hud='veranda2'] .mo-place { color: var(--gold-text); font: 800 34px/.95 Rubik, system-ui, sans-serif; letter-spacing: -.02em; }
+[data-hud='veranda2'] .mo-stand-side { border-left: 0; padding-left: 10px;
+  background: linear-gradient(180deg, transparent, rgba(212, 165, 82, .5) 20%, rgba(212, 165, 82, .5) 80%, transparent) left / 1px 100% no-repeat; }
+[data-hud='veranda2'] .mo-time { color: var(--gold-text); font: 800 18px/1 Rubik, system-ui, sans-serif; }
+[data-hud='veranda2'] .mo-lap { font-size: 14px; }
+/* мини-карта — восьмиугольная рамка, сама карта тоже восьмиугольная */
+[data-hud='veranda2'] .mo-map { width: auto; padding: 7px; border: 1px solid transparent; border-image: var(--v2-octa) 16 fill / 22px / 0 stretch;
+  background: none; box-shadow: none; filter: var(--v2-drop); }
+/* размер карты в игре задаёт код (инлайн-стиль) — перебиваем, чтобы рамка стала меньше */
+[data-hud='veranda2'] .mo-map > img { width: 152px !important; height: 118px !important; object-fit: contain;
+  clip-path: polygon(13px 0, calc(100% - 13px) 0, 100% 13px, 100% calc(100% - 13px), calc(100% - 13px) 100%, 13px 100%, 0 calc(100% - 13px), 0 13px); }
+[data-hud='veranda2'] .mo-keys { gap: 3px 10px; padding: 4px 16px; }
+[data-hud='veranda2'] .mo-key { gap: 5px; font-size: 14px; }
+[data-hud='veranda2'] .mo-keys .k-key { min-width: 24px; height: 22px; font-size: 13px; }
+[data-hud='veranda2'] .mo-item { gap: 9px; padding: 4px 13px 4px 5px; border: 1px solid transparent; border-image: var(--v2-plate) 8 fill / 8px / 0 stretch;
+  background: none; box-shadow: none; filter: var(--v2-drop); }
+[data-hud='veranda2'] .mo-item-ic { width: 38px; height: 38px; border-radius: 50%; background: var(--v2-disc); box-shadow: 0 0 0 1px rgba(212, 165, 82, .6); }
+[data-hud='veranda2'] .mo-item-ic img, [data-hud='veranda2'] .mo-item-ic svg { max-width: 30px; max-height: 30px; }
+[data-hud='veranda2'] .mo-item-txt b { font-size: 15px; }
+[data-hud='veranda2'] .mo-speed { padding: 4px 12px 5px; }
+[data-hud='veranda2'] .mo-speed b { color: var(--gold-text); font: 800 24px/1 Rubik, system-ui, sans-serif; text-align: right; }
+
+/* ---------------------------------------------------------------- пейнтбол: табло на ленте */
+[data-hud='veranda2'] .k-event:has(> .mo-team) { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 0; width: 330px; padding: 0 14px; }
+[data-hud='veranda2'] .k-event > .mo-team { padding: 3px 8px 4px; gap: 3px; }
+[data-hud='veranda2'] .mo-team-top b { color: var(--gold-text); font: 800 20px/1 Rubik, system-ui, sans-serif; }
+[data-hud='veranda2'] .mo-team-name { font-size: 13px; }
+[data-hud='veranda2'] .mo-clock { min-width: 54px; padding: 3px 6px; background: none; border-inline: 0;
+  box-shadow: -1px 0 0 rgba(212, 165, 82, .45), 1px 0 0 rgba(212, 165, 82, .45); }
+[data-hud='veranda2'] .mo-clock b { color: var(--gold-text); font: 800 17px/1 Rubik, system-ui, sans-serif; }
+[data-hud='veranda2'] .mo-clock b.is-hurry { color: var(--bad-text); }
+
+/* ---------------------------------------------------------------- панель бойца: капсула с медальоном-сердцем, фишки патронов */
+[data-hud='veranda2'] .k-vitals { gap: 8px; }
+[data-hud='veranda2'] .k-vitals-hp { position: relative; min-width: 140px; min-height: 40px; gap: 4px; padding: 4px 12px 6px 44px; margin-left: 6px; }
+[data-hud='veranda2'] .k-vitals-hp .k-vitals-ic { position: absolute; left: -8px; top: 50%; width: 42px; height: 42px; margin-top: -21px; padding: 8px;
+  border-radius: 50%; background: var(--v2-disc); box-shadow: 0 0 0 1px var(--v2-gold), 0 0 0 3px var(--v2-ink), 0 0 0 4px rgba(212, 165, 82, .55); filter: none; }
+[data-hud='veranda2'] .k-vitals-num { color: var(--gold-text); font: 800 21px/1 Rubik, system-ui, sans-serif; }
+[data-hud='veranda2'] .k-vitals-hp .k-meter, [data-hud='veranda2'] .k-vitals-ammo .k-meter { height: 6px; border-radius: 1px;
+  -webkit-mask: repeating-linear-gradient(90deg, #000 0 8px, transparent 8px 10px); mask: repeating-linear-gradient(90deg, #000 0 8px, transparent 8px 10px); }
+/* патроны — ряд фишек: деления мельче */
+[data-hud='veranda2'] .k-vitals-ammo .k-meter { -webkit-mask: repeating-linear-gradient(90deg, #000 0 3px, transparent 3px 4.5px); mask: repeating-linear-gradient(90deg, #000 0 3px, transparent 3px 4.5px); }
+[data-hud='veranda2'] .k-vitals-ammo .k-meter { --c: var(--v2-gold-hi); }
+[data-hud='veranda2'] .k-vitals-ammo { min-width: 96px; min-height: 40px; gap: 4px; padding: 4px 12px 6px 9px; }
+[data-hud='veranda2'] .k-vitals > .k-vitals-dash { min-height: 30px; padding: 3px 12px 3px 8px; }
+[data-hud='veranda2'] .k-vitals-arms { gap: 7px; }
+[data-hud='veranda2'] .k-arm { width: 44px; height: 44px; }
+[data-hud='veranda2'] .k-arm > img { width: 32px; height: 32px; }
+[data-hud='veranda2'] .k-arm.is-on { border-image-source: var(--v2-plate-on); box-shadow: none; transform: translateY(-3px); }
+[data-hud='veranda2'] .k-arm > span:not(.k-key) { padding: 1px 7px 2px; border-radius: 3px; background: var(--v2-plum); box-shadow: 0 0 0 1px rgba(212, 165, 82, .6); font-size: 13px; }
+[data-hud='veranda2'] .k-arm--count > span { inset: auto -8px -8px auto; min-width: 20px; padding: 2px 4px; background: none; box-shadow: none; color: var(--gold-text); }
+
+/* ---------------------------------------------------------------- служебная строка (FPS) — тёмный чип, иначе крем теряется на небе */
+[data-hud='veranda2'] :is(.rc-stats, .ft-stats) { width: max-content; padding: 2px 8px 3px; border-radius: 3px;
+  background: var(--chat-bg); box-shadow: var(--chat-shadow); color: var(--surf-dim); }
+[data-hud='veranda2'] .rc-stats { margin: 2px 0 0; }
+[data-hud='veranda2'] .ft-stats { margin-top: 2px; transform: translateX(calc(60px - 50%)); }
+
+/* ---------------------------------------------------------------- всплывающие «+N» — маленькая капсула */
+[data-hud='veranda2'] .k-pop { padding: 2px 12px; font: 800 14px/1.1 Rubik, system-ui, sans-serif; }
+
+/* ---------------------------------------------------------------- подписи над головами (в игре — render/leveltag.ts) */
+/* правка 30.10 (владелец: «плашки с ником чуть лишнее — проще и лаконичнее»): простая полупрозрачная капсула без каймы и скосов */
+[data-hud='veranda2'] .lab-tag { gap: 5px; padding: 2px 10px 2px 3px; border-radius: 999px; background: rgba(38, 20, 30, .66);
+  color: #fff3de; font-size: 15px; font-weight: 800; text-shadow: none; box-shadow: 0 1px 3px rgba(14, 6, 10, .25); }
+[data-hud='veranda2'] .lab-tag-lv { width: 19px; height: 19px; border: 0; background: var(--v2-brass); color: #3a2208; font-size: 12px; font-weight: 800;
+  box-shadow: none; }
+[data-hud='veranda2'] .lab-tag--npc { gap: 1px; padding: 3px 11px 4px; border-radius: 10px; }
+[data-hud='veranda2'] .lab-tag--npc span { color: #ecd8b6; font-size: 12px; font-weight: 600; opacity: 1; }
+/* реплика — кремовая табличка со скосами и хвостиком */
+[data-hud='veranda2'] .lab-bubble { padding: 6px 13px; border: 1px solid transparent; border-image: var(--v2-cream) 8 fill / 8px / 0 stretch;
+  border-radius: 0; background: none; color: #2e1d26; font-size: 16px; font-weight: 700; box-shadow: none;
+  filter: drop-shadow(0 0 1px rgba(22, 11, 16, .5)) drop-shadow(0 2px 3px rgba(14, 6, 10, .3)); }
+[data-hud='veranda2'] .lab-bubble::before { content: ''; position: absolute; left: 50%; bottom: -8px; margin-left: -8px; border: 8px solid transparent; border-bottom: 0; border-top-color: #b98a3e; }
+[data-hud='veranda2'] .lab-bubble::after { bottom: -6px; border-top-color: #fff3de; }
+
+/* ---------------------------------------------------------------- крепость: верх и мини-карта — та же табличка и восьмиугольник */
+[data-hud='veranda2'] :is(.ft-command, .ft-fort) {
+  --dg-font: Rubik, system-ui, sans-serif; --dg-font-head: Rubik, system-ui, sans-serif;
+  --dg-text: #fff3de; --dg-text-dim: #ecd8b6;
+  --dg-iron: #2e1d26; --dg-brass: #d4a552; --dg-brass-hi: #ffd35a; --dg-brass-dk: #d4a552; --dg-rivet: none;
+  --dg-line: rgba(255, 220, 160, .16); --dg-pip: rgba(255, 220, 160, .22); --dg-teal: #7fdccd; --dg-red: #ff6a5c; --dg-bar-bg: rgba(14, 7, 11, .6);
+  border: 1px solid transparent; background: none; box-shadow: none; filter: var(--v2-drop);
+}
+[data-hud='veranda2'] .ft-command { width: 880px; height: 56px; grid-template-columns: 196px minmax(0, 1fr) 214px; gap: 10px; border-image: var(--v2-card) 12 fill / 12px / 0 stretch;
+  font: 700 15px/1.15 Rubik, system-ui, sans-serif; font-feature-settings: 'lnum' 1, 'tnum' 1; }
+[data-hud='veranda2'] .ft-fort { width: 120px; border-image: var(--v2-octa) 16 fill / 16px / 0 stretch; }
+[data-hud='veranda2'] :is(.ft-command, .ft-fort)::before, [data-hud='veranda2'] :is(.ft-command, .ft-fort)::after { display: none; }
+[data-hud='veranda2'] .ft-map { border: 0;
+  clip-path: polygon(14px 0, calc(100% - 14px) 0, 100% 14px, 100% calc(100% - 14px), calc(100% - 14px) 100%, 14px 100%, 0 calc(100% - 14px), 0 14px); }
+[data-hud='veranda2'] .ft-command .k-tile-cap { border-image: none; filter: none; }
+[data-hud='veranda2'] .ft-command-structures { border-right: 0;
+  background: linear-gradient(180deg, transparent, rgba(212, 165, 82, .5) 20%, rgba(212, 165, 82, .5) 80%, transparent) right / 1px 100% no-repeat; }
+[data-hud='veranda2'] .ft-phase-title { font-weight: 800; font-size: 18px; }
+[data-hud='veranda2'] .ft-phase { grid-template-columns: minmax(0, 1fr) 64px; column-gap: 10px; }
+[data-hud='veranda2'] .ft-phase-clock { width: 64px; height: 40px; font-size: 21px; }
+[data-hud='veranda2'] .ft-shield-label { font: 800 15px/1 Rubik, system-ui, sans-serif; }
+[data-hud='veranda2'] .ft-stats { font-family: Rubik, system-ui, sans-serif; }

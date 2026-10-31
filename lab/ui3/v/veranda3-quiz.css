@@ -1,0 +1,297 @@
+/* ================================================================ вариант HUD «Веранда v3» (data-hud="veranda3") — «Ракушка» 1.1
+   голосование за игру, «Своя игра» (паки, «Веду я», «Жму!», ответ, ставка, финал), «Крокодил» (слова, кисти, догадки,
+   «Браво!»), «Кто из нас?», «Загадка» (очередь, «Тепло» / «Горячо!»), итоги и «Ещё раз!», разминка, общие плашки.
+   Решение владельца №13 (31.10): интерфейсы «Ракушки» 1.1 — «Да, под v3». Окна у трибуны (.k-window) остаются зелёными,
+   табло, вывеска и мольберт — холсты, их здесь нет.
+   Общие токены (--v3-*) и детали — в v/veranda3.css и v/veranda3-msg.css (грузятся раньше); свои переменные — только --v3q-*.
+   Каждое правило начинается с [data-hud='veranda3'].
+
+   Как одето:
+   · плашки сверху, нижние полосы, карточка «Тепло», панели режимов — та же табличка (скос, одна золотая кайма); «выбрано» — кайма ярче;
+   · кнопки — две: главная (латунь с тёмной надписью — «Играю», «Загадываю!», «Ещё раз!», «Жму!») и обычная (слива с золотой
+     волосяной каймой); «нет» — слива с красной каймой; вердикты «верно / неверно» — слива с зелёной / красной каймой (как «Выгнать игрока?»);
+   · выбор (кнопки игр, пак, слово) — ячейка со скосом, номер — колпачком на скосе слева; выбранная — яркая кайма и золотой тон;
+   · кнопки с картинкой (игры, отметки, ✕) — медальон: тёмная подставка и золотая кайма;
+   · время и счёт — золотом, тише — подписи; «тепло» — мятный, «горячо» — тёплый красный (игровая информация, смысл сохранён);
+  · панели режимов внизу и справа («Жму!», ответ, ставка, «Убери тему», слово, полоса кисти, свой вопрос, панель ведущего) — та же табличка;
+    поля ввода — тёмное поле с золотой волосяной каймой; шкалы времени — тонкая плоская золотая полоса на тёмной дорожке;
+  · цвета краски, цвета игроков и «тепло / горячо» — игровая информация, их смысл не менялся; анимаций дрожания и пульса нет.
+
+   Что не тронуто (нет HTML или зелёное окно): титул над ником — канвас (heads.ts), плашка титула в Tab — зелёное окно, «Вдвоём — половина жетонов» и
+   «Один — без жетонов» — на табло и в окне слова, окна у трибуны (.k-window) — «Ретро-парк 2.0». */
+
+[data-hud='veranda3'] {
+  /* скошенный угол ячеек и ярлыков (как у станций радио и категории улова) */
+  --v3q-cut: polygon(5px 0, calc(100% - 5px) 0, 100% 5px, 100% calc(100% - 5px), calc(100% - 5px) 100%, 5px 100%, 0 calc(100% - 5px), 0 5px);
+  --v3q-cut-s: polygon(4px 0, calc(100% - 4px) 0, 100% 4px, 100% calc(100% - 4px), calc(100% - 4px) 100%, 4px 100%, 0 calc(100% - 4px), 0 4px);
+  /* ячейка на сливе: лёгкая заливка и тонкая золотая кайма; «выбрано» — золотой тон и яркая кайма */
+  --v3q-cell: rgba(255, 240, 220, .07);
+  --v3q-cell-line: inset 0 0 0 1px rgba(212, 165, 82, .4);
+  --v3q-cell-on: rgba(255, 205, 74, .15);
+  --v3q-cell-on-line: inset 0 0 0 1.5px var(--v3-gold-hi);
+  /* «тепло» — мятный, «горячо» — тёплый красный системы */
+  --v3q-warm: #a8e28c; --v3q-warm-bg: rgba(168, 226, 140, .13);
+  --v3q-hot: var(--v3-red); --v3q-hot-bg: rgba(255, 106, 92, .16);
+  /* латунь главной кнопки: те же тона, что у «В рюкзак» в карточке улова */
+  --v3q-brass: linear-gradient(180deg, #fff0b8, #f1c45a 58%, #d9a640);
+  --v3q-btn-shadow: 0 2px 0 #160b10;
+}
+
+/* ================================================================ КНОПКИ «Ракушки» (все с data-qz) */
+/* обычная: слива с золотой волосяной каймой, кремовая надпись */
+[data-hud='veranda3'] .k-hud button.k-btn[data-qz] { min-width: 0; min-height: 36px; margin: 0; padding: 4px 16px 5px; gap: 4px;
+  border: 0; border-radius: 4px; background: var(--v3q-cell); box-shadow: inset 0 0 0 1px var(--v3-gold), var(--v3q-btn-shadow); color: var(--v3-cream-text);
+  font: 800 15px/1.1 Rubik, system-ui, sans-serif; letter-spacing: 0; text-transform: none; text-shadow: none; }
+[data-hud='veranda3'] .k-hud button.k-btn[data-qz]:hover:not(:disabled) { background: rgba(255, 240, 220, .14); box-shadow: inset 0 0 0 1px var(--v3-gold-hi), var(--v3q-btn-shadow); filter: none; }
+[data-hud='veranda3'] .k-hud button.k-btn[data-qz]:active:not(:disabled) { transform: translateY(1px); box-shadow: inset 0 0 0 1px var(--v3-gold-hi), 0 1px 0 #160b10; }
+[data-hud='veranda3'] .k-hud button.k-btn[data-qz]:disabled { opacity: .45; filter: none; }
+[data-hud='veranda3'] .k-hud button.k-btn[data-qz] small { color: inherit; font: 600 13px/1.1 Rubik, system-ui, sans-serif; opacity: .86; }
+/* главная: латунь с тёмной надписью */
+[data-hud='veranda3'] .k-hud button.k-btn--go[data-qz] { border: 0; background: var(--v3q-brass); box-shadow: inset 0 0 0 1px #8a5a14, 0 2px 0 #5a3410; color: #3a2208; }
+[data-hud='veranda3'] .k-hud button.k-btn--go[data-qz]:hover:not(:disabled) { background: linear-gradient(180deg, #fff6cf, #f6cf6c 58%, #e0ad4a); box-shadow: inset 0 0 0 1px #8a5a14, 0 2px 0 #5a3410; }
+[data-hud='veranda3'] .k-hud button.k-btn--go[data-qz]:active:not(:disabled) { box-shadow: inset 0 0 0 1px #8a5a14, 0 1px 0 #5a3410; }
+/* «нет»: слива с красной каймой */
+[data-hud='veranda3'] .k-hud button.k-btn--stop[data-qz] { background: var(--v3q-cell); box-shadow: inset 0 0 0 1.5px var(--v3-red), var(--v3q-btn-shadow); color: var(--v3-cream-text); }
+/* вердикты и голоса «за / против»: слива с зелёной или красной каймой (как «Выгнать игрока?») */
+[data-hud='veranda3'] .k-hud button.k-btn--go:is([data-qz='jpJudge'], [data-qz='dv'], [data-qz='fjudge']) { background: var(--v3q-cell); box-shadow: inset 0 0 0 1.5px var(--h-good-text), var(--v3q-btn-shadow); color: var(--v3-cream-text); }
+[data-hud='veranda3'] .k-hud button.k-btn--go:is([data-qz='jpJudge'], [data-qz='dv'], [data-qz='fjudge']):hover:not(:disabled) { background: rgba(168, 226, 140, .16); box-shadow: inset 0 0 0 1.5px var(--h-good-text), var(--v3q-btn-shadow); }
+/* нажатая «галочка» вердикта — яркая кайма */
+[data-hud='veranda3'] .k-hud button.k-btn[data-qz='fjudge'].is-on { background: var(--v3q-cell-on); box-shadow: inset 0 0 0 2px var(--v3-gold-hi), var(--v3q-btn-shadow); }
+[data-hud='veranda3'] .k-hud button.k-btn[data-qz='fjudge'] svg { width: 16px; height: 16px; }
+/* крупная «Жму!» — та же кнопка, крупнее */
+[data-hud='veranda3'] .k-hud button.k-btn--lg[data-qz] { min-width: 172px; min-height: 50px; padding: 6px 26px 8px; font-size: 22px; }
+/* клавиша на кнопке — в углу, колпачок системы (20 px) */
+[data-hud='veranda3'] .k-hud button.k-btn[data-qz] > .k-key--tr { top: -8px; right: -8px; }
+/* значок на кнопке */
+[data-hud='veranda3'] .k-hud button.k-btn[data-qz] .k-ic { width: 20px; height: 20px; margin: 0; }
+/* «Встать» у кресла (слот справа внизу) и «Подсказка» стоят сами по себе, над ярким кадром, — табличка M (как «Сесть сейчас» у «Стрижа»): слива не просвечивает */
+[data-hud='veranda3'] .k-hud button.k-btn:is(.qz-stand, .qz-hintbtn)[data-qz] { min-height: var(--v3-h-m); padding: 2px 16px 3px; border: 1px solid transparent;
+  border-image: var(--v3-plate) 8 fill / 8px / 0 stretch; border-radius: 0; background: none; box-shadow: none; filter: var(--v3-drop); color: var(--v3-cream-text); font: 700 14px/1.2 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .k-hud button.k-btn:is(.qz-stand, .qz-hintbtn)[data-qz]:hover:not(:disabled) { background: none; box-shadow: none; border-image-source: var(--v3-plate-on); filter: var(--v3-drop); }
+[data-hud='veranda3'] .k-hud button.k-btn:is(.qz-stand, .qz-hintbtn)[data-qz]:active:not(:disabled) { transform: translateY(1px); box-shadow: none; }
+[data-hud='veranda3'] .k-hud button.k-btn:is(.qz-stand, .qz-hintbtn)[data-qz]:disabled { opacity: .62; }
+/* «Сменить игру?», «Пак понравился» — малые кнопки на плашке */
+[data-hud='veranda3'] .k-hud button.k-btn.qz-swap { min-height: 28px; padding: 2px 11px 3px; font-size: 14px; }
+[data-hud='veranda3'] .qz-swap b { margin-left: 4px; color: var(--v3-gold-hi); font-weight: 800; }
+[data-hud='veranda3'] .k-hud button.k-btn.qz-swap.is-on { background: var(--v3q-cell-on); box-shadow: inset 0 0 0 1.5px var(--v3-gold-hi), var(--v3q-btn-shadow); }
+[data-hud='veranda3'] .k-hud button.k-btn.qz-swap .k-ic { width: 18px; height: 18px; margin: 0 2px 0 -2px; }
+[data-hud='veranda3'] .qz-hintbtn .k-faint { margin-left: 4px; color: var(--v3-dim); }
+/* «Пропустить вопрос 2/3» («Кто из нас?»): счёт — золотым, на нажатой (латунь) — тем же тёмным */
+[data-hud='veranda3'] .k-hud button.k-btn[data-qz='whoSkip'] b { margin-left: 4px; color: var(--v3-gold-hi); font-weight: 800; }
+[data-hud='veranda3'] .k-hud button.k-btn--go[data-qz='whoSkip'] b { color: inherit; }
+
+/* ================================================================ ПЛАШКА СВЕРХУ — события «Ракушки» (формы и размеры — в v3-msg, здесь только своё) */
+/* кольцо времени — медальон M: на 4:45 из пяти цифр ему нужен внутренний круг шире */
+[data-hud='veranda3'] .k-event .k-ring.qz-ring { width: var(--v3-md-m); height: var(--v3-md-m); --c: var(--v3-gold-hi); }
+[data-hud='veranda3'] .k-event .k-ring.qz-ring > b { font: 800 14px/1 Rubik, system-ui, sans-serif; letter-spacing: -.02em; }
+[data-hud='veranda3'] .k-event .k-ring.qz-ring.is-hurry { --c: var(--v3-red); }
+[data-hud='veranda3'] .k-event .k-ring.qz-ring.is-hurry > b { color: var(--bad-text); animation: none; }
+[data-hud='veranda3'] .k-event > .k-event-timer.qz-ring-wrap { margin-left: 8px; }
+/* голосование «Во что играем?»: четыре кнопки справа — медальоны с колпачком-номером */
+[data-hud='veranda3'] .k-event > .qz-side { gap: 8px; margin-left: 10px; }
+[data-hud='veranda3'] .qz-vbtn { width: var(--v3-md-s); height: var(--v3-md-s); border: 0; border-radius: 50%; background: var(--v3-disc);
+  box-shadow: inset 0 0 0 1px var(--v3-gold), 0 0 0 1px rgba(22, 11, 16, .5); transition: none; }
+[data-hud='veranda3'] .qz-vbtn-ic { width: 24px; height: 24px; }
+[data-hud='veranda3'] .qz-vbtn > .k-key { top: -7px; left: -7px; }
+[data-hud='veranda3'] .qz-vbtn:hover:not(:disabled) { background: var(--v3-disc); box-shadow: inset 0 0 0 1.5px var(--v3-gold-hi), 0 0 0 1px rgba(22, 11, 16, .5); }
+[data-hud='veranda3'] .qz-vbtn.is-mine { background: var(--v3-disc); box-shadow: inset 0 0 0 2.5px var(--v3-gold-hi), 0 0 0 1px rgba(22, 11, 16, .5); }
+[data-hud='veranda3'] .qz-vbtn:disabled { opacity: .42; filter: grayscale(1); }
+/* выбор пака «Своей игры»: три ячейки во второй строке плашки, колпачок-номер на скосе слева (как станции радио) */
+[data-hud='veranda3'] .k-event-actions { gap: 6px; }
+/* три названия паков не должны превращаться в «Мо…»: плашка с выбором пака шире обычной (440 → 540) */
+[data-hud='veranda3'] .k-hud .k-event:not(:has(> .mo-team)):has(> .k-event-actions .qz-vopt) { max-width: 540px; }
+[data-hud='veranda3'] .qz-vopt { height: 34px; gap: 6px; padding: 0 9px 0 23px; border: 0; border-radius: 0; background: var(--v3q-cell); box-shadow: var(--v3q-cell-line);
+  clip-path: var(--v3q-cut); color: var(--v3-cream-text); font: 800 13px/1 Rubik, system-ui, sans-serif; transition: none; }
+[data-hud='veranda3'] .qz-vopt > .k-key { top: 50%; left: -3px; translate: 0 -50%; min-width: 18px; height: 20px; padding: 0 4px; border-radius: 0 5px 5px 0; }
+[data-hud='veranda3'] .qz-vopt i { color: var(--v3-gold-hi); font-weight: 800; }
+[data-hud='veranda3'] .qz-vopt:hover { background: rgba(255, 240, 220, .13); box-shadow: inset 0 0 0 1px var(--v3-gold-hi); }
+[data-hud='veranda3'] .qz-vopt.is-mine { background: var(--v3q-cell-on); box-shadow: var(--v3q-cell-on-line); }
+
+/* ================================================================ ПОЛОСЫ ВНИЗУ ПО ЦЕНТРУ: «Сыграем?», вызов роли, «Ещё раз!», очередь */
+[data-hud='veranda3'] .qz-turn { gap: 12px; padding: 7px 14px 8px 16px; }
+[data-hud='veranda3'] .qz-roles-t { color: var(--v3-cream-text); font: 800 15px/1.2 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .qz-roles-time { min-width: 0; color: var(--gold-text); font: 800 18px/1 Rubik, system-ui, sans-serif; letter-spacing: -.01em; text-align: right; }
+[data-hud='veranda3'] .qz-roles-time.is-hurry { color: var(--bad-text); }
+/* счёт «2 из 3» — не пилюля, а золотое число справа */
+[data-hud='veranda3'] .k-pill.qz-roles-time { min-height: 0; padding: 0; border: 0; background: none; box-shadow: none; text-align: center; }
+/* назначили тебя, нажал «Ещё раз!», слово готово — табличка «выбрано» (кайма ярче, без свечения) */
+[data-hud='veranda3'] :is(.qz-assigned, .qz-again.is-on, .qz-queue2.is-on) { border-image-source: var(--v3-plate-on); box-shadow: none; }
+[data-hud='veranda3'] .qz-queue2.is-on { row-gap: 8px; }
+[data-hud='veranda3'] .qz-queue2 .qz-roles-t kbd { margin-left: 6px; vertical-align: 1px; }
+[data-hud='veranda3'] .qz-word-t { color: var(--v3-gold-hi); font-weight: 800; }
+/* «следующий», «2-й» — маленький золотой ярлык со скошенными углами (как «Ярость» у босса) */
+[data-hud='veranda3'] .qz-queue2 .k-pill { min-height: 20px; padding: 1px 7px 2px; border: 0; border-radius: 0; background: rgba(255, 211, 90, .18); box-shadow: none; clip-path: var(--v3q-cut-s);
+  color: var(--v3-gold-hi); font: 800 13px/1.1 Rubik, system-ui, sans-serif; letter-spacing: 0; text-transform: none; vertical-align: 1px; }
+/* загадывающий: ряд клавиш (табличка системы) и «Подсказка» рядом */
+[data-hud='veranda3'] .qz-bc { gap: 12px; }
+[data-hud='veranda3'] .mo-key.is-off { opacity: .45; }
+
+/* ================================================================ ДОК «В ИГРУ» (слот слева внизу): строки на общей тени, отметки загадывающего */
+[data-hud='veranda3'] .qz-dock { gap: 4px; }
+[data-hud='veranda3'] .qz-wait { color: var(--v3-dim); font: 600 13px/1.2 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .qz-line { align-items: center; gap: 0; }
+[data-hud='veranda3'] .qz-line .qz-mark { width: 20px; height: 20px; margin: 0 6px 0 -2px; }
+/* состояния строки — полоса слева (игровая информация: тепло — мятный, горячо — красный, угадал — золото); рамок и свечения нет */
+[data-hud='veranda3'] .qz-line.is-warm, [data-hud='veranda3'] .qz-line.is-got { padding-left: 12px; box-shadow: inset 3px 0 0 var(--v3q-warm); }
+[data-hud='veranda3'] .qz-line.is-own:not(.is-win) { box-shadow: inset 3px 0 0 var(--v3-gold); }
+[data-hud='veranda3'] .qz-line.is-miss { opacity: .62; }
+[data-hud='veranda3'] .qz-line.is-miss.has-undo { opacity: 1; }
+[data-hud='veranda3'] .qz-line:is(.is-win, .is-check, .is-near) { box-shadow: inset 3px 0 0 var(--v3-gold-hi);
+  background: linear-gradient(90deg, rgba(255, 205, 74, .2), rgba(255, 205, 74, 0) 78%), linear-gradient(90deg, rgba(var(--v3m-shade), var(--v3m-a)) 0, rgba(var(--v3m-shade), var(--v3m-a)) 66%, rgba(var(--v3m-shade), 0) 100%); }
+[data-hud='veranda3'] .qz-line.is-check { animation: none; }
+[data-hud='veranda3'] .qz-line.is-back { animation: none; box-shadow: inset 3px 0 0 var(--v3-gold-hi); }
+[data-hud='veranda3'] .qz-line.is-new { animation: v3m-drop .28s var(--v3-ease) both; }
+[data-hud='veranda3'] .qz-line.is-got .qz-text { font-weight: 700; }
+[data-hud='veranda3'] .qz-line.is-got .qz-mark { color: var(--v3q-warm); }
+[data-hud='veranda3'] .qz-line.is-near { flex-wrap: wrap; row-gap: 6px; }
+/* отметки загадывающего: 👍 👎 ✓ — медальоны S, колпачок-номер на углу; «Угадал» у «похоже на ответ» — латунная капсула */
+[data-hud='veranda3'] .qz-markbtns { gap: 8px; }
+[data-hud='veranda3'] .qz-mb { width: 28px; height: 28px; border: 0; border-radius: 50%; background: var(--v3-disc); box-shadow: inset 0 0 0 1px var(--v3-gold), 0 0 0 1px rgba(22, 11, 16, .5); transition: none; }
+[data-hud='veranda3'] .qz-mb img { width: 20px; height: 20px; }
+[data-hud='veranda3'] .qz-mb:hover { background: var(--v3-disc); transform: none; box-shadow: inset 0 0 0 1.5px var(--v3-gold-hi), 0 0 0 1px rgba(22, 11, 16, .5); }
+[data-hud='veranda3'] .qz-mb--warm:hover { box-shadow: inset 0 0 0 1.5px var(--v3q-warm), 0 0 0 1px rgba(22, 11, 16, .5); }
+[data-hud='veranda3'] .qz-mb--miss:hover { box-shadow: inset 0 0 0 1.5px var(--v3-red), 0 0 0 1px rgba(22, 11, 16, .5); }
+[data-hud='veranda3'] .qz-mb > .k-key--tr { top: -9px; right: -9px; }
+[data-hud='veranda3'] .qz-mb--win.is-big { width: auto; padding: 0 12px 0 6px; border-radius: 14px; background: var(--v3q-brass); box-shadow: inset 0 0 0 1px #8a5a14, 0 2px 0 #5a3410;
+  color: #3a2208; font: 800 14px/1 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .qz-mb--win.is-big:hover { box-shadow: inset 0 0 0 1px #8a5a14, 0 2px 0 #5a3410; }
+[data-hud='veranda3'] .qz-markbtns .k-btn { min-height: 28px; padding: 2px 11px 3px; font-size: 14px; }
+[data-hud='veranda3'] .k-hud button.k-btn.qz-hotbtn, [data-hud='veranda3'] .k-hud button.k-btn.qz-warm-hot { color: var(--bad-text); box-shadow: inset 0 0 0 1.5px var(--v3-red), var(--v3q-btn-shadow); }
+[data-hud='veranda3'] .k-hud button.k-btn.qz-hotbtn:hover:not(:disabled), [data-hud='veranda3'] .k-hud button.k-btn.qz-warm-hot:hover:not(:disabled) { background: var(--v3q-hot-bg); box-shadow: inset 0 0 0 1.5px var(--v3-red), var(--v3q-btn-shadow); }
+/* «↩ Вернуть» на зачёркнутой строке */
+[data-hud='veranda3'] .qz-undo { height: 26px; gap: 5px; padding: 0 10px 0 7px; border: 0; border-radius: 4px; background: var(--v3q-cell); box-shadow: inset 0 0 0 1px var(--v3-gold), var(--v3q-btn-shadow);
+  color: var(--v3-cream-text); font: 800 14px/1 Rubik, system-ui, sans-serif; transition: none; }
+[data-hud='veranda3'] .qz-undo:hover { transform: none; background: rgba(255, 240, 220, .14); box-shadow: inset 0 0 0 1px var(--v3-gold-hi), var(--v3q-btn-shadow); }
+/* моя последняя догадка над чатом: слово и статус тем же тоном, что отметка */
+[data-hud='veranda3'] .qz-me { gap: 6px; padding-right: 12px; }
+[data-hud='veranda3'] .qz-me .qz-tag { margin-left: 8px; color: var(--v3-dim); font: 800 13px/1 Rubik, system-ui, sans-serif; letter-spacing: 0; }
+[data-hud='veranda3'] .qz-me.is-warm { padding-left: 10px; box-shadow: inset 3px 0 0 var(--v3q-warm); background: linear-gradient(90deg, rgba(168, 226, 140, .18), rgba(168, 226, 140, 0) 78%), linear-gradient(90deg, rgba(var(--v3m-shade), var(--v3m-a)) 0, rgba(var(--v3m-shade), var(--v3m-a)) 66%, rgba(var(--v3m-shade), 0) 100%); }
+[data-hud='veranda3'] .qz-me.is-warm .qz-tag { color: var(--v3q-warm); }
+[data-hud='veranda3'] .qz-me.is-hot { padding-left: 10px; box-shadow: inset 3px 0 0 var(--v3q-hot); background: linear-gradient(90deg, rgba(255, 106, 92, .2), rgba(255, 106, 92, 0) 78%), linear-gradient(90deg, rgba(var(--v3m-shade), var(--v3m-a)) 0, rgba(var(--v3m-shade), var(--v3m-a)) 66%, rgba(var(--v3m-shade), 0) 100%); }
+[data-hud='veranda3'] .qz-me.is-hot .qz-tag { color: var(--bad-text); }
+[data-hud='veranda3'] .qz-me.is-check .qz-tag { color: var(--v3-gold-hi); }
+[data-hud='veranda3'] .qz-me.is-win .qz-tag { color: var(--v3-gold-hi); }
+[data-hud='veranda3'] .qz-me.is-pop { animation: none; }
+
+/* ================================================================ КАРТОЧКА «ТЕПЛО» (слот слева сверху): табличка, строки-ячейки с полосой слева, подсказки за золотой линией */
+[data-hud='veranda3'] .qz-warm { gap: 6px; width: 300px; padding: 9px 12px 10px; }
+[data-hud='veranda3'] .qz-warm-head { gap: 8px; font: 800 15px/1 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .qz-warm-head img { width: 24px; height: 24px; }
+[data-hud='veranda3'] .qz-warm-head b { color: var(--gold-text); letter-spacing: 0; }
+/* число «тепло» — золотое, без пилюли */
+[data-hud='veranda3'] .qz-warm-n.k-pill { min-height: 0; padding: 0; border: 0; background: none; box-shadow: none; color: var(--gold-text); font: 800 15px/1 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .qz-warm-more { margin: -2px 0 0 32px; color: var(--v3-dim); font: 600 13px/1.2 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .qz-warm-list { gap: 4px; }
+[data-hud='veranda3'] .qz-warm-row { padding: 3px 8px 4px 10px; border-radius: 0; background: var(--v3q-warm-bg); box-shadow: inset 3px 0 0 var(--v3q-warm); clip-path: var(--v3q-cut-s); transition: none; }
+/* ник и слово — на одной линии букв: ник — inline-block с обрезкой «…», у такого блока базовая линия — нижний край, и ник
+   «подпрыгивал» над словом (так и в игре сейчас); baseline-source: first ставит его по первой строке текста */
+[data-hud='veranda3'] .qz-warm-txt small { color: var(--nick, var(--nick-1)); font: 700 13px/1.15 Rubik, system-ui, sans-serif;
+  vertical-align: baseline; baseline-source: first; }
+[data-hud='veranda3'] .qz-warm-txt b { color: var(--v3-cream-text); font: 800 16px/1.25 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .qz-warm-row.is-new { background: var(--v3q-cell-on); box-shadow: inset 3px 0 0 var(--v3-gold-hi); animation: none; }
+[data-hud='veranda3'] .qz-warm-row.is-hot { background: var(--v3q-hot-bg); box-shadow: inset 3px 0 0 var(--v3q-hot); }
+[data-hud='veranda3'] .qz-warm-row.is-hot .qz-warm-txt b { font-size: 18px; }
+[data-hud='veranda3'] .qz-hot-pill { min-height: 20px; margin-right: 6px; padding: 1px 7px 2px; border: 0; border-radius: 0; background: rgba(255, 106, 92, .22); box-shadow: none; clip-path: var(--v3q-cut-s);
+  color: var(--bad-text); font: 800 13px/1.1 Rubik, system-ui, sans-serif; letter-spacing: 0; text-transform: none; vertical-align: 1px; }
+[data-hud='veranda3'] .qz-warm-empty { color: var(--v3-dim); font: 600 14px/1.25 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .qz-warm-hints { gap: 4px; padding-top: 7px; border-top: 0; background: var(--v3-rule) top / 100% 1px no-repeat; }
+[data-hud='veranda3'] .qz-warm-hl { color: var(--gold-text); font: 700 14px/1.2 Rubik, system-ui, sans-serif; letter-spacing: 0; text-transform: none; }
+[data-hud='veranda3'] .qz-warm-hint { gap: 8px; padding: 2px 8px 2px 2px; color: var(--v3-cream-text); font: 700 15px/1.2 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .qz-warm-hint i { width: 22px; height: 22px; background: var(--v3-brass); box-shadow: 0 0 0 1.5px var(--v3-ink); color: #3a2208; font: 800 13px/1 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .qz-warm-hint.is-new { background: var(--v3q-cell-on); }
+/* правка отметок: «✕» — медальон S, «Горячо!» — малая кнопка (общие правила кнопок); подсказка у ✕ — табличка */
+[data-hud='veranda3'] .qz-warm-x { width: 26px; height: 26px; border: 0; background: var(--v3-disc); box-shadow: inset 0 0 0 1px var(--v3-gold), 0 0 0 1px rgba(22, 11, 16, .5); color: var(--v3-cream-text); transition: none; }
+[data-hud='veranda3'] .qz-warm-x:hover { background: var(--v3-disc); box-shadow: inset 0 0 0 1.5px var(--v3-red), 0 0 0 1px rgba(22, 11, 16, .5); color: var(--bad-text); }
+[data-hud='veranda3'] .qz-warm-x::after { padding: 4px 10px 5px; border-radius: 4px; background: var(--v3-plum); box-shadow: inset 0 0 0 1px var(--v3-gold); color: var(--v3-cream-text);
+  font: 700 14px/1.2 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .qz-warm.is-editable .qz-warm-row:hover { box-shadow: inset 3px 0 0 var(--v3-gold-hi); }
+[data-hud='veranda3'] .qz-warm-hot { margin: -14px 0 0; }
+
+/* ================================================================ ПОЛЯ ВВОДА (ответ, ставка, свой вопрос; только на панелях «Ракушки»): тёмное поле, золотая волосяная кайма, в фокусе — ярче */
+[data-hud='veranda3'] :is(.qz-ans, .qz-bet, .qo-ask) .k-input { min-height: 36px; padding: 4px 12px; border: 0; border-radius: 4px; background: rgba(16, 8, 12, .62);
+  box-shadow: inset 0 0 0 1px rgba(212, 165, 82, .55); color: var(--v3-cream-text); font: 600 15px/1.2 Rubik, system-ui, sans-serif; color-scheme: dark; }
+[data-hud='veranda3'] :is(.qz-ans, .qz-bet, .qo-ask) .k-input::placeholder { color: var(--v3-dim); opacity: .62; }
+[data-hud='veranda3'] :is(.qz-ans, .qz-bet, .qo-ask) .k-input:focus { box-shadow: inset 0 0 0 1.5px var(--v3-gold-hi); }
+[data-hud='veranda3'] .k-hud .qz-ans-row .k-input, [data-hud='veranda3'] .k-hud .qz-bet-in, [data-hud='veranda3'] .k-hud .qo-ask-row .k-input { min-height: 36px; padding-block: 4px; }
+
+/* шкалы времени на панелях режимов: тонкая плоская полоса, золото на тёмной дорожке (как у боя и рыбалки); «призрак» не нужен */
+[data-hud='veranda3'] :is(.qz-buzz-meter, .qz-ans-meter, .qz-words-meter) { height: 4px; border: 0; border-radius: 0; background: var(--v3-track); --c: var(--v3-gold-hi); }
+[data-hud='veranda3'] :is(.qz-buzz-meter, .qz-ans-meter, .qz-words-meter) > .k-meter-ghost { display: none; }
+[data-hud='veranda3'] :is(.qz-buzz-meter, .qz-ans-meter, .qz-words-meter) > .k-meter-fill { border-radius: 0; background: var(--c); transition: none; }
+
+/* ================================================================ «ЖМУ!» (низ по центру): табличка, крупная кнопка и подпись */
+[data-hud='veranda3'] .qz-buzz { gap: 6px 14px; padding: 8px 14px 9px; }
+[data-hud='veranda3'] .k-hud .qz-buzz-btn { margin: 0; }
+[data-hud='veranda3'] .qz-buzz-note { max-width: 190px; color: var(--v3-dim); font: 600 14px/1.2 Rubik, system-ui, sans-serif; }
+/* «Рано!» и «уже отвечал»: кнопка тускнеет, не дрожит */
+[data-hud='veranda3'] .k-hud button.qz-buzz-btn.is-blocked { opacity: .5; filter: none; animation: none; }
+
+/* ================================================================ ОТВЕТ, СТАВКА (низ по центру) */
+[data-hud='veranda3'] .qz-ans { gap: 8px; padding: 10px 14px 11px; }
+[data-hud='veranda3'] .qz-ans-note { color: var(--v3-cream-text); font: 700 15px/1.25 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .qz-ans-row { gap: 10px; }
+[data-hud='veranda3'] .qz-bet { gap: 8px 10px; padding: 10px 14px 11px; }
+[data-hud='veranda3'] .qz-bet-t { color: var(--v3-cream-text); font: 800 16px/1.2 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .k-hud .qz-bet-in { width: 116px; color: var(--v3-gold-hi); font-weight: 800; font-variant-numeric: tabular-nums; }
+[data-hud='veranda3'] .qz-bet-q { gap: 8px; }
+[data-hud='veranda3'] .qz-bet-note { color: var(--v3-dim); font: 600 13px/1.2 Rubik, system-ui, sans-serif; }
+
+/* ================================================================ ВЫБОР СЛОВА («Что рисуешь?») И «УБЕРИ ТЕМУ»: ячейки со скосом, номер колпачком на левом скосе */
+[data-hud='veranda3'] .qo-words { gap: 8px 10px; padding: 10px 14px 12px; }
+[data-hud='veranda3'] .qo-words-t { color: var(--v3-cream-text); font: 800 16px/1.2 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .qo-word { gap: 2px; padding: 8px 14px 8px 30px; border: 0; border-radius: 0; background: var(--v3q-cell); box-shadow: var(--v3q-cell-line);
+  clip-path: var(--v3q-cut); color: var(--v3-cream-text); transition: none; }
+[data-hud='veranda3'] .qo-word > .k-key { top: 50%; left: -3px; translate: 0 -50%; min-width: 18px; height: 20px; padding: 0 4px; border-radius: 0 5px 5px 0; }
+[data-hud='veranda3'] .qo-word b { color: var(--v3-cream-text); font: 800 17px/1.15 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .qo-word span { color: var(--v3-dim); font: 600 13px/1.1 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .qo-word:hover { background: rgba(255, 240, 220, .13); box-shadow: inset 0 0 0 1px var(--v3-gold-hi); }
+[data-hud='veranda3'] .qo-word.is-on { background: var(--v3q-cell-on); box-shadow: var(--v3q-cell-on-line); }
+/* «Убери тему»: до шести тем — по три в ряд, чтобы «Набережная» не рвалась посреди слова */
+[data-hud='veranda3'] .qz-drop { grid-template-columns: repeat(auto-fit, minmax(124px, 1fr)); }
+[data-hud='veranda3'] .qz-drop .qo-word { padding-right: 10px; }
+[data-hud='veranda3'] .qz-drop .qo-word b { font-size: 15px; overflow-wrap: normal; }
+
+/* очередь «Хочу рисовать» */
+[data-hud='veranda3'] .qo-line { gap: 12px; padding: 7px 14px 8px 16px; color: var(--v3-cream-text); font: 700 15px/1.2 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .qo-line b { color: var(--v3-gold-hi); font-weight: 800; }
+
+/* «Кто из нас…» — свои вопросы */
+[data-hud='veranda3'] .qo-ask { gap: 6px; padding: 10px 14px 11px; }
+[data-hud='veranda3'] .qo-ask-row { gap: 10px; }
+[data-hud='veranda3'] .qo-ask-pre { color: var(--v3-cream-text); font: 800 16px/1 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .qo-ask-n { color: var(--v3-dim); font: 600 13px/1.25 Rubik, system-ui, sans-serif; }
+
+/* ================================================================ ПАНЕЛЬ ВЕДУЩЕГО (справа внизу): вопрос, ответ из пака, вердикт */
+[data-hud='veranda3'] .qz-host { gap: 9px; padding: 12px 14px 14px; scrollbar-width: thin; scrollbar-color: rgba(212, 165, 82, .5) transparent; }
+[data-hud='veranda3'] .qz-host .k-eyebrow { color: var(--gold-text); font: 700 14px/1.2 Rubik, system-ui, sans-serif; letter-spacing: 0; text-transform: none; }
+[data-hud='veranda3'] .qz-host-q { color: var(--v3-cream-text); font: 600 15px/1.3 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] :is(.qz-host-say, .qz-host-said) { color: var(--v3-cream-text); font: 600 14px/1.3 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .qz-host .k-faint { color: var(--v3-dim); font-weight: 600; }
+/* карточка «Ответ»: ячейка «выбрано», главный ответ — золотым */
+[data-hud='veranda3'] .qz-host-a { gap: 2px; padding: 8px 12px 9px; border-radius: 0; background: var(--v3q-cell-on); box-shadow: var(--v3q-cell-on-line); clip-path: var(--v3q-cut); }
+[data-hud='veranda3'] .qz-host-a b { color: var(--v3-gold-hi); font: 800 22px/1.1 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .qz-host-a .k-faint { font-size: 13px; }
+[data-hud='veranda3'] .qz-host-wrong { color: var(--bad-text); font: 600 13px/1.2 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .qz-host-row { gap: 10px; }
+[data-hud='veranda3'] .qz-host-wait { color: var(--v3-dim); font: 600 14px/1.2 Rubik, system-ui, sans-serif; }
+/* финал: ответ игрока и вердикт рядом */
+[data-hud='veranda3'] .qz-host-fin { gap: 6px; }
+[data-hud='veranda3'] .qz-host-fa { padding: 6px 8px 6px 10px; border-radius: 0; background: var(--v3q-cell); box-shadow: var(--v3q-cell-line); clip-path: var(--v3q-cut-s); }
+[data-hud='veranda3'] .qz-host-fa > span:first-child, [data-hud='veranda3'] .qz-host-ask > span:first-child { color: var(--v3-cream-text); font: 600 14px/1.25 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .qz-host-ok { gap: 6px; }
+[data-hud='veranda3'] .qz-host-ok .k-btn { padding-inline: 10px; }
+[data-hud='veranda3'] .qz-host-ask { padding-top: 7px; background: var(--v3-rule) top / 100% 1px no-repeat; }
+[data-hud='veranda3'] .qz-host-ask .k-btn { padding-inline: 10px; }
+
+/* ================================================================ ПОЛОСА ИНСТРУМЕНТОВ РИСУЮЩЕГО (справа): цвета, кисти, ластик, ведёрко, отмена */
+[data-hud='veranda3'] .qz-tools { gap: 7px; width: 68px; padding: 10px 0; }
+/* цвет — игровая информация (цвета краски не меняем); выбранный — золотое кольцо снаружи */
+[data-hud='veranda3'] .qz-color { border: 2px solid var(--v3-cream-text); box-shadow: none; transition: none; }
+[data-hud='veranda3'] .qz-color:hover { transform: none; box-shadow: 0 0 0 2px var(--v3-ink), 0 0 0 3px var(--v3-gold); }
+[data-hud='veranda3'] .qz-color.is-on { box-shadow: 0 0 0 2px var(--v3-ink), 0 0 0 3.5px var(--v3-gold-hi); }
+[data-hud='veranda3'] :is(.qz-width, .qz-tool) { border-radius: 4px; color: var(--v3-cream-text); transition: none; }
+[data-hud='veranda3'] :is(.qz-width, .qz-tool):hover { background: var(--v3q-cell); box-shadow: var(--v3q-cell-line); }
+[data-hud='veranda3'] :is(.qz-width, .qz-tool).is-on { background: var(--v3q-cell-on); box-shadow: var(--v3q-cell-on-line); }
+[data-hud='veranda3'] .qz-tool > .k-key { top: -7px; right: -7px; }
+[data-hud='veranda3'] .qz-sep { width: 44px; height: 1px; background: var(--v3-rule); }
+[data-hud='veranda3'] .qz-full { color: var(--bad-text); font: 800 13px/1.15 Rubik, system-ui, sans-serif; }

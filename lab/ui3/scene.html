@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ru" data-skin="retro2" data-hud="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1440">
+<title>Сцена HUD</title>
+<!-- Сцена = экран игры 1440×900: настоящий HUD (scenes/*.js, снят из игры) поверх чистого кадра (img/bg-*.jpg).
+     Вариант HUD — атрибут data-hud на <html>, как в игре: light («Сейчас»), veranda, prichal, light2, vyveska.
+     Адрес: scene.html#<сцена>&v=<вариант>; страница index.html меняет вариант через postMessage({ hud }). -->
+<link rel="stylesheet" href="game/game.css">
+<link rel="stylesheet" href="scene.css">
+<link rel="stylesheet" href="v/veranda.css">
+<link rel="stylesheet" href="v/prichal.css">
+<link rel="stylesheet" href="v/light2.css">
+<link rel="stylesheet" href="v/vyveska.css">
+<!-- v2 (30.10): не только цвета — формы и устройство HUD; v/<id>.js может перестроить снятую разметку (только лаборатория) -->
+<link rel="stylesheet" href="v/veranda2.css">
+<link rel="stylesheet" href="v/prichal2.css">
+<link rel="stylesheet" href="v/veranda3.css">
+<link rel="stylesheet" href="v/veranda3-msg.css">
+<!-- 31.10, решение №15: упущенный HUD режимов в v3 — три группы (снятые сцены подгружает scene.js по имени) -->
+<link rel="stylesheet" href="v/veranda3-fight.css">
+<link rel="stylesheet" href="v/veranda3-water.css">
+<link rel="stylesheet" href="v/veranda3-plaza.css">
+<link rel="stylesheet" href="v/veranda3-quiz.css">
+</head>
+<body>
+<img class="lab-bg" alt="">
+<script src="scenes/plaza.js"></script>
+<script src="scenes/fishing-wait.js"></script>
+<script src="scenes/fishing-catch.js"></script>
+<script src="scenes/farm.js"></script>
+<script src="scenes/race.js"></script>
+<script src="scenes/paintball.js"></script>
+<script src="scenes/fort.js"></script>
+<script src="scenes/billiards.js"></script>
+<script src="v/veranda2.js"></script>
+<script src="v/prichal2.js"></script>
+<script src="v/veranda3.js"></script>
+<script src="v/veranda3-msg.js"></script>
+<script src="v/veranda3-fight.js"></script>
+<script src="v/veranda3-water.js"></script>
+<script src="v/veranda3-plaza.js"></script>
+<script src="v/veranda3-quiz.js"></script>
+<script src="scene.js"></script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+/* Страница «Вывески v3»: пары «сейчас / v3» (кадры площади и картинки вывесок из игры). Основа — ../page.css и ../v2/page.css. */
+@import url('../v2/page.css');
+
+.sg-list { display: flex; flex-direction: column; gap: 36px; max-width: 1240px; }
+.sg-pair { display: flex; flex-direction: column; gap: 8px; }
+.sg-pair h3 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; font-size: 22px; }
+.sg-pair h3 code { color: var(--pg-faint); font: 600 13px/1.3 ui-monospace, Menlo, monospace; }
+.sg-pair p { max-width: 1080px; margin: -2px 0 4px; color: var(--pg-dim); font-size: 16px; line-height: 1.5; }
+.sg-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+
+.sg-shot { position: relative; display: block; min-width: 0; padding: 0; overflow: hidden; border: 0; border-radius: 14px; background: #0b2422;
+  box-shadow: var(--pg-frame); cursor: zoom-in; }
+.sg-shot img { width: 100%; height: auto; }
+.sg-shot:hover { box-shadow: 0 0 0 2px var(--pg-gold), 0 0 0 3px #0a3b37, 0 18px 44px rgba(0, 0, 0, .4); }
+.sg-shot:focus-visible { outline: 3px solid var(--pg-gold); outline-offset: 2px; }
+.sg-shot-l { position: absolute; left: 10px; top: 10px; padding: 3px 10px; border-radius: 999px; background: rgba(8, 45, 43, .84); color: var(--pg-text);
+  font-size: 13px; font-weight: 800; }
+.sg-shot.is-v3 .sg-shot-l { background: var(--pg-gold); color: #3a2603; }
+
+/* картинка вывески: на шашечке, чтобы были видны прозрачные края */
+.sg-row--tex .sg-shot { display: grid; place-items: center; min-height: 180px; padding: 40px 18px 18px;
+  background: repeating-conic-gradient(#3b5552 0 25%, #334b48 0 50%) 0 0 / 24px 24px; }
+.sg-row--tex .sg-shot img { width: auto; max-width: 100%; max-height: 440px; object-fit: contain; }
+
+.sg-empty { margin: 0; color: var(--pg-faint); font-size: 16px; }
+.sg-rest { display: grid; gap: 6px; max-width: 980px; margin: 0; padding: 0; list-style: none; color: var(--pg-dim); font-size: 17px; }
+.sg-rest li { padding-left: 18px; text-indent: -18px; }
+.sg-rest li::before { content: '•'; display: inline-block; width: 18px; text-indent: 0; color: var(--pg-gold); font-weight: 900; }
+
+.sg-big { width: min(96vw, 1600px); max-width: none; max-height: 94vh; padding: 0; overflow: hidden; border: 0; border-radius: 16px; background: #0b2422;
+  color: var(--pg-text); box-shadow: 0 30px 80px rgba(0, 0, 0, .6); cursor: zoom-out; }
+.sg-big::backdrop { background: rgba(4, 20, 19, .84); }
+.sg-big figure { margin: 0; }
+.sg-big img { width: 100%; max-height: calc(94vh - 52px); object-fit: contain; }
+.sg-big figcaption { padding: 12px 18px; font-size: 16px; font-weight: 700; }
+
+@media (max-width: 720px) {
+  .sg-row { grid-template-columns: minmax(0, 1fr); }
+  .sg-pair h3 { font-size: 19px; }
+}

@@ -1,0 +1,127 @@
+/* ================================================================ вариант HUD «Веранда» (data-hud="veranda")
+   Родня блэкджека, бильярда, дурака и верха крепости: тёмные сливово-шоколадные плашки без размытия (как .bj-bar,
+   .bl-bar — rgba(34, 24, 29)), тонкая золотая кайма 1 px, блик сверху, короткая мягкая тень снизу; подписи — кремом
+   (#fff3de, как --cream кафе), числа — золотом (#ffd35a, как --gold кафе), Rubik 800 и моноширинные цифры.
+   Против «темновато»: плашки маленькие и плотные, тёмной площади мало, текст яркий; чат — подложка только под строками.
+   Палитра каймы и золота общая с верхом крепости — его --dg-* сведены к этой же палитре (ниже). */
+
+[data-hud='veranda'][data-skin='retro2'], [data-hud='veranda'] [data-skin='retro2'] {
+  --h-surf-solid: #2e1d26; --h-surf-text: #fff3de; --h-surf-dim: #ecd8b6; --h-surf-faint: #d6bd93;
+  --h-surf-2: rgba(255, 236, 205, .08); --h-surf-2-border: 1px solid rgba(255, 220, 160, .18); --h-surf-3: rgba(16, 8, 12, .42);
+  --h-line: rgba(255, 220, 160, .16); --h-line-strong: rgba(232, 184, 98, .5);
+  --h-panel-bg: linear-gradient(180deg, rgba(255, 226, 170, .08), rgba(255, 226, 170, 0) 34%), linear-gradient(180deg, #3a2631, #261920);
+  --h-panel-border: 1px solid #d4a552;
+  --h-panel-shadow: 0 0 0 1px rgba(22, 11, 16, .6), 0 10px 24px rgba(14, 6, 10, .4);
+  --h-gold-text: #ffd35a; --h-good-text: #a8e28c; --h-bad-text: #ff8f7e; --h-info-text: #94e2d4; --h-special-text: #d0bcff;
+  --h-ghost-bg: rgba(255, 240, 220, .1); --h-ghost-text: #fff3de; --h-ghost-border: 1px solid rgba(232, 184, 98, .55);
+  --h-ghost-bg-hover: rgba(255, 240, 220, .18); --h-ghost-drop: none;
+  --h-track: rgba(14, 7, 11, .6); --h-track-border: 1px solid rgba(255, 220, 160, .16); --h-trail: rgba(255, 243, 222, .38);
+  --h-ring-face: radial-gradient(circle at 40% 32%, #4a3240, #261920 78%);
+  /* акцентный текст (подзаголовки режимов, имена команд) чуть высветлен к крему — читается на сливе */
+  --h-accent-k: 85%; --h-accent-to: #fff3de; --h-sil: brightness(0) invert(.94) opacity(.3);
+  --h-info: #6fcdbf; --h-info-soft: rgba(111, 205, 191, .18);
+  /* важная плашка: кайма потолще и ярче, без лампочек и без свечения */
+  --h-lamp-band: inset 0 1px 0 rgba(255, 230, 182, .16); --h-lamp-ring: 0 0 0 1.5px #ffd35a, 0 0 0 2.5px rgba(22, 11, 16, .6), 0 3px 6px rgba(14, 6, 10, .34);
+  --h-lamp-dot: transparent; --h-lamp-dot-size: 0px; --h-lamp-inset: 0px; --h-lamp-dot-glow: none;
+  /* плашки: слива с шоколадом, почти непрозрачные; кайма — латунь верха крепости; блик сверху, тень снизу короткая.
+     --plate-bg — сплошной цвет (его смешивают через color-mix), блик-градиент кладут правила деталей ниже */
+  --plate-bg: rgba(46, 29, 38, .95);
+  --plate-text: #fff3de;
+  --plate-border: 1px solid #d4a552;
+  --plate-shadow: inset 0 1px 0 rgba(255, 230, 182, .16), 0 0 0 1px rgba(22, 11, 16, .55), 0 3px 6px rgba(14, 6, 10, .32);
+  --plate-blur: none; --hud-text-shadow: none;
+  --chat-bg: rgba(40, 25, 33, .86); --chat-old: .82; --chat-border: 0 solid transparent; --chat-shadow: inset 0 0 0 1px rgba(212, 165, 82, .3);
+  --nick-1: #ffb070; --nick-2: #a8e28c; --nick-3: #c9c8ff; --nick-4: #ffa2b4; --nick-5: #ffdc7a; --nick-6: #8fdccf;
+  /* режимы в HUD — светлые тёплые тона, читаются на сливе; по умолчанию — золото */
+  --mh-def: #ffd35a; --mh-fishing: #7fdccd; --mh-farm: #a2d872; --mh-fort: #ffa65e; --mh-race: #ff806c; --mh-dungeon: #e6bc66;
+  --mh-paintball: #ff9d45; --mh-hide: #cba6ff; --mh-skill: #a3c6f5; --mh-pirates: #ff7d6a; --mh-regatta: #84cfe8; --m-ink-h: #2a1720;
+  --h-disp-font: Rubik, system-ui, sans-serif; --h-disp-weight: 800; --h-disp-case: none; --h-disp-word: normal; --h-disp-track: 0;
+}
+
+/* клавиши и крупные надписи — только внутри HUD (окна «Ретро-парка» не трогаем): кремовая клавиша с тёмной сливой,
+   как kbd кафе; баннер — крем с шоколадной обводкой вместо бирюзовой */
+[data-hud='veranda'] :is(.k-hud, .voice-hud) {
+  --key-bg: #fff3de; --key-text: #3a2230; --key-border: 1px solid #1e1016; --key-shadow: 0 1.5px 0 #1e1016; --key-radius: 6px; --key-weight: 800;
+  --hero-text: #fff3de; --hero-step-ink: #2a1720;
+  --hero-outline: 2px 0 0 #2a1720, -2px 0 0 #2a1720, 0 2px 0 #2a1720, 0 -2px 0 #2a1720, 1.5px 1.5px 0 #2a1720, -1.5px 1.5px 0 #2a1720, 1.5px -1.5px 0 #2a1720, -1.5px -1.5px 0 #2a1720;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------------------------------------------------------- материал: блик сверху на всех плашках */
+[data-hud='veranda'] :is(.k-plate, .k-badge, .k-tile-face, .k-toast, .k-event, .k-prompt, .k-chat-closed, .k-chat-input,
+  .k-voice:not(.is-live), .k-vitals-hp, .k-vitals-ammo, .k-vitals > .k-vitals-dash, .k-arm, .k-hero-sub, .k-pop, .k-pill--plate) {
+  background-image: linear-gradient(180deg, rgba(255, 226, 170, .09), rgba(255, 226, 170, 0) 48%);
+}
+
+/* ---------------------------------------------------------------- плотность (жалоба «много места») */
+[data-hud='veranda'] .k-plate { padding: 7px 11px; }
+[data-hud='veranda'] .k-toast { min-height: 40px; padding: 5px 12px 5px 7px; column-gap: 9px; }
+[data-hud='veranda'] .k-event { padding: 6px 12px 6px 7px; }
+[data-hud='veranda'] .k-prompt { min-height: 38px; padding: 4px 14px 4px 6px; }
+[data-hud='veranda'] .k-chat-line { padding: 3px 9px 4px; }
+[data-hud='veranda'] .k-chat-list { gap: 3px; }
+[data-hud='veranda'] .k-badge { height: 40px; padding: 3px 13px 3px 3px; gap: 7px; }
+[data-hud='veranda'] .k-badge-avatar, [data-hud='veranda'] .k-badge > .k-ring { width: 33px; height: 33px; }
+[data-hud='veranda'] .k-badge > .k-ring::before { inset: 3px; }
+[data-hud='veranda'] .k-badge > .k-ring > b { font-size: 17px; }
+[data-hud='veranda'] .k-badge-tokens { font-size: 21px; }
+/* портрет рисует блик и тень через --surf-solid/--surf-text — вернём им светлый и тёмный, как в «Сейчас» */
+[data-hud='veranda'] .k-badge-avatar { --surf-solid: #fffcf6; --surf-text: #2a1720; }
+[data-hud='veranda'] .k-tile-face { width: 50px; height: 50px; }
+[data-hud='veranda'] .k-tile-face > img { width: 38px; height: 38px; }
+[data-hud='veranda'] .k-tile-face:has(> .k-meter) > img { width: 34px; height: 34px; }
+[data-hud='veranda'] .k-tile { min-width: 50px; gap: 4px; }
+[data-hud='veranda'] .k-tile-cap { padding: 2px 6px 3px; }
+[data-hud='veranda'] .k-vitals-hp, [data-hud='veranda'] .k-vitals-ammo { min-height: 44px; padding-top: 5px; padding-bottom: 6px; }
+[data-hud='veranda'] .k-arm { width: 48px; height: 48px; }
+[data-hud='veranda'] .k-arm > img { width: 34px; height: 34px; }
+
+/* служебная строка (FPS) у режимов без подложки — тёмный чип, как у площади: иначе крем теряется на небе */
+[data-hud='veranda'] :is(.rc-stats, .ft-stats) { width: max-content; padding: 2px 8px 3px; border-radius: var(--r-sm);
+  background: var(--chat-bg); box-shadow: var(--chat-shadow); color: var(--surf-dim); }
+[data-hud='veranda'] .rc-stats { margin: 4px 0 0; }
+[data-hud='veranda'] .ft-stats { margin-top: 2px; transform: translateX(calc(62px - 50%)); } /* по центру под мини-картой 124 px */
+
+/* ---------------------------------------------------------------- числа: золото, Rubik 800 */
+[data-hud='veranda'] :is(.k-vitals-num, .k-event-timer, .k-badge-tokens) { color: var(--gold-text); font-weight: 800; }
+[data-hud='veranda'] .k-ring > b { color: #fff3de; }
+[data-hud='veranda'] .k-tile-cap { box-shadow: 0 0 0 1px rgba(22, 11, 16, .5); }
+[data-hud='veranda'] .k-tile-cap > b { color: var(--gold-text); }
+/* крупные числа режимов — как в игре (client/ui/kit/modes.css), золотом и кремом */
+[data-hud='veranda'] .mo-place { color: var(--gold-text); font: 800 36px/.95 Rubik, system-ui, sans-serif; letter-spacing: -.02em; }
+[data-hud='veranda'] .mo-time { color: var(--gold-text); font: 800 18px/1 Rubik, system-ui, sans-serif; }
+[data-hud='veranda'] .mo-speed b { color: var(--gold-text); font: 800 26px/1 Rubik, system-ui, sans-serif; text-align: right; }
+[data-hud='veranda'] .mo-team-top b { color: var(--gold-text); font: 800 22px/1 Rubik, system-ui, sans-serif; }
+[data-hud='veranda'] .mo-clock b { color: var(--gold-text); font: 800 18px/1 Rubik, system-ui, sans-serif; }
+[data-hud='veranda'] .mo-clock b.is-hurry { color: var(--bad-text); }
+
+/* ---------------------------------------------------------------- подписи над головами (в игре — render/leveltag.ts) */
+[data-hud='veranda'] .lab-tag { gap: 6px; padding: 2px 11px 3px 3px; border: 1px solid #d4a552; border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 226, 170, .1), rgba(255, 226, 170, 0) 50%), rgba(46, 29, 38, .94);
+  box-shadow: 0 0 0 1px rgba(22, 11, 16, .5), 0 2px 5px rgba(14, 6, 10, .3); color: #fff3de; font-size: 16px; text-shadow: none; }
+[data-hud='veranda'] .lab-tag-lv { width: 22px; height: 22px; border: 0; background: radial-gradient(circle at 40% 32%, #ffe79a, #e7ae3c 75%);
+  color: #3a2208; font-size: 13px; font-weight: 800; box-shadow: inset 0 0 0 1px rgba(122, 76, 10, .45); }
+[data-hud='veranda'] .lab-tag--npc { padding: 3px 12px 4px; border-radius: 10px; }
+[data-hud='veranda'] .lab-tag--npc span { color: #ecd8b6; font-size: 13px; font-weight: 600; opacity: 1; }
+/* реплика — кремовая карточка с тёмным текстом и золотой каймой: отличается от ника и читается и на небе, и на плитке */
+[data-hud='veranda'] .lab-bubble { padding: 6px 12px; border: 1px solid #c99a4b; border-radius: 12px; background: #fff3de; color: #2e1d26;
+  font-size: 16px; font-weight: 700; box-shadow: 0 0 0 1px rgba(22, 11, 16, .35), 0 3px 6px rgba(14, 6, 10, .3); }
+[data-hud='veranda'] .lab-bubble::before { content: ''; position: absolute; left: 50%; bottom: -8px; margin-left: -8px; border: 8px solid transparent; border-bottom: 0; border-top-color: #c99a4b; }
+[data-hud='veranda'] .lab-bubble::after { bottom: -6px; border-top-color: #fff3de; }
+
+/* ---------------------------------------------------------------- крепость: верх и мини-карта той же палитры
+   (было тёмное дерево с латунью и заклёпками, Alegreya) — слива с шоколадом, кайма 1 px, Rubik, без заклёпок и второй рамки */
+[data-hud='veranda'] :is(.ft-command, .ft-fort) {
+  --dg-font: Rubik, system-ui, sans-serif; --dg-font-head: Rubik, system-ui, sans-serif;
+  --dg-text: #fff3de; --dg-text-dim: #ecd8b6;
+  --dg-iron: linear-gradient(180deg, rgba(255, 226, 170, .09), rgba(255, 226, 170, 0) 48%), rgba(46, 29, 38, .95);
+  --dg-brass: #d4a552; --dg-brass-hi: #ffd35a; --dg-brass-dk: #d4a552; --dg-rivet: none;
+  --dg-line: rgba(255, 220, 160, .16); --dg-pip: rgba(255, 220, 160, .22); --dg-teal: #7fdccd; --dg-red: #ff6a5c; --dg-bar-bg: rgba(14, 7, 11, .6);
+  border-width: 1px; box-shadow: inset 0 1px 0 rgba(255, 230, 182, .16), 0 0 0 1px rgba(22, 11, 16, .55), 0 3px 8px rgba(14, 6, 10, .34);
+}
+[data-hud='veranda'] :is(.ft-command, .ft-fort)::before { display: none; }
+[data-hud='veranda'] .ft-command { font: 700 16px/1.15 Rubik, system-ui, sans-serif; font-feature-settings: 'lnum' 1, 'tnum' 1; }
+[data-hud='veranda'] .ft-command .k-tile-cap { box-shadow: none; }
+[data-hud='veranda'] .ft-phase-title { font-weight: 800; font-size: 19px; }
+[data-hud='veranda'] .ft-shield-label { font: 800 15px/1 Rubik, system-ui, sans-serif; } /* Rubik шире Alegreya — «Щит готов» влезает в 124 px */
+[data-hud='veranda'] .ft-stats { font-family: Rubik, system-ui, sans-serif; }

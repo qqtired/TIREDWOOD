@@ -1,0 +1,204 @@
+/* Вариант HUD «Причал» (prichal) — бриф docs/ui3/brief.md.
+   Родня верха крепости, пирса и лодок: лакированное тёмное дерево (img/tex/wood.jpg под затемнением),
+   латунная кайма 1,5–2 px (градиент в слое border-box под прозрачной рамкой), латунные таблички
+   (клавиши, кружки уровня), канат — только разделитель внутри крупных карточек, заклёпки — только у крупных карточек.
+   Текст — крем, числа — золото. Плашки тоньше и плотнее «Светлого» (≈10 % меньше по высоте).
+   Без backdrop-filter, без свечения. Все селекторы — под [data-hud='prichal'].
+   Плотность задана через :where(…): вес как у базового правила кита, поэтому правила режимов (табло пейнтбола,
+   верх крепости) остаются сильнее. Внимание при переносе: --plate-bg здесь — слои с картинкой, поэтому
+   color-mix(var(--plate-bg)) у ореола вываживания (.fr.fi-reel) нужно перевести на сплошной цвет (#4a2914). */
+
+/* ================================================================ токены: копия блока «Светлый» со своими значениями */
+[data-hud='prichal'][data-skin='retro2'], [data-hud='prichal'] [data-skin='retro2'] {
+  /* материалы варианта */
+  --pr-brass: linear-gradient(180deg, #fbe3a0 0%, #d6a24c 42%, #8f5c1c 72%, #d7a650 100%);
+  --pr-wood:
+    linear-gradient(180deg, rgba(255, 228, 176, .15), rgba(255, 228, 176, 0) 40%, rgba(0, 0, 0, 0) 60%, rgba(22, 9, 2, .24)) padding-box,
+    linear-gradient(rgba(60, 29, 10, .66), rgba(60, 29, 10, .66)) padding-box,
+    url(../img/tex/wood.jpg) 0 0 / 480px auto padding-box,
+    var(--pr-brass) border-box #4a2914;
+  --pr-rivet: radial-gradient(circle at 50% 50%, #fff2c4 0 .9px, #dcad58 1.5px, #7c4d16 2.3px, rgba(36, 16, 3, .55) 2.8px, transparent 3.3px);
+  --pr-rivets:
+    var(--pr-rivet) left 2px top 2px / 8px 8px no-repeat padding-box,
+    var(--pr-rivet) right 2px top 2px / 8px 8px no-repeat padding-box,
+    var(--pr-rivet) left 2px bottom 2px / 8px 8px no-repeat padding-box,
+    var(--pr-rivet) right 2px bottom 2px / 8px 8px no-repeat padding-box;
+  /* канат: витые волокна + объём + тёмная подложка-контур (горизонтальный и вертикальный) */
+  --pr-rope-h:
+    linear-gradient(180deg, rgba(255, 246, 220, .35), rgba(255, 246, 220, 0) 45%, rgba(40, 18, 2, .4)) 0 1px / 100% 6px no-repeat,
+    repeating-linear-gradient(-58deg, #f3dcab 0 2px, #c79c5c 2px 4px, #7e5a2c 4px 5.6px) 0 1px / 100% 6px no-repeat,
+    linear-gradient(#2c1606, #2c1606) 0 0 / 100% 8px no-repeat;
+  --pr-rope-v:
+    linear-gradient(90deg, rgba(255, 246, 220, .35), rgba(255, 246, 220, 0) 45%, rgba(40, 18, 2, .4)) right 1px top 0 / 6px 100% no-repeat,
+    repeating-linear-gradient(32deg, #f3dcab 0 2px, #c79c5c 2px 4px, #7e5a2c 4px 5.6px) right 1px top 0 / 6px 100% no-repeat,
+    linear-gradient(#2c1606, #2c1606) right 0 top 0 / 8px 100% no-repeat;
+
+  --h-surf-solid: #4a2914; --h-surf-text: #fff1d6; --h-surf-dim: #ecd3a8; --h-surf-faint: #d2b384;
+  --h-surf-2: rgba(255, 232, 190, .09); --h-surf-2-border: 1px solid rgba(255, 220, 160, .18); --h-surf-3: rgba(22, 9, 2, .4);
+  --h-line: rgba(255, 220, 160, .18); --h-line-strong: rgba(255, 220, 160, .36);
+  --h-panel-bg: var(--pr-wood); --h-panel-border: 2px solid transparent;
+  --h-panel-shadow: 0 0 0 1px rgba(34, 14, 2, .85), 0 10px 24px rgba(34, 16, 4, .4);
+  --h-gold-text: #ffd56a; --h-good-text: #aeea8e; --h-bad-text: #ff9f8c; --h-info-text: #a2e8de; --h-special-text: #d2c0ff;
+  --h-ghost-bg: rgba(255, 232, 190, .1); --h-ghost-text: #fff1d6; --h-ghost-border: 1.5px solid rgba(232, 186, 102, .62); --h-ghost-bg-hover: rgba(255, 232, 190, .18); --h-ghost-drop: none;
+  --h-track: rgba(18, 7, 0, .56); --h-track-border: 1px solid rgba(255, 214, 150, .2); --h-trail: rgba(255, 236, 200, .42);
+  --h-ring-face: radial-gradient(circle at 38% 30%, #fff1bf, #e2b45a 52%, #a06b24 100%);
+  --h-accent-k: 100%; --h-accent-to: #000000; --h-sil: brightness(0) invert(.92) opacity(.3);
+  --h-info: #74d6c9; --h-info-soft: rgba(116, 214, 201, .16);
+  /* важная плашка: вторая латунная рамка снаружи, без лампочек и свечения */
+  --h-lamp-band: 0 0 0 0 transparent;
+  --h-lamp-ring: 0 0 0 1px #2c1606, 0 0 0 3px #f0c45c, 0 0 0 4px #2c1606, 0 6px 14px rgba(34, 16, 4, .35);
+  --h-lamp-dot: transparent; --h-lamp-dot-size: 0px; --h-lamp-inset: 0px; --h-lamp-dot-glow: none;
+  /* плашки HUD: лакированное дерево, кайма — латунь (рисуется слоем border-box под прозрачной рамкой) */
+  --plate-bg: var(--pr-wood);
+  --plate-text: #fff1d6;
+  --plate-border: 1.5px solid transparent;
+  --plate-shadow: 0 0 0 1px rgba(34, 14, 2, .8), 0 3px 8px rgba(34, 16, 4, .32);
+  --plate-blur: none; --hud-text-shadow: 0 1px 0 rgba(30, 12, 2, .5);
+  --chat-bg: rgba(58, 30, 12, .84); --chat-old: .74; --chat-border: 0 solid transparent;
+  --chat-shadow: 0 0 0 1px rgba(214, 164, 78, .32), 0 1px 3px rgba(22, 9, 2, .3);
+  /* ники — светлые, читаются на тёмном дереве */
+  --nick-1: #ffb36b; --nick-2: #aeea8e; --nick-3: #c6ccff; --nick-4: #ffa8b8; --nick-5: #ffe28a; --nick-6: #9fe3da;
+  /* режимы в HUD — светлые тона (на тёмном дереве), текст на них тёмный */
+  --mh-def: #f0c45c; --mh-fishing: #7fe0d2; --mh-farm: #a8dc7c; --mh-fort: #ffa25e; --mh-race: #ff8a70; --mh-dungeon: #e8c070;
+  --mh-paintball: #ffab4a; --mh-hide: #d2aaff; --mh-skill: #9cc8ff; --mh-pirates: #ff8c7c; --mh-regatta: #84d2f2; --m-ink-h: #2c1606;
+  /* «вывесочные» надписи в HUD — Rubik 800 */
+  --h-disp-font: Rubik, system-ui, sans-serif; --h-disp-weight: 800; --h-disp-case: none; --h-disp-word: normal; --h-disp-track: 0;
+}
+
+/* клавиши, баннеры и счёт «3-2-1» — только в HUD (окна остаются «Ретро-парком»): латунные таблички, тёмный текст */
+[data-hud='prichal'] :is(.k-hud, .voice-hud, .k-hudctx) {
+  --key-bg: linear-gradient(180deg, #fde9a8, #dcab4e); --key-text: #3a2205; --key-border: 1px solid #6b4413;
+  --key-shadow: 0 1.5px 0 #4a2c0b; --key-radius: 5px; --key-weight: 800;
+  --hero-text: #fff1d6; --hero-step: 4px; --hero-step-ink: #2c1606;
+  --hero-outline: 2px 0 0 #2c1606, -2px 0 0 #2c1606, 0 2px 0 #2c1606, 0 -2px 0 #2c1606, 1.5px 1.5px 0 #2c1606, -1.5px 1.5px 0 #2c1606, 1.5px -1.5px 0 #2c1606, -1.5px -1.5px 0 #2c1606;
+}
+
+/* ================================================================ крупные карточки: кайма 2 px + 4 заклёпки по углам */
+[data-hud='prichal'] .k-hud :is(.fi-mode, .farm-card, .farm-quest, .mo-map) { border-width: 2px; background: var(--pr-rivets), var(--pr-wood); }
+[data-hud='prichal'] .k-hud .k-panel { background: var(--pr-rivets), var(--pr-wood); }
+
+/* ================================================================ детали кита: плотнее и тоньше «Светлого» */
+/* бейдж: портрет в латунном медальоне, уровень — латунная монета, жетоны — золотом */
+[data-hud='prichal'] :where(.k-badge) { height: 40px; gap: 7px; padding: 3px 12px 3px 3px; }
+[data-hud='prichal'] :where(.k-badge-avatar) { width: 32px; height: 32px; box-shadow: 0 0 0 1.5px #2c1606, inset 0 0 0 1px rgba(255, 240, 200, .5); }
+[data-hud='prichal'] :where(.k-badge) > .k-ring { width: 32px; height: 32px; }
+[data-hud='prichal'] :where(.k-badge-tokens) { text-shadow: 0 1px 0 #2c1606; }
+
+/* кольца уровня в HUD: латунная монета, тёмная гравированная цифра */
+[data-hud='prichal'] .k-hud .k-ring { box-shadow: 0 0 0 1px #2c1606; }
+[data-hud='prichal'] .k-hud .k-ring:not(.k-ring--mode) { background: conic-gradient(#fff0c2 calc(var(--p) * 360deg), rgba(18, 7, 0, .7) 0); }
+[data-hud='prichal'] .k-hud .k-ring::before { box-shadow: inset 0 0 0 1px rgba(60, 30, 6, .55), inset 0 1px 0 rgba(255, 248, 220, .7); }
+[data-hud='prichal'] .k-hud .k-ring > b { color: #2e1a04; text-shadow: 0 1px 0 rgba(255, 244, 210, .55); }
+
+/* плитки: латунная рамка без заклёпок, подпись — тёмная табличка (верх крепости своими правилами сильнее) */
+[data-hud='prichal'] :where(.k-tiles) { gap: 8px; }
+[data-hud='prichal'] :where(.k-tile) { min-width: 50px; gap: 4px; }
+[data-hud='prichal'] :where(.k-tile-face) { width: 50px; height: 50px; }
+/* как на референсе: вещь (плитка, оружие) лежит на кремовой вставке в деревянной рамке — иконка читается лучше, плитка легче */
+[data-hud='prichal'] :where(.k-tile-face, .k-arm) {
+  background: linear-gradient(180deg, #f8ebcd, #e7d0a2) center / calc(100% - 8px) calc(100% - 8px) no-repeat padding-box,
+    linear-gradient(#2c1606, #2c1606) center / calc(100% - 6px) calc(100% - 6px) no-repeat padding-box,
+    var(--pr-wood); }
+[data-hud='prichal'] :where(.k-tile-face) > img { width: 36px; height: 36px; }
+[data-hud='prichal'] :where(.k-tile-face):has(> .k-meter) > img { width: 32px; height: 32px; margin-top: -6px; }
+[data-hud='prichal'] :where(.k-tile-face) > .k-meter { left: 6px; right: 6px; bottom: 5px; }
+[data-hud='prichal'] :where(.k-tile-cap) { padding: 1px 6px 2px; background: linear-gradient(180deg, #5c3418, #40210c); box-shadow: 0 0 0 1px rgba(34, 14, 2, .7); }
+
+/* тосты и плашка события */
+[data-hud='prichal'] :where(.k-toasts) { gap: 5px; }
+[data-hud='prichal'] :where(.k-toast) { min-height: 40px; padding: 5px 12px 5px 7px; column-gap: 9px; grid-template-columns: 28px minmax(0, auto); }
+[data-hud='prichal'] :where(.k-toast-ic) { width: 28px; height: 28px; }
+[data-hud='prichal'] :where(.k-toast-ic) img { width: 26px; height: 26px; }
+[data-hud='prichal'] :where(.k-toast)::after { top: 7px; bottom: 7px; }
+[data-hud='prichal'] :where(.k-toast--reward) { box-shadow: var(--plate-shadow), inset 0 0 0 1.5px rgba(255, 213, 106, .85); }
+[data-hud='prichal'] :where(.k-event) { padding: 6px 12px 6px 7px; column-gap: 9px; }
+[data-hud='prichal'] :where(.k-event-timer) { text-shadow: 0 1px 0 #2c1606; }
+
+/* подсказка «E», чат, голос, счётчик кадров */
+[data-hud='prichal'] :where(.k-prompt) { min-height: 38px; padding: 4px 14px 4px 6px; gap: 9px; }
+[data-hud='prichal'] :where(.pz-hint.k-prompt--off) { padding-left: 14px; }
+[data-hud='prichal'] :where(.k-chat-line) { padding: 3px 9px 4px; }
+[data-hud='prichal'] :where(.k-chat-line.is-own) { padding-left: 11px; }
+[data-hud='prichal'] :where(.k-chat-closed) { min-height: 34px; padding: 3px 12px 3px 4px; }
+[data-hud='prichal'] :where(.k-chat-input) { min-height: 36px; }
+[data-hud='prichal'] :where(.k-voice) { width: 34px; height: 34px; }
+[data-hud='prichal'] :where(.k-voice) > svg { width: 18px; height: 18px; }
+[data-hud='prichal'] :where(.pz-stats) { padding: 2px 7px 3px; }
+/* строки статистики без своей подложки (картинг, крепость): та же тёмная планка, что у счётчика на площади */
+[data-hud='prichal'] .k-hud :is(.rc-stats, .ft-stats) { padding: 1px 7px 2px; border-radius: var(--r-sm); background: var(--chat-bg); box-shadow: var(--chat-shadow); color: var(--surf-dim); }
+[data-hud='prichal'] .k-hud .rc-stats { width: max-content; }
+
+/* полосы: тёмный жёлоб с тенью внутрь */
+[data-hud='prichal'] .k-hud .k-meter { box-shadow: inset 0 1px 1px rgba(0, 0, 0, .35); }
+
+/* панель бойца */
+[data-hud='prichal'] :where(.k-vitals) { gap: 7px; }
+[data-hud='prichal'] :where(.k-vitals-hp, .k-vitals-ammo) { min-height: 44px; padding: 5px 11px 6px 8px; gap: 4px; }
+[data-hud='prichal'] :where(.k-vitals-num) { text-shadow: 0 1px 0 #2c1606; }
+[data-hud='prichal'] :where(.k-vitals-arms) { gap: 7px; }
+[data-hud='prichal'] :where(.k-arm) { width: 48px; height: 48px; }
+[data-hud='prichal'] :where(.k-arm) > img { width: 34px; height: 34px; }
+[data-hud='prichal'] :where(.k-arm) > span { box-shadow: 0 0 0 1px rgba(34, 14, 2, .7); }
+
+/* ================================================================ рыбалка: канат между уровнем и «Шансами» */
+[data-hud='prichal'] .fi-mode { gap: 7px; padding: 8px 11px 9px 8px; }
+[data-hud='prichal'] .fi-odds { gap: 5px; border-top: 0; padding-top: 12px; background: var(--pr-rope-h); }
+[data-hud='prichal'] .fi-odds-bar { box-shadow: inset 0 1px 1px rgba(0, 0, 0, .35); }
+[data-hud='prichal'] .fi-odds-legend { gap: 2px 14px; }
+[data-hud='prichal'] .fi-dot { box-shadow: 0 0 0 1.5px rgba(255, 240, 210, .55), 0 1px 2px rgba(0, 0, 0, .4); }
+[data-hud='prichal'] .fi-catch { gap: 9px; padding: 12px 14px 13px; box-shadow: var(--panel-shadow), inset 0 0 0 2px var(--tc); }
+[data-hud='prichal'] .fi-catch-art { background: radial-gradient(closest-side, color-mix(in srgb, var(--tc) 40%, transparent), transparent), rgba(18, 7, 0, .42); box-shadow: inset 0 0 0 1px rgba(255, 220, 160, .14); }
+[data-hud='prichal'] .fi-catch-name span { text-shadow: 0 1px 0 #2c1606; }
+
+/* ================================================================ ферма: канат между уровнем и «Ур. 2 откроет» */
+[data-hud='prichal'] .farm-card { padding: 8px 11px 9px 8px; }
+[data-hud='prichal'] .farm-card-next { border-top: 0; margin-top: 4px; padding-top: 12px; background: var(--pr-rope-h); }
+[data-hud='prichal'] .farm-quest { padding: 8px 11px 10px; }
+[data-hud='prichal'] .farm-quest-t { margin: 4px 0 7px; }
+
+/* ================================================================ картинг */
+[data-hud='prichal'] .mo-stand { padding: 5px 13px 6px 11px; }
+[data-hud='prichal'] .mo-place { text-shadow: 0 1px 0 #2c1606; }
+[data-hud='prichal'] .mo-stand-side { border-left-color: rgba(255, 214, 150, .3); }
+[data-hud='prichal'] .mo-map { padding: 6px; }
+[data-hud='prichal'] .mo-map > :is(canvas, svg) { box-shadow: 0 0 0 1px rgba(34, 14, 2, .7); }
+[data-hud='prichal'] .mo-keys { padding: 4px 11px; }
+[data-hud='prichal'] .mo-item { padding: 4px 12px 4px 4px; }
+[data-hud='prichal'] .mo-item-ic { width: 42px; height: 42px; box-shadow: inset 0 0 0 1.5px rgba(255, 214, 150, .3); }
+[data-hud='prichal'] .mo-speed { padding: 4px 11px 5px; }
+[data-hud='prichal'] .mo-speed b { color: var(--gold-text); }
+
+/* ================================================================ пейнтбол: табло */
+[data-hud='prichal'] .mo-clock { background: rgba(18, 7, 0, .3); border-inline-color: rgba(255, 214, 150, .26); }
+[data-hud='prichal'] .mo-clock b { color: var(--gold-text); }
+
+/* ================================================================ крепость: верх и рамка мини-карты — то же дерево и латунь, шрифт Rubik
+   раскладка прежняя; заклёпки свои (::after крепости), между укреплениями и волной — канат */
+[data-hud='prichal'] :is(.ft-command, .ft-fort) {
+  --dg-font: Rubik, system-ui, sans-serif; --dg-font-head: Rubik, system-ui, sans-serif;
+  --dg-text: #fff1d6; --dg-text-dim: #e2c699;
+  --dg-iron: linear-gradient(180deg, #4e2c15, #301807);
+  --dg-brass: #d9a84a; --dg-brass-hi: #ffd56a; --dg-brass-dk: #9c6a26;
+  --dg-line: rgba(255, 214, 150, .2); --dg-pip: rgba(255, 214, 150, .26); --dg-bar-bg: rgba(18, 7, 0, .7);
+  border-color: transparent; background: var(--pr-wood);
+  box-shadow: 0 0 0 1px rgba(34, 14, 2, .85), inset 0 1px 0 rgba(255, 228, 176, .18), 0 6px 16px rgba(34, 16, 4, .4);
+}
+[data-hud='prichal'] :is(.ft-command, .ft-fort)::before { border-color: rgba(255, 214, 150, .14); }
+[data-hud='prichal'] .ft-command-structures { border-right: 0; background: var(--pr-rope-v); }
+[data-hud='prichal'] .ft-phase-title { font-weight: 800; font-size: 19px; text-shadow: 0 1px 0 #2c1606; }
+[data-hud='prichal'] .ft-command .ft-gold .k-tile-cap { text-shadow: 0 1px 0 #2c1606; }
+[data-hud='prichal'] .ft-map { border-color: #2c1606; box-shadow: 0 0 0 1px rgba(255, 214, 150, .35); }
+[data-hud='prichal'] .ft-map-north { color: #fff1d6; }
+[data-hud='prichal'] .ft-stats { font-family: Rubik, system-ui, sans-serif; }
+
+/* ================================================================ подписи над головами (в игре — 3D, здесь макет)
+   ник — кремом на тёмной планке с латунной рамкой, уровень — латунный кружок, реплика — бумажная записка */
+[data-hud='prichal'] .lab-tag { gap: 5px; padding: 2px 9px 2px 3px; border: 1.5px solid transparent; border-radius: 6px; background: var(--pr-wood);
+  color: #fff1d6; font-size: 16px; text-shadow: none; box-shadow: 0 0 0 1px rgba(34, 14, 2, .8), 0 2px 5px rgba(0, 0, 0, .28); }
+[data-hud='prichal'] .lab-tag-lv { width: 22px; height: 22px; border: 1.5px solid #5e3a10; background: radial-gradient(circle at 38% 30%, #fff1bf, #e2b45a 52%, #a06b24 100%);
+  color: #2e1a04; font-size: 13px; font-weight: 800; box-shadow: none; }
+[data-hud='prichal'] .lab-tag--npc { gap: 1px; padding: 3px 10px 4px; }
+[data-hud='prichal'] .lab-tag--npc span { color: #ecd3a8; font-size: 13px; font-weight: 600; opacity: 1; }
+[data-hud='prichal'] .lab-bubble { padding: 6px 11px 7px; border-radius: 3px; background: #fbf1da url(../img/tex/paper.jpg) 0 0 / 256px; color: #3b2610;
+  font-size: 16px; font-weight: 600; rotate: -1deg; box-shadow: 0 0 0 1px rgba(110, 72, 28, .35), 0 2px 5px rgba(0, 0, 0, .25); }
+[data-hud='prichal'] .lab-bubble::after { border-top-color: #f6e9cc; }
