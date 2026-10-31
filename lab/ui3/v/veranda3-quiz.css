@@ -131,6 +131,8 @@
 [data-hud='veranda3'] .qz-wait { color: var(--v3-dim); font: 600 13px/1.2 Rubik, system-ui, sans-serif; }
 [data-hud='veranda3'] .qz-line { align-items: center; gap: 0; }
 [data-hud='veranda3'] .qz-line .qz-mark { width: 20px; height: 20px; margin: 0 6px 0 -2px; }
+/* системная строка дока — флекс: висячий отступ чата (.k-chat-line.is-sys) сдвинул бы текст на ромбик; ромбик — в ряд, текст с той же точки */
+[data-hud='veranda3'] .qz-line.is-sys { padding-left: 8px; text-indent: 0; }
 /* состояния строки — полоса слева (игровая информация: тепло — мятный, горячо — красный, угадал — золото); рамок и свечения нет */
 [data-hud='veranda3'] .qz-line.is-warm, [data-hud='veranda3'] .qz-line.is-got { padding-left: 12px; box-shadow: inset 3px 0 0 var(--v3q-warm); }
 [data-hud='veranda3'] .qz-line.is-own:not(.is-win) { box-shadow: inset 3px 0 0 var(--v3-gold); }

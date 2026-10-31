@@ -1,0 +1,132 @@
+/* ================================================================ вариант HUD «Веранда v3» (data-hud="veranda3") — Вода
+   поклёвка и вываживание (рамка и кнопки — саму шкалу не трогаем), редкие уловы, рыба в руках, рыбалка на баркасе, пруду и острове, своя лодка и радио, баннеры регаты, HUD рулетки.
+   Решение владельца №15 (31.10): упущенный HUD режимов — «Всё в v3» (docs/ui3/brief.md, сверка — docs/ui3/audit-2026-10-31.md).
+   Общие токены (--v3-*) и детали — в v/veranda3.css и v/veranda3-msg.css (грузятся раньше); свои переменные — только --v3w-*.
+   Каждое правило начинается с [data-hud='veranda3']. */
+
+[data-hud='veranda3'] {
+  /* крупная табличка «выбрано»: форма --v3-card (скос 10, ромбики), кайма светлее и толще — клад Посейдона, финиш регаты */
+  --v3w-card-on: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='36'%3E%3Cpath d='M10.8 1.25h14.4l9.55 9.55v14.4l-9.55 9.55H10.8l-9.55-9.55V10.8z' fill='%233d2632' stroke='%23ffd35a' stroke-width='1.5'/%3E%3Cpath d='M7.6 4.4l.75 1.9 1.9.75-1.9.75-.75 1.9-.75-1.9-1.9-.75 1.9-.75zM28.4 4.4l.75 1.9 1.9.75-1.9.75-.75 1.9-.75-1.9-1.9-.75 1.9-.75zM7.6 25.2l.75 1.9 1.9.75-1.9.75-.75 1.9-.75-1.9-1.9-.75 1.9-.75zM28.4 25.2l.75 1.9 1.9.75-1.9.75-.75 1.9-.75-1.9-1.9-.75 1.9-.75z' fill='%23ffd35a'/%3E%3C/svg%3E");
+  /* скошенный ярлык (как у категории улова .fi-tier) */
+  --v3w-cut: polygon(5px 0, calc(100% - 5px) 0, 100% 5px, 100% calc(100% - 5px), calc(100% - 5px) 100%, 5px 100%, 0 calc(100% - 5px), 0 5px);
+}
+
+/* ================================================================ РЫБАЛКА В МОМЕНТ ДЕЙСТВИЯ */
+/* ---------------------------------------------------------------- «Подсекай!»: крупное объявление (золото с тёмной обводкой — из системы),
+   под ним — срочная табличка M с яркой каймой и крупной кремовой клавишей. Остальной HUD притихает (игра: html[data-fish-focus]). */
+[data-hud='veranda3'] .fi-bite { gap: 8px; }
+[data-hud='veranda3'] .fi-bite .k-hero-sub { min-height: var(--v3-h-l); gap: 10px; padding: 3px 20px 3px 4px; border: 1px solid transparent;
+  border-image: var(--v3-plate-on) 8 fill / 8px / 0 stretch; border-radius: 0; background: none; box-shadow: none; filter: var(--v3-drop);
+  color: var(--v3-cream-text); font: 800 17px/1.1 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .fi-bite .k-hero-sub .k-key--lg { min-width: 34px; height: 34px; padding: 0 7px; }
+
+/* ---------------------------------------------------------------- вываживание (решение владельца №17, 31.10): «Оставить дымку» —
+   светлая размытая подложка как сейчас (единственное разрешённое размытие, AGENTS.md §7), шкала и счёт — как в игре.
+   В v3 меняются только ярлык рыбы (скошенный, цвета категории) и кнопка «Прекратить» (кнопка системы v3). */
+/* сама рамка — как сейчас: общая табличка v3 её не красит; дымка и строки под шкалой — в токенах светлого HUD («Светлый»),
+   кнопка «Прекратить» — в токенах v3 (кнопка системы) */
+[data-hud='veranda3'] .fr.fi-reel.k-plate { border-image: none; filter: none; }
+[data-hud='veranda3'] .fr.fi-reel.k-plate::before { --plate-bg: rgba(255, 252, 246, .92); }
+/* --plate-bg здесь — светлый ореол текста под шкалой (text-shadow в игре берёт его): с тёмным v3 строки «1 ошибка · Хорошо» смазывались */
+[data-hud='veranda3'] .fr.fi-reel > :not(.fi-reel-quit) { --plate-bg: rgba(255, 252, 246, .92); --plate-text: #16313a; --surf-dim: #4b6670;
+  --surf-faint: #66808a; --good-text: #1b7a48; --gold-text: #955a00; --info-text: #0b7471; --bad-text: #c02f3b; --track: #e2ebea; }
+[data-hud='veranda3'] .fr.fi-reel .fr-label { border-radius: 0; box-shadow: 0 0 0 1px rgba(22, 11, 16, .5); clip-path: var(--v3w-cut);
+  font: 800 14px/1 Rubik, system-ui, sans-serif; letter-spacing: .04em; text-shadow: 0 1px 0 rgba(20, 10, 15, .35); }
+[data-hud='veranda3'] .fr.fi-reel:is(.legend, .myth) .fr-label { animation: none; }
+
+/* ================================================================ РЕДКИЕ УЛОВЫ — та же карточка улова (система), уточнения */
+/* сундук: картинка целиком (в системе окно картинки 88 — сундук резался сверху) */
+[data-hud='veranda3'] .fi-catch-art.is-chest { height: 104px; }
+[data-hud='veranda3'] .fi-catch-art.is-chest :is(> img, .fc2-chest) { max-height: 96px; }
+/* сумма — главное число: крупно и золотом */
+[data-hud='veranda3'] .fi-catch-coins { gap: 8px; font: 800 40px/1 Rubik, system-ui, sans-serif; letter-spacing: -.01em; }
+[data-hud='veranda3'] .fi-catch-coins :is(.k-coin, .coin) { width: 32px; height: 32px; }
+[data-hud='veranda3'] .fi-catch-sub { margin: -2px 0 0; color: var(--v3-dim); font: 600 14px/1.2 Rubik, system-ui, sans-serif; }
+/* клад Посейдона — крупная табличка «выбрано»: кайма и ромбики ярче (вместо лампы по краю) */
+[data-hud='veranda3'] .k-panel.fi-catch.is-poseidon { border-image-source: var(--v3w-card-on); }
+/* «Сорвалась!» — крупно, тёплым красным системы; пояснение — тише */
+[data-hud='veranda3'] .fi-catch-lost { font: 800 28px/1 Rubik, system-ui, sans-serif; }
+/* выбор заблокирован (первые 0,75 с): кнопки притушены, как в игре, но без серого — латунь просто тише */
+[data-hud='veranda3'] .fi-catch.is-locked .fi-catch-btns .k-btn { opacity: .5; filter: none; }
+
+/* ================================================================ РЫБА В РУКАХ — табличка M над подсказкой, как подсказка внизу:
+   значок и «Ставрида в руках» кремом, за золотой чертой — «[Esc] Убрать» (клавиша — тот же кремовый колпачок) */
+[data-hud='veranda3'] .fh-chip { min-height: var(--v3-h-m); gap: 10px; padding: 2px 8px 2px 14px; border: 1px solid transparent;
+  border-image: var(--v3-plate) 8 fill / 8px / 0 stretch; border-radius: 0; background: none; box-shadow: none; filter: var(--v3-drop);
+  color: var(--v3-cream-text); font: 700 15px/1.2 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .fh-put { display: inline-flex; flex-direction: row-reverse; align-items: center; gap: 6px; padding: 4px 8px 4px 12px; border-radius: 0;
+  background: var(--v3-rule-v) left / 1px 20px no-repeat; color: var(--v3-dim); font: 700 14px/1 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .fh-put:hover { color: var(--v3-cream-text); }
+[data-hud='veranda3'] .fh-put kbd { display: inline-grid; place-items: center; min-width: 20px; height: 20px; margin: 0; padding: 0 5px; border: 1px solid #1e1016; border-radius: 5px;
+  background: #fff3de; box-shadow: 0 1.5px 0 #1e1016; color: #3a2230; font: 800 13px/1 Rubik, system-ui, sans-serif; }
+
+/* ================================================================ БАРКАС, ПРУД, ОСТРОВ — строки карточки рыбака */
+[data-hud='veranda3'] .fi-zone { gap: 5px; color: var(--v3-dim); font: 600 13px/1.25 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .fi-zone b { color: var(--gold-text); }
+[data-hud='veranda3'] .fi-zone .fi-ic { width: 16px; height: 16px; }
+/* коллекция видов острова — раздел карточки через тонкую золотую линию; счёт — главное число золотом */
+[data-hud='veranda3'] .fi-isle-row { grid-template-columns: 22px minmax(0, 1fr) auto; gap: 4px 8px; padding-top: 7px; border-top: 0;
+  background: var(--v3-rule) top / 100% 1px no-repeat; font: 700 14px/1.2 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .fi-isle-row img { width: 22px; height: 22px; }
+[data-hud='veranda3'] .fi-isle-row > span:nth-of-type(2) { color: var(--gold-text); font-weight: 800; }
+[data-hud='veranda3'] .fi-isle-row .k-meter { height: 5px; border-radius: 1px; }
+
+/* ================================================================ СВОЯ ЛОДКА И РАДИО */
+/* плашка лодки сверху — событие «Сообщений»; фото лодки — медальон с золотой каймой, скорость — главное число */
+[data-hud='veranda3'] .k-event-ic .fi-boat-ic { width: 26px; height: 26px; box-shadow: 0 0 0 1px var(--v3-gold); }
+[data-hud='veranda3'] .k-event-timer.fi-speed { gap: 3px; }
+[data-hud='veranda3'] .k-event-timer.fi-speed small { color: var(--v3-dim); font: 700 13px/1 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .k-event-timer.fi-speed img { width: 22px; height: 22px; }
+/* «куда плыть» — стрелка в медальоне плитки: кремовая, без своего кружка (кольцо даёт плитка) */
+[data-hud='veranda3'] .k-tile-face > .fi-nav { width: 34px; height: 34px; background: none; box-shadow: none; }
+[data-hud='veranda3'] .k-tile-face > .fi-nav svg { width: 24px; height: 24px; color: var(--v3-cream-text); }
+/* ряд Якорь Z · Продать G · Радио R — таблички M, как подсказка внизу: значок, слово кремом, угловая клавиша.
+   Включённое (якорь опущен, радио играет) — та же табличка с яркой каймой; недоступное — тише, причина мелко рядом */
+[data-hud='veranda3'] .fi-boatbar { gap: 12px; }
+[data-hud='veranda3'] .fi-boatbar .k-btn { min-height: var(--v3-h-m); margin: 0; padding: 2px 14px 2px 8px; gap: 6px; border: 1px solid transparent;
+  border-image: var(--v3-plate) 8 fill / 8px / 0 stretch; border-radius: 0; background: none; box-shadow: none; filter: var(--v3-drop);
+  color: var(--v3-cream-text); font: 700 15px/1.1 Rubik, system-ui, sans-serif; letter-spacing: 0; text-transform: none; }
+[data-hud='veranda3'] .fi-boatbar .k-btn :is(.k-ic, img:not(.k-coin)) { width: 22px; height: 22px; }
+[data-hud='veranda3'] .fi-boatbar .k-btn small { margin-left: 0; color: var(--v3-dim); font: 600 13px/1 Rubik, system-ui, sans-serif; opacity: 1; }
+[data-hud='veranda3'] .fi-boatbar .k-btn > .k-key--tr { top: -8px; right: -8px; }
+[data-hud='veranda3'] .fi-boatbar .k-btn:is(.k-btn--go, :has(> .k-eq:not([hidden]))) { border-image-source: var(--v3-plate-on); }
+[data-hud='veranda3'] .fi-boatbar .k-btn:disabled { opacity: .62; filter: var(--v3-drop); }
+[data-hud='veranda3'] .fi-boatbar .k-btn:active:not(:disabled) { transform: translateY(1px); box-shadow: none; }
+[data-hud='veranda3'] .br-chip .k-eq > i { background: var(--v3-gold-hi); }
+/* радио — та же крупная табличка, что у карточки улова; станции — строки-ячейки со скосом, играющая — яркая кайма и золотой эквалайзер */
+[data-hud='veranda3'] .k-panel.fi-radio { width: 284px; gap: 7px; padding: 10px 14px 12px; border: 1px solid transparent;
+  border-image: var(--v3-card) 12 fill / 12px / 0 stretch; border-radius: 0; background: none; box-shadow: none; outline: 0; filter: var(--v3-drop); }
+[data-hud='veranda3'] .fi-radio-h { grid-template-columns: 26px minmax(0, 1fr) auto; padding-bottom: 6px; background: var(--v3-rule) bottom / 100% 1px no-repeat; }
+[data-hud='veranda3'] .fi-radio-h img { width: 26px; height: 26px; }
+[data-hud='veranda3'] .fi-radio-h b { font: 800 15px/1.15 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .fi-station { min-height: 44px; padding: 5px 10px 5px 24px; border: 0; border-radius: 0; background: rgba(255, 240, 220, .06);
+  box-shadow: inset 0 0 0 1px rgba(212, 165, 82, .35); clip-path: var(--v3w-cut); }
+[data-hud='veranda3'] .fi-station b { font: 800 15px/1.15 Rubik, system-ui, sans-serif; color: var(--v3-cream-text); }
+[data-hud='veranda3'] .fi-station span:not(.k-eq) { color: var(--v3-dim); font: 500 13px/1.2 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .fi-station.is-on { background: rgba(255, 205, 74, .12); box-shadow: inset 0 0 0 1.5px var(--v3-gold-hi); }
+[data-hud='veranda3'] .fi-station .k-eq > i { background: var(--v3-gold-hi); }
+/* клавиша станции — на скосе слева, целиком внутри строки (скос режет всё, что снаружи) */
+[data-hud='veranda3'] .fi-station > .k-key--tl { top: 50%; left: -3px; translate: 0 -50%; min-width: 18px; height: 20px; border-radius: 0 5px 5px 0; }
+[data-hud='veranda3'] .fi-radio-row { font: 700 14px/1.2 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .fi-radio > .k-switch { font: 700 14px/1.2 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .fi-radio-note { padding-top: 6px; background: var(--v3-rule) top / 100% 1px no-repeat; color: var(--v3-dim); font: 500 13px/1.3 Rubik, system-ui, sans-serif; }
+
+/* ================================================================ РЕГАТА — крупные объявления «Круг», «Последний круг!», «Финиш!», «Не туда!»
+   Заголовок — крупное объявление системы (золото / тёплый красный с тёмной обводкой), без свечения; подпись — табличка M под ним */
+[data-hud='veranda3'][data-rg] .k-slot--c > .k-hero { --hero-glow: transparent; gap: 8px; }
+[data-hud='veranda3'][data-rg] .k-slot--c > .k-hero--lose { --hero-c: var(--v3-red); }
+[data-hud='veranda3'][data-rg] .k-slot--c > .k-hero .k-hero-sub { min-height: var(--v3-h-m); padding: 2px 16px; border: 1px solid transparent;
+  border-image: var(--v3-plate) 8 fill / 8px / 0 stretch; border-radius: 0; background: none; box-shadow: none; filter: var(--v3-drop);
+  color: var(--v3-cream-text); font: 800 16px/1.15 Rubik, system-ui, sans-serif; }
+/* «Не туда!» — срочная: та же табличка с яркой каймой */
+[data-hud='veranda3'][data-rg] .k-slot--c > .k-hero--lose .k-hero-sub { border-image-source: var(--v3-plate-on); }
+/* «Подсекай!» — тоже без свечения */
+[data-hud='veranda3'] .fi-bite { --hero-glow: transparent; }
+
+/* ================================================================ РУЛЕТКА снаружи окна: плашка раунда — событие «Сообщений»,
+   шар — медальон цвета выпавшей лунки (красный / чёрный / зелёный — игровая информация) с золотой каймой и кремовым числом,
+   своя ставка — плитка «выбрано» (яркий обод) с цветом ставки и суммой */
+[data-hud='veranda3'] .rl-ball { box-shadow: inset 0 0 0 1.5px var(--v3-gold), inset 0 0 0 3px rgba(20, 10, 15, .35), 0 0 0 1px rgba(22, 11, 16, .6);
+  color: var(--v3-cream-text); font: 800 15px/1 Rubik, system-ui, sans-serif; font-variant-numeric: tabular-nums; }
+[data-hud='veranda3'] .k-event-ic .rl-ball { width: 28px; height: 28px; font-size: 14px; }
+[data-hud='veranda3'] .rl-tile .k-tile-face > img { width: 34px; height: 34px; }

@@ -16,7 +16,7 @@ const KEEP = 40;
 const FADE_MS = 9000;
 
 /** Цвет ника без команды — один из шести кита, по нику: у каждого свой и всегда тот же */
-function nickTone(nick: string): number {
+export function nickTone(nick: string): number {
   let h = 0;
   for (const ch of nick) h = (h * 31 + ch.codePointAt(0)!) >>> 0;
   return (h % 6) + 1;

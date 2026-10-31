@@ -96,7 +96,7 @@
 /* ================================================================ ТРИ ФОРМЫ */
 /* 1. табличка — плашки, язычки плиток, ячейки панели бойца, поднос эмоций, предмет и скорость картинга, табло */
 [data-hud='veranda3'] :is(.k-plate, .k-vitals-hp, .k-vitals-ammo, .k-vitals > .k-vitals-dash, .k-arm, .k-tile-cap, .pz-emotes,
-  .k-arm--count > span, .k-prompt, .mo-keys) {
+  .k-arm--count > span, .k-prompt, .mo-keys):where(:not(.k-hudctx *)) {
   border: 1px solid transparent; border-image: var(--v3-plate) 8 fill / 8px / 0 stretch;
   border-radius: 0; background: none; box-shadow: none; filter: var(--v3-drop);
 }
@@ -273,8 +273,10 @@
 /* мини-карта — крупная табличка, карта обрезана тем же скосом */
 [data-hud='veranda3'] .mo-map { width: auto; padding: 6px; border: 1px solid transparent; border-image: var(--v3-octa) 12 fill / 12px / 0 stretch;
   border-radius: 0; background: none; box-shadow: none; filter: var(--v3-drop); }
+/* дорогу картинга код рисует цветами плашки (client/race/hud.ts, token()) — светлыми, как было: белая дорога на сливе */
+[data-hud='veranda3'] .rc-map { --surf-solid: #fffcf6; --surf-faint: #66808a; --surf-text: #16313a; }
 /* размер карты в игре задаёт код (инлайн-стиль) — перебиваем, чтобы рамка стала меньше */
-[data-hud='veranda3'] .mo-map > img { display: block; width: 148px !important; height: 116px !important; object-fit: contain;
+[data-hud='veranda3'] .mo-map > :is(img, canvas) { display: block; width: 148px !important; height: 116px !important; object-fit: contain;
   clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px), 0 8px); }
 [data-hud='veranda3'] .mo-keys { min-height: var(--v3-h-m); gap: 4px 12px; padding: 2px 16px; }
 [data-hud='veranda3'] .mo-key { gap: 5px; font-size: 14px; }
@@ -404,3 +406,33 @@
 @media (prefers-reduced-motion: reduce) {
   [data-hud='veranda3'] :is(.k-slot > *, .ft-command, .k-event, .lab-tag) { animation: none; }
 }
+
+/* ---------------------------------------------------------------- не в первом шаге (docs/ui3/brief.md): экран входа, загрузки между режимами,
+   примерочная — страницы в HUD-значениях (.k-hudctx) остаются «Светлыми»: переменные корня v3 — назад к светлым (сняты из игры при
+   data-hud='light'), плашки v3 (правило :is(.k-plate, …) выше) внутри них не действуют */
+[data-hud='veranda3'] .k-hudctx {
+  --chat-bg: rgba(255, 252, 246, .88); --chat-old: .72; --chat-shadow: 0 0 0 1px rgba(16, 48, 60, .08), 0 2px 8px rgba(10, 40, 56, .16);
+  --h-accent-k: 64%; --h-accent-to: #0b1a1f; --h-bad-text: #c02f3b; --h-ghost-bg: #ffffff; --h-ghost-bg-hover: #f1f7f6;
+  --h-ghost-border: 1px solid rgba(23, 50, 58, .22); --h-ghost-drop: 0 1px 2px rgba(14, 50, 64, .1); --h-ghost-text: #16313a; --h-gold-text: #955a00;
+  --h-good-text: #1b7a48; --h-info: #12958f; --h-info-soft: rgba(18, 149, 143, .13); --h-info-text: #0b7471; --h-lamp-band: 0 0 0 0 transparent;
+  --h-lamp-ring: 0 0 0 2px #f2b52c, 0 8px 22px rgba(10, 40, 56, .24), 0 0 20px rgba(245, 177, 0, .3); --h-line: rgba(23, 50, 58, .1);
+  --h-line-strong: rgba(23, 50, 58, .26); --h-panel-bg: rgba(255, 252, 246, .94); --h-panel-border: 1px solid rgba(255, 255, 255, .95);
+  --h-panel-shadow: 0 0 0 1px rgba(16, 48, 60, .1), 0 10px 26px rgba(10, 40, 56, .24);
+  --h-ring-face: radial-gradient(circle at 40% 35%, #ffffff, #edf3f1 75%); --h-sil: brightness(0) opacity(.26); --h-special-text: #4b48c9;
+  --h-surf-2: rgba(22, 49, 58, .05); --h-surf-2-border: 1px solid rgba(23, 50, 58, .09); --h-surf-3: #edf3f1; --h-surf-dim: #4b6670;
+  --h-surf-faint: #66808a; --h-surf-solid: #fffcf6; --h-surf-text: #16313a; --h-track: #e2ebea; --h-track-border: 1px solid rgba(23, 50, 58, .08);
+  --h-trail: rgba(23, 50, 58, .16); --m-ink-h: #ffffff; --mh-def: #13827b; --mh-dungeon: #a0742a; --mh-farm: #3c9a4c; --mh-fishing: #0f9a96;
+  --mh-fort: #c8692a; --mh-hide: #8c55d6; --mh-paintball: #e0700f; --mh-pirates: #c2382e; --mh-race: #e0453a; --mh-regatta: #1d86b8;
+  --mh-skill: #3c7fd6; --nick-1: #d0562d; --nick-2: #1b7a48; --nick-3: #4b48c9; --nick-4: #b8336a; --nick-5: #0b7774; --nick-6: #955a00;
+  --plate-bg: rgba(255, 252, 246, .92); --plate-border: 1px solid rgba(255, 255, 255, .95);
+  --plate-shadow: 0 0 0 1px rgba(16, 48, 60, .1), 0 5px 16px rgba(10, 40, 56, .24), 0 1px 2px rgba(10, 40, 56, .16); --plate-text: #16313a;
+}
+/* цвет режима (--mode-h) считается на корне из цветов v3 (--mh-*) — внутри .k-hudctx пересчитать от светлых, как html[data-room=…] в стилях
+   режимов (fort/ui/ui.css и др.); у экрана загрузки свой data-mode — правило tokens.css срабатывает на нём самом */
+[data-hud='veranda3'] .k-hudctx:not([data-mode]) { --mode-h: var(--mh-def); }
+[data-hud='veranda3'][data-room='fort'] .k-hudctx:not([data-mode]) { --mode-h: var(--mh-fort); }
+[data-hud='veranda3'][data-room='race'] .k-hudctx:not([data-mode]) { --mode-h: var(--mh-race); }
+[data-hud='veranda3'][data-room='paintball'] .k-hudctx:not([data-mode]) { --mode-h: var(--mh-paintball); }
+[data-hud='veranda3'][data-room='hide'] .k-hudctx:not([data-mode]) { --mode-h: var(--mh-hide); }
+[data-hud='veranda3'][data-room='skill'] .k-hudctx:not([data-mode]) { --mode-h: var(--mh-skill); }
+[data-hud='veranda3'][data-rg] .k-hudctx:not([data-mode]) { --mode-h: var(--mh-regatta); }

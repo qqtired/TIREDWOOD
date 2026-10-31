@@ -3,6 +3,7 @@
 import { timingSafeEqual } from 'node:crypto';
 import { PROTOCOL_VERSION, TICK_RATE } from '../shared/constants.ts';
 import { LAYOUT } from '../shared/layout.ts';
+import { UI3 } from '../shared/ui3.ts';
 import { addRecord } from '../shared/aqua.ts';
 import { rgLapMs, type RgRecordRow, type RgRow } from '../shared/regatta.ts';
 import type { HideResult } from '../shared/hide.ts';
@@ -1170,7 +1171,7 @@ export class Hub {
   /** Busy counts occupied game rooms and unsettled Blackjack hands; deploy must not interrupt either. */
   /** Ферма в busy не входит: её игра — неспешная, выкладка ничего не обрывает (прогресс в профиле). */
   /** plaza — раскладка набережной (2 — как была, 3 — новая, флаг PLAZA3): по ней браузер выбирает площадь до загрузки игры (client/layout-boot.ts) */
-  health(): { online: number; lobby: number; paintball: number; race: number; fort: number; skill: number; boatrace: number; hide: number; dungeon: number; farm: number; busy: number; plaza: 2 | 3 } {
+  health(): { online: number; lobby: number; paintball: number; race: number; fort: number; skill: number; boatrace: number; hide: number; dungeon: number; farm: number; busy: number; plaza: 2 | 3; ui: 2 | 3 } {
     const { lobby, paintball, race } = this;
     const fort = this.fort?.humans ?? 0;
     const skill = this.skill?.humans ?? 0;
@@ -1178,7 +1179,7 @@ export class Hub {
     const hide = this.hide?.humans ?? 0;
     // «Подземелье»: забег на паузе или без связи сервер не держит (при перезапуске он закроется с итогом по отбитым волнам)
     const dungeon = this.dungeon?.humans ?? 0;
-    return { online: this.onlineCount(), lobby: lobby.humans, paintball: paintball.humans, race: race.humans, fort, skill, boatrace, hide, dungeon, farm: this.farm?.humans ?? 0, busy: paintball.humans + race.humans + fort + skill + boatrace + (this.hide?.busy ?? 0) + (this.dungeon?.busy ?? 0) + lobby.blackjack.busy + lobby.durak.busy + Number(lobby.director.busy) + (lobby.billiards?.playing ?? 0) + (lobby.plane?.busy ?? 0), plaza: LAYOUT };
+    return { online: this.onlineCount(), lobby: lobby.humans, paintball: paintball.humans, race: race.humans, fort, skill, boatrace, hide, dungeon, farm: this.farm?.humans ?? 0, busy: paintball.humans + race.humans + fort + skill + boatrace + (this.hide?.busy ?? 0) + (this.dungeon?.busy ?? 0) + lobby.blackjack.busy + lobby.durak.busy + Number(lobby.director.busy) + (lobby.billiards?.playing ?? 0) + (lobby.plane?.busy ?? 0), plaza: LAYOUT, ui: UI3 ? 3 : 2 };
   }
 
   /** Перезапуск сервера: предупредить всех, сохранить, закрыть с кодом 1012 (клиенты переподключатся). */

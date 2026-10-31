@@ -13,6 +13,16 @@ import './ui/kit/kit.css';
 import './ui/kit/combat.css';
 import './styles.css';
 import { App } from './app.ts';
+// HUD «Веранда v3» (docs/ui3/brief.md): все правила под [data-hud='veranda3'] и подключены после стилей игры (app.ts) — как в
+// лаборатории lab/ui3/; без флага UI3 атрибут остаётся 'light' и эти стили ничего не меняют
+import './ui/kit/hud3/veranda3.css';
+import './ui/kit/hud3/veranda3-msg.css';
+import './ui/kit/hud3/veranda3-fight.css';
+import './ui/kit/hud3/veranda3-water.css';
+import './ui/kit/hud3/veranda3-plaza.css';
+import './ui/kit/hud3/veranda3-quiz.css';
+import { UI3 } from '../shared/ui3.ts';
+import { bindHud3 } from './ui/hud3.ts';
 import { waitForFonts } from './startup.ts';
 
 export function prepareFonts(): Promise<void> {
@@ -28,6 +38,10 @@ export async function start(): Promise<void> {
     const { startDressStudio } = await import('./lobby/dress.ts');
     startDressStudio(canvas, menus);
   } else {
+    // интерфейс 3.0 по флагу сервера UI3: HUD «Веранда v3» вместо «Светлого»; окна (data-skin='retro2') — как были
+    if (UI3) document.documentElement.dataset.hud = 'veranda3';
     new App(canvas, hud, menus).start();
+    // HUD v3: награды — у жетонов, ник в новостях цветом, значок у системных строк чата (слоты HUD уже построены в App)
+    if (UI3) bindHud3();
   }
 }

@@ -1,0 +1,134 @@
+/* ================================================================ вариант HUD «Веранда v3» (data-hud="veranda3") — Площадь и гонки
+   картинг (бонус, занос, «Не туда!», финиш), «Выше облаков», крысиные бега, ферма у объектов, голос и связь, ввод чата, приглашения, змей, голосование, новая рамка, фото у маяка, «Стриж», кнопки телефона.
+   Решение владельца №15 (31.10): упущенный HUD режимов — «Всё в v3» (docs/ui3/brief.md, сверка — docs/ui3/audit-2026-10-31.md).
+   Общие токены (--v3-*) и детали — в v/veranda3.css и v/veranda3-msg.css (грузятся раньше); свои переменные — только --v3p-*.
+   Каждое правило начинается с [data-hud='veranda3']. */
+
+
+/* ================================================================ КАРТИНГ — бонус, заряд заноса, объявления (race/hud.ts, race/ui.css)
+   Бонус — та же табличка с медальоном, что в системе; «готов» — табличка «выбрано» (кайма светлее и толще, как выбранное оружие).
+   Заряд заноса — табличка S: подпись крупнее над тонкой шкалой, два золотых деления; уровни — те же цвета, что называет подпись
+   (синее · оранжевое · фиолетовое), цвета — из палитры v3 (--mh-skill, --mh-fort, --h-special-text). */
+[data-hud='veranda3'] {
+  --v3p-c0: var(--h-surf-faint); --v3p-c1: var(--mh-skill); --v3p-c2: var(--mh-fort); --v3p-c3: var(--h-special-text);
+}
+[data-hud='veranda3'] .rc-item.is-ready { border-image-source: var(--v3-plate-on); }
+[data-hud='veranda3'] .rc-item.is-rolling .mo-item-ic { box-shadow: inset 0 0 0 2px var(--v3-gold); }
+/* подсказка бонуса переносится на вторую строку, а не режется многоточием («банка позади: кто наедет — закрутится») */
+[data-hud='veranda3'] .rc-item .mo-item-txt small { max-width: 224px; overflow: visible; white-space: normal; text-overflow: clip; font-size: 13px; line-height: 1.2; }
+[data-hud='veranda3'] .rc-item .mo-item-txt b { font-size: 16px; }
+/* колпачки E и ЛКМ — на верхней кайме, как угловые клавиши в системе */
+[data-hud='veranda3'] .rc-item .mo-item-keys { top: -11px; right: 12px; }
+[data-hud='veranda3'] .rc-item .mo-item-keys .k-key { min-width: 24px; height: 24px; font-size: 14px; }
+
+[data-hud='veranda3'] .rc-charge { width: 244px; box-sizing: border-box; padding: 3px 12px 8px; border: 1px solid transparent;
+  border-image: var(--v3-plate) 8 fill / 8px / 0 stretch; border-radius: 0; background: none; box-shadow: none; filter: var(--v3-drop); }
+/* подпись над шкалой: кремовая, по центру; шкала — 6 px на тёмной дорожке с двумя золотыми делениями */
+[data-hud='veranda3'] .rc-charge .k-meter { --c: var(--v3p-c2); height: 6px; margin-top: 18px; border: 0; border-radius: 0; overflow: visible; background: var(--v3-track); }
+[data-hud='veranda3'] .rc-charge .k-meter > .k-meter-ghost { display: none; }
+[data-hud='veranda3'] .rc-charge .k-meter > .k-meter-fill { border-radius: 0; background: var(--c); transition: none; }
+[data-hud='veranda3'] .rc-charge .k-meter > .k-meter-label { inset: auto 0 calc(100% + 3px) 0; display: block; color: var(--v3-cream-text); text-align: center; text-shadow: none;
+  font: 700 14px/1.15 Rubik, system-ui, sans-serif; white-space: nowrap; }
+/* деления — на самой дорожке (не отдельными метками): 45 и 90 тиков из 140 */
+[data-hud='veranda3'] .rc-charge .k-meter::after { content: ''; position: absolute; inset: -2px 0; pointer-events: none;
+  background: linear-gradient(90deg, transparent calc(32.14% - 1px), var(--v3-gold) calc(32.14% - 1px) calc(32.14% + 1px), transparent calc(32.14% + 1px) calc(64.29% - 1px), var(--v3-gold) calc(64.29% - 1px) calc(64.29% + 1px), transparent calc(64.29% + 1px)); }
+[data-hud='veranda3'] .rc-charge .mo-tick { display: none; }
+[data-hud='veranda3'] .rc-charge .k-meter.rc-meter-0 { --c: var(--v3p-c0); }
+[data-hud='veranda3'] .rc-charge .k-meter.k-meter--info { --c: var(--v3p-c1); }
+[data-hud='veranda3'] .rc-charge .k-meter.k-meter--special { --c: var(--v3p-c3); }
+/* последний уровень — кайма таблички ярче: «отпускай» */
+[data-hud='veranda3'] .rc-charge.is-max { border-image-source: var(--v3-plate-on); }
+
+/* ================================================================ КРЫСИНЫЕ БЕГА — таблица забега у арены (lobby/ratracehud.ts, lobby/ratrace.css)
+   Шесть крыс — строки в табличке под бейджем; своя крыса — строка «выбрано» (светлее, кайма ярче, скошенные углы, как выбранное оружие).
+   «Кто поставил» не режется многоточием: таблица шире на 30 px (ставки игроков — главная информация). Седло — цвет попоны, это данные игры. */
+[data-hud='veranda3'] .rr-list { width: 250px; padding: 6px 8px; gap: 2px; }
+[data-hud='veranda3'] .rr-list .mo-row { min-height: 32px; padding: 1px 8px 1px 3px; border: 1px solid transparent; border-radius: 0; }
+[data-hud='veranda3'] .rr-list .mo-row.is-own { border-image: var(--v3-plate-on) 8 fill / 6px / 0 stretch; background: none; box-shadow: none; }
+[data-hud='veranda3'] .rr-list .mo-row b { white-space: normal; }
+[data-hud='veranda3'] .rr-list .mo-row b > small { max-width: 176px; overflow: visible; text-overflow: clip; white-space: normal; line-height: 1.15; }
+[data-hud='veranda3'] .rr-list .mo-row.is-own b > small { color: var(--v3-dim); }
+[data-hud='veranda3'] .rr-list .mo-pl { font-size: 14px; }
+[data-hud='veranda3'] .rr-list .mo-row.rr-lost { opacity: .6; }
+[data-hud='veranda3'] .rr-cam { min-height: var(--v3-h-m); }
+
+/* ================================================================ КНОПКИ ТЕЛЕФОНА (client/touch.ts; раскладка — client/styles.css, .tc-*)
+   Места и размеры кнопок НЕ меняем — зоны нажатия прежние. Кнопка — медальон: тёмная слива, золотая кайма, кремовый значок;
+   нажата — кайма ярче и толще; включена (прицел) — латунь с тёмным значком; руль ◀ ▶ — таблички со скосом.
+   Подписи под кнопками — 13 px кремом с тёмным кантом (читаются на любом фоне). Значки-эмодзи — как в игре. */
+[data-hud='veranda3'] .tc { --v3p-disc: radial-gradient(circle at 50% 34%, #4a3240, #261920 78%); --v3p-disc-dn: radial-gradient(circle at 50% 34%, #6b4a55, #3a2430 78%);
+  --v3p-ring: inset 0 0 0 1px var(--v3-gold), 0 0 0 1px rgba(22, 11, 16, .55), 0 2px 4px rgba(14, 6, 10, .4); }
+[data-hud='veranda3'] :is(.tc-pad, .tc-btn) { background: var(--v3p-disc); border-color: transparent; box-shadow: var(--v3p-ring); color: var(--v3-cream-text); }
+[data-hud='veranda3'] .tc-pad b { font-family: Rubik, system-ui, sans-serif; font-weight: 800; }
+[data-hud='veranda3'] .tc-pad small { margin-top: 3px; color: var(--v3-cream-text); font: 700 13px/1 Rubik, system-ui, sans-serif; text-shadow: var(--v3m-edge); }
+[data-hud='veranda3'] .tc-pad.down { background: var(--v3p-disc-dn); border-color: transparent;
+  box-shadow: inset 0 0 0 2.5px var(--v3-gold-hi), 0 0 0 1px rgba(22, 11, 16, .55), 0 2px 4px rgba(14, 6, 10, .4); }
+[data-hud='veranda3'] .tc-pad.on { background: var(--v3-brass); border-color: transparent; color: #3a2208;
+  box-shadow: inset 0 0 0 2px var(--v3-ink), 0 0 0 1px rgba(22, 11, 16, .55), 0 2px 4px rgba(14, 6, 10, .4); }
+/* огонь — главная кнопка боя: кайма цвета предупреждения; занос — кайма цвета первого уровня заряда (синее) */
+[data-hud='veranda3'] .p-fire { box-shadow: inset 0 0 0 2px var(--v3-red), 0 0 0 1px rgba(22, 11, 16, .55), 0 2px 4px rgba(14, 6, 10, .4); }
+[data-hud='veranda3'] .p-drift { background: var(--v3p-disc); box-shadow: inset 0 0 0 2px var(--mh-skill), 0 0 0 1px rgba(22, 11, 16, .55), 0 2px 4px rgba(14, 6, 10, .4); }
+[data-hud='veranda3'] :is(.p-fire, .p-drift).down { background: var(--v3p-disc-dn); box-shadow: inset 0 0 0 3px var(--v3-gold-hi), 0 0 0 1px rgba(22, 11, 16, .55); }
+/* джойстик: золотая кайма, ручка — латунная монетка */
+[data-hud='veranda3'] .tc-stick { border-color: transparent; background: rgba(46, 29, 38, .5); box-shadow: inset 0 0 0 1.5px var(--v3-gold), 0 0 0 1px rgba(22, 11, 16, .45); }
+[data-hud='veranda3'] .tc-stick i { background: var(--v3-brass); box-shadow: 0 0 0 1.5px var(--v3-ink), 0 3px 6px rgba(14, 6, 10, .4); }
+/* руль ◀ ▶ — таблички со скосом (форма системы), нажатая половинка — табличка «выбрано» */
+[data-hud='veranda3'] :is(.tc-steer-l, .tc-steer-r) { border: 2px solid transparent; border-image: var(--v3-plate) 8 fill / 8px / 0 stretch; border-radius: 0; background: none; color: var(--v3-cream-text); filter: var(--v3-drop); }
+[data-hud='veranda3'] .tc-steer .down { border-image-source: var(--v3-plate-on); background: none; border-color: transparent; }
+/* верхние кнопки: медальоны; открыта — золотая кайма толще */
+[data-hud='veranda3'] .tc-btn.on { background: var(--v3p-disc-dn); box-shadow: inset 0 0 0 2px var(--v3-gold-hi), 0 0 0 1px rgba(22, 11, 16, .55), 0 2px 4px rgba(14, 6, 10, .4); }
+/* эмоции — поднос-табличка, ячейки тише; подписи 13 px */
+[data-hud='veranda3'] .tc-emotes { gap: 4px; padding: 10px; border: 1px solid transparent; border-image: var(--v3-plate) 8 fill / 8px / 0 stretch; border-radius: 0; background: none; filter: var(--v3-drop); }
+[data-hud='veranda3'] .tc-emote { border-radius: 0; background: rgba(255, 240, 220, .07); box-shadow: inset 0 0 0 1px rgba(212, 165, 82, .35); }
+[data-hud='veranda3'] .tc-emote small { color: var(--v3-dim); font: 600 13px/1.1 Rubik, system-ui, sans-serif; }
+/* «Поверни телефон» — кремовая табличка (подсказка-новость), чернила сливовые */
+[data-hud='veranda3'] .tc-rotate { padding: 7px 16px 8px; border: 1px solid transparent; border-image: var(--v3-cream) 8 fill / 8px / 0 stretch; border-radius: 0; background: none;
+  color: var(--v3m-ink); font: 700 15px/1.2 Rubik, system-ui, sans-serif; filter: var(--v3m-paper-drop); }
+/* телефон: подпись бонуса картинга тоже переносится, а не режется многоточием (в игре на телефоне стоит правило max-width 150 + многоточие) */
+[data-hud='veranda3'].touch .rc-item .mo-item-txt > * { max-width: 150px; overflow: visible; white-space: normal; text-overflow: clip; }
+
+/* ================================================================ МЕЛОЧИ ПЛОЩАДИ — ввод чата, приглашение, змей, голосование, новая рамка, голос
+   Всё на формах системы: капсула с ромбиками на концах (как поле чата), табличка, медальон. */
+[data-hud='veranda3'] {
+  /* капсула «выбрано»: та же форма, кайма светлее и толще (свой ник в «кто говорит») */
+  --v3p-capsule-on: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='32'%3E%3Cpath d='M9.7 1.2h20.6l8.7 14.8-8.7 14.8H9.7L1 16z' fill='%233d2632' stroke='%23ffd35a' stroke-width='1.5'/%3E%3C/svg%3E");
+}
+/* «Esc — не отправлять» под полем ввода — та же капсула, что и поле */
+[data-hud='veranda3'] .pz-chat-hint { min-height: 28px; padding: 2px 16px 2px 12px; border: 1px solid transparent; border-image: var(--v3-capsule) 16 12 fill / 50% 11px / 0 stretch;
+  border-radius: 0; background: none; box-shadow: none; filter: var(--v3-drop); color: var(--surf-dim); font: 600 14px/1.2 Rubik, system-ui, sans-serif; }
+/* «дай пять» — полоса времени ответа: тонкая, квадратные концы, золотая */
+[data-hud='veranda3'] .pz-ask { overflow: visible; }
+[data-hud='veranda3'] .pz-ask-bar { left: 18px; right: 18px; bottom: 5px; height: 3px; border-radius: 0; --c: var(--v3-gold-hi); background: var(--v3-track); }
+[data-hud='veranda3'] .pz-ask-bar .k-meter-fill { border-radius: 0; background: var(--c); }
+/* змей: кнопка 7 включена — латунная подсветка с золотой каймой, углы скошены; подсказка — тише */
+[data-hud='veranda3'] .pz-emote[aria-pressed='true'] .pz-emote-face { border-radius: 0; background: rgba(255, 211, 90, .22); box-shadow: inset 0 0 0 1.5px var(--v3-gold-hi);
+  clip-path: polygon(4px 0, calc(100% - 4px) 0, 100% 4px, 100% calc(100% - 4px), calc(100% - 4px) 100%, 4px 100%, 0 calc(100% - 4px), 0 4px); }
+[data-hud='veranda3'] .pz-kite-note { color: var(--v3-dim); font: 600 14px/1.2 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .pz-kick-rule { color: var(--v3-dim); font-size: 13px; }
+/* новая рамка: значок цвета рамки — медальон с золотой каймой */
+[data-hud='veranda3'] .pz-tier-dot { width: 22px; height: 22px; box-shadow: 0 0 0 1.5px var(--v3-ink), 0 0 0 2.5px var(--v3-gold); }
+/* голос: «кто говорит» — капсулы системы, свой ник — капсула «выбрано»; подсказка и ошибка — табличка S */
+[data-hud='veranda3'] :is(.voice-speaker, .voice-more) { min-height: 28px; padding: 2px 14px 2px 12px; border: 1px solid transparent; border-image: var(--v3-capsule) 16 12 fill / 50% 11px / 0 stretch;
+  border-radius: 0; background: none; box-shadow: none; filter: var(--v3-drop); color: var(--v3-cream-text); font: 700 14px/1.2 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .voice-speaker[data-self] { border-image-source: var(--v3p-capsule-on); }
+[data-hud='veranda3'] .voice-tip { font: 600 14px/1.25 Rubik, system-ui, sans-serif; }
+
+/* ================================================================ ФЕРМА У ОБЪЕКТОВ — квитанция «Собрано», Древо вблизи
+   Подсказка у грядки (клавиша E, пилюли цены) и плашка «чья грядка» уже в формах системы — не трогаем. Квитанция и плашка Древа
+   — одна семья с карточками фермы слева (рамка v2 «двойная кайма»), заголовок золотом, как у задания Семечкина. */
+[data-hud='veranda3'] .k-plate:is(.farm-loot, .farm-tree-near) { padding: 9px 13px 10px; border-image: var(--v3-card-v2) 12 fill / 12px / 0 stretch; border-radius: 10px; }
+[data-hud='veranda3'] .farm-tree-near { width: 284px; }
+[data-hud='veranda3'] :is(.farm-loot, .farm-tree-near) .k-eyebrow { color: var(--gold-text); font: 700 14px/1.2 Rubik, system-ui, sans-serif; letter-spacing: 0; text-transform: none; }
+/* итог квитанции — за тонкой золотой линией; список топа Древа — между двумя */
+[data-hud='veranda3'] .farm-loot-xp { margin-top: 2px; padding-top: 5px; background: var(--v3-rule) top / 100% 1px no-repeat; }
+[data-hud='veranda3'] .farm-tree-top { padding: 5px 0; background: var(--v3-rule) top / 100% 1px no-repeat, var(--v3-rule) bottom / 100% 1px no-repeat; }
+
+/* ================================================================ КНОПКИ-ПРИЗРАКИ НА ЯРКОЙ СЦЕНЕ — «Выше облаков» (K, перезапуск) и «Стриж» (Сесть сейчас)
+   Прозрачная кнопка с кремовым текстом на небе и досках не читалась — табличка M, текст кремовый, как у плиток системы. Размер и места не меняем. */
+[data-hud='veranda3'] :is(.sk-acts .k-btn, .pl-land) { min-height: var(--v3-h-m); padding: 2px 16px 3px; border: 1px solid transparent; border-image: var(--v3-plate) 8 fill / 8px / 0 stretch; border-radius: 0;
+  background: none; box-shadow: none; filter: var(--v3-drop); color: var(--v3-cream-text); text-transform: none; letter-spacing: 0; font: 700 14px/1.2 Rubik, system-ui, sans-serif; }
+/* «Баннер» — золотая, главная кнопка пилота; регистр и шрифт как у кнопок системы (фирменный вид золота оставляем) */
+[data-hud='veranda3'] .pl-banner { text-transform: none; letter-spacing: 0; font: 800 15px/1.1 Rubik, system-ui, sans-serif; }
+
+/* ================================================================ ФОТО У МАЯКА — отсчёт и карточка уже на формах системы; кнопка «Сохранить» — регистр и шрифт как у кнопок системы */
+[data-hud='veranda3'] .ph-save { text-transform: none; letter-spacing: 0; font: 800 16px/1.1 Rubik, system-ui, sans-serif; }

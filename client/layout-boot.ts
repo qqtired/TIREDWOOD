@@ -6,6 +6,8 @@ export type Lay = 2 | 3;
 
 /** Последняя раскладка сервера — на случай, если /health не ответил */
 export const PLAZA_KEY = 'opus.plaza';
+/** Последний интерфейс сервера (флаг UI3: 3 — «Веранда v3», 2 — как сейчас, shared/ui3.ts) — на случай, если /health не ответил */
+export const UI_KEY = 'opus.ui';
 /** Флаг «уже перезагружались из-за смены раскладки» — чтобы не зациклиться */
 const RELOAD_KEY = 'opus.plazareload';
 const TIMEOUT_MS = 1500;
@@ -35,11 +37,13 @@ function remember(storage: Store | null, lay: Lay): void {
   }
 }
 
-/** Спросить сервер (/health → plaza), поставить globalThis.__opusPlaza и запомнить. Сервер молчит — последняя известная или 2. */
+/** Спросить сервер (/health → plaza, ui), поставить globalThis.__opusPlaza и __opusUi и запомнить. Сервер молчит — последняя известная или 2. */
 export async function bootLayout(env: BootEnv = { fetch: (u, i) => fetch(u, i), storage: webStorage('local'), timeoutMs: TIMEOUT_MS }): Promise<Lay> {
   let lay: Lay = 2;
+  let ui: Lay = 2;
   try {
     lay = env.storage?.getItem(PLAZA_KEY) === '3' ? 3 : 2;
+    ui = env.storage?.getItem(UI_KEY) === '3' ? 3 : 2;
   } catch {
     // хранилище недоступно
   }
@@ -48,13 +52,20 @@ export async function bootLayout(env: BootEnv = { fetch: (u, i) => fetch(u, i), 
   try {
     const j = await env.fetch('/health', { cache: 'no-store', signal: ctrl.signal }).then((r) => r.json());
     lay = (j as { plaza?: unknown } | null)?.plaza === 3 ? 3 : 2;
+    ui = (j as { ui?: unknown } | null)?.ui === 3 ? 3 : 2;
   } catch {
     // нет ответа за timeoutMs или ошибка — остаётся последняя известная
   } finally {
     clearTimeout(timer);
   }
   (globalThis as { __opusPlaza?: Lay }).__opusPlaza = lay;
+  (globalThis as { __opusUi?: Lay }).__opusUi = ui;
   remember(env.storage, lay);
+  try {
+    env.storage?.setItem(UI_KEY, String(ui));
+  } catch {
+    // без хранилища — спросим сервер в следующий раз
+  }
   return lay;
 }
 
