@@ -106,14 +106,15 @@
   border-radius: 0; background: none; box-shadow: none; outline: 0; filter: var(--v3-drop);
 }
 /* событие, тосты, «+N», чат и поле ввода оформляют «Сообщения» (v/veranda3-msg.css) теми же формами */
-/* 2. медальон с кольцом-шкалой — общий вид (кольцо уровня в карточках режимов): кайма → дорожка 4 px → подставка */
-[data-hud='veranda3'] .k-ring:not(.k-badge > .k-ring) {
+/* 2. медальон с кольцом-шкалой — общий вид (кольцо уровня в карточках режимов): кайма → дорожка 4 px → подставка;
+   кольца в окнах на зелёном фоне (меню Esc, «Кто где») — как были, окна не трогаем (решение №1) */
+[data-hud='veranda3'] .k-ring:not(.k-badge > .k-ring):where(:not(.k-scrim *, .k-window *, #menus *)) {
   width: var(--v3-md-s); height: var(--v3-md-s);
   background: conic-gradient(var(--c, var(--mode, var(--v3-gold-hi))) calc(var(--p) * 360deg), var(--v3-track) 0);
   box-shadow: inset 0 0 0 1px var(--v3-gold), 0 0 0 1px rgba(22, 11, 16, .5);
 }
-[data-hud='veranda3'] .k-ring:not(.k-badge > .k-ring)::before { inset: calc(var(--v3-ring) + 1px); background: var(--v3-disc); box-shadow: none; }
-[data-hud='veranda3'] .k-ring:not(.k-badge > .k-ring) > b { color: var(--v3-cream-text); font: 800 16px/1 Rubik, system-ui, sans-serif; }
+[data-hud='veranda3'] .k-ring:not(.k-badge > .k-ring):where(:not(.k-scrim *, .k-window *, #menus *))::before { inset: calc(var(--v3-ring) + 1px); background: var(--v3-disc); box-shadow: none; }
+[data-hud='veranda3'] .k-ring:not(.k-badge > .k-ring):where(:not(.k-scrim *, .k-window *, #menus *)) > b { color: var(--v3-cream-text); font: 800 16px/1 Rubik, system-ui, sans-serif; }
 
 /* ---------------------------------------------------------------- бейдж: медальон-портрет + табличка жетонов, без свеса */
 /* коробка бейджа 44 = медальон; табличка 36 нарисована внутри (::before) — ни уровень, ни кольцо не выходят за коробку */
