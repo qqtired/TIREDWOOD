@@ -30,7 +30,7 @@ const COLL_W = W - 2 * PAD - 2 * (COUNT_W + WEIGHT_W + COLUMN_GAP) - 2 * SECTION
 const MEDALS = SIGNS3 ? ['#ffd35a', '#dfe3ea', '#e0a06a'] : ['#f5c542', '#d3d8e2', '#d98c4f'];
 const PAINT = '#1f4a5e';
 const CREAM = SIGNS3 ? V3.cream : '#f6ead2';
-/** Цвета строк: старые — краска по доске, v3 — «Веранда» (слива, золото, крем; ?ui3) */
+/** Цвета строк: старые — краска по доске, v3 — «Веранда» (слива, золото, крем; SIGNS3) */
 const INK = SIGNS3
   ? { gold: V3.goldHi, mine: V3.goldHi, mineBg: 'rgba(255, 211, 90, 0.16)', dim: V3.dim, head: 'rgba(236, 216, 182, 0.78)', track: 'rgba(255, 243, 222, 0.14)', fill: V3.teal, medalInk: V3.ink, sep: V3.goldDim }
   : { gold: '#ffd36a', mine: '#ffe39a', mineBg: 'rgba(255, 211, 106, 0.2)', dim: 'rgba(246, 234, 210, 0.55)', head: 'rgba(246, 234, 210, 0.6)', track: 'rgba(246, 234, 210, 0.14)', fill: '#5fd0bf', medalInk: '#2a1708', sep: 'rgba(246, 234, 210, 0.35)' };
