@@ -39,6 +39,8 @@ import { TOUCH } from '../touch.ts';
 import type { Hud } from './hud.ts';
 import type { SlotMachine } from './slot.ts';
 import type { Tracers } from './tracers.ts';
+import { BTN_PB_BUCKET, KITS, KIT_BOW } from '../../shared/paint4.ts';
+import { P4Client, type P4Hud } from './paint4/client.ts';
 
 export interface MatchDeps {
   map: GameMap;
@@ -106,6 +108,8 @@ export class Match {
   private awpAt = -1;
   /** Смотрю в оптику AWP */
   private scoped = false;
+  /** Четыре набора краскомётов (флаг сервера PAINT4, p4 в welcome); без флага — null, всё как раньше */
+  private p4: P4Client | null = null;
 
   // свой игрок
   private alive = false;
@@ -163,7 +167,11 @@ export class Match {
 
   constructor(deps: MatchDeps) {
     this.d = deps;
-    this.predictor = new Predictor(deps.collision);
+    // наборы PAINT4 оборачивают шаг оружия; без них хук ничего не меняет
+    this.predictor = new Predictor(deps.collision, {
+      before: (st, inp, pv) => (this.p4 ? this.p4.hook.before(st, inp, pv) : inp),
+      after: (st, inp, ev, cf) => this.p4?.hook.after(st, inp, ev, cf),
+    });
     this.localAvatar = new Avatar(0, { gun: true });
     this.localAvatar.setOutfit(deps.me().outfit);
     // своя желейка — как свои: жилет цвета команды и спокойный контур (ника у неё нет)
@@ -189,6 +197,8 @@ export class Match {
   dispose(): void {
     for (const av of this.avatars.values()) av.dispose(this.d.world.scene);
     this.avatars.clear();
+    this.p4?.dispose();
+    this.p4 = null;
     this.localAvatar.dispose(this.d.world.scene);
     this.d.effects.clearSplats();
     this.d.tracers.clear();
@@ -210,6 +220,7 @@ export class Match {
       this.boardHeld = down;
       return true;
     }
+    if (this.p4 && !chat.isOpen && this.p4.onKey(code, down, e, input.locked && this.alive && this.phase === PHASE_PLAY)) return true;
     if (!down || chat.isOpen || !input.locked) return false;
     if (code === 'KeyQ') {
       // камера на другое плечо — выглянуть из-за другого края укрытия
@@ -226,6 +237,7 @@ export class Match {
 
   /** ЛКМ или E: во время разминки — рычаг автомата. */
   onUse(): void {
+    if (this.p4 && !this.alive && this.p4.onClick()) return;
     if (this.phase === PHASE_WARMUP && this.d.slot.visible) this.d.slot.tryPull();
   }
 
@@ -243,6 +255,13 @@ export class Match {
         this.ready = true;
         this.setRoster(m.roster);
         this.localAvatar.setTeam(m.team);
+        if (m.p4 && !this.p4) this.startP4();
+        if (this.p4) {
+          this.p4.myId = m.id;
+          this.p4.myTeam = m.team;
+          this.p4.setSeed(m.seed);
+          this.p4.onRoster(m.roster);
+        }
         if (m.phase === PHASE_WARMUP) slot.show(this.roster.get(m.id)?.reels ?? []);
         break;
       }
@@ -261,6 +280,31 @@ export class Match {
       case 'pbReward':
         this.onReward(m);
         break;
+      case 'pbKit':
+        this.p4?.onServerKit(m.k);
+        break;
+    }
+  }
+
+  /** Флаг PAINT4: карточки над панелью бойца, наборы в руках, следы и звуки наборов */
+  private startP4(): void {
+    const hud = this.d.hud as unknown as P4Hud & { p4Slot?(): HTMLElement };
+    this.p4 = new P4Client({
+      scene: this.d.world.scene, effects: this.d.effects, collision: this.d.collision, sound: this.d.sound,
+      cardsParent: hud.p4Slot?.() ?? document.body,
+      send: (k) => this.d.net.send({ t: 'pbKit', k }),
+      locked: () => this.d.input.locked,
+    });
+  }
+
+  /** Лейка толкнула: себя — камера вздрагивает, чужого — желейка трясётся */
+  private onShove(vid: number): void {
+    if (vid === this.myId) {
+      this.shake = Math.min(1, this.shake + 0.45);
+      this.fovKick = Math.max(this.fovKick, 6);
+    } else {
+      const p = this.poses.get(vid);
+      if (p && p.valid) this.d.effects.puff(p.x, p.y + 0.6, p.z, 1.1, 0xffffff, 0.3, 0.2, 0.4);
     }
   }
 
@@ -277,6 +321,7 @@ export class Match {
 
   private setRoster(list: RosterEntry[]): void {
     this.rosterList = list;
+    this.p4?.onRoster(list);
     this.roster.clear();
     for (const r of list) this.roster.set(r.id, r);
     const me = this.roster.get(this.myId);
@@ -315,6 +360,7 @@ export class Match {
     this.scoreA = scores[0];
     this.scoreB = scores[1];
     if (phase === PHASE_WARMUP) {
+      this.p4?.onWarmup();
       effects.clearSplats();
       for (const av of this.avatars.values()) av.clearPaint();
       hud.hideEnd();
@@ -382,6 +428,7 @@ export class Match {
         this.poses.delete(id);
         const av = this.avatars.get(id);
         if (av) {
+          this.p4?.forget(av);
           av.dispose(this.d.world.scene);
           this.avatars.delete(id);
         }
@@ -426,6 +473,7 @@ export class Match {
     const { hud, sound, effects, world } = this.d;
     const now = performance.now();
     for (const e of list) {
+      if (this.p4 && this.p4.onEvent(e, k, (id) => this.teamOf(id), (id) => (id === this.myId ? this.localAvatar : this.avatars.get(id)), (vid) => this.onShove(vid))) continue;
       switch (e[0]) {
         case 'shot': {
           const [, pid, ox, oy, oz, ex, ey, ez, kind, nx, ny, nz] = e;
@@ -618,7 +666,7 @@ export class Match {
     const inp = this.inputs[0];
     inp.seq = ++this.seq;
     // плечо — серверу: от него зависит, куда полетит шарик
-    inp.buttons = input.sample() | (this.shoulder < 0 ? BTN_SHOULDER : 0);
+    inp.buttons = input.sample() | (this.shoulder < 0 ? BTN_SHOULDER : 0) | (this.p4?.extraButtons() ?? 0);
     inp.yaw = Math.fround(input.yaw);
     inp.pitch = Math.fround(input.pitch);
     inp.viewTick = Math.max(0, this.clock.renderTick);
@@ -626,6 +674,7 @@ export class Match {
     if (this.alive) {
       const ev = this.predictor.step(inp, canFire);
       this.onLocalEvents(ev, inp);
+      if (this.p4 && canFire && inp.buttons & BTN_PB_BUCKET) this.p4.localThrow(this.predictor.state, inp, this.clock.estimate(performance.now()), this.localAvatar);
     } else {
       this.predictor.record(inp, canFire);
     }
@@ -674,6 +723,10 @@ export class Match {
     const { collision, effects, sound } = this.d;
     const n = this.collectTargets();
     const tg = this.tg;
+    if (this.p4 && this.p4.wrapped(s)) {
+      this.p4.localShot(s, ev, ads, this.shoulder, tg, n, this.localAvatar);
+      return;
+    }
     const dir = this.shotDir;
     tpsShotDir(s, ev.aimYaw, ev.aimPitch, ev.spread, this.predictor.seed, s.shots, this.shoulder, ads, collision, tg, n, dir);
     const ox = s.x;
@@ -785,6 +838,10 @@ export class Match {
     this.updateLocalAvatar(dt, alpha);
 
     d.effects.update(dt);
+    if (this.p4) {
+      this.p4.setCamera(this.camPos);
+      this.p4.update(dt);
+    }
     d.tracers.update(dt);
     d.world.update(dt);
     tickAvatarShared(this.time, d.world.renderer.canvas.clientHeight || window.innerHeight);
@@ -851,7 +908,9 @@ export class Match {
       av.hp = tr.hp;
       av.maxHp = info?.maxHp ?? 100;
       av.setAwp(this.awpAt === id);
+      if (this.p4 && ok) pose.flags = this.p4.avatarFlags(id, pose.flags);
       av.update(ok ? pose : null, dt, this.time, collision, this.camPos, false);
+      if (this.p4) this.p4.updateRemote(av, id, av.team ?? 0, ok ? pose.flags : 0, dt);
     }
   }
 
@@ -1003,6 +1062,10 @@ export class Match {
     hud.setAwp(s.awp > 0);
     if (s.awp > 0) {
       hud.setAmmo(s.awp, AWP_SHOTS, s.fireCd > 0 ? clamp(1 - s.fireCd / AWP_INTERVAL, 0, 1) : null, 1);
+    } else if (this.p4 && this.p4.wrapped(s)) {
+      // набор: свой магазин и перезарядка; у лука строку патронов пишет сам набор (сила натяжения)
+      const spec = KITS[this.p4.kit];
+      if (this.p4.kit !== KIT_BOW) hud.setAmmo(s.ammo, spec.mag, s.reloadT > 0 ? clamp(1 - s.reloadT / spec.reload, 0, 1) : null);
     } else {
       const reload = s.reloadT > 0 ? clamp(1 - s.reloadT / RELOAD_TICKS, 0, 1) : null;
       hud.setAmmo(s.ammo, MAG_SIZE, reload);
@@ -1013,13 +1076,26 @@ export class Match {
     const ads = input.isHeld(BTN_ADS);
     const cam = world.camera;
     const h = world.renderer.canvas.clientHeight || window.innerHeight;
-    const spread = currentSpread(s, ads);
+    const spread = this.p4 ? this.p4.spread(s, ads) : currentSpread(s, ads);
     const gap = 3 + (Math.tan(spread) / Math.tan(THREE.MathUtils.degToRad(cam.fov) / 2)) * (h / 2);
     const aiming = this.alive && !(this.phase === PHASE_WARMUP && slot.visible);
     hud.setCrosshair(gap, aiming && !this.scoped, ads);
     this.updateBlocked(aiming);
     hud.setAliveUi(this.alive);
     if (!this.alive) hud.setRespawn(Math.max(0, (this.respawnAt - est) / TICK_RATE));
+    if (this.p4) {
+      // набор в руках, дуга (ведёрко / стрела), карточки, ведёрко и сила лука в панели
+      const pv = this.pivot;
+      const ey = pv.y + EYE_HEIGHT;
+      const ax = this.aimP.x - pv.x;
+      const ay = this.aimP.y - ey;
+      const az = this.aimP.z - pv.z;
+      const al = Math.hypot(ax, ay, az) || 1;
+      const blocked = input.blocked || this.d.chat.isOpen;
+      const endShown = (hud as unknown as { endShown?: boolean }).endShown ?? false;
+      this.p4.updateLocal(this.localAvatar, s, this.alive, this.alive && this.protectedNow, this.phase, est, blocked, endShown, hud as unknown as P4Hud, dt,
+        this.alive ? { yaw: input.yaw, pitch: input.pitch, ex: pv.x, ey, ez: pv.z, dx: ax / al, dy: ay / al, dz: az / al } : null);
+    }
 
     hud.showBoard(this.boardHeld && this.phase !== PHASE_END, this.rosterList, this.myId);
     hud.updateFloaters(dt, cam, window.innerWidth, window.innerHeight);
@@ -1083,6 +1159,7 @@ export class Match {
       remotes: this.tracks.size, queue: this.queueAvg, fps: this.fps,
       shoulder: this.shoulder, side: this.sideSmooth, adsT: this.adsT, cam: [c.x, c.y, c.z], meShown: this.localAvatar.shown,
       awp: s.awp, awpAt: this.awpAt, scoped: this.scoped, fov: this.d.world.camera.fov,
+      p4: this.p4 ? { kit: this.p4.kit, cards: this.p4.cards.shown, bucketReady: this.p4.bucketReady, bloom: s.bloom, seen: this.p4.seen } : null,
     };
   }
 }

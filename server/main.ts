@@ -71,6 +71,7 @@ const skill = process.env.SKILL === undefined ? DEV : process.env.SKILL === '1';
 const storm = eventFlag(process.env.STORM, DEV), pirates = eventFlag(process.env.PIRATES, DEV);
 const boatrace = regattaEnabled(process.env.BOATRACE, DEV);
 const hide = hideEnabled(process.env.HIDE, DEV);
+const paint4 = process.env.PAINT4 === undefined ? DEV : process.env.PAINT4 === '1';
 // «Ферма» до «да» владельца скрыта: FARM=1 — включить, FARM=0 — выключить, без переменной — только с --dev
 const farm = farmEnabled(process.env.FARM, DEV);
 const quiz = quizEnabled(process.env.QUIZ, DEV, PLAZA3);
@@ -96,6 +97,7 @@ const fish2 = fish2Enabled(process.env.FISH2);
 const farmPond = farm && fish2 && process.env.FARM_POND === '1';
 // Остров «Последний свет» (остров, лодки, лайвел, радио, косметика острова): ISLE=1 — включить, ISLE=0 — выключить, без переменной — только с --dev; нужна FISH2
 const isle = isleEnabled(process.env.ISLE, DEV, fish2);
+const banana = isle && (process.env.BANANA === undefined ? DEV : process.env.BANANA === '1');
 // Рулетка рыбака (fisheco): ROULETTE=1 — включить, ROULETTE=0 — выключить, без переменной — только с --dev; нужна FISH2
 const roulette = process.env.ROULETTE === undefined ? DEV : process.env.ROULETTE === '1';
 // Крысиные бега на понтоне: RATRACE=1 — включить, RATRACE=0 — выключить, без переменной — только с --dev (FISH2 не нужна)
@@ -115,9 +117,9 @@ const votekick = process.env.VOTEKICK === undefined ? DEV : process.env.VOTEKICK
 // в Telegram — отдельный флаг TG_CALL (только явная 1, даже в dev): бот пишет настоящим людям, включает владелец
 const social = socialEnabled(process.env.SOCIAL, DEV);
 const tgCall = social && tgCallEnabled(process.env.TG_CALL);
-const hub = new Hub({ store, profiles, smokeToken: smokeToken(), build, roll, weather, tg, fort, skill, boatrace, hide, farm, farmPond, fish2, isle, roulette, ratrace, quiz, quizHttp, storm, pirates, voice, voiceIce, jukebox, billiards, plane, kite, votekick, dungeon,
+const hub = new Hub({ store, profiles, smokeToken: smokeToken(), build, roll, weather, tg, fort, skill, boatrace, hide, farm, farmPond, fish2, isle, banana, roulette, ratrace, quiz, quizHttp, storm, pirates, voice, voiceIce, jukebox, billiards, plane, kite, votekick, dungeon,
   social: social ? { dir: DATA_DIR, tgCall, questions: quizPacks ? () => chatQuestionsFromPacks(quizPacks!.all('jeopardy')) : undefined } : undefined,
-  giftCodeHash: gifts ? DEVIL_GIFT_CODE_HASH : null,
+  paint4, giftCodeHash: gifts ? DEVIL_GIFT_CODE_HASH : null,
   devStorm: DEV && process.env.DEV_STORM === 'now', devPirates: DEV && process.env.DEV_PIRATES === 'now',
   // /wave, /event, /gate, /hp в чате крепости — только разработка или DEV_GO=1 (проверка собранного сервера)
   devFort: DEV || process.env.DEV_GO === '1' });
@@ -129,10 +131,12 @@ if (weather !== 'auto') console.log(`DEV_WEATHER=${weather}: погода на �
 if (fort) console.log('FORTRESS: режим «Крепость» включён');
 if (dungeon) console.log('DUNGEON: режим «Подземелье» включён');
 if (farm) console.log('FARM: режим «Ферма» включён');
+if (paint4) console.log('PAINT4: четыре набора краскомётов в пейнтболе');
 if (quiz) console.log('QUIZ: «Ракушка» включена');
 if (skill) console.log('SKILL: полоса «Выше облаков» включена');
 if (fish2) console.log('FISH2: рыбалка 2.0 включена');
 if (isle) console.log('ISLE: остров «Последний свет», свои лодки и радио на них, рыба острова и лайвел включены (рыба пристани и баркаса ×0,4)');
+if (banana) console.log('BANANA: банан за своей лодкой рыбака включён');
 if (hub.roulette) console.log('ROULETTE: рулетка рыбака включена');
 if (hub.ratrace) console.log('RATRACE: крысиные бега включены');
 if (lab.enabled) console.log('LAB: лаборатория идей /lab включена');

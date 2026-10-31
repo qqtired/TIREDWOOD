@@ -136,6 +136,8 @@ export interface HubOptions {
   skill?: boolean;
   boatrace?: boolean;
   hide?: boolean;
+  /** Четыре набора краскомётов в пейнтболе (флаг PAINT4); без него — прежний маркер. */
+  paint4?: boolean;
   /** «Ферма» (флаг FARM): комната на 20 участков, калитка на Улице Аттракционов */
   farm?: boolean;
   /** Пруд фермы: явный FARM_POND=1 вместе с FARM и FISH2. */
@@ -165,6 +167,8 @@ export interface HubOptions {
   plane?: boolean;
   /** Воздушный змей на набережной — общая эмоция 7 (флаг KITE). */
   kite?: boolean;
+  /** Банан за своей лодкой рыбака (BANANA, нужна ISLE). */
+  banana?: boolean;
   /** Голосование «выгнать игрока» из меню Tab (флаг сервера VOTEKICK, server/votekick.ts) */
   votekick?: boolean;
   /** «Подземелье»: соло-забег, инстанс на игрока (флаг сервера DUNGEON, server/dungeon/) */
@@ -397,7 +401,7 @@ export class Hub {
     this.lobby = new LobbyRoom(this, o.roll, this.now, o.durakDeck, o.weather, o.blackjackDeck, o);
     this.tg = o.tg ?? null;
     if (this.tg) this.tg.onSend = (msg) => this.lobby.broadcast(msg);
-    this.paintball = new PaintballRoom(this);
+    this.paintball = new PaintballRoom(this, !!o.paint4);
     this.race = new RaceRoom({
       outfitOf: (p) => this.outfitOf(p),
       result: (c, row, reward) => this.onRaceResult(c, row, reward),

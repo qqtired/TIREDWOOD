@@ -130,6 +130,8 @@ import { PHOTO_COUNT_S, PHOTO_HEAR, PHOTO_KEEP, PHOTO_LENS, PhotoBooth, type Pho
 import { RegattaClient } from './regatta.ts';
 import { PlaneClient } from './plane.ts';
 import { OwnBoatsClient } from '../boat/ownboats.ts';
+import { BananaClient } from '../boat/banana.ts';
+import { ACT_BANANA } from '../../shared/banana.ts';
 import { SlotMachines3D } from './slots3d.ts';
 import { LobbyJukebox } from './jukebox.ts';
 import { BoatRadio } from '../boat/radio.ts';
@@ -254,6 +256,8 @@ export class LobbyScene implements Scene {
   readonly plane: PlaneClient;
   /** Свои лодки рыбаков и стоянка за домом Семёна (флаг сервера ISLE, client/boat/ownboats.ts) */
   readonly ob: OwnBoatsClient;
+  /** Банан за своей лодкой (флаг сервера BANANA, client/boat/banana.ts) */
+  readonly banana: BananaClient;
   private hideStatus: GatherStatus | HideStatus | null = null;
   private startZone: { kind: 'paintball' | 'fort' | null; left: number } = { kind: null, left: 0 };
   private readonly fishForCritters: {x:number;z:number}[] = [];
@@ -677,6 +681,12 @@ export class LobbyScene implements Scene {
       modal: (open) => { if (open) { d.input.releaseAll(); d.input.unlock(); } else d.wantPointer(); },
       setParkBoxes: (on) => { for (const i of this.world.map.parkBoxes) this.world.collision.setEnabled(i, on); },
     });
+    this.banana = new BananaClient({
+      scene: this.world.scene, sound: d.sound, slots: d.ui.slots, input: d.input, send: (msg) => d.net.send(msg), myId: () => this.myId,
+      nick: (slot) => (slot === this.myId ? this.me.name : (this.remotes.get(slot)?.avatar.name ?? '')),
+      boatPose: (i) => this.ob.boatPose(i), boatOwner: (i) => this.ob.boatNick(i), myBoat: () => this.ob.mine, driving: () => this.ob.driving,
+      splash: (x, z, big) => this.effects.waterSplash(x, z, big),
+    });
     // pointerdown, а не mousedown: на телефоне помидор бросают пальцем
     d.renderer.canvas.addEventListener('pointerdown', (e) => this.onCanvasDown(e));
     d.renderer.canvas.addEventListener('pointermove', (e) => this.onCanvasMove(e));
@@ -867,6 +877,7 @@ export class LobbyScene implements Scene {
     this.rg.reset();
     this.plane.reset();
     this.ob.reset();
+    this.banana.reset();
     this.seq = 0;
     this.acc = 0;
     this.queueAvg = 1;
@@ -933,6 +944,7 @@ export class LobbyScene implements Scene {
     this.rg.reset();
     this.plane.reset();
     this.ob.reset();
+    this.banana.reset();
     this.hud.setTimer(null);
     this.hud.setVisible(false);
     // плашки шторма и пиратов — в общем верх-центре HUD: с набережной уходят вместе с ней
@@ -982,6 +994,7 @@ export class LobbyScene implements Scene {
         this.plane.welcome(msg.plane);
         // свои лодки: следом приходит сообщение ob (флаг ISLE), до него стоянки нет
         this.ob.welcome();
+        this.banana.welcome();
         this.onGather('boatrace', msg.regatta?.q ?? null);
         this.onGather('hide', msg.hide ?? null);
         this.world.kartStart.update(msg.kart);
@@ -1156,6 +1169,7 @@ export class LobbyScene implements Scene {
       case 'hideSt': this.onGather('hide', msg.v); break;
       case 'plane': case 'planePos': case 'planeMe': this.plane.onJson(msg); break;
       case 'ob': case 'obPos': case 'obMe': case 'obHorn': this.ob.onJson(msg); break;
+      case 'bn': case 'bnPos': case 'bnFx': this.banana.onJson(msg); break;
       case 'startZone':
         this.startZone = msg;
         for (const kind of ['paintball', 'fort']) this.entryCircles.get(kind)!.status({ left: kind === msg.kind ? msg.left : 0, hint: 'Встань на 3 секунды · E — сразу' });
@@ -1954,6 +1968,8 @@ export class LobbyScene implements Scene {
     if (this.plane.onKey(code, down, e)) return true;
     // в своей лодке: Z — якорь, пробел — гудок, G — продать улов (R — радио, client/boat/radio.ts)
     if (this.ob.onKey(code, down, e)) return true;
+    // за штурвалом своей лодки: B — прицепить или отцепить банан (client/boat/banana.ts)
+    if (this.banana.onKey(code, down, e)) return true;
     if (!down || e.repeat) return false;
     if (this.fish2.modalOpen) {
       if (code === 'Escape') {
@@ -2132,6 +2148,8 @@ export class LobbyScene implements Scene {
     }
     // в своей лодке E — сойти у причала или пришвартоваться (решает сервер)
     if (this.ob.onUse(act, this.arg)) return;
+    // на банане E — спрыгнуть или обратно из воды, у банана — сесть (client/boat/banana.ts)
+    if (this.banana.onUse(act, this.arg)) return;
     if (isHeld(act)) {
       // в поездке на катере и на колесе не встать — только у причала и внизу
       if (!isRiding(act)) this.d.net.send({ t: 'unuse' });
@@ -2480,6 +2498,7 @@ export class LobbyScene implements Scene {
     // пилот гидроплана: мышь ведёт нос в пределах самолёта
     this.plane.frameInput(dt, act);
     this.ob.frameInput(dt, act, this.arg);
+    this.banana.frameInput(dt, act, this.arg);
 
     this.clock.update(now, dt * 1000);
     if (this.hasSelf && this.clock.ready) {
@@ -2503,6 +2522,7 @@ export class LobbyScene implements Scene {
     this.updateFerryPose();
     // свои лодки — до своей желейки: в лодке она сидит на месте по позе лодки этого кадра
     this.ob.frame(dt, this.clock.ready ? this.clock.renderTick : 0, alpha, this.world.camera.position, act, this.arg);
+    this.banana.frame(dt, this.clock.ready ? this.clock.renderTick : 0, act, this.arg);
     this.updateLocalPose(alpha);
     this.rg.frame(dt, this.clock.ready ? this.clock.renderTick : 0, alpha, this.world.camera.position);
     this.plane.frame(dt, this.clock.ready ? this.clock.renderTick : 0, alpha, this.world.camera.position, act);
@@ -2514,7 +2534,7 @@ export class LobbyScene implements Scene {
     this.fishHolds.update(dt, (id) => (id === this.myId ? (this.hasSelf ? this.me : null) : this.remotes.get(id)?.avatar ?? null));
     this.kites.begin();
     this.kites.prepare(this.me, this.myId);
-    this.me.update(this.hasSelf ? this.ob.avatarPose(this.me, act, this.arg, this.plane.avatarPose(this.myId, act === ACT_PLANE, this.rg.avatarPose(this.myId, act === ACT_REGATTA, this.pose))) : null, dt, this.time, this.ground, camPos, true);
+    this.me.update(this.hasSelf ? this.banana.avatarPose(this.me, act, this.arg, this.ob.avatarPose(this.me, act, this.arg, this.plane.avatarPose(this.myId, act === ACT_PLANE, this.rg.avatarPose(this.myId, act === ACT_REGATTA, this.pose)))) : null, dt, this.time, this.ground, camPos, true);
     this.kites.draw(this.me, this.hasSelf ? this.pose : null, dt, this.clock.renderTick / TICK_RATE);
     this.me.slotView(act === ACT_SLOT);
     // у бильярдного стола камера прямо над своей головой — себя не рисуем, иначе шапка закрывает ближний борт
@@ -2800,6 +2820,7 @@ export class LobbyScene implements Scene {
     }
     // в своей лодке — на своём месте по позе лодки на экране (client/boat/ownboats.ts)
     this.ob.selfPose(act, this.arg, pose);
+    this.banana.selfPose(act, this.arg, pose, this.me);
     this.quiz?.selfPose(act, this.arg, pose, this.me);
     pose.flags = E_ALIVE | (s.grounded ? E_GROUNDED : 0) | (s.dashT > 0 ? E_DASH : 0);
   }
@@ -2921,7 +2942,7 @@ export class LobbyScene implements Scene {
       if (av.action !== r.track.hp || av.arg !== r.track.armor) av.setAction(r.track.hp, r.track.armor);
       this.wirePartner(av);
       this.kites.prepare(av);
-      av.update(this.ob.avatarPose(av, r.track.hp, r.track.armor, this.plane.avatarPose(r.track.id, r.track.hp === ACT_PLANE, this.rg.avatarPose(r.track.id, r.track.hp === ACT_REGATTA, ok ? pose : null))), dt, this.time, this.ground, camPos, false);
+      av.update(this.banana.avatarPose(av, r.track.hp, r.track.armor, this.ob.avatarPose(av, r.track.hp, r.track.armor, this.plane.avatarPose(r.track.id, r.track.hp === ACT_PLANE, this.rg.avatarPose(r.track.id, r.track.hp === ACT_REGATTA, ok ? pose : null)))), dt, this.time, this.ground, camPos, false);
       this.kites.draw(av, ok ? pose : null, dt, t / TICK_RATE);
     }
   }
@@ -3008,6 +3029,7 @@ export class LobbyScene implements Scene {
     }
     hud.showEmotes(this.hasSelf && !isHeld(act) && !this.ratHud.cheering && !this.quiz?.emotesBlocked);
     hud.setKite(this.kiteOn, act === ACT_KITE, this.arg >= KITE_REEL_FIRST);
+    const bananaHint = this.hasSelf ? this.banana.boardHint(this.pose.x, this.pose.y, this.pose.z, act) : null;
     const kd = this.kartDist();
     this.kartBeeps(kd <= KART_START.r);
     if (!this.hasSelf || act === ACT_WARDROBE) hud.setHint(null);
@@ -3027,13 +3049,17 @@ export class LobbyScene implements Scene {
     // в самолёте подсказки — свои (client/lobby/plane.ts)
     else if (act === ACT_PLANE) hud.setHint(null);
     // в своей лодке подсказки — свои (client/boat/ownboats.ts)
-    else if (act === ACT_OWNBOAT) hud.setHint(...this.ob.hint());
+    else if (act === ACT_OWNBOAT) hud.setHint(...this.banana.boatHint(this.ob.hint()));
+    // на банане и в воде рядом с ним (client/boat/banana.ts)
+    else if (act === ACT_BANANA) hud.setHint(...this.banana.hint());
     else if (isHeld(act)) hud.setHint(TOUCH ? ['E'] : ['W', 'A', 'S', 'D'], TOUCH ? 'встать · справа пальцем — осмотреться' : 'встать · мышь — осмотреться');
     else if (this.storm3d.hint) hud.setHint(this.storm3d.hint.keys, this.storm3d.hint.text, this.storm3d.hint);
     else if (this.pirates3d.hint) hud.setHint(this.pirates3d.hint.keys, this.pirates3d.hint.text);
     else if (this.startZone.kind) hud.setHint(['E'], `Вход через ${Math.max(1, Math.ceil(this.startZone.left))} с · E — сразу`);
     else if (kd <= KART_START.r + KART_HINT_M) this.hintKart(kd <= KART_START.r);
     else if (this.aquaAt === 0 && onJetty(this.pose.x, this.pose.y, this.pose.z)) this.hintAqua();
+    // у банана на воде — «E — сесть на банан» (client/boat/banana.ts)
+    else if (bananaHint) hud.setHint(...bananaHint);
     else this.hintNearest();
     this.aquaTimer();
     const { settings, net } = this.d;
@@ -3377,7 +3403,7 @@ export class LobbyScene implements Scene {
       remotes: this.remotes.size, queue: this.queueAvg, fps: this.fps, frameMs: this.lastFrameMs, seq: this.seq,
       dkSeat: this.dkSeat, dkLocked: this.dkHud.locked, dkHand: this.dkHand?.cards.length ?? -1,
       blackjack: this.blackjack3d.view(), blackjackOpen: this.bjHud.visible, billiards: this.billiards.debug(), skill: this.skillStatus, kraken: this.kraken.debug(),
-      boatrace: this.boatRaceStatus, regatta: this.rg.debug(), plane: this.plane.debug(), ob: this.ob.debug(), hide: this.hideStatus, startZone: this.startZone,
+      boatrace: this.boatRaceStatus, regatta: this.rg.debug(), plane: this.plane.debug(), ob: this.ob.debug(), banana: this.banana.debug(), hide: this.hideStatus, startZone: this.startZone,
       storm: this.stormState, pirates: this.pirates3d.debug(), critters: this.critters.debug(),
       ask: this.ask?.k ?? -1, photoCard: this.photo.hasCard, ball: this.ball.debug(),
       fish: this.fishing.debug(), fishSpot: this.myFishSpot, fishCard: this.fishHud.hasCard, fish2: this.fish2.debug(),

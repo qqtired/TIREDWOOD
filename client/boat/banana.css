@@ -1,0 +1,24 @@
+/* «Банан за катером» (client/boat/banana.ts): плашка равновесия в слоте bc над подсказкой. Только раскладка поверх
+   .k-plate, .k-key и .k-meter; цвета — токены кита (своё — золотом, опасность — красным). */
+.k-slot--bc > .bn-hud { order: -1; display: grid; justify-items: center; gap: 6px; width: 300px; padding: 8px 12px 10px; }
+.bn-hud[hidden] { display: none; }
+.bn-cap { font: 700 var(--fs-16)/1.15 var(--font-text); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.bn-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; width: 100%; }
+.bn-row > .k-key { transition: transform .12s var(--ease-out), background-color .12s, color .12s; }
+.bn-row > .k-key.is-hot { transform: scale(1.18); background: var(--gold); color: var(--gold-ink, #2b1d05); border-color: var(--gold-lo, var(--gold)); }
+/* полоса крена: середина — спокойно (мята), к краям — опасно (красный) */
+.bn-track { position: relative; height: 14px; border: var(--track-border); border-radius: var(--r-pill);
+  background: linear-gradient(90deg, var(--bad) 0 9%, color-mix(in srgb, var(--gold) 80%, #fff) 22%, var(--good) 40% 60%, color-mix(in srgb, var(--gold) 80%, #fff) 78%, var(--bad) 91% 100%); }
+.bn-mid { position: absolute; top: -3px; bottom: -3px; left: 50%; width: 2px; margin-left: -1px; border-radius: 1px; background: var(--plate-text); opacity: .35; }
+.bn-mark { position: absolute; top: 50%; left: 50%; width: 18px; height: 18px; margin: -9px 0 0 -9px; border: 2px solid var(--plate-text); border-radius: 50%; background: var(--plate-bg); box-shadow: 0 1px 3px rgba(0, 0, 0, .3); transition: left .08s linear; }
+.bn-hud.is-edge .bn-mark { border-color: var(--bad); background: var(--bad); animation: bn-shake .18s linear infinite; }
+@keyframes bn-shake { 0%, 100% { translate: 0 0; } 50% { translate: 0 -2px; } }
+.bn-swim { width: 100%; }
+.bn-rows { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 12px; font: 600 var(--fs-15)/1.2 var(--font-text); }
+.bn-rows:empty { display: none; }
+.bn-who b { font-variant-numeric: tabular-nums; }
+.bn-who.is-water b { color: var(--info-text); }
+/* по режимам: верхом — полоса и клавиши; в воде — полоса времени; хозяину — строки седоков */
+.bn-hud:not([data-bn='ride']) .bn-row { display: none; }
+.bn-hud:not([data-bn='swim']) .bn-swim { display: none; }
+.bn-hud:not([data-bn='drive']) .bn-rows { display: none; }

@@ -1,0 +1,37 @@
+/* Карточки выбора набора (PAINT4) — только токены кита: подложка .k-plate, клавиша .k-key, полосы .k-meter, своё — золотом.
+   Ряд встаёт в нижний центральный слот над панелью бойца; шире слота (4 × 150 px) — выходит за него симметрично. */
+.p4-cards { position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; width: 640px; max-width: calc(100vw - 32px); margin: 0 -40px; pointer-events: auto; font-family: var(--font-text); }
+.p4-cards.is-in { animation: p4-in .28s var(--ease-out) backwards; }
+.p4-cards-head { display: flex; align-items: center; gap: 8px; padding: 5px 12px 6px; border-radius: var(--r-pill); color: var(--plate-text); font: 600 var(--fs-14)/1.2 var(--font-text); white-space: nowrap; }
+.p4-cards-head > b { font-weight: 800; font-size: var(--fs-15); }
+.p4-cards-how { color: var(--surf-dim, currentColor); opacity: .85; }
+.p4-cards-sep { width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: .4; }
+.p4-cards-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; width: 100%; }
+.p4-card {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 0; padding: 8px 9px 9px;
+  color: var(--plate-text); font: 500 var(--fs-13)/1.2 var(--font-text); text-align: center; cursor: pointer;
+  transition: transform .12s var(--ease-out), box-shadow .12s var(--ease-out); animation: p4-card .32s var(--ease-out) calc(var(--i) * 45ms) backwards;
+}
+.p4-card:hover, .p4-card.is-hover { transform: translateY(-4px); }
+.p4-card.is-on { transform: translateY(-6px); box-shadow: var(--plate-shadow), inset 0 0 0 2px var(--gold), 0 0 16px var(--gold-soft); }
+.p4-card.is-pick { animation: k-bump .28s var(--ease-out); }
+.p4-card-ic { display: grid; place-items: center; width: 56px; height: 56px; }
+.p4-card-ic > img { width: 56px; height: 56px; object-fit: contain; filter: drop-shadow(0 2px 3px rgba(20, 10, 12, .3)); }
+.p4-card-name { font: 800 var(--fs-16)/1.1 var(--font-text); }
+.p4-card.is-on .p4-card-name { color: var(--gold-text, var(--plate-text)); }
+.p4-card-good { min-height: 2.4em; font-weight: 600; }
+.p4-card-weak { min-height: 2.4em; color: var(--bad-text); font-weight: 600; opacity: .9; }
+.p4-bars { display: flex; flex-direction: column; gap: 3px; width: 100%; margin-top: 3px; }
+.p4-bar { display: grid; grid-template-columns: 62px minmax(0, 1fr); align-items: center; gap: 6px; text-align: left; }
+.p4-bar > small { font-size: 11px; font-weight: 600; opacity: .75; }
+.p4-bar > .k-meter { height: 5px; border: 0; }
+/* сбит: ряд чуть ниже баннера, стрелка мыши — своя (мышь захвачена игрой) */
+.p4-cursor {
+  position: absolute; left: 0; top: 0; z-index: 3; width: 20px; height: 24px; pointer-events: none;
+  background: var(--plate-text); clip-path: polygon(0 0, 0 82%, 26% 64%, 44% 100%, 58% 94%, 41% 59%, 74% 59%);
+  filter: drop-shadow(0 0 1.5px var(--gold)) drop-shadow(0 2px 2px rgba(0, 0, 0, .35));
+}
+html.touch .p4-cards { width: min(560px, calc(100vw - 24px)); }
+html.touch .p4-card-good, html.touch .p4-card-weak, html.touch .p4-bars { display: none; }
+@keyframes p4-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes p4-card { from { opacity: 0; transform: translateY(10px) scale(.96); } to { opacity: 1; transform: none; } }

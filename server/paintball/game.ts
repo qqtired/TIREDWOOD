@@ -11,6 +11,7 @@ import { buildPier } from '../../shared/maps/pier.ts';
 import type { GameMap } from '../../shared/maps/types.ts';
 import { hash32, makeRng } from '../../shared/math.ts';
 import { randomOutfit, type Outfit } from '../../shared/outfit.ts';
+import { BTN_PB_BUCKET, KIT_BOW, KIT_COUNT, KIT_MARKER, armKit, makeP4Step, p4After, p4Before } from '../../shared/paint4.ts';
 import { botsAllowed } from '../../shared/solobots.ts';
 import {
   AWP_LYING, E_ADS, E_ALIVE, E_DASH, E_FIRING, E_GROUNDED, E_PROTECTED, E_RELOAD, E_TEAM, PB_TAIL_BYTES, SNAP_SELF_RESET, encodeEntities,
@@ -30,6 +31,7 @@ import { InputQueue } from '../inputs.ts';
 import { BotBrain, type Skill } from './bot.ts';
 import { History } from './lagcomp.ts';
 import { NavGrid } from './nav.ts';
+import { Paint4 } from './paint4.ts';
 
 export interface Sink {
   sendBinary(data: Uint8Array): void;
@@ -46,6 +48,9 @@ export class Player {
   readonly seed: number;
   readonly state: PlayerState = makeState();
   readonly ev: StepEvents = makeEvents();
+  kit = KIT_MARKER;
+  readonly p4step = makeP4Step();
+  bucketAt = 0;
   alive = false;
   hp = BASE_HEALTH;
   maxHp = BASE_HEALTH;
@@ -148,6 +153,7 @@ export class Game {
   readonly jars: JamJar[];
   /** Снайперская AWP на кресте (null — на карте её нет) */
   readonly awp: AwpSpot | null;
+  readonly p4: Paint4 | null;
   private events: GameEvent[] = [];
   private rosterDirty = true;
   private rosterSentTick = -9999;
@@ -161,12 +167,12 @@ export class Game {
   private usedIds = new Set<number>();
   private roundStartedOnce = false;
   private readonly hooks: GameHooks;
-  private readonly targets = new Float64Array(3 * 256);
-  private readonly targetPlayers: Player[] = [];
+  readonly targets = new Float64Array(3 * 256);
+  readonly targetPlayers: Player[] = [];
   private readonly dir = { dirX: 0, dirY: 0, dirZ: 0 };
   private pendingAfk: Player[] = [];
 
-  constructor(hooks: GameHooks = {}) {
+  constructor(hooks: GameHooks = {}, opts: { paint4?: boolean } = {}) {
     this.hooks = hooks;
     this.map = buildPier();
     this.world = new CollisionWorld(this.map);
@@ -174,6 +180,7 @@ export class Game {
     this.jars = this.map.pickups.map((p) => ({ x: p.x, y: p.y, z: p.z, available: true, respawnAt: 0 }));
     const a = this.map.awp;
     this.awp = a ? { x: a.x, y: a.y, z: a.z, lying: true, holder: null, respawnAt: 0 } : null;
+    this.p4 = opts.paint4 ? new Paint4(this) : null;
   }
 
   get humanCount(): number {
@@ -199,6 +206,7 @@ export class Game {
     sink.sendJson({
       t: 'welcome', id, tick: this.tick, team, seed: p.seed, phase: this.phase, phaseEnd: this.phaseEnd,
       roster: this.roster(), botSkill: this.botSkill,
+      ...(this.p4 ? { p4: true } : {}),
     });
     if (!this.roundStartedOnce || this.humanCount === 1) {
       // Первый живой человек — начинаем свежий раунд
@@ -317,6 +325,7 @@ export class Game {
       j.respawnAt = 0;
     }
     this.resetAwp();
+    this.p4?.reset();
     for (const p of this.players.values()) {
       p.kills = 0;
       p.deaths = 0;
@@ -422,6 +431,7 @@ export class Game {
     st.y = best.y;
     st.z = best.z + (this.rng() - 0.5) * 0.6;
     st.ammo = MAG_SIZE;
+    if (this.p4) armKit(st, p.kit);
     st.prevButtons = p.lastInput.buttons;
     p.alive = true;
     p.maxHp = BASE_HEALTH + (p.bonus?.hp ?? 0);
@@ -439,6 +449,17 @@ export class Game {
 
   onInputs(p: Player, inputs: Input[], count: number): void {
     p.inq.push(inputs, count);
+  }
+
+  onKit(p: Player, k: number): void {
+    if (!this.p4 || p.isBot || !Number.isInteger(k) || k < 0 || k >= KIT_COUNT) return;
+    // в бою — пока сбит или под защитой появления (она до первого выстрела): 2 с на выбор мало
+    if (!p.alive || this.phase !== PHASE_PLAY || this.tick < p.protectUntil) {
+      if (p.kit !== k) this.rosterDirty = true;
+      p.kit = k;
+      if (p.alive) armKit(p.state, k);
+    }
+    p.sink?.sendJson({ t: 'pbKit', k: p.kit });
   }
 
   private processHuman(p: Player): void {
@@ -479,24 +500,30 @@ export class Game {
       return;
     }
     const canFire = this.phase === PHASE_PLAY;
-    stepPlayer(p.state, inp, this.world, canFire, p.seed, p.ev);
+    const pressed = this.p4 ? inp.buttons & ~p.state.prevButtons : 0;
+    if (this.p4) {
+      const m = p4Before(p.p4step, p.state, inp, p.kit);
+      stepPlayer(p.state, m, this.world, canFire, p.seed, p.ev);
+      p4After(p.p4step, p.state, p.ev, canFire, p.seed, p.kit);
+    } else stepPlayer(p.state, inp, this.world, canFire, p.seed, p.ev);
     if (p.ev.fired) {
       if (p.protectUntil > this.tick) p.protectUntil = this.tick;
       p.firingUntil = this.tick + 8;
-      this.fire(p, inp);
+      if (this.p4 && p.p4step.wrapped) this.p4.fire(p, inp);
+      else this.fire(p, inp);
+    }
+    if (this.p4 && canFire && (pressed & BTN_PB_BUCKET)) {
+      // бросок, как и выстрел, снимает защиту появления
+      if (p.protectUntil > this.tick && p.alive && this.tick >= p.bucketAt) p.protectUntil = this.tick;
+      this.p4.throwBucket(p, inp);
     }
     if (p.alive && p.state.y < DROWN_Y) this.drown(p);
   }
 
   // ------------------------------------------------------------ бой
 
-  /**
-   * Выстрел. Цели откатываются к моменту, который видел стрелявший. Человек целится от третьего лица:
-   * направление считается по его камере (shared/aim.ts), бот — по своему взгляду.
-   * Выстрел из AWP летит так же, но урон без спада с дистанцией: любое попадание сбивает.
-   */
-  private fire(p: Player, inp: Input): void {
-    const s = p.state;
+  /** Цели с откатом к моменту, который видел стрелявший: общие для маркера и PAINT4. */
+  collectTargets(p: Player, inp: Input): number {
     const viewTick = p.isBot ? this.tick : inp.viewTick;
     let rewind = this.tick - viewTick;
     if (!(rewind >= 0)) rewind = 0;
@@ -521,6 +548,19 @@ export class Game {
       who[n] = q;
       n++;
     }
+    return n;
+  }
+
+  /**
+   * Выстрел. Цели откатываются к моменту, который видел стрелявший. Человек целится от третьего лица:
+   * направление считается по его камере (shared/aim.ts), бот — по своему взгляду.
+   * Выстрел из AWP летит так же, но урон без спада с дистанцией: любое попадание сбивает.
+   */
+  private fire(p: Player, inp: Input): void {
+    const s = p.state;
+    const n = this.collectTargets(p, inp);
+    const tg = this.targets;
+    const who = this.targetPlayers;
     let dx = p.ev.dirX;
     let dy = p.ev.dirY;
     let dz = p.ev.dirZ;
@@ -570,7 +610,7 @@ export class Game {
     }
   }
 
-  private damage(v: Player, a: Player, amount: number, head: boolean, hx: number, hy: number, hz: number): void {
+  damage(v: Player, a: Player, amount: number, head: boolean, hx: number, hy: number, hz: number, how = 'shot'): void {
     if (!v.alive || this.tick < v.protectUntil) return;
     const absorbed = Math.min(v.armor, amount * ARMOR_ABSORB);
     v.armor -= absorbed;
@@ -581,7 +621,7 @@ export class Game {
     v.damageLog.set(a.id, this.tick);
     v.bot?.onHurt(a);
     this.events.push(['hit', a.id, v.id, Math.round(amount), head ? 1 : 0, round2(hx), round2(hy), round2(hz)]);
-    if (v.hp <= 0.5) this.kill(v, a, head, 'shot');
+    if (v.hp <= 0.5) this.kill(v, a, head, how);
   }
 
   /** Попадание из AWP: сбивает сразу — ни броня, ни бонус здоровья не спасают; защита после появления — спасает. */
@@ -680,6 +720,10 @@ export class Game {
       s.awp = AWP_SHOTS;
       // магазин маркера — сразу полный: после AWP не перезаряжаться посреди боя
       s.ammo = MAG_SIZE;
+      if (this.p4) {
+        armKit(s, p.kit);
+        s.awp = AWP_SHOTS;
+      }
       s.reloadT = 0;
       this.events.push(['awp', 1, p.id]);
       this.systemChat(`🎯 ${p.name} подобрал AWP`);
@@ -804,6 +848,10 @@ export class Game {
     for (const p of this.players.values()) p.sink?.sendJson(msg);
   }
 
+  event(e: GameEvent): void {
+    this.events.push(e);
+  }
+
   // ------------------------------------------------------------ тик
 
   step(): void {
@@ -832,6 +880,7 @@ export class Game {
       }
       if (!p.alive && tick >= p.respawnTick && this.players.has(p.id)) this.spawnPlayer(p);
     }
+    this.p4?.tick();
 
     // банки варенья
     for (let i = 0; i < this.jars.length; i++) {
@@ -906,7 +955,8 @@ export class Game {
       if (p.team === 1) flags |= E_TEAM;
       if (s.grounded) flags |= E_GROUNDED;
       if (s.dashT > 0) flags |= E_DASH;
-      if (s.reloadT > 0) flags |= E_RELOAD;
+      // у лучника (PAINT4) E_RELOAD — «натягивает»: остальные видят, как он тянет тетиву
+      if (s.reloadT > 0 || (this.p4 && p.kit === KIT_BOW && s.awp === 0 && s.bloom > 0)) flags |= E_RELOAD;
       if (p.lastInput.buttons & BTN_ADS) flags |= E_ADS;
       if (p.protectUntil > tick) flags |= E_PROTECTED;
       if (p.firingUntil > tick) flags |= E_FIRING;
@@ -949,6 +999,7 @@ export class Game {
     return [...this.players.values()].map((p) => ({
       id: p.id, level: p.level, name: p.name, team: p.team, bot: p.isBot, k: p.kills, d: p.deaths, a: p.assists,
       ping: p.isBot ? 0 : Math.round(p.ping), reels: p.reels, maxHp: p.maxHp, dmg: Math.round((p.dmgMult - 1) * 100), o: p.outfit,
+      ...(this.p4 ? { kit: p.kit } : {}),
     }));
   }
 

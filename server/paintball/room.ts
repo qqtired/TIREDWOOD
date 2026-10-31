@@ -13,7 +13,7 @@ export class PaintballRoom implements Room {
   private readonly byClient = new Map<Client, Player>();
   private readonly byPlayer = new Map<Player, Client>();
 
-  constructor(hub: Hub) {
+  constructor(hub: Hub, paint4 = false) {
     this.hub = hub;
     this.game = new Game({
       roundEnd: (p, r, won, mvp) => {
@@ -24,7 +24,7 @@ export class PaintballRoom implements Room {
         const c = this.byPlayer.get(p);
         if (c) hub.onPaintballAfk(c);
       },
-    });
+    }, { paint4 });
   }
 
   get humans(): number {
@@ -81,9 +81,11 @@ export class PaintballRoom implements Room {
   }
 
   onMessage(c: Client, msg: ClientMsg): void {
-    if (msg.t !== 'pull') return;
+    if (msg.t !== 'pull' && msg.t !== 'pbKit') return;
     const p = this.byClient.get(c);
-    if (p) this.game.onPull(p);
+    if (!p) return;
+    if (msg.t === 'pbKit') this.game.onKit(p, msg.k);
+    else this.game.onPull(p);
   }
 
   /** Команда из чата (/restart, /bots…) */

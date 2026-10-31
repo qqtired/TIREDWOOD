@@ -244,6 +244,11 @@ export class OwnBoatsClient {
     return this.seatOf(this.act, this.arg)?.boat === i;
   }
 
+  /** Ник хозяина лодки i ('' — нет лодки): для банана за ней (client/boat/banana.ts) */
+  boatNick(i: number): string {
+    return this.boats.get(i)?.v.nick ?? '';
+  }
+
   /** Поза лодки i на экране (для звука радио и т. п.) */
   boatPose(i: number): Readonly<FleetPose> | null {
     return this.boats.get(i)?.pose ?? null;

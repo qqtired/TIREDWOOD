@@ -8,7 +8,7 @@ import { BOAT_SIT_LIFT } from '../../shared/boat.ts';
 import { TEAM_COLORS } from '../../shared/constants.ts';
 import { REACTIONS } from '../../shared/durak.ts';
 import {
-  ACT_DANCE, ACT_DURAK, ACT_FIVE, ACT_HUG, ACT_LAUGH, ACT_NONE, ACT_OWNBOAT, ACT_RESPECT, ACT_SIT, ACT_SLOT, ACT_TIRED, ACT_WAVE, ACT_WHEEL, BUBBLE_CHARS, BUBBLE_MS, isAboard, isFerry, isPair,
+  ACT_BANANA, ACT_DANCE, ACT_DURAK, ACT_FIVE, ACT_HUG, ACT_LAUGH, ACT_NONE, ACT_OWNBOAT, ACT_RESPECT, ACT_SIT, ACT_SLOT, ACT_TIRED, ACT_WAVE, ACT_WHEEL, BUBBLE_CHARS, BUBBLE_MS, isAboard, isFerry, isPair,
 } from '../../shared/lobby.ts';
 import { clamp, lerp, lerpAngle } from '../../shared/math.ts';
 import { ACT_KITE, kiteAmount } from '../../shared/kite.ts';
@@ -515,6 +515,9 @@ export class Avatar {
   driving = false;
   /** Руль карта −1…1 (+ — влево) */
   steer = 0;
+  /** Наклон тела, рад: вбок (+ — влево) и вперёд (+ — назад); ставит сцена — банан (client/boat/bananapose.ts) */
+  bodyRoll = 0;
+  bodyPitch = 0;
   /**
    * Руки задаёт сцена (удочка, рыба в руках): левая и правая варежки в осях желейки — [x, y, z, x, y, z];
    * null — как обычно (по действию)
@@ -1305,7 +1308,7 @@ export class Avatar {
     let contact = 0;
     let breath = 0;
     // за рулём карта, в катере и на колесе везут — ногами не перебирает
-    if (this.driving || isAboard(this.action) || isFerry(this.action) || this.action === ACT_WHEEL || this.action === ACT_OWNBOAT) {
+    if (this.driving || isAboard(this.action) || isFerry(this.action) || this.action === ACT_WHEEL || this.action === ACT_OWNBOAT || this.action === ACT_BANANA) {
       this.hopPhase = 0;
     } else if (grounded && hs > 0.8) {
       this.hopPhase += dt * (5 + hs * 0.9);
@@ -1334,6 +1337,10 @@ export class Avatar {
       // в катере и лодке «Удалая» стоит на полу, а подушка кресла и банка — выше скамейки
       lift = isAboard(act) || isFerry(act) ? BOAT_SIT_LIFT : SIT_LIFT;
       sy *= 0.88;
+      sxz *= 1.04;
+    } else if (act === ACT_BANANA) {
+      // верхом на банане: поза ставит client/boat/bananapose.ts, здесь — только «присел»
+      sy *= 0.9;
       sxz *= 1.04;
     } else if (act === ACT_TIRED) {
       sy *= 0.85;
@@ -1365,7 +1372,7 @@ export class Avatar {
     }
     this.squashNode.scale.set(sxz, sy, dash ? sxz * 1.18 : sxz);
     this.squashNode.position.set(jitter, hop * 0.11 + lift, 0);
-    this.squashNode.rotation.z = sway;
+    this.squashNode.rotation.set(this.bodyPitch, 0, sway + this.bodyRoll);
     if (this.popT >= 0) {
       const k = 1 + this.popT * 5;
       this.squashNode.scale.multiplyScalar(k);
