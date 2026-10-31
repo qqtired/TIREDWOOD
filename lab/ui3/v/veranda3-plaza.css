@@ -84,8 +84,9 @@
 /* «Поверни телефон» — кремовая табличка (подсказка-новость), чернила сливовые */
 [data-hud='veranda3'] .tc-rotate { padding: 7px 16px 8px; border: 1px solid transparent; border-image: var(--v3-cream) 8 fill / 8px / 0 stretch; border-radius: 0; background: none;
   color: var(--v3m-ink); font: 700 15px/1.2 Rubik, system-ui, sans-serif; filter: var(--v3m-paper-drop); }
-/* телефон: подпись бонуса картинга тоже переносится, а не режется многоточием (в игре на телефоне стоит правило max-width 150 + многоточие) */
-[data-hud='veranda3'].touch .rc-item .mo-item-txt > * { max-width: 150px; overflow: visible; white-space: normal; text-overflow: clip; }
+/* телефон: подпись бонуса картинга тоже переносится, а не режется многоточием. В игре на телефоне стоит правило max-width 150 + многоточие
+   (client/race/ui.css, html.touch[data-room='race'] …) — селектор v3 сильнее его: html и .mo-item */
+html[data-hud='veranda3'].touch .rc-item.mo-item .mo-item-txt > * { max-width: 150px; overflow: visible; white-space: normal; text-overflow: clip; }
 
 /* ================================================================ МЕЛОЧИ ПЛОЩАДИ — ввод чата, приглашение, змей, голосование, новая рамка, голос
    Всё на формах системы: капсула с ромбиками на концах (как поле чата), табличка, медальон. */
