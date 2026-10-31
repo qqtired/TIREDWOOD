@@ -13,7 +13,7 @@ import { PB_BARRELS, REGATTA_BOATS, REGATTA_MASTS, SIGNPOST, YARD_BARREL, YARD_C
 import { TOUT_INFO, type ToutKey } from '../client/lobby/plaza/data.ts';
 import { DEFAULT_PLAZA, pickPlaza } from '../client/lobby/plaza/flag.ts';
 import { setupHub } from './kit.ts';
-import { AGENDA_ORDER, agendaRows, boatPlateLine, emptyLive, fillLive, liveLines, plural, type LiveIn, type LiveRaw } from '../client/lobby/plaza/live.ts';
+import { AGENDA_ORDER, agendaRows, boatPlateLine, dungeonLine, emptyLive, farmLine, fillLive, liveLines, plural, ratsLine, type LiveIn, type LiveRaw } from '../client/lobby/plaza/live.ts';
 
 const KEYS = Object.keys(TOUT_INFO) as ToutKey[];
 
@@ -78,7 +78,7 @@ test('живые реплики: по каждому статусу — коро
   assert.ok(produced >= 40, `живых реплик ${produced}`);
 });
 
-test('афиша кафе: без флагов — пейнтбол, картинг, катер, аквапарк; с флагами — все девять по порядку улицы, строки короткие', () => {
+test('афиша кафе: без флагов — пейнтбол, картинг, катер, аквапарк; с флагами — все места по порядку улицы (в том числе «Ракушка», бега, Подземелье, ферма), строки короткие', () => {
   const idle = agendaRows(emptyLive());
   assert.deepEqual(idle.map((r) => r.key), ['paint', 'kart', 'boat', 'aqua'], 'пейнтбол, картинг, катер и аквапарк есть всегда');
   assert.ok(idle.every((r) => !r.hot), 'тишина — ни одной горящей точки');
@@ -92,11 +92,15 @@ test('афиша кафе: без флагов — пейнтбол, карти�
     regatta: { q: { phase: 'count', n: 5, left: 11 }, running: false },
     boat: { ph: BP_BOARD, n: 1, left: 25 },
     aqua: { nick: 'Tester7', ms: 41200 },
+    quiz: { text: 'голосуют · 3 игрока', hot: true },
+    dungeon: dungeonLine({ nick: 'Tester7', waves: 12 }),
+    farm: farmLine({ n: 2, max: 6 }),
+    rats: ratsLine({ phase: 'open', leftSec: 6.2, leader: -1, winner: -1 }),
     ...over,
   });
   const rows = agendaRows(all());
   assert.deepEqual(rows.map((r) => r.key), [...AGENDA_ORDER], 'все режимы, порядок как на улице');
-  assert.ok(rows.every((r) => r.hot === (r.key !== 'aqua')), 'везде что-то идёт, кроме аквапарка: у него в строке рекорд');
+  assert.ok(rows.every((r) => r.hot === (r.key !== 'aqua' && r.key !== 'dungeon')), 'везде что-то идёт, кроме аквапарка и Подземелья: у них в строке рекорд');
   assert.equal(rows.find((r) => r.key === 'aqua')?.text, 'рекорд 0:41.20 · Tester7');
   assert.equal(agendaRows(all({ aqua: { nick: 'ОченьДлинныйНикНаДвадцать', ms: 125340 } })).find((r) => r.key === 'aqua')?.text.length, 28);
   assert.equal(agendaRows(all({ aqua: null })).find((r) => r.key === 'aqua')?.text, 'рекордов нет — будь первым');
@@ -115,6 +119,20 @@ test('афиша кафе: без флагов — пейнтбол, карти�
   assert.equal(text('sky', all({ skill: { n: 4, max: 4, phase: 'run', left: 0 } })), 'каланча занята');
   assert.equal(text('regatta', all({ regatta: { q: null, running: true } })), 'идёт заезд в бухте');
   assert.equal(text('regatta', all({ regatta: { q: { phase: 'idle', n: 0 }, running: false } })), 'бухта свободна');
+  // новые места: «Ракушка», Подземелье, ферма, крысиные бега — по готовым строкам сцены; нет строки — режим выключен, места в афише нет
+  assert.equal(text('quiz', all()), 'голосуют · 3 игрока');
+  assert.equal(text('dungeon', all()), 'рекорд 12 волн · Tester7');
+  assert.equal(text('dungeon', all({ dungeon: dungeonLine(null) })), 'спуск соло · рекордов нет');
+  assert.equal(text('farm', all()), 'на ферме 2 из 6');
+  assert.equal(text('farm', all({ farm: farmLine({ n: 6, max: 6 }) })), 'ферма полна');
+  assert.ok(!agendaRows(all({ farm: farmLine({ n: 0, max: 6 }) })).find((r) => r.key === 'farm')?.hot, 'пустая ферма — точка не горит');
+  assert.equal(text('rats', all()), 'ставки · старт через 7 с');
+  assert.equal(text('rats', all({ rats: ratsLine({ phase: 'run', leftSec: 0, leader: 2, winner: -1 }) })), 'бегут · впереди Барон');
+  assert.equal(text('rats', all({ rats: ratsLine({ phase: 'idle', leftSec: 0, leader: -1, winner: -1 }) })), 'ставки на крыс · жми E');
+  for (const key of ['quiz', 'dungeon', 'farm', 'rats'] as const) {
+    assert.ok(!agendaRows(all({ [key]: null })).some((r) => r.key === key), `${key}: выключен — строки нет`);
+  }
+  assert.ok(!agendaRows(all({ noBoat: true })).some((r) => r.key === 'boat'), 'на месте «Ласточки» «Ракушка»: строки катера нет');
 
   // перебор всех состояний: ни одной кривой строки
   const phases = { fort: [FT_GATHER, FT_WAVE, FT_BREAK, FT_END], kart: ['idle', 'count', 'race', 'results'], hide: ['gather', 'hide'], skill: ['pre', 'run', 'idle'] };

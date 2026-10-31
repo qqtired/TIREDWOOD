@@ -109,6 +109,11 @@ export class FarmGate {
     return this.st !== null;
   }
 
+  /** Сколько фермеров за аркой и мест всего (для афиши кафе) */
+  counts(): { n: number; max: number } {
+    return { n: this.st?.n ?? 0, max: this.st?.max || FARM_PLOTS };
+  }
+
   status(st: FarmStatus | null): void {
     this.st = st;
     if (st && !this.built) {

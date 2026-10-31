@@ -39,6 +39,8 @@ import { TOUCH, TouchControls } from './touch.ts';
 import { GameMenu, applyInterface } from './ui/menu/menu.ts';
 import { OnlineList } from './ui/online.ts';
 import { KickVoteUi } from './ui/kickvote.ts';
+import { SocialUi } from './ui/social.ts';
+import { socialState } from './ui/socialstate.ts';
 import { ProfilePanel } from './ui/profile.ts';
 import { Toasts } from './ui/toasts.ts';
 import { Badge } from './ui/kit/badge.ts';
@@ -107,6 +109,8 @@ export class App {
   private readonly online: OnlineList;
   /** Плашка голосования «выгнать игрока» (меню Tab → 👢, shared/votekick.ts) */
   private readonly kickVote: KickVoteUi;
+  /** «Позвать», плашка «Иду», огни букв TIREDWOOD (флаг сервера SOCIAL, shared/social.ts) */
+  private readonly social: SocialUi;
   private readonly profile = new ProfilePanel();
   /** Меню на Esc (на телефоне ☰): профиль, настройки по категориям, клавиши */
   private readonly menu: GameMenu;
@@ -235,6 +239,10 @@ export class App {
     this.kickVote = new KickVoteUi(this.top, { myPid: () => this.me.pid, send: (m) => this.net.send(m), opened: () => this.sound.pairAsk() });
     // уведомления и плашка связи — в верх-центре HUD (ошибка смены ника видна и в профиле — profile.setNote)
     this.toasts = new Toasts(this.top);
+    this.social = new SocialUi(this.top, this.slots, {
+      send: (m) => this.net.send(m), opened: () => this.sound.pairAsk(), quizPref: () => this.settings.quizChat,
+      distTo: (kind) => this.lobby.distToEntrance(kind), note: (title, sub) => this.toasts.show(title, 4200, 'call-go', sub),
+    });
     this.linkBanner = new LinkBanner(this.top);
     this.relink = new Relink({
       connect: (rs) => {
@@ -576,7 +584,7 @@ export class App {
         if (m.on && (changed || !this.fishEventKnown)) {
           const left = m.until ? m.until - FISH_SEASON.now() : 0;
           const long = left > 0 && left < 3_600_000 ? ` · ${seasonWait(left)}` : '';
-          if (this.fishSeasonOn !== true && !this.lobby.fishEventPlate()) this.toasts.show(`🌧 Рыболовное событие${long}`, 7500, 'fish-event', 'уникальные виды рыб · редкие и выше ×1,5');
+          if (this.fishSeasonOn !== true && !this.lobby.fishEventPlate() && !this.lobby.onIsle()) this.toasts.show(`🌧 Рыболовное событие${long}`, 7500, 'fish-event', 'уникальные виды рыб · редкие и выше ×1,5');
         } else if (!m.on && changed && this.fishEventKnown) {
           if (!this.fishSeasonRain) this.toasts.show('🌧 Рыболовное событие закончилось', 4200, 'fish-event');
           this.fishSeasonRain = false;
@@ -665,6 +673,20 @@ export class App {
       case 'kickVote':
         this.kickVote.onState(m);
         this.online.setKick(this.kickVote.enabled, this.kickVote.active);
+        return;
+      case 'social':
+        this.social.onMsg(m);
+        this.lobby.social3d.setLit(m.lit);
+        return;
+      case 'callAsk':
+      case 'callWait':
+        this.social.onMsg(m);
+        return;
+      case 'callBeam':
+        this.lobby.social3d.beam(m.kind, m.ms);
+        return;
+      case 'letters':
+        this.lobby.social3d.setLit(m.lit, m.boom === 1);
         return;
       default:
         this.transition.toScene(m);
@@ -948,6 +970,8 @@ export class App {
     this.chat.close();
     this.online.show(false);
     this.kickVote.reset();
+    this.social.reset();
+    socialState.on = socialState.quiz = false;
     this.shell.classList.add('hidden');
     this.input.releaseAll();
     this.updateBlocked();
@@ -989,6 +1013,7 @@ export class App {
     // голосование «выгнать»: Y / N (F1 / F2), пока можешь голосовать; в крепости сначала — белый флаг
     const fort = this.active.kind === 'fort';
     if (!fort && this.kickVote.onKey(code, down, e)) return;
+    if (socialState.on && this.active.kind === 'lobby' && this.social.onKey(code, down, e)) return;
     // список Tab с мышью: Tab — закрыть и снова в игру, Esc — закрыть и в меню; остальные клавиши — не игре
     if (this.online.pinned) {
       if (down && !e.repeat && (code === 'Tab' || code === 'Escape')) {
@@ -1283,6 +1308,7 @@ export class App {
     applyInterface(s);
     saveSettings(s);
     this.applyQuality();
+    this.social.sendPref();
   }
 
   /** M: без звука ⇄ звук. Запоминается в настройках, как громкость; ползунок и флажок в меню подстроятся сами. */
@@ -1398,6 +1424,12 @@ export class App {
       this.renderer.beginFrame(this.settings.showStats);
       try { if (!this.transition.frame(now, dt)) this.active.frame(now, dt); }
       finally { this.renderer.endFrame(); }
+      // «Позвать» (флаг SOCIAL): кнопка рядом с подсказкой, пока стоишь в круге сбора или сидишь в «Ракушке»
+      if (socialState.on) {
+        const spot = this.active === this.lobby ? this.lobby.callSpot() : null;
+        this.social.setSpot(spot?.kind ?? null, spot?.note ?? '');
+        if (this.active !== this.lobby) this.social.clearAsk();
+      }
       this.watchPointer(now);
       const mode = this.active.touchMode;
       this.syncFishingUi(this.active.kind === 'lobby' && mode === 'fish');

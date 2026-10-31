@@ -34,6 +34,7 @@ import type { RatClientMsg, RatRaceView, RatServerMsg } from './ratrace.ts';
 import type { PlaneClientMsg, PlaneServerMsg, PlaneView } from './plane.ts';
 import type { ObClientMsg, ObServerMsg } from './ownboat.ts';
 import type { KickClientMsg, KickServerMsg } from './votekick.ts';
+import type { SocialClientMsg, SocialServerMsg } from './social.ts';
 import type { DgClientMsg, DgServerMsg, DgStatus } from './dungeon/api.ts';
 import type { ArcadeClientMsg, ArcadeServerMsg } from './arcade/net.ts';
 import type { QuizClientMsg, QuizServerMsg } from './quiz/net.ts';
@@ -191,6 +192,8 @@ export interface DurakTableView {
 
 export type ClientMsg =
   | KickClientMsg
+  /** «Позвать», выключатель викторины в чате (shared/social.ts, флаг SOCIAL) */
+  | SocialClientMsg
   /** Аркада новой набережной (shared/arcade/net.ts) */
   | ArcadeClientMsg
   | QuizClientMsg
@@ -353,8 +356,10 @@ export interface AquaRow {
 
 /** Экран «Топ проигравших» в павильоне автоматов: столько строк */
 export const LOSERS_ROWS = 5;
+/** Второстепенный список «Топа проигравших» за всё время: столько строк. */
+export const LOSERS_ALL_ROWS = 3;
 
-/** Строка «Топа проигравших»: чей профиль (свою строку видно), ник, сколько жетонов проиграл в автоматах (больше нуля) */
+/** Строка «Топа проигравших»: чей профиль (свою строку видно), ник, сколько жетонов проиграл в автоматах и рулетке (больше нуля) */
 export interface LoserRow {
   pid: number;
   nick: string;
@@ -448,6 +453,8 @@ export interface FishSpotSnapshot extends FishSpotView {
 
 export type ServerMsg =
   | KickServerMsg
+  /** «Позвать», огни букв TIREDWOOD (shared/social.ts, флаг SOCIAL) */
+  | SocialServerMsg
   /** Аркада новой набережной (shared/arcade/net.ts) */
   | ArcadeServerMsg
   | QuizServerMsg
@@ -507,7 +514,7 @@ export type ServerMsg =
     /** «Портовая регата» (флаг BOATRACE): заезд, круг сбора у пирса, рекорды бухты */
     regatta?: { v: RgView; q: GatherStatus; top: RgRecordRow[] };
     hide?: GatherStatus | HideStatus;
-    kart: KartStatus; fish: FishSpotSnapshot[]; rain: number; respects: number; boat: BoatStatus; aqua: AquaRow[]; losers: LoserRow[];
+    kart: KartStatus; fish: FishSpotSnapshot[]; rain: number; respects: number; boat: BoatStatus; aqua: AquaRow[]; losers: LoserRow[]; losersAll?: LoserRow[];
     /** Лодка Семёна «Удалая» */
     ferry: FerryStatus;
     /** Идущий дождь (shared/weather.ts): сколько уже идёт, длина, сид, откуда — силу и молнии считает клиент */
@@ -544,7 +551,7 @@ export type ServerMsg =
   | { t: 'aquaRun'; a: 'stop' }
   | { t: 'aquaRun'; a: 'finish'; ms: number; best: number; place: number }
   // «Топ проигравших» в павильоне автоматов — при каждом изменении (докрутились барабаны, кто-то из топа сменил ник)
-  | { t: 'losers'; top: LoserRow[] }
+  | { t: 'losers'; top: LoserRow[]; all?: LoserRow[] }
   // экран с чатом друзей из Telegram (server/tgfeed.ts): tg — всё сразу (входящему на набережную, экран включили или
   // выключили), tgUp — только новые и исправленные строки (по id), пачкой, не чаще нескольких раз в секунду
   | { t: 'tg'; title: string; lines: TgLine[] }

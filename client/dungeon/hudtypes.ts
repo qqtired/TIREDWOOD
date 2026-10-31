@@ -114,6 +114,8 @@ export interface HudCards {
 /** Сундук-барабан: что выпало (1–3 строки), эволюция — золотом */
 export interface HudChest {
   items: { id?: string; kind?: 'weapon' | 'passive' | 'evo'; icon: string; name: string; from: number; to: number; evo?: boolean }[];
+  /** Из чего крутится лента барабана: только свои вещи героя (то, что сундук и может улучшить); пусто — как items */
+  pool?: { kind: 'weapon' | 'passive'; id: string; icon: string }[];
   /** большой (босса) */
   big: boolean;
   /** свой заголовок (сундук карты — «Сундук», островка — «Сундук островка») */

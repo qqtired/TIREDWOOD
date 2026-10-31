@@ -15,6 +15,7 @@ import { sanitizeName } from '../shared/text.ts';
 import { FISHING_RESET_VERSION, LEVELS_VERSION, levelChange, levelFromXp, safeXp, type LevelUp } from '../shared/levels.ts';
 import { RateLimiter } from './ratelimit.ts';
 import { emptyStats, type Profile, type State, type Store } from './store.ts';
+import { addLoss } from './lobby/losers.ts';
 
 export { RateLimiter };
 
@@ -96,6 +97,9 @@ export class Profiles {
       // улов на рулетке, колесо не остановилось до рестарта: его цена — жетонами (столько дал бы Семён)
       if (p.rouletteEscrow) {
         p.tokens += p.rouletteEscrow.amount;
+        // розыгрыша не было: ставка не в счёте, иначе «Топ проигравших» записал бы возвращённый улов в проигрыш
+        p.stats.rlStaked = Math.max(0, p.stats.rlStaked - p.rouletteEscrow.amount);
+        p.stats.rlSpins = Math.max(0, p.stats.rlSpins - 1);
         p.rouletteEscrow = null;
         recovered = true;
       }
@@ -551,9 +555,11 @@ export class Profiles {
   settleRoulette(pid: number, round: string, payout: number): boolean {
     const p = this.ids.get(pid);
     if (!p || !p.rouletteEscrow || p.rouletteEscrow.round !== round || !Number.isSafeInteger(payout) || payout < 0) return false;
+    const stake = p.rouletteEscrow.amount;
     p.rouletteEscrow = null;
     p.tokens += payout;
     p.stats.rlWon += payout;
+    addLoss(p.stats, stake - payout, this.now());
     this.store.markDirty();
     this.store.flush();
     return true;

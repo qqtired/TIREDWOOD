@@ -35,6 +35,9 @@ import {
   ACT_TIRED, ACT_WARDROBE, ACT_WAVE, ACT_WHEEL, LEAVE_SEAT, LEAVE_SLOT, LOBBY_MIN_DELAY, PAIR_ACTS, STOP_EMOTE, holdMask, isAboard, isFerry, isHeld, isPair, isRiding, pairReach,
 } from '../../shared/lobby.ts';
 import { BOAT_RACE_CIRCLE, HIDE_CIRCLE, KART_START, MACHINE_XS, PHOTO, SKILL_PORTAL, STATUE_SHOWN, TABLE_SEATS, seatChair, seatTable, type Interactable } from '../../shared/maps/lobby.ts';
+import { inIsleWaters } from '../../shared/maps/isle.ts';
+import { CALL_QUIZ_MIN, type CallKind } from '../../shared/social.ts';
+import { SocialLobby, entranceOf } from './social3d.ts';
 import { BOAT_FISH_SPOTS, FISH_ISLE_FIRST, FISH_NPCS, FISH_SPOTS, FISH_SPOT_COUNT, ROULETTE_SPOT, boatSpotOf } from '../../shared/fishplaces.ts';
 import { IsleClient } from './isle/index.ts';
 import { STATUE_AT, respectReach } from '../../shared/respect.ts';
@@ -76,7 +79,8 @@ import { PL_DOCK } from '../../shared/plane.ts';
 import { ArcadeClient } from './plaza3/arcade/index.ts';
 import { ACT_QUIZ, QuizClient } from './quiz/index.ts';
 import { hideSwallow } from './quiz/swallow.ts';
-import { emptyLive, fillLive, type LiveIn } from './plaza/live.ts';
+import { agendaRows, dungeonLine, emptyLive, farmLine, fillLive, ratsLine, type LiveIn } from './plaza/live.ts';
+import { quizAgendaLine } from './plaza3/status.ts';
 import { LobbyCamera, SLOT_LOOK_PITCH, SLOT_LOOK_YAW } from './camera.ts';
 import { FarmGate } from '../farm/lobbygate.ts';
 import { DurakTables3D, TORSO_R } from './durak3d.ts';
@@ -217,6 +221,8 @@ export class LobbyScene implements Scene {
   private readonly hud: LobbyHud;
   private readonly effects: Effects;
   private readonly fx: LobbyFx;
+  /** Световой столб «Позвать» и огни букв TIREDWOOD (флаг SOCIAL, client/lobby/social3d.ts) */
+  readonly social3d: SocialLobby;
   private readonly slots: SlotMachines3D;
   private readonly wardrobe: Wardrobe;
   private readonly tables3d: DurakTables3D;
@@ -368,6 +374,8 @@ export class LobbyScene implements Scene {
   /** Оформление площади: входы в режимы, зазывалы (client/lobby/plaza); null при ?plaza=1 */
   private readonly plaza: PlazaDress | Plaza3Dress | null;
   private readonly plazaLive: LiveIn = emptyLive();
+  /** Когда в последний раз собирали строки афиши для мест со своим статусом (Ракушка, бега, Подземелье, ферма) */
+  private agendaAt = -1;
   /** Чужие желейки для жителей plaza3 (поворот к ближайшему игроку); массив переиспользуется каждый кадр */
   private readonly npcOthers: Array<{ x: number; z: number }> = [];
   /** Над катером во время посадки: отсчёт и «Садись!» */
@@ -531,6 +539,7 @@ export class LobbyScene implements Scene {
       d.input.tap(code, false);
     };
     this.fx = new LobbyFx(this.world.scene, lobbyQuality(d.settings.quality));
+    this.social3d = new SocialLobby({ scene: this.world.scene, sign: () => this.world.tiredwood, fx: () => this.fx, fanfare: () => d.sound.fanfare(null) });
     this.slots = new SlotMachines3D(this.world, d.sound, this.fx);
     this.slots.onJackpot = (nick, win) => this.hud.showJackpot(nick, win);
     this.wardrobe = new Wardrobe(this.hud.root);
@@ -1012,7 +1021,7 @@ export class LobbyScene implements Scene {
         this.setFerry(msg.ferry ?? FERRY_DOCKED, true);
         this.fishLvl = fishLevel(this.d.ui.me().fishing?.xp ?? 0);
         this.setAquaTop(msg.aqua ?? []);
-        this.losers.set(msg.losers ?? [], this.d.ui.me().pid);
+        this.losers.set(msg.losers ?? [], this.d.ui.me().pid, msg.losersAll ?? []);
         this.onFort(msg.fort ?? null);
         this.farmGate.status(msg.farm ?? null);
         setDgStatus(msg.dg ?? null);
@@ -1053,7 +1062,7 @@ export class LobbyScene implements Scene {
         this.setAquaTop(msg.top);
         break;
       case 'losers':
-        this.losers.set(msg.top, this.d.ui.me().pid);
+        this.losers.set(msg.top, this.d.ui.me().pid, msg.all ?? []);
         break;
       case 'aquaRun':
         // старт — номер своего входа: секундомер идёт по своим шагам, как время у сервера
@@ -2578,6 +2587,7 @@ export class LobbyScene implements Scene {
     if (this.ask && performance.now() > this.ask.until) this.clearAsk();
     this.photo.update(dt);
     this.runLater();
+    this.social3d.frame(this.time, dt, camPos);
     this.world.render();
   }
 
@@ -2600,6 +2610,19 @@ export class LobbyScene implements Scene {
       boatrace: this.boatRaceStatus, regattaRunning: this.rg.phase !== 'idle', boat: this.boat, aqua: this.aquaTop[0] ?? null,
       noBoat: !!this.quiz?.enabled, tick: this.clock.renderTick, tickRate: TICK_RATE,
     });
+    // афиша «Сегодня в городе» и речь Тони: места со своими источниками статуса — раз в четверть секунды
+    if (this.time - this.agendaAt > 0.25 || this.time < this.agendaAt) {
+      this.agendaAt = this.time;
+      const live = this.plazaLive;
+      const qz = this.quiz?.enabled ? quizAgendaLine(this.quiz.state.board) : null;
+      live.quiz = qz ? { text: qz.text.replace(' · идёт', ''), hot: qz.hot } : null;
+      const dg = dgStatus();
+      live.dungeon = dg ? dungeonLine(dg.top[0] ?? null) : null;
+      live.farm = this.farmGate.on ? farmLine(this.farmGate.counts()) : null;
+      const rats = this.ratsStatus();
+      live.rats = rats ? ratsLine(rats) : null;
+      this.world.afishaBoard?.set(agendaRows(live));
+    }
     if (plaza instanceof Plaza3Dress) {
       plaza.setSlotsBusy(this.busySlots, MACHINE_XS.length);
       plaza.setFerry(this.ferry, this.clock.renderTick);
@@ -2612,20 +2635,22 @@ export class LobbyScene implements Scene {
   }
 
   /** Статусы в репликах жителей plaza3 (раз в секунду): гидроплан, крысиные бега, автоматы курзала, бильярд — то, что сцена и так знает */
+  private ratsStatus(): NpcStatusIn['rats'] {
+    const rr = this.rat3d;
+    if (!rr.on) return null;
+    const lead = rr.standings();
+    const res = rr.resultOrder();
+    if (rr.opening) return { phase: 'open', leftSec: rr.countdown / 1000, leader: -1, winner: -1 };
+    if (lead) return { phase: 'run', leftSec: 0, leader: lead[0], winner: -1 };
+    if (res) return { phase: 'result', leftSec: 0, leader: -1, winner: res[0] };
+    return { phase: 'idle', leftSec: 0, leader: -1, winner: -1 };
+  }
+
   private npcLive(): Partial<NpcStatusIn> {
     const pv = this.plane.view;
     const tick = this.clock.ready ? this.clock.renderTick : 0;
     const flying = pv.ph !== PL_DOCK;
-    const rr = this.rat3d;
-    let rats: NpcStatusIn['rats'] = null;
-    if (rr.on) {
-      const lead = rr.standings();
-      const res = rr.resultOrder();
-      if (rr.opening) rats = { phase: 'open', leftSec: rr.countdown / 1000, leader: -1, winner: -1 };
-      else if (lead) rats = { phase: 'run', leftSec: 0, leader: lead[0], winner: -1 };
-      else if (res) rats = { phase: 'result', leftSec: 0, leader: -1, winner: res[0] };
-      else rats = { phase: 'idle', leftSec: 0, leader: -1, winner: -1 };
-    }
+    const rats = this.ratsStatus();
     let busy = 0;
     for (let m = 0; m < MACHINE_XS.length; m++) if (((this.busySlots >> m) & 1) === 1) busy++;
     return {
@@ -2920,6 +2945,37 @@ export class LobbyScene implements Scene {
   /** Рыбалка 2.0: игрок у воды и видит плашку события — тост о дожде её не повторяет */
   fishEventPlate(): boolean {
     return this.fish2.on && this.fish2.plateNear;
+  }
+
+  /**
+   * «Позвать» (флаг SOCIAL): где игрок может позвать друзей прямо сейчас — в круге сбора, пока он не запущен и не полон,
+   * или в кресле «Ракушки», пока внутри меньше четырёх. note — «1/6».
+   */
+  callSpot(): { kind: CallKind; note: string } | null {
+    if (!this.hasSelf || Math.abs(this.pose.y) > 2) return null;
+    const qs = this.quiz?.state;
+    if (qs?.view && qs.me && qs.me.place >= 0 && qs.view.count < CALL_QUIZ_MIN) return { kind: 'quiz', note: `${qs.view.count}/${CALL_QUIZ_MIN}` };
+    const at = (c: { x: number; z: number; r: number }): boolean => Math.hypot(this.pose.x - c.x, this.pose.z - c.z) <= c.r;
+    const ks = this.world.kartStart.status;
+    if (at(KART_START) && (ks.phase === 'idle' || ks.phase === 'count') && ks.n < RC_MAX_KARTS) return { kind: 'kart', note: `${ks.n}/${RC_MAX_KARTS}` };
+    const gather = (s: GatherStatus | HideStatus | null): GatherStatus | null => (s && (s.phase === 'idle' || s.phase === 'count') ? s as GatherStatus : null);
+    const br = gather(this.boatRaceStatus);
+    if (br && at(BOAT_RACE_CIRCLE) && br.n < br.max) return { kind: 'boatrace', note: `${br.n}/${br.max}` };
+    const hi = gather(this.hideStatus);
+    if (hi && at(HIDE_CIRCLE) && hi.n < hi.max) return { kind: 'hide', note: `${hi.n}/${hi.max}` };
+    return null;
+  }
+
+  /** Метров до входа в место kind (null — игрок не на набережной) */
+  distToEntrance(kind: CallKind): number | null {
+    if (!this.hasSelf) return null;
+    const e = entranceOf(kind);
+    return Math.hypot(this.pose.x - e.x, this.pose.z - e.z);
+  }
+
+  /** Игрок в водах острова: дождь набережной на рыбу острова не действует (у неё свой туман), тост о нём ему не нужен */
+  onIsle(): boolean {
+    return this.hasSelf && inIsleWaters(this.pose.x, this.pose.z);
   }
 
   private trampolineAt(x: number, y: number, z: number): { x: number; z: number } | null {

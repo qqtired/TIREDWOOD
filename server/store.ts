@@ -289,6 +289,9 @@ export function normalizeProfile(raw: unknown): Profile | null {
     const s = r.stats as Record<string, unknown>;
     // все счётчики неотрицательные: минус из битой или поправленной руками записи — ноль (num его пропустил бы)
     for (const k of Object.keys(stats) as Array<keyof Stats>) stats[k] = Math.max(0, num(s[k]));
+    // «Топ проигравших»: неделя — целые мс, недельный счёт — единственный, что бывает меньше нуля (выиграл больше, чем поставил)
+    stats.lsWeek = Math.floor(stats.lsWeek);
+    stats.lsLost = Math.trunc(num(s.lsLost));
   }
   const album = sanitizeAlbum(r.album);
   const aquaBests = parseBests(r.aquaBests);

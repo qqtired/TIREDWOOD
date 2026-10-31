@@ -8,6 +8,7 @@ import { UI_SCALES, effectiveVolume, toggleMute, type ChatFeed, type Quality, ty
 import { TOUCH } from '../../touch.ts';
 import { applyHudScale } from '../kit/scale.ts';
 import { el, kButton, kRow, kSeg, kSlider, kSwitch, ownKeys, setSlider } from './controls.ts';
+import { socialState } from '../socialstate.ts';
 
 export type SettingsCategory = 'graphics' | 'sound' | 'controls' | 'interface';
 
@@ -154,6 +155,10 @@ export class SettingsPanel {
     this.choice<number>(c, 'Размер интерфейса', UI_SCALES.map((k) => [k, `${Math.round(k * 100)}%`] as const), () => s.uiScale, (v) => { s.uiScale = v; });
     c = this.item('interface', 'Сообщения чата', TOUCH ? 'Скрытые видно, пока чат открыт (кнопка чата)' : 'Скрытые видно, пока чат открыт (Enter)');
     this.choice<ChatFeed>(c, 'Сообщения чата', [['fade', 'Гаснут'], ['keep', 'Видны всегда'], ['hide', 'Скрыты']], () => s.chatFeed, (v) => { s.chatFeed = v; });
+    // вопросы Затейника в общем чате (флаг сервера SOCIAL): строки нет, пока сервер не сказал, что они включены
+    const quiz = kRow(this.cats.get('interface')!, 'Вопросы Затейника в чате', 'Раз в полчаса Затейник задаёт вопрос в общий чат — первому верному +10 🪙', true, 'set-item');
+    this.toggle(quiz.ctl, () => s.quizChat, (v) => { s.quizChat = v; });
+    this.syncs.push(() => { quiz.root.hidden = !socialState.quiz; });
   }
 
   // ------------------------------------------------------------ кирпичики

@@ -33,6 +33,8 @@ export interface RouletteHost {
   announce(text: string): void;
   /** Жетоны или рюкзак поменялись */
   changed(pid: number): void;
+  /** Все выплаты сделаны: обновить «Топ проигравших». */
+  losses?(): void;
   /** Кто сейчас стоит на баркасе (shared/roulette.ts onBarkas): id — стабильный номер соединения, send — письмо ему одному */
   aboard(): Array<{ id: number; send(msg: ServerMsg): void }>;
 }
@@ -165,6 +167,7 @@ export class RouletteTable {
         this.host.announce(`🎡 ${b.nick} поставил улов на ${ROULETTE_COLOR_NAMES[b.c]} и выиграл ${fmt.format(payout)} 🪙!`);
       }
     }
+    this.host.losses?.();
     this.bets = [];
     this.phase = 'idle';
     this.until = 0;

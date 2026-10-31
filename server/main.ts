@@ -37,6 +37,8 @@ import { DEVIL_GIFT_CODE_HASH } from './gift-config.ts';
 import { isleEnabled } from '../shared/isle.ts';
 import { PLAZA3 } from '../shared/layout.ts';
 import { UI3 } from '../shared/ui3.ts';
+import { socialEnabled, tgCallEnabled } from '../shared/social.ts';
+import { chatQuestionsFromPacks } from './chatquiz.ts';
 import { parseClientJson, sendServerBinary, sendServerJson, sendServerText } from './voice-wire.ts';
 
 const ROOT = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
@@ -73,6 +75,7 @@ const hide = hideEnabled(process.env.HIDE, DEV);
 const farm = farmEnabled(process.env.FARM, DEV);
 const quiz = quizEnabled(process.env.QUIZ, DEV, PLAZA3);
 let quizHttp: QuizHttp | undefined;
+let quizPacks: QuizPacks | undefined;
 if (quiz) {
   let packs: QuizPacks, enabled = true;
   try { packs = new QuizPacks({ dataDir: DATA_DIR, admins: quizAdmins(process.env.QUIZ_ADMINS) }); }
@@ -82,6 +85,7 @@ if (quiz) {
     packs = new QuizPacks({ dataDir: mkdtempSync(path.join(tmpdir(), 'tiredwood-quiz-')) });
   }
   registerBuiltinPacks(packs);
+  quizPacks = packs;
   quizHttp = new QuizHttp({ packs, enabled, ip: clientIp, uploaders: quizUploaders(process.env.QUIZ_UPLOADERS) });
 }
 const voice = process.env.VOICE === undefined ? DEV : process.env.VOICE === '1';
@@ -107,7 +111,12 @@ const plane = planeEnabled(process.env.PLANE, DEV);
 const kite = process.env.KITE === undefined ? DEV : process.env.KITE === '1';
 // Голосование «выгнать игрока» из меню Tab: VOTEKICK=1 — включить, VOTEKICK=0 — выключить, без переменной — только с --dev
 const votekick = process.env.VOTEKICK === undefined ? DEV : process.env.VOTEKICK === '1';
+// «Общее» (SOCIAL=1; без переменной — только с --dev): «Позвать», викторина в общем чате, огни букв TIREDWOOD. Зов и итоги недели
+// в Telegram — отдельный флаг TG_CALL (только явная 1, даже в dev): бот пишет настоящим людям, включает владелец
+const social = socialEnabled(process.env.SOCIAL, DEV);
+const tgCall = social && tgCallEnabled(process.env.TG_CALL);
 const hub = new Hub({ store, profiles, smokeToken: smokeToken(), build, roll, weather, tg, fort, skill, boatrace, hide, farm, farmPond, fish2, isle, roulette, ratrace, quiz, quizHttp, storm, pirates, voice, voiceIce, jukebox, billiards, plane, kite, votekick, dungeon,
+  social: social ? { dir: DATA_DIR, tgCall, questions: quizPacks ? () => chatQuestionsFromPacks(quizPacks!.all('jeopardy')) : undefined } : undefined,
   giftCodeHash: gifts ? DEVIL_GIFT_CODE_HASH : null,
   devStorm: DEV && process.env.DEV_STORM === 'now', devPirates: DEV && process.env.DEV_PIRATES === 'now',
   // /wave, /event, /gate, /hp в чате крепости — только разработка или DEV_GO=1 (проверка собранного сервера)
@@ -150,6 +159,7 @@ if (gifts) console.log('GIFTS: подарочные коды включены');
 if (jukebox) console.log('JUKEBOX: музыкальный автомат на площади включён');
 if (billiards) console.log('BILLIARDS: бильярд в пристройке казино включён');
 if (plane) console.log('PLANE: гидроплан «Стриж» (полёт над городом) включён');
+if (social) console.log(`SOCIAL: «Позвать», викторина в чате и огни букв TIREDWOOD включены${tgCall ? '; зов и итоги недели — в Telegram (TG_CALL)' : ''}`);
 if (votekick) console.log('VOTEKICK: голосование «выгнать игрока» (меню Tab) включено');
 console.log(`Профилей: ${profiles.count}, банк джекпота: ${Math.floor(store.state.jackpot)}`);
 

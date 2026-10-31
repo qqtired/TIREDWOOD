@@ -145,6 +145,14 @@ function cardView(sim: DgSim, c: DgCard): HudCard {
   };
 }
 
+/** Лента барабана сундука: только свои вещи героя — сундук улучшает именно их, чужое выпасть не может */
+export function chestPool(sim: DgSim): NonNullable<HudChest['pool']> {
+  const pool: NonNullable<HudChest['pool']> = [];
+  for (const w of sim.weapons) pool.push({ kind: 'weapon', id: w.id, icon: WEAPONS[w.id]?.icon ?? '•' });
+  for (const p of sim.passives) pool.push({ kind: 'passive', id: p.id, icon: PASSIVES[p.id]?.icon ?? '•' });
+  return pool;
+}
+
 function chestView(sim: DgSim): HudChest | null {
   const ch = sim.chest;
   if (!ch) return null;
@@ -162,7 +170,7 @@ function chestView(sim: DgSim): HudChest | null {
     }
   }
   const title = ch.kind === 'plain' ? 'Сундук' : ch.kind === 'isle' ? 'Сундук островка' : undefined;
-  return { items, big: ch.kind === 'big', title, fallback: items.length ? undefined : fallback ?? xpReward };
+  return { items, big: ch.kind === 'big', title, fallback: items.length ? undefined : fallback ?? xpReward, pool: chestPool(sim) };
 }
 
 /** Состояние врага → что играть */

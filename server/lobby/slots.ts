@@ -7,7 +7,7 @@ import {
 } from '../../shared/slots.ts';
 import type { Profiles } from '../profiles.ts';
 import type { Profile, Store } from '../store.ts';
-import { LosersBoard } from './losers.ts';
+import { addLoss, LosersBoard } from './losers.ts';
 
 export interface Machine {
   stake: number;
@@ -58,7 +58,7 @@ export class SlotHall {
     this.store = store;
     this.roll = roll;
     this.now = now;
-    this.losers = new LosersBoard(() => store.state.profiles);
+    this.losers = new LosersBoard(() => store.state.profiles, this.now);
   }
 
   occupy(m: number, who: number, tick: number): boolean {
@@ -123,6 +123,7 @@ export class SlotHall {
     // «Топ проигравших»: ставка и выигрыш — в счёт, на экран — когда докрутятся барабаны
     p.stats.slotBet += mc.stake;
     p.stats.slotPaid += win;
+    addLoss(p.stats, mc.stake - win, this.now());
     this.losers.spun(p.id, mc.stake - win, tick + SPIN_TICKS);
     mc.busyUntil = tick + SPIN_READY_TICKS;
     mc.idleFrom = tick;

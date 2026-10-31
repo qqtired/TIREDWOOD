@@ -31,7 +31,7 @@ const BULB = ((): THREE.BufferGeometry => {
 /** Свечение (окна, фонари, табло-заглушки) при погашенном в сети свете */
 const GLOW_OFF = 0.32;
 
-export type BoardKey = 'honor' | 'online' | 'jackpot' | 'kart';
+export type BoardKey = 'honor' | 'online' | 'jackpot' | 'kart' | 'afisha';
 
 /** Что мир набережной даёт павильонам */
 export interface PavHooks {
@@ -315,6 +315,7 @@ export class Plaza3Pavilions {
       const at = field(f.anchor);
       if (!board || !at) continue;
       mountOn(board.mesh, at, key === 'kart');
+      board.mesh.visible = true;
       if (board.frame) board.frame.visible = false;
     }
     for (const o of this.hooks.hide?.[p.id] ?? []) o.visible = false;

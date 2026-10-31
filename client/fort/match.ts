@@ -38,6 +38,7 @@ import { RemoteTrack, type RemoteSample } from '../remote.ts';
 import { Avatar, tickAvatarShared, type AvatarPose } from '../render/avatar.ts';
 import type { Effects } from '../render/effects.ts';
 import { narrowFov } from '../render/renderer.ts';
+import { socialState } from '../ui/socialstate.ts';
 import type { MeState } from '../scene.ts';
 import type { Settings } from '../settings.ts';
 import { TOUCH } from '../touch.ts';
@@ -387,6 +388,12 @@ export class FortMatch {
     if (code === 'Tab') {
       e.preventDefault();
       this.boardHeld = down;
+      return true;
+    }
+    // «Позвать» в крепость (флаг SOCIAL): P, пока держишь Tab — подпись в окне Tab
+    if (code === 'KeyP' && this.boardHeld && socialState.on && !chat.isOpen) {
+      e.preventDefault();
+      if (down && !e.repeat) this.d.net.send({ t: 'call', kind: 'fort' });
       return true;
     }
     if (!down || chat.isOpen || !input.locked) return false;

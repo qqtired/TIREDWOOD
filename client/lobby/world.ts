@@ -20,6 +20,7 @@ import type { IsleSky } from './isle/sky.ts';
 import * as tex from '../render/textures.ts';
 import { Backdrop, skyHaze } from './backdrop.ts';
 import { GateScreen, HonorBoard, JackpotBoard, RecentBoard } from './boards.ts';
+import { AfishaBoard } from './plaza3/afisha.ts';
 import { BARKAS, barkasCover } from '../../shared/barkas.ts';
 import { Barkas } from './barkas/index.ts';
 import { Boats } from './boats.ts';
@@ -218,6 +219,8 @@ function beamMaterial(): THREE.ShaderMaterial {
 export class LobbyWorld {
   readonly renderer: Renderer;
   readonly scene = new THREE.Scene();
+  /** Надпись TIREDWOOD на горе (собирается вместе с городом): огни букв — флаг SOCIAL, client/lobby/social3d.ts */
+  tiredwood: Tiredwood | null = null;
   /** Ближняя плоскость 0,15 м (камера не подходит к стене ближе CAM_PAD = 0,2 м): глубина точнее втрое, чем при 0,05, и накладки не моргают издали */
   readonly camera = new THREE.PerspectiveCamera(60, 16 / 9, NEAR_PLANE, 1600);
   readonly map: LobbyMap = buildLobby();
@@ -231,6 +234,8 @@ export class LobbyWorld {
   readonly honorBoard = NEW_PLAZA ? new HonorBoard(4.2, 2.8) : new HonorBoard(3.7, 2.4);
   /** Обратная сторона доски почёта */
   readonly recentBoard = NEW_PLAZA ? new RecentBoard(3, 2) : new RecentBoard(3.7, 2.4);
+  /** Афиша «Сегодня в городе» на фасаде кафе новой набережной (Х-9); у старой площади она своя — client/lobby/plaza/cafe.ts */
+  readonly afishaBoard: AfishaBoard | null = NEW_PLAZA ? new AfishaBoard() : null;
   readonly jackpotBoard = new JackpotBoard(6.4, 1.3);
   private readonly sun = new THREE.DirectionalLight(0xffc48a, SUN_CLEAR);
   private readonly hemi = new THREE.HemisphereLight(HEMI_CLEAR[1], HEMI_CLEAR[2], HEMI_CLEAR[0]);
@@ -380,6 +385,7 @@ export class LobbyWorld {
           honor: { mesh: this.honorBoard.mesh },
           online: { mesh: this.recentBoard.mesh },
           jackpot: { mesh: this.jackpotBoard.mesh, frame: this.jackpotFrame ?? undefined },
+          ...(this.afishaBoard ? { afisha: { mesh: this.afishaBoard.mesh } } : {}),
           kart: { mesh: this.kartStart.board.mesh, frame: this.kartStart.frame },
         },
         // экран над воротами блокаута: у модели склада там вывеска (WP10), крыша — у экрана Telegram
@@ -664,6 +670,7 @@ export class LobbyWorld {
     this.gateScreen.mesh.position.set(8, 6.6, -28.93);
     this.gateFrame = frame(6.3, 2.5, 0.12, 8, 6.6, -28.98, 0x161616);
     this.scene.add(this.jackpotBoard.mesh, this.honorBoard.mesh, this.recentBoard.mesh, this.gateScreen.mesh, this.kartStart.group);
+    if (this.afishaBoard) this.scene.add(this.afishaBoard.mesh);
     // доски у площади видны издалека — дальность набережной их не прячет (plaza3/perf.ts)
     this.honorBoard.mesh.userData.p3keep = this.recentBoard.mesh.userData.p3keep = true;
     this.box('concrete', [-26, -3.2, 38], [-14, -0.6, 46.5], 0x7d776e, -10);
@@ -1151,7 +1158,7 @@ export class LobbyWorld {
     // на горе под надписью воздух чище вдвое: склон зелёный, а не блёкло-оливковый
     const hazeAt = (x: number, z: number) => skyHaze(haze, x, landY(x, z) + 4, z) * (1 - 0.5 * signHillK(x, z));
     // надпись TIREDWOOD на горе за городом: под ней не ставим ни дома, ни деревья, ни огоньки
-    const sign = new Tiredwood(landY);
+    const sign = (this.tiredwood = new Tiredwood(landY));
 
     // --- земля: сетка 10 м. Крайние линии сетки — у стенки набережной (берег), ещё две — по краям площади:
     // земля кончается ровно у стенки, а не сползает склоном в воду; под площадью — дыра (там её настил)

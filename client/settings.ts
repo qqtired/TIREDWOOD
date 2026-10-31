@@ -48,6 +48,8 @@ export interface Settings {
   /** Масштаб меню, чата, жетонов, «кто где» и уведомлений */
   uiScale: number;
   chatFeed: ChatFeed;
+  /** Вопросы Затейника в общем чате (флаг сервера SOCIAL): строка в меню Esc → Интерфейс; сервер не шлёт их, пока выключено */
+  quizChat: boolean;
 }
 
 const KEY = 'opus.settings.v1';
@@ -91,6 +93,7 @@ export const DEFAULTS: Settings = {
   keyHints: true,
   uiScale: 1,
   chatFeed: 'fade',
+  quizChat: true,
 };
 
 export function loadSettings(): Settings {
@@ -126,6 +129,7 @@ export function loadSettings(): Settings {
     s.keyHints = s.keyHints !== false;
     s.uiScale = nearestScale(clampNum(s.uiScale, UI_SCALES[0], UI_SCALES[UI_SCALES.length - 1], DEFAULTS.uiScale));
     if (!['fade', 'keep', 'hide'].includes(s.chatFeed)) s.chatFeed = DEFAULTS.chatFeed;
+    s.quizChat = s.quizChat !== false;
     s.ver = SETTINGS_VERSION;
     return s;
   } catch {

@@ -7,14 +7,19 @@
 import * as THREE from 'three';
 import { PLAZA3 } from '../../shared/layout.ts';
 import { P3 } from '../../shared/plaza3/layout.ts';
-import { LOSERS_ROWS, type LoserRow } from '../../shared/messages.ts';
+import { LOSERS_ALL_ROWS, LOSERS_ROWS, type LoserRow } from '../../shared/messages.ts';
 import { mergeColored, paint, place } from '../render/kit.ts';
 import { glowCardTexture } from '../render/textures.ts';
 import { SIGNS3, V3, v3Path, v3Rule } from '../ui/signs3.ts';
 import { v3Screen } from './tablo3.ts';
 
-/** С какого дня считаем проигрыши (в этот день начали записывать ставки) — подпись на экране */
-export const LOSERS_SINCE = '2 октября';
+/** Подпись справа в шапке: главный счёт — за неделю (с понедельника 00:00 по Москве), в него входят автоматы и рулетка рыбака */
+export const LOSERS_CAPTION = 'за неделю · автоматы и рулетка';
+/** Пустой счёт недели */
+const EMPTY_TEXT = 'На этой неделе пока никто не проиграл';
+/** Нижняя строка: «за всё время» — мелко (высота полосы и размер букв, пиксели холста) */
+const FOOT = 44;
+const FOOT_PX = 24;
 
 /** Экран, м: ширина и высота; середина — на внутренней стороне западной стены павильона (x −27,4) */
 const SCREEN_W = 6;
@@ -79,20 +84,21 @@ export class LosersScreen {
     // лицом на восток (plaza3 — на запад), в зал
     this.group.rotation.y = FACE_YAW;
     scene.add(this.group);
-    this.draw([], 0);
+    this.draw([], 0, []);
   }
 
-  /** Топ с сервера; myPid — свой профиль (его строка подсвечена). */
-  set(rows: readonly LoserRow[], myPid: number): void {
+  /** Топ недели с сервера (rows), мелко ниже — «за всё время» (all); myPid — свой профиль (его строка подсвечена). */
+  set(rows: readonly LoserRow[], myPid: number, all: readonly LoserRow[] = []): void {
     const list = rows.slice(0, LOSERS_ROWS);
-    const key = JSON.stringify([list, myPid]);
+    const allList = all.slice(0, LOSERS_ALL_ROWS);
+    const key = JSON.stringify([list, myPid, allList]);
     if (key === this.key) return;
     this.key = key;
-    this.draw(list, myPid);
+    this.draw(list, myPid, allList);
   }
 
-  private draw(rows: readonly LoserRow[], myPid: number): void {
-    if (SIGNS3) { this.draw3(rows, myPid); return; }
+  private draw(rows: readonly LoserRow[], myPid: number, all: readonly LoserRow[]): void {
+    if (SIGNS3) { this.draw3(rows, myPid, all); return; }
     const c = this.ctx;
     const bg = c.createLinearGradient(0, 0, 0, H);
     bg.addColorStop(0, '#24110c');
@@ -107,22 +113,21 @@ export class LosersScreen {
     c.shadowBlur = 14;
     c.textAlign = 'left';
     c.fillStyle = '#ffcf5a';
-    fit(c, 'ТОП ПРОИГРАВШИХ', 900, 58, W * 0.56);
+    fit(c, 'ТОП ПРОИГРАВШИХ', 900, 58, W * 0.5);
     c.fillText('ТОП ПРОИГРАВШИХ', PAD + 56, HEAD_Y + 2);
     c.shadowBlur = 0;
     c.textAlign = 'right';
     c.fillStyle = '#d9a35a';
-    const since = `считаем с ${LOSERS_SINCE}`;
-    fit(c, since, 700, 30, W * 0.3);
-    c.fillText(since, W - PAD, HEAD_Y + 6);
+    fit(c, LOSERS_CAPTION, 700, 26, W * 0.32);
+    c.fillText(LOSERS_CAPTION, W - PAD, HEAD_Y + 6);
     c.fillStyle = 'rgba(255, 207, 90, 0.5)';
     c.fillRect(PAD, LINE_Y, W - PAD * 2, 3);
 
     const top = LINE_Y + 8;
-    const rowH = (H - top - 10) / LOSERS_ROWS;
+    const rowH = (H - top - 10 - FOOT) / LOSERS_ROWS;
     if (rows.length === 0) {
-      const y = top + (H - top) / 2 - 6;
-      const text = 'Пока никто не проиграл — всё впереди';
+      const y = top + (H - top - FOOT) / 2 - 6;
+      const text = EMPTY_TEXT;
       c.textAlign = 'center';
       c.fillStyle = '#efe2c4';
       fit(c, text, 700, 44, W - PAD * 2 - 140);
@@ -130,6 +135,7 @@ export class LosersScreen {
       c.fillText(text, W / 2, y);
       coin(c, W / 2 - tw / 2 - 40, y, 18);
       coin(c, W / 2 + tw / 2 + 40, y, 18);
+      footer(c, all, H - 10 - FOOT / 2, '#d9a35a', '#efe2c4', '#ff9370');
       ledGrid(c);
       this.tex.needsUpdate = true;
       return;
@@ -175,32 +181,33 @@ export class LosersScreen {
       c.fillText(r.nick, nickX, y + 1);
       if (i === 0) sponsorTag(c, nickX + c.measureText(r.nick).width + 18, y, Math.round(size * 0.54), nickX + room);
     }
+    footer(c, all, H - 10 - FOOT / 2, '#d9a35a', '#efe2c4', '#ff9370');
     ledGrid(c);
     this.tex.needsUpdate = true;
   }
 
   /** v3: экран в золотой раме — заголовок золотом, проигрыш — красным с монеткой, своя строка золотом; без сетки и свечения */
-  private draw3(rows: readonly LoserRow[], myPid: number): void {
+  private draw3(rows: readonly LoserRow[], myPid: number, all: readonly LoserRow[]): void {
     const c = this.ctx;
     const pad = v3Screen(c, W, H);
     c.textBaseline = 'middle';
     coin(c, PAD + 22, HEAD_Y + 2, 19);
     c.textAlign = 'left';
     c.fillStyle = V3.goldHi;
-    fit(c, 'ТОП ПРОИГРАВШИХ', 800, 54, W * 0.56);
+    fit(c, 'ТОП ПРОИГРАВШИХ', 800, 54, W * 0.5);
     c.fillText('ТОП ПРОИГРАВШИХ', PAD + 54, HEAD_Y + 4);
     c.textAlign = 'right';
     c.fillStyle = V3.creamDim;
-    const since = `считаем с ${LOSERS_SINCE}`;
-    fit(c, since, 600, 30, W * 0.3);
-    c.fillText(since, W - PAD, HEAD_Y + 8);
+    fit(c, LOSERS_CAPTION, 600, 26, W * 0.32);
+    c.fillText(LOSERS_CAPTION, W - PAD, HEAD_Y + 8);
     v3Rule(c, PAD - 10, LINE_Y + 2, W - (PAD - 10) * 2, 3);
 
     const top = LINE_Y + 10;
-    const rowH = (H - top - pad - 4) / LOSERS_ROWS;
+    const rowH = (H - top - pad - 4 - FOOT) / LOSERS_ROWS;
+    const footY = H - pad - FOOT / 2;
     if (rows.length === 0) {
-      const y = top + (H - top) / 2 - 10;
-      const text = 'Пока никто не проиграл — всё впереди';
+      const y = top + (H - top - FOOT) / 2 - 10;
+      const text = EMPTY_TEXT;
       c.textAlign = 'center';
       c.fillStyle = V3.cream;
       fit(c, text, 700, 44, W - PAD * 2 - 140);
@@ -208,6 +215,7 @@ export class LosersScreen {
       c.fillText(text, W / 2, y);
       coin(c, W / 2 - tw / 2 - 40, y, 18);
       coin(c, W / 2 + tw / 2 + 40, y, 18);
+      footer(c, all, footY, V3.creamDim, V3.cream, '#ff8a7c');
       this.tex.needsUpdate = true;
       return;
     }
@@ -247,7 +255,41 @@ export class LosersScreen {
       c.fillText(r.nick, nickX, y + 1);
       if (i === 0) sponsorTag(c, nickX + c.measureText(r.nick).width + 18, y, Math.round(size * 0.54), nickX + room);
     }
+    footer(c, all, footY, V3.creamDim, V3.cream, '#ff8a7c');
     this.tex.needsUpdate = true;
+  }
+}
+
+/** Мелкая строка внизу: «за всё время: ник сумма · ник сумма …» — сколько влезет в ширину (позже — не рисуем вовсе) */
+function footer(c: CanvasRenderingContext2D, all: readonly LoserRow[], y: number, dim: string, text: string, sum: string): void {
+  if (all.length === 0) return;
+  c.textBaseline = 'middle';
+  c.textAlign = 'left';
+  c.font = `700 ${FOOT_PX}px ${FONT}`;
+  c.fillStyle = dim;
+  const head = 'за всё время:';
+  c.fillText(head, PAD, y);
+  let x = PAD + c.measureText(head).width + 16;
+  const limit = W - PAD;
+  for (let i = 0; i < all.length; i++) {
+    const nick = all[i].nick.length > 12 ? `${all[i].nick.slice(0, 11)}…` : all[i].nick;
+    const amount = Math.round(all[i].n).toLocaleString('ru-RU');
+    c.font = `700 ${FOOT_PX}px ${FONT}`;
+    const nw = c.measureText(nick).width;
+    const aw = c.measureText(amount).width;
+    // разделитель — только перед тем, кто влезает целиком (висящая точка в конце не нужна)
+    const lead = i === 0 ? 0 : 30;
+    if (x + lead + nw + 8 + aw > limit) break;
+    if (i > 0) {
+      c.fillStyle = dim;
+      c.fillText('·', x + 12, y);
+      x += lead;
+    }
+    c.fillStyle = text;
+    c.fillText(nick, x, y);
+    c.fillStyle = sum;
+    c.fillText(amount, x + nw + 8, y);
+    x += nw + 8 + aw;
   }
 }
 

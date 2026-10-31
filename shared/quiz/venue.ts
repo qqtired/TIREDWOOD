@@ -95,6 +95,8 @@ export interface VenueData {
   /** Вывеска «РАКУШКА» над аркой (у v3 может не быть — тогда статус только на табло и афише) */
   readonly sign?: { readonly face: readonly V3[]; readonly canvas: readonly number[] };
   readonly colliders: readonly VenueBox[];
+  /** Ракушка: основание и высота (м) — стенки в colliders поднимаются до её крыши, чтобы камера не заходила внутрь */
+  readonly shell?: { readonly baseY: number; readonly height: number };
 }
 
 /** Место, куда сервер «ставит» игрока (действие ACT_QUIZ, аргумент — номер места) */

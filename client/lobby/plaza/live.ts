@@ -5,10 +5,17 @@ import { FORT_MAX_HUMANS, FT_BREAK, FT_END, FT_GATHER, FT_WAVE } from '../../../
 import { wavesText } from '../../../shared/fortrecord.ts';
 import { RC_MAX_KARTS } from '../../../shared/kart.ts';
 import { RG_MAX } from '../../../shared/regatta.ts';
+import { RATS, ratWon } from '../../../shared/ratrace.ts';
 import { fmtAquaTime } from '../../../shared/aqua.ts';
 import { TOUT_INFO, type ToutKey } from './data.ts';
 
 /** Статусы режимов в том виде, как их хранит сцена набережной (null — режим выключен или данных нет) */
+/** Готовая строка места для афиши и речи Тони: что сейчас там идёт и горит ли точка */
+export interface PlaceLine {
+  text: string;
+  hot: boolean;
+}
+
 export interface LiveIn {
   /** Сколько людей сейчас в пейнтболе */
   pbHumans: number;
@@ -24,6 +31,14 @@ export interface LiveIn {
   aqua: { nick: string; ms: number } | null;
   /** Катера «Ласточка» нет: у пирса «Ракушка» (флаг QUIZ) — ни строки в афише, ни реплик */
   noBoat?: boolean;
+  /**
+   * Места со своими источниками статуса — готовые строки афиши (их собирает сцена набережной раз в четверть секунды;
+   * helpers ниже). null или нет поля — режима нет (выключен флагом сервера): строки в афише не будет.
+   */
+  quiz?: PlaceLine | null;
+  dungeon?: PlaceLine | null;
+  farm?: PlaceLine | null;
+  rats?: PlaceLine | null;
 }
 
 export function emptyLive(): LiveIn {
@@ -117,15 +132,17 @@ export function liveLines(key: ToutKey, s: LiveIn): readonly string[] {
 }
 
 /** Порядок мест в афише и в речи бариста: как по улице — дома 2, 3, 4, дальше каланча и вода */
-export const AGENDA_ORDER: readonly ToutKey[] = ['paint', 'fort', 'kart', 'sky', 'regatta', 'boat', 'aqua', 'hide'];
+export type AgendaKey = ToutKey | 'quiz' | 'rats' | 'dungeon' | 'farm';
+export const AGENDA_ORDER: readonly AgendaKey[] = ['paint', 'fort', 'kart', 'sky', 'regatta', 'boat', 'quiz', 'aqua', 'rats', 'dungeon', 'hide', 'farm'];
 
 const AGENDA_NAME: Readonly<Record<string, string>> = {
-  paint: 'Пейнтбол', fort: 'Крепость', kart: 'Картинг', sky: 'Выше облаков', regatta: 'Регата', boat: 'Ласточка', aqua: 'Аквапарк', hide: 'Прятки',
+  paint: 'Пейнтбол', fort: 'Крепость', kart: 'Картинг', sky: 'Выше облаков', regatta: 'Регата', boat: 'Ласточка', quiz: 'Ракушка', aqua: 'Аквапарк',
+  rats: 'Бега', dungeon: 'Подземелье', hide: 'Прятки', farm: 'Ферма',
 };
 
 /** Строка афиши «Сегодня в городе»: место, что в нём сейчас (до 28 знаков) и «горит» ли (что-то идёт или можно присоединиться) */
 export interface AgendaRow {
-  key: ToutKey;
+  key: AgendaKey;
   name: string;
   text: string;
   hot: boolean;
@@ -137,7 +154,7 @@ export interface AgendaRow {
  */
 export function agendaRows(s: LiveIn): AgendaRow[] {
   const rows: AgendaRow[] = [];
-  const row = (key: ToutKey, text: string, hot: boolean): void => {
+  const row = (key: AgendaKey, text: string, hot: boolean): void => {
     rows.push({ key, name: AGENDA_NAME[key] ?? key, text, hot });
   };
   for (const key of AGENDA_ORDER) {
@@ -205,11 +222,39 @@ export function agendaRows(s: LiveIn): AgendaRow[] {
         else row(key, 'идёт раунд', true);
         break;
       }
+      case 'quiz':
+      case 'rats':
+      case 'dungeon':
+      case 'farm': {
+        // у этих мест свои источники статуса — сцена кладёт готовую строку (нет строки — режим выключен)
+        const p = s[key];
+        if (p) row(key, fit28(p.text), p.hot);
+        break;
+      }
       default:
         break;
     }
   }
   return rows;
+}
+
+/** «Подземелье»: рекорд забега и чей он (соло — «горящим» не бывает) */
+export function dungeonLine(rec: { nick: string; waves: number } | null): PlaceLine {
+  return { text: rec ? fit28(`рекорд ${wavesText(rec.waves)} · ${rec.nick}`) : 'спуск соло · рекордов нет', hot: false };
+}
+
+/** Ферма: сколько фермеров сейчас за аркой */
+export function farmLine(st: { n: number; max: number }): PlaceLine {
+  if (st.max > 0 && st.n >= st.max) return { text: 'ферма полна', hot: true };
+  return st.n > 0 ? { text: `на ферме ${st.n} из ${st.max}`, hot: true } : { text: 'на ферме пусто · заходи', hot: false };
+}
+
+/** Крысиные бега: приём ставок, забег, итог (leader/winner — номера крыс, −1 — нет) */
+export function ratsLine(r: { phase: 'open' | 'run' | 'result' | 'idle'; leftSec: number; leader: number; winner: number }): PlaceLine {
+  if (r.phase === 'open') return { text: `ставки · старт через ${Math.max(0, Math.ceil(r.leftSec))} с`, hot: true };
+  if (r.phase === 'run') return { text: RATS[r.leader] ? `бегут · впереди ${RATS[r.leader].name}` : 'забег идёт · болей!', hot: true };
+  if (r.phase === 'result' && RATS[r.winner]) return { text: fit28(ratWon(r.winner)), hot: false };
+  return { text: 'ставки на крыс · жми E', hot: false };
 }
 
 /** Строка на табличке конторы порта: что сейчас с катером «Ласточка» (в тех же словах, что столбик у причала) */

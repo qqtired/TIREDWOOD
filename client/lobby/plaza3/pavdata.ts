@@ -91,6 +91,8 @@ export const BOARD_FIELDS = {
   online: { pav: 'online', anchor: 'anchor_board_online', live: 'live_board_online' },
   records: { pav: 'fishshowcase', anchor: 'anchor_board_records', live: 'live_board_records' },
   jackpot: { pav: 'kursaal', anchor: 'anchor_jackpot_face', live: '' },
+  // афиша «Сегодня в городе» на фасаде кафе (Х-9): поле 2,6×2,1 м лицом наружу, холст — client/lobby/plaza3/afisha.ts
+  afisha: { pav: 'cafe', anchor: 'anchor_afisha_face', live: '' },
   // табло гонки: поле 2,2×1,5, табло игры 3,3×1,85 — встаёт «вписанным» (пропорции целы, по бокам/сверху поле модели), WP14a
   kart: { pav: 'karting', anchor: 'anchor_kboard_face', live: '' },
 } as const;

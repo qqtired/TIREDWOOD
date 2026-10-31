@@ -112,6 +112,10 @@ export interface Stats {
    */
   slotBet: number;
   slotPaid: number;
+  /** Начало недели «Топа проигравших», мс (понедельник 00:00 МСК; 0 — ещё не считалось). */
+  lsWeek: number;
+  /** Чистый проигрыш за эту неделю в автоматах и рулетке: ставки минус выигрыши, может быть отрицательным. */
+  lsLost: number;
   /** «Крепость»: игр (дождался итогов), побед, лучшая волна (сколько отбито за игру), сбитых зомби */
   ftGames: number;
   ftWins: number;
@@ -203,6 +207,7 @@ export function emptyStats(): Stats {
     rcRaces: 0, rcWins: 0, rcPodiums: 0, rcBestLap: 0, rcBestLapFoundry: 0, rcBestLapHarbor: 0, rcBestLapHills: 0,
     rcBestLapHarborV3: 0, rcBestLapHillsV3: 0, fsCaught: 0, fsSold: 0,
     aqRuns: 0, aqBest: 0, aqCourse: 0, aqBestCourse1: 0, aqBestCourse2: 0, aqBestCourse3: 0, slotBet: 0, slotPaid: 0,
+    lsWeek: 0, lsLost: 0,
     fsFish: 0, fsGrams: 0, fsDay: 0, fsDayFish: 0, fsDayGrams: 0, fsChests: 0,
     fsCasts: 0, fsBites: 0, fsLost: 0, fsMaxGrams: 0, fsEarned: 0,
     ftGames: 0, ftWins: 0, ftBest: 0, ftKills: 0, fcFights: 0, fcWins: 0, fcKos: 0,

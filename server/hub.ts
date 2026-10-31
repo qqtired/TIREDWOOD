@@ -46,6 +46,11 @@ import type { VoiceIceConfig } from '../shared/voice.ts';
 import { GiftCodes } from './gifts.ts';
 import { grantLadder, ladderAnnounce, ladderToast } from './fishstyle.ts';
 import { KickVotes } from './votekick.ts';
+import { Social, type SocialPeer } from './social.ts';
+import { ChatQuiz, type ChatQuestion } from './chatquiz.ts';
+import { TgCall } from './tgcall.ts';
+import type { TgFetch } from './tgfeed.ts';
+import type { LetterMode } from '../shared/social.ts';
 
 export type { Sink };
 
@@ -164,6 +169,11 @@ export interface HubOptions {
   votekick?: boolean;
   /** «Подземелье»: соло-забег, инстанс на игрока (флаг сервера DUNGEON, server/dungeon/) */
   dungeon?: boolean;
+  /**
+   * «Общее» (флаг SOCIAL, server/social.ts): «Позвать», викторина в чате, огни букв TIREDWOOD. dir — DATA_DIR (social.json);
+   * tgCall — зов и итоги недели в Telegram (флаг TG_CALL); questions — вопросы для чата (из паков «Ракушки»); fetch и rand — тесты
+   */
+  social?: { dir: string; tgCall?: boolean; questions?: () => ChatQuestion[]; fetch?: TgFetch; rand?: () => number };
   /** Только тесты: подмена симуляции и зерна «Подземелья» */
   dungeonSim?: DgSimApi;
   dungeonSeed?: () => number;
@@ -289,6 +299,8 @@ export class Hub {
   readonly gate = new ReadyGate(this);
   /** Голосование «выгнать игрока» из меню Tab (server/votekick.ts) */
   readonly kick: KickVotes;
+  /** «Общее» (флаг SOCIAL): «Позвать», викторина в чате, огни букв; null — выключено */
+  readonly social: Social | null;
   tick = 0;
   private readonly smokeToken: string;
   private readonly build: string;
@@ -424,6 +436,69 @@ export class Hub {
       allow: (key, n, ms) => this.limits.hit(key, n, ms),
       log: (s) => this.log(s),
     }, o.votekick ?? false);
+    this.social = o.social ? this.makeSocial(o.social) : null;
+  }
+
+  /** «Общее» (server/social.ts): хаб даёт ему игроков, чат и начисление жетонов */
+  private makeSocial(o: NonNullable<HubOptions['social']>): Social {
+    const peers = new Map<Client, SocialPeer>();
+    const peerOf = (c: Client): SocialPeer => {
+      let p = peers.get(c);
+      if (!p) {
+        p = { get pid() { return c.pid; }, get nick() { return c.nick; }, get room() { return c.room?.kind ?? null; }, send: (m) => c.sink.sendJson(m) };
+        peers.set(c, p);
+      }
+      return p;
+    };
+    const live = (): Client[] => [...this.clients].filter((c) => c.profile && !c.ephemeral && c.room && !c.closed && !c.lostAt);
+    const pay = (pid: number, n: number): boolean => {
+      const p = this.profiles.byId(pid);
+      if (!p) return false;
+      this.profiles.credit(p, n, 'other');
+      const c = this.byPid.get(pid);
+      if (c && !c.closed) this.tokens(c, p.tokens);
+      return true;
+    };
+    // викторина — только если есть откуда брать вопросы (паки «Ракушки», флаг QUIZ)
+    const quiz = o.questions ? new ChatQuiz({
+      now: () => this.now(),
+      rand: o.rand ?? Math.random,
+      online: () => live().map((c) => c.pid),
+      stageBusy: () => !!this.lobby.quiz?.active,
+      say: (text, pids) => this.sayTo(pids, text),
+      pay,
+      nick: (pid) => this.byPid.get(pid)?.nick ?? this.profiles.byId(pid)?.nick ?? '',
+      questions: o.questions,
+    }) : null;
+    return new Social({
+      dir: o.dir,
+      tg: o.tgCall ? new TgCall({ dir: o.dir, fetch: o.fetch, now: () => this.now(), log: (s) => this.log(s) }) : null,
+      quiz,
+      host: {
+        now: () => this.now(),
+        peers: () => live().map(peerOf),
+        announceLive: (text) => this.announceLive(text),
+        announce: (text) => this.announce(text),
+        sayTo: (pids, text) => this.sayTo(pids, text),
+        toast: (p, text) => p.send({ t: 'toast', text }),
+        pay,
+        later: (ticks, fn) => this.later(ticks, fn),
+        log: (s) => this.log(s),
+        state: () => this.store.state,
+      },
+    });
+  }
+
+  /** Системная строка в общий чат — только этим игрокам (викторина: у кого она включена); в журнал чата не попадает */
+  sayTo(pids: readonly number[], text: string): void {
+    const msg: ServerMsg = { t: 'chat', from: '', pid: 0, room: '', team: -1, text, sys: true };
+    const want = new Set(pids);
+    for (const c of this.clients) if (c.profile && !c.ephemeral && want.has(c.pid)) c.sink.sendJson(msg);
+  }
+
+  /** Партия режима закончена — огни букв TIREDWOOD (server/social.ts): pid и дошёл ли он до конца */
+  private letter(mode: LetterMode, c: Client | null, done = true): void {
+    if (c?.profile && !c.ephemeral) this.social?.result(mode, c.pid, done);
   }
 
   /** Есть ли игроки или незавершённые раунды (иначе цикл спит). */
@@ -485,6 +560,7 @@ export class Hub {
       this.broadcastOnline();
       this.lobby.honorChanged();
       this.kick.left();
+      this.social?.left(c.pid);
     }
   }
 
@@ -522,6 +598,11 @@ export class Hub {
         return;
       case 'kick':
         this.kick.onMessage(c, msg);
+        return;
+      case 'call':
+      case 'callGo':
+      case 'socPref':
+        if (!c.ephemeral && c.room && this.limits.hit(`soc:${c.pid}`, 12, 10_000)) this.social?.onMessage({ pid: c.pid, nick: c.nick, get room() { return c.room?.kind ?? null; }, send: (m) => c.sink.sendJson(m) }, msg);
         return;
       case 'hello':
         return;
@@ -646,6 +727,7 @@ export class Hub {
     }
     this.voice?.connected(c);
     this.kick.joined(c);
+    if (!c.ephemeral) this.social?.joined({ pid: c.pid, nick: c.nick, room: c.room?.kind ?? null, send: (m) => c.sink.sendJson(m) });
     if (!c.ephemeral) {
       this.log(`[вход] ${profile.nick} (#${profile.id}${note}); в игре: ${this.onlineCount()}`);
       this.lobby.honorChanged();
@@ -731,6 +813,7 @@ export class Hub {
       return;
     }
     const room = c.room?.kind ?? 'lobby';
+    this.social?.chat({ pid: c.pid, nick: c.nick, room: c.room?.kind ?? null, send: (m) => c.sink.sendJson(m) }, text);
     this.addChat({ from: c.nick, pid: c.pid, room, team: c.room === this.paintball ? this.paintball.teamOf(c) : -1, text, sys: false });
   }
 
@@ -824,6 +907,7 @@ export class Hub {
     this.profiles.credit(prof, r.total, 'mode');
     prof.stats.pbRounds++;
     if (won) prof.stats.pbWins++;
+    this.letter('paintball', c);
     if (mvp) prof.stats.pbMvp++;
     prof.stats.pbKills += p.kills;
     this.store.markDirty();
@@ -876,6 +960,7 @@ export class Hub {
         continue;
       }
       prof.stats.dkGames++;
+      this.social?.result('durak', pl.pid);
       if (pl.fool) prof.stats.dkFools++;
       if (pl.first && !pl.fool) prof.stats.dkFirst++;
       this.store.markDirty();
@@ -933,6 +1018,7 @@ export class Hub {
     if (!p || c?.ephemeral) return;
     p.stats.brRaces++;
     if (row.finished && row.pos === 1) p.stats.brWins++;
+    if (!row.bot) this.social?.result('boatrace', pid, row.finished);
     if (row.best > 0 && (!p.stats.brBestLapCliffs || row.best < p.stats.brBestLapCliffs)) p.stats.brBestLapCliffs = row.best;
     if (row.reward > 0) this.profiles.credit(p, row.reward, 'mode');
     this.store.markDirty();
@@ -980,6 +1066,7 @@ export class Hub {
     if (!p) return;
     p.stats.hiGames++;
     if (result.won) p.stats.hiWins++;
+    this.social?.result('hide', pid);
     p.stats.hiFound += result.found;
     if (result.survived) p.stats.hiSurvived++;
     if (result.reward > 0) this.profiles.credit(p, result.reward, 'mode');
@@ -996,6 +1083,7 @@ export class Hub {
     const st = prof.stats;
     st.rcRaces++;
     if (row.place === 1) st.rcWins++;
+    this.letter('kart', c, row.place >= 1);
     if (row.place >= 1 && row.place <= 3) st.rcPodiums++;
     const record = RACE_RECORD[isRaceTrackId(row.track) ? row.track : DEFAULT_TRACK];
     if (row.best > 0 && (st[record] === 0 || row.best < st[record])) st[record] = row.best;
@@ -1040,6 +1128,7 @@ export class Hub {
     // выплата по забегу бывает и при выходе: игра считается один раз, сбитые — с прошлой выплаты
     if (!row.again) st.ftGames++;
     if (win) st.ftWins++;
+    if (!row.again) this.letter('fort', c);
     // свой рекорд — волны, отбитые командой к последней волне, засчитанной ему (row.my), а не просто «сколько было в игре»
     const my = row.my ?? wave;
     if (my > st.ftBest) st.ftBest = my;
@@ -1109,6 +1198,7 @@ export class Hub {
     this.gate.step();
     this.voice?.step();
     this.kick.step();
+    if (this.tick % TICK_RATE === 0) this.social?.step();
     if (this.delayed.length) {
       const due = this.delayed.filter((d) => d.at <= this.tick);
       if (due.length) {

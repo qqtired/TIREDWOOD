@@ -915,8 +915,19 @@ html:not(.touch)[data-room='dungeon'] .pz-dock:not(.is-open) .k-chat-closed {
 
 /* подсказка внизу («E — сесть»), приглашение «дай пять» с полосой времени, эмоции, FPS */
 .pz-hint:not([hidden]),
-.pz-ask:not([hidden]) {
+.pz-ask:not([hidden]),
+.pz-call:not([hidden]) {
   animation: k-toast-in 0.2s var(--ease-out) both;
+}
+
+/* «Позвать друзей [P]» (флаг SOCIAL, client/ui/social.ts): кнопка рядом с подсказкой действия */
+.pz-call {
+  cursor: pointer;
+}
+
+.pz-call .k-ic {
+  width: 26px;
+  height: 26px;
 }
 
 /* без клавиши слева — обычный отступ */

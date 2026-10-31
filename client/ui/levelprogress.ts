@@ -45,7 +45,7 @@ export class LevelProgressView {
     }
     const note = this.tiers.appendChild(document.createElement('p'));
     note.className = 'k-faint mn-xp-rule';
-    note.textContent = '1 жетон за игру = 1 XP. Казино, бонусы и возвраты не дают опыта. Навык рыбалки развивается отдельно.';
+    note.textContent = 'Опыт — за игру в режимах; рыба — по цене улова; ферма, казино и бонусы опыта не дают. Навык рыбалки развивается отдельно.';
   }
 
   update(xp: number): void {

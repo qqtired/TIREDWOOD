@@ -6,6 +6,7 @@ import { TOWERS } from '../../../shared/fortarsenal.ts';
 import { TOWER_SPOTS } from '../../../shared/fortmap.ts';
 import type { OnlineEntry, RoomKind } from '../../../shared/messages.ts';
 import { voiceTalkers } from '../../voice-prefs.ts';
+import { socialState } from '../../ui/socialstate.ts';
 import { el, escapeHtml, num } from './dom.ts';
 import { fortImg } from './icons.ts';
 
@@ -58,6 +59,8 @@ export class Board {
     const potHtml = pot && pot.share > 0
       ? `<div class="k-win-tools"><span class="k-pill k-pill--gold">${fortImg('gold', 'ft-nug')}общак волны ${num(pot.wave)} · +${num(pot.share)}</span></div>`
       : '';
+    // «Позвать» в крепость (флаг SOCIAL): клавиша P, пока держишь Tab
+    const callHtml = socialState.on ? '<div class="ft-others"><span class="k-pill k-pill--gold k-pill--sm"><kbd class="k-key k-key--sm">P</kbd>позвать друзей в крепость</span></div>' : '';
     const title = calm ? `Защитники · дальше волна ${num(wave + 1)}` : `Защитники · волна ${num(Math.max(1, wave))}`;
     const icons = ['ballista', 'cannon', 'tar', 'brazier'];
     const towers = this.towers.filter(t => TOWERS[t.type] && TOWER_SPOTS[t.spot]);
@@ -69,7 +72,7 @@ export class Board {
       <header class="k-win-head"><div class="k-win-titles"><p class="k-eyebrow">Отпусти Tab — закроется</p><h2 class="k-win-title">${title}</h2></div>${potHtml}</header>
       <div class="k-win-body">
         <div class="ft-table-scroll"><table class="k-table ft-player-table"><thead><tr><th></th><th>Защитник</th><th class="k-r">Урон</th><th class="k-r">Сбил</th><th class="k-r">Повален</th><th class="k-r" title="Золото на руках">Золото</th><th class="k-r">Связь</th></tr></thead>
-        <tbody>${body}</tbody></table></div><p class="ft-tab-h">Вышки · за этот забег</p><div class="ft-table-scroll">${towerHtml}</div>${awayHtml}
+        <tbody>${body}</tbody></table></div><p class="ft-tab-h">Вышки · за этот забег</p><div class="ft-table-scroll">${towerHtml}</div>${awayHtml}${callHtml}
       </div>
       <footer class="k-win-foot"><span class="k-note">Урон — снятые HP и щиты за забег; вышки считаются отдельно. Золото вышек — выплаты вкладчикам, без общака.</span></footer>
     </section>`;

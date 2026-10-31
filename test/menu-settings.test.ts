@@ -37,6 +37,7 @@ test('сохранение до нового меню: прежние значе
     keyHints: true,
     uiScale: 1,
     chatFeed: 'fade',
+    quizChat: true,
     custom: false,
     renderScale: 1,
     shadows: 'high',

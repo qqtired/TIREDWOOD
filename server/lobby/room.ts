@@ -523,6 +523,10 @@ export class LobbyRoom implements Room {
         if (c?.profile) { hub.tokens(c, c.profile.tokens); hub.sendMe(c); }
         this.honorDirty = true;
       },
+      losses: () => {
+        const l = this.slots.losers.refresh();
+        if (l) this.broadcast({ t: 'losers', top: l.top, all: l.all });
+      },
       aboard: () => [...this.players.values()].flatMap((p) => onBarkas(p.state.x, p.state.y, p.state.z) ? [{ id: p.client.id, send: (m: ServerMsg) => p.client.sink.sendJson(m) }] : []),
     }, hub.profiles) : null;
     this.ratrace = hub.ratrace ? new RatTrack({
@@ -728,7 +732,7 @@ export class LobbyRoom implements Room {
       t: 'lobby', id: slot, tick: this.tick, yaw: spot.yaw, players: this.infos(), pool: Math.floor(this.hub.store.state.jackpot),
       pb: this.hub.pbStatus(), honor: this.hub.honor(), tables: this.durak.views(), blackjack: this.blackjack.view(), ...(this.hub.skill ? { skill: this.hub.skill.status() } : {}), kart: this.kartStatus(), fish: this.fish.views(),
       rain: this.weather.rain ? 1 : 0, ...(this.weather.rain ? { wx: this.weather.wire } : {}), respects: this.hub.store.state.respects, boat: this.boat.status(), ferry: this.ferry.status(), aqua: this.aquaRows(),
-      losers: this.slots.losers.top, ...(this.hub.fort ? { fort: this.hub.fort.status() } : {}),
+      losers: this.slots.losers.top, losersAll: this.slots.losers.allTop, ...(this.hub.fort ? { fort: this.hub.fort.status() } : {}),
       ...(this.fishing2 ? { fish2: 1, ftop: this.fishing2.board.top } : {}),
       ...(this.fishing2 && this.hub.isle ? { isle: 1 } : {}),
       ...(this.roulette ? { roulette: this.roulette.view() } : {}),
@@ -803,7 +807,7 @@ export class LobbyRoom implements Room {
   onRename(c: Client): void {
     // «Топ проигравших» — с новым ником, если он там есть (сменить ник можно и не с набережной)
     const losers = this.slots.losers.refresh();
-    if (losers) this.broadcast({ t: 'losers', top: losers });
+    if (losers) this.broadcast({ t: 'losers', top: losers.top, all: losers.all });
     // и на доске рекордов рыбалки 2.0
     this.fishing2?.renamed();
     this.blackjack.rename(c.pid, c.nick);
@@ -1846,7 +1850,7 @@ export class LobbyRoom implements Room {
     this.stepFarmRoad();
     // «Топ проигравших»: итог вращения — на экран, когда докрутились барабаны (поменялся топ — всем)
     const losers = this.slots.losers.step(this.tick);
-    if (losers) this.broadcast({ t: 'losers', top: losers });
+    if (losers) this.broadcast({ t: 'losers', top: losers.top, all: losers.all });
     if (this.tick % KART_CHECK_EVERY === 0) this.kartStep();
     if (this.tick % KART_CHECK_EVERY === 0 && this.boatQueue) {
       this.boatQueue.step(this.tick);

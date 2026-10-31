@@ -675,9 +675,15 @@ export function buildLobby(): LobbyMap {
     QUIZ_VENUE.chairs.forEach((c, i) => addAt('quiz', c, 0.9, chairPlace(i), 'сесть'));
     QUIZ_VENUE.pults.forEach((p, i) => addAt('quiz', p.player, 0.9, QUIZ_VENUE.first.pult + i, 'встать за пульт'));
     addAt('quiz', QUIZ_VENUE.host, 0.9, QUIZ_VENUE.first.podium, 'трибуна');
+    // стенки ракушки и заднее полотно сцены: камера в них упирается (Х-8), стенка — до крыши ракушки, иначе камера за спиной стоящего
+    // на сцене уходила внутрь ракушки и полэкрана закрашивалось её цветом
+    const shell = QUIZ_VENUE.data.shell;
+    const roof = (QUIZ_VENUE.world.y ?? 0) + (shell ? shell.baseY + shell.height : 6.4);
     for (const box of QUIZ_VENUE.solid) {
       quizBoxes.push(b.boxes.length);
-      b.box([...box.min], [...box.max], 'invisible', 0);
+      const wall = box.name === 'shell_wall';
+      const cam = wall || box.name === 'board_backdrop';
+      b.box([...box.min], [box.max[0], wall ? Math.max(box.max[1], roof) : box.max[1], box.max[2]], 'invisible', 0, cam ? { cam: true } : {});
     }
     for (const box of QUIZ_VENUE.pultSolid) {
       quizPultBoxes.push(b.boxes.length);
