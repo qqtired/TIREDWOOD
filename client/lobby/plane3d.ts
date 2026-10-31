@@ -9,6 +9,11 @@ import type { Outfit } from '../../shared/outfit.ts';
 import { Avatar, type AvatarPose } from '../render/avatar.ts';
 import { mergeColored, paint, place } from '../render/kit.ts';
 import { BannerCloth } from './planebanner.ts';
+import { SIGNS3, V3, v3Rule } from '../ui/signs3.ts';
+import { v3Plaque } from './signs3plaque.ts';
+
+/** v3: цвета смысла строки статуса — как в HUD «Веранда» (свободен — зелёный, посадка — золото, в полёте — бирюза) */
+const TONE_V3: Readonly<Record<string, string>> = { '#8ff0a4': V3.good, '#ffd35c': V3.goldHi, '#9fd6ff': V3.teal };
 
 const CREAM = 0xf6efe2;
 const RED = 0xe8573c;
@@ -310,32 +315,40 @@ export class PlaneSign {
   private draw(line: string, color: string, queue: string): void {
     const c = this.ctx;
     c.clearRect(0, 0, W, H);
-    // небесно-голубая доска с белой каймой и самолётиком
-    c.fillStyle = '#2a6fa8';
-    c.fillRect(0, 0, W, H);
-    c.strokeStyle = '#f4f2ec';
-    c.lineWidth = 8;
-    c.strokeRect(10, 10, W - 20, H - 20);
-    c.fillStyle = '#ffd35c';
+    if (SIGNS3) {
+      // v3: слива с золотой каймой (самолётик — тот же), строки — крем, тише, золото
+      c.fillStyle = V3.ink;
+      c.fillRect(0, 0, W, H);
+      v3Plaque(c, 3, 3, W - 6, H - 6, 18, { line: 2.5 });
+      v3Rule(c, 30, 124, W - 60, 2, V3.goldDim);
+    } else {
+      // небесно-голубая доска с белой каймой и самолётиком
+      c.fillStyle = '#2a6fa8';
+      c.fillRect(0, 0, W, H);
+      c.strokeStyle = '#f4f2ec';
+      c.lineWidth = 8;
+      c.strokeRect(10, 10, W - 20, H - 20);
+    }
+    c.fillStyle = SIGNS3 ? V3.goldHi : '#ffd35c';
     c.font = `64px ${FONT}`;
     c.textAlign = 'center';
     c.textBaseline = 'middle';
     c.fillText('✈', 68, 70);
     c.textAlign = 'left';
-    c.fillStyle = '#ffffff';
-    fit(c, 'ГИДРОПЛАН «СТРИЖ»', 116, 60, W - 140, 900, 40);
-    c.fillStyle = '#d6e6f5';
+    c.fillStyle = SIGNS3 ? V3.cream : '#ffffff';
+    fit(c, 'ГИДРОПЛАН «СТРИЖ»', 116, 60, W - 140, SIGNS3 ? 800 : 900, 40);
+    c.fillStyle = SIGNS3 ? V3.creamDim : '#d6e6f5';
     fit(c, 'Полёт над городом · 3 минуты', 116, 100, W - 140, 700, 26);
     c.textAlign = 'center';
-    c.fillStyle = '#ffffff';
+    c.fillStyle = SIGNS3 ? V3.goldHi : '#ffffff';
     fit(c, `${PLANE_PRICE} 🪙 · E у самолёта`, W / 2, 146, W - 50, 800, 34);
-    c.fillStyle = '#ffe7a8';
+    c.fillStyle = SIGNS3 ? V3.creamDim : '#ffe7a8';
     fit(c, `Баннер с надписью над набережной — ${BANNER_PRICE} 🪙 · E у таблички`, W / 2, 186, W - 50, 700, 22);
     if (queue) {
-      c.fillStyle = '#ffd35c';
+      c.fillStyle = SIGNS3 ? V3.goldHi : '#ffd35c';
       fit(c, queue, W / 2, 222, W - 50, 700, 22);
     }
-    c.fillStyle = color;
+    c.fillStyle = SIGNS3 ? (TONE_V3[color] ?? color) : color;
     fit(c, line, W / 2, 262, W - 50, 900, 28);
     this.tex.needsUpdate = true;
   }

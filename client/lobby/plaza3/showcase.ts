@@ -8,6 +8,8 @@ import type { FishPodiumCatch } from '../../../shared/messages.ts';
 import { makeFish3D } from '../fishart.ts';
 import type { ShowcaseMount } from './mounts.ts';
 import { makeShowcaseTrophy, disposeShowcaseTrophy } from './showcase-trophy.ts';
+import { SIGNS3, V3 } from '../../ui/signs3.ts';
+import { v3Plaque } from '../signs3plaque.ts';
 
 const FONT = 'Rubik, system-ui, sans-serif';
 const TAG_W = 768;
@@ -107,14 +109,21 @@ export class ShowcaseFish {
 
   private drawTag(t: Tag, row: FishPodiumCatch | null, rank: number): void {
     const c = t.ctx;
-    c.fillStyle = '#13675f';
-    c.fillRect(0, 0, TAG_W, TAG_H);
-    c.strokeStyle = '#f3e6c9';
-    c.lineWidth = 10;
-    c.strokeRect(9, 9, TAG_W - 18, TAG_H - 18);
+    if (SIGNS3) {
+      // v3: бирка — слива с золотой каймой; вес — золотом, ник — кремом, «ждёт улова» — тише
+      c.fillStyle = V3.ink;
+      c.fillRect(0, 0, TAG_W, TAG_H);
+      v3Plaque(c, 4, 4, TAG_W - 8, TAG_H - 8, 30, { line: 4 });
+    } else {
+      c.fillStyle = '#13675f';
+      c.fillRect(0, 0, TAG_W, TAG_H);
+      c.strokeStyle = '#f3e6c9';
+      c.lineWidth = 10;
+      c.strokeRect(9, 9, TAG_W - 18, TAG_H - 18);
+    }
     c.textAlign = 'center';
     c.textBaseline = 'middle';
-    c.fillStyle = '#ffcd4a';
+    c.fillStyle = SIGNS3 ? (row ? V3.goldHi : V3.creamDim) : '#ffcd4a';
     if (!row) {
       fit(c, `${rank + 1} место · ждёт улова`, 66, 900);
       c.fillText(`${rank + 1} место · ждёт улова`, TAG_W / 2, TAG_H / 2);
@@ -122,7 +131,7 @@ export class ShowcaseFish {
       const w = `${rank + 1} · ${fmtWeight(row.g)}`;
       fit(c, w, 110, 900);
       c.fillText(w, TAG_W / 2, TAG_H * 0.36);
-      c.fillStyle = '#fff6e6';
+      c.fillStyle = SIGNS3 ? V3.cream : '#fff6e6';
       fit(c, row.nick, 70, 700);
       c.fillText(row.nick, TAG_W / 2, TAG_H * 0.74);
     }
@@ -133,6 +142,7 @@ export class ShowcaseFish {
 function fit(c: CanvasRenderingContext2D, text: string, size: number, weight: number): void {
   c.font = `${weight} ${size}px ${FONT}`;
   const w = c.measureText(text).width;
-  const max = TAG_W - 44;
+  // v3: текст не заходит на золотую кайму
+  const max = TAG_W - (SIGNS3 ? 96 : 44);
   if (w > max) c.font = `${weight} ${Math.max(18, Math.floor((size * max) / w))}px ${FONT}`;
 }

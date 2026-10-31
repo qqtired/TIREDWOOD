@@ -17,6 +17,8 @@ import { PORT } from '../../shared/plaza3/port.ts';
 import { SEASON_MUL } from '../../shared/fishrules.ts';
 import { mergeColored, paint, place } from '../render/kit.ts';
 import { FISH_SEASON, seasonLeft, type FishSeasonState } from './fishseason.ts';
+import { SIGNS3, V3, v3Font, v3Path, v3Rule, v3Star } from '../ui/signs3.ts';
+import { v3Plaque } from './signs3plaque.ts';
 
 /** «Скоро сезон!» — за столько до начала, мс */
 export const SEASON_SOON_MS = 5 * 60_000;
@@ -401,6 +403,12 @@ export class SeasonSigns {
     c.textAlign = 'center';
     c.textBaseline = 'middle';
     c.lineJoin = 'round';
+    if (SIGNS3) {
+      // v3: дерево с канатом и рыбками остаётся, надписи — на привинченной сливовой табличке с золотой каймой
+      v3Plaque(c, 128, 58, CW - 256, CH - 116, 30, { shadow: true, stars: true, line: 3 });
+      drawLinesV3(c, v, CH / 2 - 172, CH / 2 + 4, CH / 2 + 166, 62, 196, 50, CW - 330);
+      return this.done();
+    }
     const cream = 'rgba(255,247,228,.95)';
     if (v.phase === 'on') {
       // праздничная лента под заголовком
@@ -430,6 +438,15 @@ export class SeasonSigns {
    * под ним; в сезон — красная доска, за 5 минут — заголовок красным и доска мигает (как у большой)
    */
   private drawField(c: CanvasRenderingContext2D, v: SeasonSignView): void {
+    if (SIGNS3) {
+      // v3: поле доски в рамке модели — слива с золотой каймой и звёздочками; цифры — золотом
+      c.fillStyle = V3.ink;
+      c.fillRect(0, 0, FW, FH);
+      v3Plaque(c, 4, 4, FW - 8, FH - 8, 22, { stars: true, line: 3 });
+      drawLinesV3(c, v, 56, 172, 282, 54, 140, 42, FW - 120);
+      this.field!.tex.needsUpdate = true;
+      return;
+    }
     const on = v.phase === 'on';
     const soon = v.phase === 'soon';
     c.fillStyle = on ? '#a8321f' : '#24513a';
@@ -445,6 +462,46 @@ export class SeasonSigns {
     text(c, v.sub, 280, 44, 800, on ? '#ffe3c2' : '#cfe7c9', ink, 7, FW - 90);
     this.field!.tex.needsUpdate = true;
   }
+}
+
+/**
+ * Три строки v3 (по центру): заголовок кремом (в сезон — сливой на коралловой плашке, за 5 минут — коралловым), главное —
+ * крупно золотом, подпись — тише. Под заголовком — тающая золотая линия.
+ */
+function drawLinesV3(c: CanvasRenderingContext2D, v: SeasonSignView, yT: number, yB: number, yS: number, sT: number, sB: number, sS: number, maxW: number): void {
+  const on = v.phase === 'on';
+  const soon = v.phase === 'soon';
+  c.textAlign = 'center';
+  c.textBaseline = 'middle';
+  c.letterSpacing = `${Math.round(sT * 0.04)}px`;
+  c.font = v3Font(800, sT);
+  const tw0 = c.measureText(v.title).width;
+  const tS = tw0 > maxW ? Math.floor((sT * maxW) / tw0) : sT;
+  c.font = v3Font(800, tS);
+  const tw = Math.min(maxW, c.measureText(v.title).width);
+  if (on) {
+    const ph = tS * 1.36;
+    v3Path(c, CW / 2 - tw / 2 - 30, yT - ph / 2, tw + 60, ph, ph * 0.3);
+    c.fillStyle = V3.coral;
+    c.fill();
+  }
+  c.fillStyle = on ? V3.ink : soon ? V3.coral : V3.cream;
+  c.fillText(v.title, CW / 2, yT + 2);
+  c.letterSpacing = '0px';
+  if (!on) {
+    v3Star(c, CW / 2 - tw / 2 - 30, yT, tS * 0.2, V3.goldHi);
+    v3Star(c, CW / 2 + tw / 2 + 30, yT, tS * 0.2, V3.goldHi);
+  }
+  v3Rule(c, CW / 2 - maxW / 2, yT + tS * 0.86, maxW, 3, V3.gold);
+  const line = (txt: string, y: number, size: number, weight: number, color: string): void => {
+    c.font = v3Font(weight, size);
+    const w = c.measureText(txt).width;
+    if (w > maxW) c.font = v3Font(weight, Math.floor((size * maxW) / w));
+    c.fillStyle = color;
+    c.fillText(txt, CW / 2, y);
+  };
+  line(v.big, yB, sB, 800, V3.goldHi);
+  line(v.sub, yS, sS, 700, on ? V3.cream : V3.creamDim);
 }
 
 /** Строка по центру: обводка светлым (читается издалека на дереве), шрифт ужимается под ширину */

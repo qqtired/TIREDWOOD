@@ -7,6 +7,11 @@ import { TICK_RATE } from '../../shared/constants.ts';
 import { BOAT_SIGN } from '../../shared/maps/lobby.ts';
 import type { BoatStatus } from '../../shared/messages.ts';
 import { mergeColored, paint, place } from '../render/kit.ts';
+import { SIGNS3, V3, v3Rule } from '../ui/signs3.ts';
+import { v3Plaque } from './signs3plaque.ts';
+
+/** v3: цвета смысла строки статуса — как в HUD «Веранда» (свободен — зелёный, посадка — золото, в поездке — бирюза) */
+const TONE_V3: Readonly<Record<string, string>> = { '#8ff0a4': V3.good, '#ffd35c': V3.goldHi, '#9fd6ff': V3.teal };
 
 const W = 512;
 const H = 300;
@@ -79,12 +84,19 @@ export class BoatSign {
   private draw(line: string, color: string, captain = ''): void {
     const c = this.ctx;
     c.clearRect(0, 0, W, H);
-    // доска цвета морской волны с белой каймой и спасательным кругом
-    c.fillStyle = '#1f4a72';
-    c.fillRect(0, 0, W, H);
-    c.strokeStyle = '#f4f2ec';
-    c.lineWidth = 8;
-    c.strokeRect(10, 10, W - 20, H - 20);
+    if (SIGNS3) {
+      // v3: слива с золотой каймой (спасательный круг — та же картинка), строки — крем, тише, золото
+      c.fillStyle = V3.ink;
+      c.fillRect(0, 0, W, H);
+      v3Plaque(c, 3, 3, W - 6, H - 6, 18, { line: 2.5 });
+    } else {
+      // доска цвета морской волны с белой каймой и спасательным кругом
+      c.fillStyle = '#1f4a72';
+      c.fillRect(0, 0, W, H);
+      c.strokeStyle = '#f4f2ec';
+      c.lineWidth = 8;
+      c.strokeRect(10, 10, W - 20, H - 20);
+    }
     c.lineWidth = 14;
     c.strokeStyle = '#e8473a';
     c.beginPath();
@@ -98,19 +110,21 @@ export class BoatSign {
     c.setLineDash([]);
     c.textAlign = 'left';
     c.textBaseline = 'middle';
-    c.fillStyle = '#ffffff';
-    fit(c, 'КАТЕР «ЛАСТОЧКА»', 112, 62, W - 136, 900, 42);
-    c.fillStyle = '#d6e6f5';
+    c.fillStyle = SIGNS3 ? V3.cream : '#ffffff';
+    fit(c, 'КАТЕР «ЛАСТОЧКА»', 112, 62, W - 136, SIGNS3 ? 800 : 900, 42);
+    c.fillStyle = SIGNS3 ? V3.creamDim : '#d6e6f5';
     fit(c, 'Прогулка по бухте · 1 минута', 112, 102, W - 136, 700, 26);
+    if (SIGNS3) v3Rule(c, 30, 126, W - 60, 2, V3.goldDim);
     c.textAlign = 'center';
+    if (SIGNS3) c.fillStyle = V3.cream;
     fit(c, `${BOAT_PRICE} жетонов — друзьям бесплатно`, W / 2, 150, W - 50, 700, 27);
     fit(c, `До ${BOAT_SEATS} человек · посадка 30 с`, W / 2, 184, W - 50, 700, 27);
     if (captain) {
-      c.fillStyle = '#ffd35c';
+      c.fillStyle = SIGNS3 ? V3.goldHi : '#ffd35c';
       fit(c, `Капитан: ${captain}`, W / 2, 218, W - 50, 700, 24);
     }
     if (line) {
-      c.fillStyle = color;
+      c.fillStyle = SIGNS3 ? (TONE_V3[color] ?? color) : color;
       fit(c, line, W / 2, 256, W - 50, 900, 30);
     }
     this.tex.needsUpdate = true;

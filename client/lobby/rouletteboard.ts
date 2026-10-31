@@ -7,6 +7,8 @@
 import * as THREE from 'three';
 import { ROULETTE_COLOR_NAMES, ROULETTE_LOG_SIZE, rouletteColor, type RouletteColor, type RouletteLogRow } from '../../shared/roulette.ts';
 import { mergeColored, paint, place } from '../render/kit.ts';
+import { SIGNS3, V3, v3Path, v3Rule } from '../ui/signs3.ts';
+import { v3Line, v3Screen, v3Status, type Seg } from './tablo3.ts';
 
 /** Что сказать в шапке щита */
 export type BoardHead =
@@ -30,11 +32,13 @@ const W = 2048;
 const H = Math.round((W * B.h) / B.w);
 const FONT = 'Rubik, system-ui, sans-serif';
 const BG = '#26332b';
-const GOLD = '#ffd45c';
-const CREAM = '#fff4d8';
-const DIM = '#b9c4ad';
-const WIN = '#7ee59b';
-const LOSS = '#ff8577';
+const GOLD = SIGNS3 ? V3.goldHi : '#ffd45c';
+const CREAM = SIGNS3 ? V3.cream : '#fff4d8';
+const DIM = SIGNS3 ? V3.creamDim : '#b9c4ad';
+const WIN = SIGNS3 ? V3.good : '#7ee59b';
+const LOSS = SIGNS3 ? '#ff8a7c' : '#ff8577';
+/** Ободок кружков с числом */
+const RIM = SIGNS3 ? V3.cream : '#f2e6c4';
 const SUIT: Record<RouletteColor, string> = { red: '#b3262b', black: '#1d1d22', green: '#1e7a3d' };
 /** Колонки: слева и справа по пять строк */
 const COLS = [{ x: 40 }, { x: 1048 }];
@@ -109,8 +113,8 @@ export class RouletteBoard {
     const top = B.y + B.h;
     const frame = new THREE.Mesh(
       mergeColored([
-        // рама вокруг щита и два столбика на палубе (без коллизии, как у прежней таблички)
-        place(paint(new THREE.BoxGeometry(B.w + 0.12, B.h + 0.12, 0.05), wood), 0, B.y + B.h / 2, B.z - 0.03),
+        // рама вокруг щита (v3 — крашеная слива) и два столбика на палубе (без коллизии, как у прежней таблички)
+        place(paint(new THREE.BoxGeometry(B.w + 0.12, B.h + 0.12, 0.05), SIGNS3 ? 0x2e1d26 : wood), 0, B.y + B.h / 2, B.z - 0.03),
         place(paint(new THREE.BoxGeometry(0.07, top + 0.06, 0.07), wood), -(B.w / 2 + 0.01), (top + 0.06) / 2, B.z - 0.03),
         place(paint(new THREE.BoxGeometry(0.07, top + 0.06, 0.07), wood), B.w / 2 + 0.01, (top + 0.06) / 2, B.z - 0.03),
       ]),
@@ -126,15 +130,21 @@ export class RouletteBoard {
     g.save();
     g.textBaseline = 'alphabetic';
     g.textAlign = 'left';
-    g.fillStyle = BG;
-    g.fillRect(0, 0, W, H);
-    g.strokeStyle = '#d8b86a';
-    g.lineWidth = 10;
-    g.strokeRect(12, 12, W - 24, H - 24);
-    this.head(s.head);
-    // разделитель под шапкой
-    g.fillStyle = 'rgba(216, 184, 106, 0.55)';
-    g.fillRect(40, 108, W - 80, 4);
+    if (SIGNS3) {
+      v3Screen(g, W, H);
+      this.head3(s.head);
+      v3Rule(g, 40, 122, W - 80, 4);
+    } else {
+      g.fillStyle = BG;
+      g.fillRect(0, 0, W, H);
+      g.strokeStyle = '#d8b86a';
+      g.lineWidth = 10;
+      g.strokeRect(12, 12, W - 24, H - 24);
+      this.head(s.head);
+      // разделитель под шапкой
+      g.fillStyle = 'rgba(216, 184, 106, 0.55)';
+      g.fillRect(40, 108, W - 80, 4);
+    }
     if (s.rows.length === 0) {
       g.textAlign = 'center';
       g.fillStyle = DIM;
@@ -144,15 +154,46 @@ export class RouletteBoard {
       if (s.head.kind === 'idle') g.fillText('Поставь весь улов — и твоя ставка будет первой', W / 2, ROW0 + 250);
     } else {
       s.rows.slice(0, ROULETTE_LOG_SIZE).forEach((r, i) => this.row(r, COLS[Math.floor(i / PER_COL)].x, ROW0 + (i % PER_COL) * ROW_H, i % PER_COL, r.pid === s.me));
-      g.fillStyle = 'rgba(216, 184, 106, 0.28)';
+      g.fillStyle = SIGNS3 ? V3.goldDim : 'rgba(216, 184, 106, 0.28)';
       g.fillRect(W / 2 - 2, ROW0 + 6, 4, PER_COL * ROW_H - 12);
     }
     g.textAlign = 'center';
     g.font = `600 30px ${FONT}`;
     g.fillStyle = DIM;
-    g.fillText('Последние ставки · проиграл — улов пропадает · число выбирает сервер', W / 2, H - 28);
+    g.fillText('Последние ставки · проиграл — улов пропадает · число выбирает сервер', W / 2, SIGNS3 ? H - 36 : H - 28);
     g.restore();
     this.tex.needsUpdate = true;
+  }
+
+  /** v3: шапка — название золотом или статус плашкой (приём — зелёным, колесо — золотом), справа — подсказка с клавишей E */
+  private head3(h: BoardHead): void {
+    const g = this.ctx;
+    const cy = 70;
+    const hint = (segs: Seg[]): void => { v3Line(g, segs, W - 60, cy, 'right', 38, 940, 600); };
+    const dim = (t: string): Seg => ({ t, c: DIM, w: 600 });
+    if (h.kind === 'result') {
+      const col = rouletteColor(h.n);
+      g.fillStyle = disc(h.n);
+      g.beginPath(); g.arc(104, cy, 42, 0, Math.PI * 2); g.fill();
+      g.lineWidth = 5; g.strokeStyle = V3.gold; g.stroke();
+      g.fillStyle = '#ffffff';
+      g.textAlign = 'center';
+      g.textBaseline = 'middle';
+      g.font = `800 48px ${FONT}`;
+      g.fillText(String(h.n), 104, cy + 3);
+      v3Line(g, [{ t: 'Выпало ' }, { t: ROULETTE_COLOR_NAMES[col].toUpperCase(), c: col === 'black' ? CREAM : col === 'red' ? '#ff9d92' : '#9be8b0' }], 168, cy, 'left', 66, 900, 800);
+      hint([{ t: 'E', key: true }, dim('— новая ставка')]);
+    } else if (h.kind === 'spin') {
+      v3Status(g, 56, cy, [{ t: 'Колесо крутится…' }], 'live', 54, 900, 'left');
+      hint([dim('Ставки сделаны · '), { t: String(h.bets), c: GOLD, w: 800 }]);
+    } else if (h.kind === 'open') {
+      v3Status(g, 56, cy, [{ t: 'Приём ставок · ' }, { t: `${h.secs} с`, c: GOLD }], 'good', 54, 900, 'left');
+      hint([dim(h.names)]);
+    } else {
+      v3Line(g, [{ t: 'РУЛЕТКА РЫБАКА', c: GOLD, w: 800 }], 60, cy, 'left', 70, 900, 800);
+      hint([{ t: 'E', key: true }, dim('— поставить весь улов · красное '), { t: '×2', c: GOLD, w: 700 }, dim(' · чёрное '), { t: '×2', c: GOLD, w: 700 }, dim(' · зеро '), { t: '×36', c: GOLD, w: 700 }]);
+    }
+    g.textBaseline = 'alphabetic';
   }
 
   /** Шапка: что со столом (то же, что говорила прежняя табличка) */
@@ -211,22 +252,26 @@ export class RouletteBoard {
     const g = this.ctx;
     const cy = top + ROW_H / 2;
     const base = cy + 20;
+    const band = (): void => (SIGNS3 ? v3Path(g, x, top + 4, COL_W, ROW_H - 8, 14) : rr(g, x, top + 4, COL_W, ROW_H - 8, 16));
     if (mine) {
       g.fillStyle = 'rgba(255, 212, 92, 0.2)';
-      rr(g, x, top + 4, COL_W, ROW_H - 8, 16);
+      band();
       g.fill();
       g.fillStyle = GOLD;
-      rr(g, x, top + 4, 10, ROW_H - 8, 5);
-      g.fill();
+      if (SIGNS3) g.fillRect(x + 2, top + 18, 8, ROW_H - 36);
+      else {
+        rr(g, x, top + 4, 10, ROW_H - 8, 5);
+        g.fill();
+      }
     } else if (k % 2 === 0) {
-      g.fillStyle = 'rgba(255, 255, 255, 0.05)';
-      rr(g, x, top + 4, COL_W, ROW_H - 8, 16);
+      g.fillStyle = SIGNS3 ? 'rgba(255, 243, 222, 0.05)' : 'rgba(255, 255, 255, 0.05)';
+      band();
       g.fill();
     }
     // что выпало: кружок цвета числа
     g.fillStyle = disc(r.n);
     g.beginPath(); g.arc(x + 54, cy, 34, 0, Math.PI * 2); g.fill();
-    g.lineWidth = 4; g.strokeStyle = '#f2e6c4'; g.stroke();
+    g.lineWidth = 4; g.strokeStyle = RIM; g.stroke();
     g.fillStyle = '#ffffff';
     g.textAlign = 'center';
     g.font = `800 ${r.n > 9 ? 36 : 42}px ${FONT}`;
@@ -240,7 +285,8 @@ export class RouletteBoard {
     g.font = `700 46px ${FONT}`;
     const pw = Math.min(296, g.measureText(pill).width + 36);
     g.fillStyle = SUIT[r.c];
-    rr(g, x + 384, cy - 33, pw, 66, 33);
+    if (SIGNS3) v3Path(g, x + 384, cy - 33, pw, 66, 14);
+    else rr(g, x + 384, cy - 33, pw, 66, 33);
     g.fill();
     g.lineWidth = 3; g.strokeStyle = r.c === 'black' ? 'rgba(255, 255, 255, 0.45)' : 'rgba(255, 255, 255, 0.25)'; g.stroke();
     g.fillStyle = '#fff8e6';

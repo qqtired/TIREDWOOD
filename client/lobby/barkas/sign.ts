@@ -7,6 +7,11 @@ import { TICK_RATE } from '../../../shared/constants.ts';
 import { FE_AWAY, FE_BOARD, FE_HOME, FE_OUT, FERRY_DECK_Y, FERRY_LEVEL, FERRY_SEATS, FERRY_SIGN, ferryEta } from '../../../shared/ferry.ts';
 import type { FerryStatus } from '../../../shared/messages.ts';
 import { mergeColored, paint, place } from '../../render/kit.ts';
+import { SIGNS3, V3, v3Rule } from '../../ui/signs3.ts';
+import { v3Plaque } from '../signs3plaque.ts';
+
+/** v3: цвета смысла строки статуса — как в HUD «Веранда» (у причала — зелёный, посадка — золото, в пути — бирюза) */
+const TONE_V3: Readonly<Record<string, string>> = { '#8ff0a4': V3.good, '#ffd35c': V3.goldHi, '#9fd6ff': V3.teal, '#bfe3dc': V3.creamDim };
 
 const W = 512;
 const H = 300;
@@ -70,26 +75,35 @@ export class FerrySign {
   private draw(line: string, color: string): void {
     const c = this.ctx;
     c.clearRect(0, 0, W, H);
-    // доска цвета лодки (выцветшая бирюза) с кремовой каймой и якорем
-    c.fillStyle = '#2f6f69';
-    c.fillRect(0, 0, W, H);
-    c.strokeStyle = '#f2e8cc';
-    c.lineWidth = 8;
-    c.strokeRect(10, 10, W - 20, H - 20);
-    anchor(c, 64, 70);
+    if (SIGNS3) {
+      // v3: слива с золотой каймой; якорь — золотом; строки — крем, тише, золото
+      c.fillStyle = V3.ink;
+      c.fillRect(0, 0, W, H);
+      v3Plaque(c, 3, 3, W - 6, H - 6, 18, { line: 2.5 });
+      anchor(c, 64, 70, V3.gold);
+      v3Rule(c, 30, 124, W - 60, 2, V3.goldDim);
+    } else {
+      // доска цвета лодки (выцветшая бирюза) с кремовой каймой и якорем
+      c.fillStyle = '#2f6f69';
+      c.fillRect(0, 0, W, H);
+      c.strokeStyle = '#f2e8cc';
+      c.lineWidth = 8;
+      c.strokeRect(10, 10, W - 20, H - 20);
+      anchor(c, 64, 70);
+    }
     c.textAlign = 'left';
     c.textBaseline = 'middle';
-    c.fillStyle = '#ffffff';
-    fit(c, 'ЛОДКА «УДАЛАЯ»', 112, 58, W - 136, 900, 42);
-    c.fillStyle = '#d9efe9';
+    c.fillStyle = SIGNS3 ? V3.cream : '#ffffff';
+    fit(c, 'ЛОДКА «УДАЛАЯ»', 112, 58, W - 136, SIGNS3 ? 800 : 900, 42);
+    c.fillStyle = SIGNS3 ? V3.creamDim : '#d9efe9';
     fit(c, 'к баркасу «Альбатрос» и обратно', 112, 100, W - 136, 700, 26);
     c.textAlign = 'center';
-    c.fillStyle = '#ffe7a8';
+    c.fillStyle = SIGNS3 ? V3.goldHi : '#ffe7a8';
     fit(c, `Семён берёт с ${FERRY_LEVEL}-го уровня рыбалки`, W / 2, 150, W - 50, 800, 28);
-    c.fillStyle = '#d9efe9';
+    c.fillStyle = SIGNS3 ? V3.creamDim : '#d9efe9';
     fit(c, `Бесплатно · до ${FERRY_SEATS} человек · на борту ${BARKAS_FISH_SPOTS.length} мест рыбалки`, W / 2, 186, W - 50, 600, 24);
     if (line) {
-      c.fillStyle = color;
+      c.fillStyle = SIGNS3 ? (TONE_V3[color] ?? color) : color;
       fit(c, line, W / 2, 248, W - 50, 900, 30);
     }
     this.tex.needsUpdate = true;
@@ -97,8 +111,8 @@ export class FerrySign {
 }
 
 /** Якорь мелом */
-function anchor(c: CanvasRenderingContext2D, x: number, y: number): void {
-  c.strokeStyle = '#f2e8cc';
+function anchor(c: CanvasRenderingContext2D, x: number, y: number, color = '#f2e8cc'): void {
+  c.strokeStyle = color;
   c.lineWidth = 7;
   c.lineCap = 'round';
   c.beginPath();

@@ -14,6 +14,8 @@ import { paint } from '../../render/kit.ts';
 import { dgStatus, onDgStatus } from '../dgstatus.ts';
 import { FONT, bigText, canvasTexture, fitFont, makeCanvas, roundRectPath, speckle } from './gfx.ts';
 import { Venue, type VenueCtx } from './venue.ts';
+import { SIGNS3, V3, v3Path, v3Plate, v3Rule } from '../../ui/signs3.ts';
+import { v3Screen } from '../tablo3.ts';
 
 // v2 убирает пересечения светлых глыб с полостью тоннеля. Старую площадь оставляем с исходной моделью.
 const MODEL_URL = PLAZA3
@@ -88,6 +90,20 @@ function diamond(ctx: CanvasRenderingContext2D, x: number, y: number, r: number,
 
 /** Вывеска над зевом: крупные тёмные буквы по светлой доске, фиолетовые ромбы по краям (намёк на варенье Барона) */
 export function drawSign(ctx: CanvasRenderingContext2D, W: number, H: number): void {
+  if (SIGNS3) {
+    // v3: табличка места — слива со скосом, одна золотая кайма и звёздочки в углах, «ПОДЗЕМЕЛЬЕ» кремом между ромбами варенья
+    ctx.fillStyle = V3.ink;
+    ctx.fillRect(0, 0, W, H);
+    v3Plate(ctx, 0, 0, W, H, { cut: 30, line: 5, stars: true });
+    diamond(ctx, 104, H / 2, 38, JAM, '#d9c4ff');
+    diamond(ctx, W - 104, H / 2, 38, JAM, '#d9c4ff');
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    fitFont(ctx, 'ПОДЗЕМЕЛЬЕ', 176, W - 360, 800);
+    ctx.fillStyle = V3.cream;
+    ctx.fillText('ПОДЗЕМЕЛЬЕ', W / 2, H / 2 + 8);
+    return;
+  }
   parchment(ctx, W, H, 11);
   ctx.strokeStyle = WOOD;
   ctx.lineWidth = 16;
@@ -159,8 +175,83 @@ function drawColumn(ctx: CanvasRenderingContext2D, x: number, w: number, title: 
   });
 }
 
+/** v3: колонка доски — заголовок золотом, подписи столбцов тише, места — медальоны, волны — золотом, время — кремом */
+function drawColumn3(ctx: CanvasRenderingContext2D, x: number, w: number, title: string, rows: readonly BoardRow[]): void {
+  const top = 276;
+  const rowH = 92;
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'center';
+  ctx.font = `800 42px ${FONT}`;
+  ctx.fillStyle = V3.goldHi;
+  ctx.fillText(title, x + w / 2, 208, w);
+  ctx.font = `700 24px ${FONT}`;
+  ctx.fillStyle = V3.dim;
+  ctx.textAlign = 'right';
+  ctx.fillText('ВОЛНЫ', x + 306, 252);
+  ctx.fillText('ВРЕМЯ', x + w - 4, 252);
+  if (rows.length === 0) {
+    ctx.textAlign = 'center';
+    ctx.font = `800 52px ${FONT}`;
+    ctx.fillStyle = V3.creamDim;
+    ctx.fillText('Пока пусто', x + w / 2, top + rowH * 1.6);
+    ctx.font = `600 38px ${FONT}`;
+    ctx.fillStyle = V3.dim;
+    ctx.fillText('стань первым', x + w / 2, top + rowH * 2.5);
+    return;
+  }
+  rows.forEach((r, i) => {
+    const cy = top + rowH * i + rowH / 2;
+    if (r.mine || i % 2 === 0) {
+      v3Path(ctx, x - 6, cy - rowH / 2 + 6, w + 12, rowH - 12, 12);
+      ctx.fillStyle = r.mine ? 'rgba(255, 211, 90, 0.2)' : 'rgba(255, 243, 222, 0.05)';
+      ctx.fill();
+    }
+    ctx.beginPath();
+    ctx.arc(x + 25, cy, 23, 0, Math.PI * 2);
+    ctx.fillStyle = RANK_FILL[i] ?? V3.plumLift;
+    ctx.fill();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = RANK_FILL[i] ? V3.ink : V3.gold;
+    ctx.stroke();
+    ctx.textAlign = 'center';
+    ctx.font = `800 28px ${FONT}`;
+    ctx.fillStyle = RANK_FILL[i] ? V3.ink : V3.cream;
+    ctx.fillText(String(r.rank), x + 25, cy + 2);
+    ctx.textAlign = 'left';
+    ctx.font = `800 ${Math.max(40, fitFont(ctx, r.nick, 52, 178, 800))}px ${FONT}`;
+    ctx.fillStyle = r.mine ? V3.goldHi : V3.cream;
+    ctx.fillText(r.nick, x + 56, cy + 2, 178);
+    ctx.textAlign = 'right';
+    fitFont(ctx, r.waves, 60, 66, 800);
+    ctx.fillStyle = V3.goldHi;
+    ctx.fillText(r.waves, x + 306, cy + 2);
+    fitFont(ctx, r.time, 42, 126, 700);
+    ctx.fillStyle = V3.cream;
+    ctx.fillText(r.time, x + w - 4, cy + 2);
+  });
+}
+
+/** v3: экран в золотой раме, «Подземелье» кремом между двумя ромбами варенья (акцент режима), две колонки */
+function drawBoard3(ctx: CanvasRenderingContext2D, W: number, H: number, top: readonly BoardRow[], week: readonly BoardRow[]): void {
+  v3Screen(ctx, W, H, { cut: 48 });
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  fitFont(ctx, 'Подземелье', 92, W - 380, 800);
+  ctx.fillStyle = V3.cream;
+  ctx.fillText('Подземелье', W / 2, 100);
+  const tw = ctx.measureText('Подземелье').width;
+  diamond(ctx, W / 2 - tw / 2 - 52, 100, 30, JAM, '#d9c4ff');
+  diamond(ctx, W / 2 + tw / 2 + 52, 100, 30, JAM, '#d9c4ff');
+  v3Rule(ctx, 50, 166, W - 100, 3);
+  ctx.fillStyle = V3.goldDim;
+  ctx.fillRect(W / 2 - 1.5, 196, 3, H - 250);
+  drawColumn3(ctx, 58, 458, 'ЗА ВСЁ ВРЕМЯ', top);
+  drawColumn3(ctx, 566, 458, 'ЗА НЕДЕЛЮ', week);
+}
+
 /** Лицо доски рекордов: заголовок «Подземелье» и две колонки по пять строк */
 export function drawBoard(ctx: CanvasRenderingContext2D, W: number, H: number, top: readonly BoardRow[], week: readonly BoardRow[]): void {
+  if (SIGNS3) { drawBoard3(ctx, W, H, top, week); return; }
   parchment(ctx, W, H, 23);
   ctx.strokeStyle = WOOD;
   ctx.lineWidth = 14;

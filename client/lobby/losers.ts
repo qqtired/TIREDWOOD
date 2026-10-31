@@ -10,6 +10,8 @@ import { P3 } from '../../shared/plaza3/layout.ts';
 import { LOSERS_ROWS, type LoserRow } from '../../shared/messages.ts';
 import { mergeColored, paint, place } from '../render/kit.ts';
 import { glowCardTexture } from '../render/textures.ts';
+import { SIGNS3, V3, v3Path, v3Rule } from '../ui/signs3.ts';
+import { v3Screen } from './tablo3.ts';
 
 /** С какого дня считаем проигрыши (в этот день начали записывать ставки) — подпись на экране */
 export const LOSERS_SINCE = '2 октября';
@@ -54,9 +56,9 @@ export class LosersScreen {
     const fh = SCREEN_H + FRAME * 2;
     const frame = new THREE.Mesh(
       mergeColored([
-        place(paint(new THREE.BoxGeometry(fw, fh, 0.08), 0x3a2418), 0, 0, 0.04),
-        place(paint(new THREE.BoxGeometry(fw + 0.06, 0.05, 0.1), 0xc99a3e), 0, fh / 2 + 0.01, 0.05),
-        place(paint(new THREE.BoxGeometry(fw + 0.06, 0.05, 0.1), 0xc99a3e), 0, -fh / 2 - 0.01, 0.05),
+        place(paint(new THREE.BoxGeometry(fw, fh, 0.08), SIGNS3 ? 0x2e1d26 : 0x3a2418), 0, 0, 0.04),
+        place(paint(new THREE.BoxGeometry(fw + 0.06, 0.05, 0.1), SIGNS3 ? 0xd4a552 : 0xc99a3e), 0, fh / 2 + 0.01, 0.05),
+        place(paint(new THREE.BoxGeometry(fw + 0.06, 0.05, 0.1), SIGNS3 ? 0xd4a552 : 0xc99a3e), 0, -fh / 2 - 0.01, 0.05),
       ]),
       new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6, metalness: 0.25 }),
     );
@@ -70,7 +72,9 @@ export class LosersScreen {
       }),
     );
     halo.position.z = 0.015;
-    this.group.add(halo, frame, face);
+    // v3: без тёплого отсвета на стене (никакого свечения) — только рама и экран
+    if (SIGNS3) this.group.add(frame, face);
+    else this.group.add(halo, frame, face);
     this.group.position.set(AT.x, AT.y, AT.z);
     // лицом на восток (plaza3 — на запад), в зал
     this.group.rotation.y = FACE_YAW;
@@ -88,6 +92,7 @@ export class LosersScreen {
   }
 
   private draw(rows: readonly LoserRow[], myPid: number): void {
+    if (SIGNS3) { this.draw3(rows, myPid); return; }
     const c = this.ctx;
     const bg = c.createLinearGradient(0, 0, 0, H);
     bg.addColorStop(0, '#24110c');
@@ -173,6 +178,77 @@ export class LosersScreen {
     ledGrid(c);
     this.tex.needsUpdate = true;
   }
+
+  /** v3: экран в золотой раме — заголовок золотом, проигрыш — красным с монеткой, своя строка золотом; без сетки и свечения */
+  private draw3(rows: readonly LoserRow[], myPid: number): void {
+    const c = this.ctx;
+    const pad = v3Screen(c, W, H);
+    c.textBaseline = 'middle';
+    coin(c, PAD + 22, HEAD_Y + 2, 19);
+    c.textAlign = 'left';
+    c.fillStyle = V3.goldHi;
+    fit(c, 'ТОП ПРОИГРАВШИХ', 800, 54, W * 0.56);
+    c.fillText('ТОП ПРОИГРАВШИХ', PAD + 54, HEAD_Y + 4);
+    c.textAlign = 'right';
+    c.fillStyle = V3.creamDim;
+    const since = `считаем с ${LOSERS_SINCE}`;
+    fit(c, since, 600, 30, W * 0.3);
+    c.fillText(since, W - PAD, HEAD_Y + 8);
+    v3Rule(c, PAD - 10, LINE_Y + 2, W - (PAD - 10) * 2, 3);
+
+    const top = LINE_Y + 10;
+    const rowH = (H - top - pad - 4) / LOSERS_ROWS;
+    if (rows.length === 0) {
+      const y = top + (H - top) / 2 - 10;
+      const text = 'Пока никто не проиграл — всё впереди';
+      c.textAlign = 'center';
+      c.fillStyle = V3.cream;
+      fit(c, text, 700, 44, W - PAD * 2 - 140);
+      const tw = c.measureText(text).width;
+      c.fillText(text, W / 2, y);
+      coin(c, W / 2 - tw / 2 - 40, y, 18);
+      coin(c, W / 2 + tw / 2 + 40, y, 18);
+      this.tex.needsUpdate = true;
+      return;
+    }
+    const size = Math.round(rowH * 0.6);
+    const coinR = Math.round(rowH * 0.28);
+    const coinX = W - PAD - coinR;
+    const nickX = PAD + 74;
+    for (let i = 0; i < LOSERS_ROWS; i++) {
+      const y = top + rowH * (i + 0.5);
+      const r = rows[i];
+      const mine = !!r && myPid > 0 && r.pid === myPid;
+      if (mine || i % 2 === 0) {
+        v3Path(c, PAD - 10, y - rowH / 2 + 3, W - PAD * 2 + 20, rowH - 6, 10);
+        c.fillStyle = mine ? 'rgba(255, 211, 90, 0.18)' : 'rgba(255, 243, 222, 0.05)';
+        c.fill();
+      }
+      badge(c, PAD + 26, y, i, !!r, rowH);
+      if (!r) {
+        c.textAlign = 'left';
+        c.fillStyle = V3.dim;
+        c.font = `700 ${size}px ${FONT}`;
+        c.fillText('—', nickX, y);
+        continue;
+      }
+      coin(c, coinX, y, coinR);
+      c.textAlign = 'right';
+      c.fillStyle = '#ff8a7c';
+      c.font = `800 ${size}px ${FONT}`;
+      const amount = Math.round(r.n).toLocaleString('ru-RU');
+      const amountX = coinX - coinR - 12;
+      c.fillText(amount, amountX, y + 1);
+      const aw = c.measureText(amount).width;
+      const room = amountX - aw - 36 - nickX;
+      c.textAlign = 'left';
+      c.fillStyle = mine ? V3.goldHi : V3.cream;
+      fit(c, r.nick, mine ? 800 : 700, size, room);
+      c.fillText(r.nick, nickX, y + 1);
+      if (i === 0) sponsorTag(c, nickX + c.measureText(r.nick).width + 18, y, Math.round(size * 0.54), nickX + room);
+    }
+    this.tex.needsUpdate = true;
+  }
 }
 
 /** Место: первые три — медали с номером, дальше — просто номер; пустое место — тусклое. */
@@ -190,7 +266,7 @@ function badge(c: CanvasRenderingContext2D, x: number, y: number, i: number, on:
     c.stroke();
     c.fillStyle = '#2a1708';
   } else {
-    c.fillStyle = on ? '#bba88a' : 'rgba(187, 168, 138, 0.35)';
+    c.fillStyle = SIGNS3 ? (on ? V3.creamDim : V3.dim) : on ? '#bba88a' : 'rgba(187, 168, 138, 0.35)';
   }
   c.fillText(String(i + 1), x, y + 1);
 }
@@ -205,16 +281,19 @@ function sponsorTag(c: CanvasRenderingContext2D, x: number, y: number, size: num
   // капсула из двух полукругов (roundRect есть не во всех браузерах)
   const r = size * 0.75;
   c.beginPath();
-  c.arc(x + r, y, r, Math.PI / 2, Math.PI * 1.5);
-  c.arc(x + w - r, y, r, -Math.PI / 2, Math.PI / 2);
-  c.closePath();
+  if (SIGNS3) v3Path(c, x, y - r, w, r * 2, r * 0.45);
+  else {
+    c.arc(x + r, y, r, Math.PI / 2, Math.PI * 1.5);
+    c.arc(x + w - r, y, r, -Math.PI / 2, Math.PI / 2);
+    c.closePath();
+  }
   c.fillStyle = 'rgba(255, 207, 90, 0.18)';
   c.fill();
   c.lineWidth = 2;
-  c.strokeStyle = 'rgba(255, 207, 90, 0.55)';
+  c.strokeStyle = SIGNS3 ? V3.gold : 'rgba(255, 207, 90, 0.55)';
   c.stroke();
   c.textAlign = 'left';
-  c.fillStyle = '#ffcf5a';
+  c.fillStyle = SIGNS3 ? V3.goldHi : '#ffcf5a';
   c.fillText(text, x + pad, y + 1);
 }
 

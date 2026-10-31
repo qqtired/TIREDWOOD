@@ -7,6 +7,8 @@ import { makeFish3D } from './fishart.ts';
 import { PLAZA3 } from '../../shared/layout.ts';
 import { onShowcase } from './plaza3/mounts.ts';
 import { ShowcaseFish } from './plaza3/showcase.ts';
+import { SIGNS3, V3 } from '../ui/signs3.ts';
+import { v3Plaque } from './signs3plaque.ts';
 
 const COLORS = [0xd6bb62, 0xb9c5c3, 0xb78d60, 0x9bada2, 0x879eaa];
 const PANEL_WIDTH=.94, PANEL_HEIGHT=.56, RANK_HEIGHT=.16, RANK_GAP=.025;
@@ -103,8 +105,14 @@ export class FishPodium3D {
       labels.add(panel);
       const rankCanvas=document.createElement('canvas');rankCanvas.width=640;rankCanvas.height=110;
       const rankContext=rankCanvas.getContext('2d')!;
-      rankContext.fillStyle=`#${COLORS[rank].toString(16)}`;rankContext.fillRect(0,0,640,110);
-      rankContext.fillStyle='#182820';rankContext.textAlign='center';rankContext.textBaseline='middle';rankContext.font='900 72px Rubik,system-ui,sans-serif';
+      if (SIGNS3) {
+        // v3: место — слива с золотой каймой, «N МЕСТО» — цветом медали
+        rankContext.fillStyle=V3.ink;rankContext.fillRect(0,0,640,110);v3Plaque(rankContext,2,2,636,106,16,{line:2.5});
+        rankContext.fillStyle=`#${COLORS[rank].toString(16)}`;
+      } else {
+        rankContext.fillStyle=`#${COLORS[rank].toString(16)}`;rankContext.fillRect(0,0,640,110);
+        rankContext.fillStyle='#182820';
+      }rankContext.textAlign='center';rankContext.textBaseline='middle';rankContext.font='900 72px Rubik,system-ui,sans-serif';
       rankContext.fillText(`${rank+1} МЕСТО`,320,57);
       const rankTexture=new THREE.CanvasTexture(rankCanvas);rankTexture.colorSpace=THREE.SRGBColorSpace;rankTexture.anisotropy=4;
       const rankY=bottom+PANEL_HEIGHT+RANK_GAP+RANK_HEIGHT/2;
@@ -125,9 +133,11 @@ export class FishPodium3D {
     const base=new THREE.Mesh(mergeColored(parts),new THREE.MeshStandardMaterial({vertexColors:true,roughness:.9}));
     base.castShadow=true;base.receiveShadow=true;this.group.add(base);
     const title=document.createElement('canvas');title.width=1536;title.height=128;
-    const c=title.getContext('2d')!;c.fillStyle='#30473f';c.fillRect(0,0,1536,128);
-    c.fillStyle='#e8dbb8';c.textAlign='center';c.textBaseline='middle';c.font='700 47px Rubik,system-ui,sans-serif';
+    const c=title.getContext('2d')!;c.fillStyle=SIGNS3 ? V3.ink : '#30473f';c.fillRect(0,0,1536,128);
+    if (SIGNS3) v3Plaque(c,2,2,1532,124,18,{line:2.5});
+    c.fillStyle=SIGNS3 ? V3.cream : '#e8dbb8';c.textAlign='center';c.textBaseline='middle';c.font='700 47px Rubik,system-ui,sans-serif';
     c.fillText('КРУПНЕЙШИЕ РЫБЫ СЕГОДНЯ',768,43);
+    if (SIGNS3) c.fillStyle=V3.creamDim;
     c.font='25px Rubik,system-ui,sans-serif';c.fillText('5 уловов · новый день по Москве — новый подиум',768,96);
     const texture=new THREE.CanvasTexture(title);texture.colorSpace=THREE.SRGBColorSpace;
     const label=new THREE.Mesh(new THREE.PlaneGeometry(5.06,.265),new THREE.MeshStandardMaterial({map:texture,roughness:.9,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4}));
@@ -147,16 +157,18 @@ export class FishPodium3D {
       this.catches[rank]=null;
       const step=FISH_PODIUM_STEPS.find((s)=>s.rank===rank)!;
       const row=rows[rank],{ctx:c,tex}=this.panels[rank];
-      c.fillStyle='#192f27';c.fillRect(0,0,PANEL_PX_W,PANEL_PX_H);c.textAlign='center';c.textBaseline='middle';
-      c.fillStyle='#fff2ce';
+      c.fillStyle=SIGNS3 ? V3.ink : '#192f27';c.fillRect(0,0,PANEL_PX_W,PANEL_PX_H);c.textAlign='center';c.textBaseline='middle';
+      if (SIGNS3) v3Plaque(c,3,3,PANEL_PX_W-6,PANEL_PX_H-6,30,{line:4});
+      c.fillStyle=SIGNS3 ? (row&&FISH[row.sp] ? V3.goldHi : V3.creamDim) : '#fff2ce';
       if(row&&FISH[row.sp]) {
         const model=makePodiumFish(row.sp,row.g,step);
         highest=Math.max(highest,new THREE.Box3().setFromObject(model).max.y);
         this.group.add(model);this.catches[rank]=model;
         const weight=fmtWeight(row.g);
         fit(c,weight,110);c.fillText(weight,PANEL_PX_W/2,97);
+        if (SIGNS3) c.fillStyle=V3.cream;
         fit(c,row.nick,78);c.fillText(row.nick,PANEL_PX_W/2,237);
-        c.fillStyle='#cfdfce';fit(c,FISH[row.sp].name,46);c.fillText(FISH[row.sp].name,PANEL_PX_W/2,365);
+        c.fillStyle=SIGNS3 ? V3.creamDim : '#cfdfce';fit(c,FISH[row.sp].name,46);c.fillText(FISH[row.sp].name,PANEL_PX_W/2,365);
       } else {
         fit(c,'Ждёт улова',78);c.fillText('Ждёт улова',PANEL_PX_W/2,PANEL_PX_H/2);
       }

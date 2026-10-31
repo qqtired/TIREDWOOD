@@ -3,6 +3,7 @@
 // статуса»); скин меняется правкой этого файла. Здесь же вся чистая математика (без three.js и DOM): раскладка щита по
 // размеру поля, упаковка холстов в атлас, разбор стрелок столбов-указателей — её проверяет test/plaza3-signs.test.ts.
 import type { StatusMode } from './status.ts';
+import { SIGNS3 } from '../../ui/signs3.ts';
 
 // ---------------------------------------------------------------------------------------------------------- токены
 export const SIGN_FONT = {
@@ -40,6 +41,42 @@ export const SIGN_COLOR = {
 
 /** Цвет точки статуса */
 export const TONE_COLOR = { open: SIGN_COLOR.good, go: SIGN_COLOR.gold, bad: SIGN_COLOR.bad } as const;
+
+/**
+ * Вывески в стиле HUD «Веранда v3» (?ui3, client/ui/signs3.ts): слива с лёгким вертикальным переходом, тёмный контур, одна
+ * золотая кайма, скошенные углы со звёздочками; название — крем Rubik 800, статус — тише, числа — золотом. Столбы-указатели —
+ * сливовые с золотыми поясками и золотым колпаком (крашеные детали вывески, не дерево мира).
+ */
+export const SIGN_V3 = {
+  plumTop: '#3b2530',
+  plumBottom: '#28191f',
+  ink: '#1e1016',
+  gold: '#d4a552',
+  goldHi: '#ffd35a',
+  text: '#fff3de',
+  textDim: '#ecd8b6',
+  /** Портрет медальона — как у бейджа HUD */
+  iconA: '#fff6e2',
+  iconB: '#f0d9b0',
+  pole: '#3d2632',
+} as const;
+
+export const TONE_V3 = { open: '#a2d872', go: '#ffd35a', bad: '#ff6a5c' } as const;
+
+/** Кольцо медальона — акцент режима, как кольцо уровня в карточках HUD (--mh-*); у остальных — золото */
+export const RING_V3: Readonly<Partial<Record<StatusMode, string>>> = {
+  fishing: '#7fdccd', farm: '#a2d872', fort: '#ffa65e', kart: '#ff806c', dungeon: '#e6bc66', paint: '#ff9d45',
+  hide: '#cba6ff', sky: '#a3c6f5', regatta: '#84cfe8', aqua: '#84cfe8',
+};
+
+/** Цвет сливы на высоте y (0…h) — тот же переход, что на щите (плашка статуса стыкуется без шва) */
+export function plumAt(y: number, h: number): string {
+  const t = h > 0 ? Math.min(1, Math.max(0, y / h)) : 0;
+  const a = [0x3b, 0x25, 0x30];
+  const b = [0x28, 0x19, 0x1f];
+  const c = a.map((v, i) => Math.round(v + (b[i] - v) * t));
+  return `rgb(${c[0]},${c[1]},${c[2]})`;
+}
 
 /** Акцент режима (токены §2): пока нужен для кольца иконки у «горящих» входов и для будущего надзаголовка */
 export const MODE_ACCENT: Readonly<Record<string, string>> = {
@@ -119,17 +156,18 @@ export interface Frame {
   bottom: number;
 }
 
-export function frameOf(w: number, h: number): Frame {
+export function frameOf(w: number, h: number, v3: boolean = SIGNS3): Frame {
   const u = unit(h);
   const outline = Math.max(1, Math.round(u));
   const rim = Math.max(2, Math.round(2 * u));
-  const awnH = Math.max(6, Math.round(10 * u));
+  // v3: маркизы нет — сверху тот же отступ, что снизу (контур + кайма + зазор); radius — скос угла
+  const awnH = v3 ? Math.max(3, Math.round(3 * u)) : Math.max(6, Math.round(10 * u));
   const top = outline + awnH;
   const bottom = h - outline - rim;
   return {
     outline,
     rim,
-    radius: Math.min(Math.round(12 * u), Math.floor(Math.min(w, h) / 2)),
+    radius: Math.min(Math.round((v3 ? 16 : 12) * u), Math.floor(Math.min(w, h) / 2)),
     awnH,
     stripe: Math.max(8, Math.round(22 * u)),
     padX: Math.round(16 * u + rim),
@@ -165,8 +203,8 @@ export interface Content {
  * любой пропорции (у моделей поля от 3:1 до 12:1) читался: название ~46 % высоты контента, статус ~27 %, иконка — на всю
  * высоту. withStatus=false — одна крупная строка по центру (ленты и мелкие таблички).
  */
-export function contentOf(w: number, h: number, withIcon: boolean, withStatus: boolean): Content {
-  const f = frameOf(w, h);
+export function contentOf(w: number, h: number, withIcon: boolean, withStatus: boolean, v3: boolean = SIGNS3): Content {
+  const f = frameOf(w, h, v3);
   const innerTop = f.top + f.padY;
   const innerH = f.bottom - f.padY - innerTop;
   const cy = innerTop + innerH / 2;

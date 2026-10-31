@@ -4,6 +4,8 @@ import { FARM_LAYOUT } from '../../../shared/farmlayout.ts';
 import { plotToWorld } from '../../../shared/farmmap.ts';
 import type { FarmPlotView } from '../../../shared/farmnet.ts';
 import { iconUrl } from '../ui/common.ts';
+import { SIGNS3, V3, v3Font } from '../../ui/signs3.ts';
+import { v3Line, v3Plaque } from '../../lobby/signs3plaque.ts';
 
 interface PlotSign { canvas: HTMLCanvasElement; tex: THREE.CanvasTexture; key: string; image: HTMLImageElement | null }
 export class FarmSigns {
@@ -25,7 +27,9 @@ export class FarmSigns {
     ctx.strokeStyle = '#81563b'; ctx.lineWidth = 14; ctx.strokeRect(7, 7, c.width - 14, c.height - 14);
     ctx.strokeStyle = '#956336'; ctx.lineWidth = 4;
     for (let y = 38; y < 256; y += 42) { ctx.beginPath(); ctx.moveTo(12, y); ctx.lineTo(1012, y + 5); ctx.stroke(); }
-    ctx.fillStyle = '#fff3d9'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = '800 94px Rubik, sans-serif'; ctx.fillText('НА НАБЕРЕЖНУЮ', 512, 128, 940);
+    // v3: доска остаётся деревянной, надпись — на сливовой табличке с золотой каймой
+    if (SIGNS3) { v3Plaque(ctx, 34, 26, 956, 204, 26, { shadow: true, line: 3 }); v3Line(ctx, 'НА НАБЕРЕЖНУЮ', 512, 130, 800, 92, V3.cream, 860, 0.04); }
+    else { ctx.fillStyle = '#fff3d9'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = '800 94px Rubik, sans-serif'; ctx.fillText('НА НАБЕРЕЖНУЮ', 512, 128, 940); }
     const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1.48, .36), new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide }));
     mesh.position.set(cart.x, 2.10, cart.z + .95); scene.add(mesh);
@@ -42,13 +46,24 @@ export class FarmSigns {
     const paint = (): void => {
       if (s.key !== key) return;
       const ctx = s.canvas.getContext('2d')!; ctx.clearRect(0, 0, 512, 256);
-      ctx.fillStyle = '#fbf2d7'; ctx.fillRect(0, 0, 512, 256); ctx.fillStyle = '#0d524d';
-      if (s.image?.complete && s.image.naturalWidth) ctx.drawImage(s.image, 14, 58, 92, 92);
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = '800 34px Rubik, sans-serif';
+      if (SIGNS3) {
+        // v3: табличка участка — слива с золотой каймой, иконка на кремовом медальоне, название — крем, хозяин — тише
+        ctx.fillStyle = V3.ink; ctx.fillRect(0, 0, 512, 256);
+        v3Plaque(ctx, 3, 3, 506, 250, 22, { line: 3 });
+        ctx.beginPath(); ctx.arc(64, 104, 56, 0, Math.PI * 2); ctx.fillStyle = V3.gold; ctx.fill();
+        ctx.beginPath(); ctx.arc(64, 104, 52, 0, Math.PI * 2); ctx.fillStyle = '#f0d9b0'; ctx.fill();
+        if (s.image?.complete && s.image.naturalWidth) ctx.drawImage(s.image, 24, 64, 80, 80);
+        ctx.fillStyle = V3.cream; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = v3Font(800, 34);
+      } else {
+        ctx.fillStyle = '#fbf2d7'; ctx.fillRect(0, 0, 512, 256); ctx.fillStyle = '#0d524d';
+        if (s.image?.complete && s.image.naturalWidth) ctx.drawImage(s.image, 14, 58, 92, 92);
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = '800 34px Rubik, sans-serif';
+      }
       const words = name.split(' '); let line = '', lines: string[] = [];
       for (const word of words) { const n = line ? `${line} ${word}` : word; if (ctx.measureText(n).width > 385 && line) { lines.push(line); line = word; } else line = n; }
       if (line) lines.push(line); lines = lines.slice(0, 2);
       lines.forEach((t, i) => ctx.fillText(t, 304, lines.length === 1 ? 105 : 80 + i * 44, 388));
+      if (SIGNS3) ctx.fillStyle = v.pid ? V3.goldHi : V3.creamDim;
       ctx.font = '600 28px Rubik, sans-serif'; ctx.fillText(v.pid ? `${v.nick}${v.sleeping ? ' · спит' : ''}` : 'Можно занять', 256, 199, 480);
       s.tex.needsUpdate = true;
     };

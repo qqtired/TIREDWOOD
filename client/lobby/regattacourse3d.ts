@@ -12,6 +12,8 @@ import { regattaCourse, type RgCourse, type RgGate } from '../../shared/regattac
 import { Avatar, type AvatarPose } from '../render/avatar.ts';
 import { glowSprite, makeBoat, mergeColored, paint } from '../render/kit.ts';
 import { regattaLand } from './regattaland.ts';
+import { SIGNS3, V3, v3Rule } from '../ui/signs3.ts';
+import { v3Checker, v3Medal, v3Screen } from './tablo3.ts';
 
 /** Поплавки на канате — через столько метров */
 const FLOAT_STEP = 2.2;
@@ -74,6 +76,11 @@ function canvasTexture(w: number, h: number, draw: (g: CanvasRenderingContext2D)
 }
 
 function numberSprite(n: number): THREE.SpriteMaterial {
+  if (SIGNS3) {
+    // v3: медальон — слива, золотая кайма, номер кремом (читается на воде и на небе)
+    const map = canvasTexture(128, 128, (g) => v3Medal(g, 64, 64, 56, String(n), { edge: V3.goldHi }));
+    return new THREE.SpriteMaterial({ map, depthWrite: false });
+  }
   const map = canvasTexture(128, 128, (g) => {
     g.fillStyle = '#fff3de';
     g.beginPath();
@@ -447,7 +454,7 @@ export class RegattaCourse3D {
     parts.push(paint(new THREE.BoxGeometry(half * 2 + 1.6, 0.8, 1.34).translate(0, BEAM_Y + 0.4, 0), 0xfff3de));
     parts.push(paint(new THREE.BoxGeometry(half * 2 + 1.64, 0.18, 1.4).translate(0, BEAM_Y + 0.02, 0), 0x2f5d73));
     // рама табло и вышка стартёра у северного пилона (площадка с перилами, лицом к решётке)
-    parts.push(paint(new THREE.BoxGeometry(BOARD_W + 0.6, BOARD_H + 0.6, 0.3).translate(0, BEAM_Y + 0.8 + BOARD_H / 2, 0), 0x2f5d73));
+    parts.push(paint(new THREE.BoxGeometry(BOARD_W + 0.6, BOARD_H + 0.6, 0.3).translate(0, BEAM_Y + 0.8 + BOARD_H / 2, 0), SIGNS3 ? 0x2e1d26 : 0x2f5d73));
     parts.push(paint(new THREE.BoxGeometry(1.8, 0.2, 1.6).translate(half, STARTER_Y - 0.1, -1.45), 0xa8473a));
     parts.push(paint(new THREE.BoxGeometry(1.8, 0.5, 0.08).translate(half, STARTER_Y + 0.25, -2.22), 0xfff3de));
     const frame = new THREE.Mesh(mergeColored(parts), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6 }));
@@ -462,6 +469,19 @@ export class RegattaCourse3D {
     front.name = 'regatta-board';
     arch.add(front);
     const backTex = canvasTexture(1024, 512, (x) => {
+      if (SIGNS3) {
+        const pad = v3Screen(x, 1024, 512, { cut: 30 });
+        v3Checker(x, pad + 30, 1024 - pad - 30, pad + 4, 12);
+        v3Checker(x, pad + 30, 1024 - pad - 30, 512 - pad - 28, 12);
+        x.fillStyle = V3.cream;
+        x.font = '800 110px Rubik,system-ui,sans-serif';
+        x.textAlign = 'center';
+        x.textBaseline = 'middle';
+        x.fillText('ПОРТОВАЯ', 512, 190);
+        x.fillStyle = V3.goldHi;
+        x.fillText('РЕГАТА', 512, 320);
+        return;
+      }
       x.fillStyle = '#1f4a5a';
       x.fillRect(0, 0, 1024, 512);
       checkerBar(x, 0, 1024, 40);
@@ -673,6 +693,7 @@ export class RegattaCourse3D {
     if (key === this.boardKey) return;
     this.boardKey = key;
     const x = this.board;
+    if (SIGNS3) { this.board3(d); return; }
     x.fillStyle = '#1f4a5a';
     x.fillRect(0, 0, 1024, 512);
     checkerBar(x, 0, 1024, 18);
@@ -720,6 +741,53 @@ export class RegattaCourse3D {
       x.font = '700 32px Rubik,system-ui,sans-serif';
       x.textAlign = 'center';
       x.fillText(fit(x, d.foot, 980), 512, 482);
+    }
+    this.boardTex.needsUpdate = true;
+  }
+
+  /** v3: экран в золотой раме, название — золотом, фаза — кремом; места — медальоны (1–3 — золото, серебро, бронза), время — золотом */
+  private board3(d: RgBoardData): void {
+    const x = this.board;
+    const pad = v3Screen(x, 1024, 512, { cut: 30 });
+    v3Checker(x, pad + 30, 1024 - pad - 30, pad + 4, 8);
+    x.textBaseline = 'middle';
+    x.fillStyle = V3.goldHi;
+    x.font = '800 50px Rubik,system-ui,sans-serif';
+    x.textAlign = 'left';
+    x.fillText(fit(x, d.title, 560), 40, 72);
+    x.fillStyle = V3.cream;
+    x.textAlign = 'right';
+    x.fillText(fit(x, d.phase, 380), 984, 72);
+    v3Rule(x, 30, 108, 964, 3);
+    const rows = d.rows.slice(0, 6);
+    const top = 114;
+    const rowH = Math.floor((d.foot ? 336 : 376) / Math.max(4, rows.length));
+    const big = Math.round(rowH * 0.7);
+    rows.forEach((r, i) => {
+      const y = top + rowH * i + rowH / 2;
+      if (r.me) {
+        x.fillStyle = 'rgba(255,211,90,0.2)';
+        x.fillRect(30, top + rowH * i + 3, 964, rowH - 6);
+        x.fillStyle = V3.goldHi;
+        x.fillRect(30, top + rowH * i + 10, 6, rowH - 20);
+      }
+      const rad = rowH * 0.38;
+      const medal = r.medal === 1 ? '#f1c45a' : r.medal === 2 ? '#d9e2e8' : r.medal === 3 ? '#e09a5b' : undefined;
+      v3Medal(x, 48 + rad, y, rad, r.place, medal ? { fill: medal, ink: V3.ink, edge: V3.ink } : {});
+      x.fillStyle = V3.cream;
+      x.font = `800 ${big}px Rubik,system-ui,sans-serif`;
+      x.textAlign = 'left';
+      x.fillText(fit(x, r.nick, 580), 62 + rad * 2, y + 3);
+      x.font = `800 ${Math.round(big * 0.9)}px Rubik,system-ui,sans-serif`;
+      x.textAlign = 'right';
+      x.fillStyle = V3.goldHi;
+      x.fillText(r.info, 984, y + 3);
+    });
+    if (d.foot) {
+      x.fillStyle = V3.creamDim;
+      x.font = '700 30px Rubik,system-ui,sans-serif';
+      x.textAlign = 'center';
+      x.fillText(fit(x, d.foot, 940), 512, 466);
     }
     this.boardTex.needsUpdate = true;
   }

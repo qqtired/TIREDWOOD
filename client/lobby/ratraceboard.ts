@@ -7,6 +7,8 @@
 import * as THREE from 'three';
 import { RAT_BOARD, RAT_COUNT, RAT_OPEN_MS, RATS, ratWon, type RatBetView } from '../../shared/ratrace.ts';
 import { paint, place } from '../render/kit.ts';
+import { SIGNS3, V3, v3Path, v3Rule } from '../ui/signs3.ts';
+import { v3Line, v3Screen, v3Status, type Seg } from './tablo3.ts';
 
 export type BoardPhase = 'idle' | 'open' | 'run' | 'result';
 
@@ -32,9 +34,9 @@ const H = Math.round((W * RAT_BOARD.h) / RAT_BOARD.w);
 const PX = RAT_BOARD.w / W;
 const FONT = 'Rubik, system-ui, sans-serif';
 const BG = '#1c3a2b';
-const CREAM = '#fff4d8';
-const GOLD = '#ffd45c';
-const DIM = '#bfd0b4';
+const CREAM = SIGNS3 ? V3.cream : '#fff4d8';
+const GOLD = SIGNS3 ? V3.goldHi : '#ffd45c';
+const DIM = SIGNS3 ? V3.creamDim : '#bfd0b4';
 /** Строки: первая сверху и высота */
 const ROW0 = 196;
 const ROW_H = 94;
@@ -166,8 +168,8 @@ export class RatBoard {
       box(0.24, 0.12, 0.24, 0x5a3c25, px, 0.06, B.z + 0.04);
     }
     // рамка щита, полка снизу, козырёк сверху (красный с белой каймой)
-    box(B.w + 0.2, B.h + 0.2, 0.06, 0x4a3322, B.x, B.y + B.h / 2, B.z);
-    box(B.w + 0.3, 0.09, 0.22, 0xb07a4a, B.x, B.y - 0.08, B.z - 0.04);
+    box(B.w + 0.2, B.h + 0.2, 0.06, SIGNS3 ? 0x2e1d26 : 0x4a3322, B.x, B.y + B.h / 2, B.z);
+    box(B.w + 0.3, 0.09, 0.22, SIGNS3 ? 0xb8893e : 0xb07a4a, B.x, B.y - 0.08, B.z - 0.04);
     box(B.w + 0.6, 0.1, 0.5, 0xc0473a, B.x, top + 0.36, B.z - 0.06);
     box(B.w + 0.66, 0.06, 0.56, 0xf2ece0, B.x, top + 0.29, B.z - 0.06);
     // флажки под козырьком, над щитом
@@ -198,6 +200,41 @@ export class RatBoard {
     const g = this.ctx;
     g.save();
     g.textBaseline = 'alphabetic';
+    if (SIGNS3) this.head3(s);
+    else this.head(s);
+    const placed = (s.phase === 'run' || s.phase === 'result') && s.order;
+    const rows = placed ? s.order! : [0, 1, 2, 3, 4, 5];
+    rows.forEach((rat, k) => this.row(s, rat, k, !!placed));
+    if (SIGNS3) this.footer3(s);
+    else this.footer(s);
+    g.restore();
+    this.tex.needsUpdate = true;
+  }
+
+  /** v3: экран в золотой раме, название — золотом вразрядку, состояние — плашкой (открыто — зелёным, забег — золотом) */
+  private head3(s: BoardState): void {
+    const g = this.ctx;
+    v3Screen(g, W, H);
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.fillStyle = V3.gold;
+    g.font = `700 42px ${FONT}`;
+    if ('letterSpacing' in g) (g as unknown as { letterSpacing: string }).letterSpacing = '8px';
+    g.fillText('КРЫСИНЫЕ БЕГА', W / 2 + 4, 56);
+    if ('letterSpacing' in g) (g as unknown as { letterSpacing: string }).letterSpacing = '0px';
+    const max = W - 140;
+    switch (s.phase) {
+      case 'open': v3Status(g, W / 2, 124, [{ t: 'СТАРТ ЧЕРЕЗ ' }, { t: `${s.secs} С`, c: V3.goldHi }], s.secs <= 5 ? 'bad' : 'good', 62, max); break;
+      case 'run': v3Status(g, W / 2, 124, s.order ? [{ t: 'ЗАБЕГ! ВПЕРЕДИ — ' }, { t: RATS[s.order[0]].name.toUpperCase(), c: V3.goldHi }] : [{ t: 'ЗАБЕГ!' }], 'live', 62, max); break;
+      case 'result': v3Status(g, W / 2, 124, s.order ? [{ t: `${ratWon(s.order[0]).toUpperCase()} ` }, { t: `×${s.winMult}!`, c: V3.goldHi }] : [{ t: 'ФИНИШ' }], 'live', 62, max); break;
+      default: v3Status(g, W / 2, 124, [{ t: 'ДЕЛАЙТЕ СТАВКИ!' }], 'good', 62, max);
+    }
+    v3Rule(g, 44, 186, W - 88, 3);
+    g.textBaseline = 'alphabetic';
+  }
+
+  private head(s: BoardState): void {
+    const g = this.ctx;
     g.fillStyle = BG;
     g.fillRect(0, 0, W, H);
     g.strokeStyle = '#d9b45a';
@@ -216,12 +253,6 @@ export class RatBoard {
     g.fillText(fit(g, state, W - 100), W / 2, 162);
     g.fillStyle = 'rgba(217, 180, 90, 0.6)';
     g.fillRect(44, 184, W - 88, 4);
-    const placed = (s.phase === 'run' || s.phase === 'result') && s.order;
-    const rows = placed ? s.order! : [0, 1, 2, 3, 4, 5];
-    rows.forEach((rat, k) => this.row(s, rat, k, !!placed));
-    this.footer(s);
-    g.restore();
-    this.tex.needsUpdate = true;
   }
 
   private stateLine(s: BoardState): [string, string] {
@@ -242,18 +273,22 @@ export class RatBoard {
     const mine = bets.some((b) => b.pid === s.me);
     const won = s.phase === 'result' && s.order?.[0] === rat;
     // фон: своя ставка — золотом, победитель — ярче, остальные — через строку
+    const band = (): void => (SIGNS3 ? v3Path(g, 40, top + 4, W - 80, ROW_H - 8, 14) : rr(g, 32, top + 4, W - 64, ROW_H - 8, 16));
     if (won || mine) {
       g.fillStyle = won ? 'rgba(255, 212, 92, 0.26)' : 'rgba(255, 212, 92, 0.16)';
-      rr(g, 32, top + 4, W - 64, ROW_H - 8, 16);
+      band();
       g.fill();
       if (mine) {
         g.fillStyle = GOLD;
-        rr(g, 32, top + 4, 12, ROW_H - 8, 6);
-        g.fill();
+        if (SIGNS3) g.fillRect(40, top + 18, 8, ROW_H - 36);
+        else {
+          rr(g, 32, top + 4, 12, ROW_H - 8, 6);
+          g.fill();
+        }
       }
     } else if (k % 2 === 0) {
-      g.fillStyle = 'rgba(255, 255, 255, 0.045)';
-      rr(g, 32, top + 4, W - 64, ROW_H - 8, 16);
+      g.fillStyle = SIGNS3 ? 'rgba(255, 243, 222, 0.05)' : 'rgba(255, 255, 255, 0.045)';
+      band();
       g.fill();
     }
     // место (в забеге и на финише)
@@ -307,15 +342,41 @@ export class RatBoard {
         break;
       }
       g.globalAlpha = lost ? 0.45 : 1;
-      g.fillStyle = won && pay ? '#3c9b55' : mine ? GOLD : 'rgba(255, 255, 255, 0.14)';
-      rr(g, x, cy - 33, Math.min(w, x1 - x), 66, 33);
+      g.fillStyle = won && pay ? '#3c9b55' : mine ? GOLD : SIGNS3 ? 'rgba(255, 243, 222, 0.13)' : 'rgba(255, 255, 255, 0.14)';
+      if (SIGNS3) v3Path(g, x, cy - 33, Math.min(w, x1 - x), 66, 14);
+      else rr(g, x, cy - 33, Math.min(w, x1 - x), 66, 33);
       g.fill();
-      g.fillStyle = mine && !(won && pay) ? '#2a2216' : '#fff8e6';
+      g.fillStyle = mine && !(won && pay) ? (SIGNS3 ? V3.ink : '#2a2216') : SIGNS3 ? V3.cream : '#fff8e6';
       g.textAlign = 'left';
       g.fillText(fit(g, label, x1 - x - 34), x + 17, cy + 16);
       g.globalAlpha = 1;
       x += w + 12;
     }
+  }
+
+  /** v3: банк и выплаты — числа золотом с монеткой, подсказка с клавишей-колпачком E */
+  private footer3(s: BoardState): void {
+    const g = this.ctx;
+    const y = H - 62;
+    const coinSeg: Seg = { t: '', dw: 0.95, draw: (c, x, cy, px) => coin(c, x + px * 0.5, cy, px * 0.36) };
+    const n = s.bets.length;
+    const dim = (t: string): Seg => ({ t, c: DIM, w: 600 });
+    const gold = (t: string): Seg => ({ t, c: V3.goldHi, w: 800 });
+    let left: Seg[];
+    let right: Seg[];
+    if (s.phase === 'result') {
+      const paid = s.wins.reduce((a, w) => a + w.payout, 0);
+      left = s.wins.length ? [dim('Выплачено '), gold(num(paid)), coinSeg, dim(` · ставок было: ${n}`)] : n ? [dim(`Никто не угадал · ставок было: ${n}`)] : [dim('Без ставок')];
+      right = [{ t: 'E', key: true }, dim('у арены — ставка на следующий')];
+    } else {
+      left = n ? [dim('Банк '), gold(num(ratBank(s.bets))), coinSeg, dim(` · ${n} ${betsWord(n)}`)] : [dim('Ставок пока нет')];
+      right = s.phase === 'run' ? [dim('Ставки — после финиша · 1–6 болеть')]
+        : s.phase === 'open' ? [{ t: 'E', key: true }, dim('у арены — успей поставить · 1–6 болеть')]
+          : [{ t: 'E', key: true }, dim(`у арены — ставка · старт через ${RAT_OPEN_MS / 1000} с после первой`)];
+    }
+    const lw = v3Line(g, left, 70, y, 'left', 40, 620, 600).w;
+    v3Line(g, right, W - 70, y, 'right', 40, W - 140 - lw - 40, 600);
+    g.textBaseline = 'alphabetic';
   }
 
   private footer(s: BoardState): void {

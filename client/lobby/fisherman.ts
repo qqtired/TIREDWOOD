@@ -11,6 +11,8 @@ import * as THREE from 'three';
 import { FISHER_NPC, FISH_GEAR, FISH_HOUSE } from '../../shared/fishplaces.ts';
 import { glowTexture, mergeColored, paint, place } from '../render/kit.ts';
 import { makeFish3D } from './fishart.ts';
+import { SIGNS3, V3 } from '../ui/signs3.ts';
+import { v3Line, v3Plaque } from './signs3plaque.ts';
 
 const SKIN = 0xd59f80;
 const CHEEK = 0xe0907a;
@@ -555,6 +557,16 @@ function gearSignTexture(): THREE.CanvasTexture {
   x.fillRect(0, 0, 1024, 200);
   x.fillStyle = 'rgba(255,240,210,.08)';
   for (let y = 18; y < 200; y += 34) x.fillRect(0, y, 1024, 3);
+  if (SIGNS3) {
+    // v3: доска остаётся деревянной (её край виден рамкой), надпись — на сливовой табличке с золотой каймой
+    v3Plaque(x, 30, 16, 964, 168, 22, { shadow: true, line: 3 });
+    v3Line(x, 'СНАСТИ У СЕМЁНА', 512, 82, 800, 70, V3.cream, 880, 0.04);
+    v3Line(x, 'улов · снасти · задания', 512, 146, 700, 36, V3.creamDim, 860);
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = 4;
+    return tex;
+  }
   x.strokeStyle = '#e9dcb8';
   x.lineWidth = 8;
   x.strokeRect(14, 14, 996, 172);

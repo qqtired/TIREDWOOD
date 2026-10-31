@@ -18,6 +18,8 @@ import { LOCAL_WALKER } from '../render/outfitfarm.ts';
 import { NPC3, npcHandle } from '../lobby/plaza3/npcdata.ts';
 import { WalkPets } from './3d/pets.ts';
 import { StaticBatch, loadModel, type Part } from './models.ts';
+import { SIGNS3, V3 } from '../ui/signs3.ts';
+import { v3Line, v3Plaque } from '../lobby/signs3plaque.ts';
 
 const G = { local: FARM_LAYOUT.plazaGate.local, anchor: FARM_PLAZA_GATE_ANCHOR, current: FARM_PLAZA_GATE };
 /** Створки открываются, когда ближе этого (м), за 0,3 с */
@@ -38,16 +40,24 @@ function signTexture(): THREE.CanvasTexture {
   c.width = 512;
   c.height = 128;
   const ctx = c.getContext('2d')!;
-  ctx.fillStyle = '#f3e3c0';
-  ctx.fillRect(0, 0, 512, 128);
-  ctx.strokeStyle = '#8a5a2e';
-  ctx.lineWidth = 10;
-  ctx.strokeRect(5, 5, 502, 118);
-  ctx.fillStyle = '#7a3b16';
-  ctx.font = 'bold 88px Rubik, system-ui, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('ФЕРМА', 256, 70);
+  if (SIGNS3) {
+    // v3: доска дуги остаётся деревянной по краю, надпись — на сливовой табличке с золотой каймой и звёздочками
+    ctx.fillStyle = '#8a5a2e';
+    ctx.fillRect(0, 0, 512, 128);
+    v3Plaque(ctx, 8, 6, 496, 114, 18, { shadow: true, stars: true, line: 2.5 });
+    v3Line(ctx, 'ФЕРМА', 256, 66, 800, 76, V3.cream, 400, 0.06);
+  } else {
+    ctx.fillStyle = '#f3e3c0';
+    ctx.fillRect(0, 0, 512, 128);
+    ctx.strokeStyle = '#8a5a2e';
+    ctx.lineWidth = 10;
+    ctx.strokeRect(5, 5, 502, 118);
+    ctx.fillStyle = '#7a3b16';
+    ctx.font = 'bold 88px Rubik, system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('ФЕРМА', 256, 70);
+  }
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
   t.anisotropy = 4;

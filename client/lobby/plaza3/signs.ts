@@ -14,9 +14,10 @@ import { P3 } from '../../../shared/plaza3/layout.ts';
 import { FERRY_LEVEL, FERRY_SEATS } from '../../../shared/ferry.ts';
 import { BARKAS_FISH_SPOTS } from '../../../shared/barkas.ts';
 import type { LiveIn } from '../plaza/live.ts';
+import { SIGNS3, v3Path, v3Star } from '../../ui/signs3.ts';
 import {
-  ATLAS_PAD, DENSITY_MAX, HEAD_SIZE, MIN_ICON_H, MIN_STATUS_H, PLANK, SIGN_COLOR, SIGN_FONT, SIGN_META, STATUS_SIZE, TONE_COLOR,
-  contentOf, ferryContent, enamelAt, fitStatus, fitTitle, headItems, monoRun, packAtlas,
+  ATLAS_PAD, DENSITY_MAX, HEAD_SIZE, MIN_ICON_H, MIN_STATUS_H, PLANK, RING_V3, SIGN_COLOR, SIGN_FONT, SIGN_META, SIGN_V3, STATUS_SIZE, TONE_COLOR,
+  TONE_V3, contentOf, ferryContent, enamelAt, fitStatus, fitTitle, headItems, monoRun, packAtlas, plumAt,
   type Atlas, type AtlasItem, type AtlasRect, type Content, type FlagMode, type IconId, type PostPlan, type SignMeta,
 } from './signstyle.ts';
 import { emptyExtras, signStatus, statusKey, type SignExtras, type SignStatus } from './status.ts';
@@ -145,9 +146,12 @@ class Quads {
 
 const WHITE: V3 = [1, 1, 1];
 const hex = (s: string): V3 => [parseInt(s.slice(1, 3), 16) / 255, parseInt(s.slice(3, 5), 16) / 255, parseInt(s.slice(5, 7), 16) / 255];
-const POLE = hex(SIGN_COLOR.pole);
-const BAND = hex(SIGN_COLOR.poleBand);
-const CORAL = hex(SIGN_COLOR.coral);
+/** v3: цвета вершин — в линейном пространстве (как холст после декодирования sRGB), чтобы слива и золото совпали с вывесками */
+const lin = (s: string): V3 => hex(s).map((c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4)) as unknown as V3;
+const POLE = SIGNS3 ? lin(SIGN_V3.pole) : hex(SIGN_COLOR.pole);
+const BAND = SIGNS3 ? lin(SIGN_V3.gold) : hex(SIGN_COLOR.poleBand);
+const CORAL = SIGNS3 ? lin(SIGN_V3.gold) : hex(SIGN_COLOR.coral);
+const PLANK_SIDE: V3 = SIGNS3 ? lin(SIGN_V3.plumBottom) : [0.05, 0.32, 0.3];
 const STONE: V3 = [0.78, 0.74, 0.66];
 
 /** Правый вектор щита, смотрящего по yaw (0 — на −Z): глядя на него снаружи, этот вектор — вправо */
@@ -378,6 +382,200 @@ function drawStatus(ctx: Ctx, s: Sign, st: SignStatus): void {
     ctx.arc(cx, cy, r + Math.max(1, r * 0.22), 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = TONE_COLOR[st.tone];
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+// ------------------------------------------------------------------------------------------- v3: «Веранда» (?ui3)
+const V3_FONT = 'Rubik, system-ui, sans-serif';
+
+/** Название v3: Rubik 800 с лёгкой разрядкой; ширина — по измерению (не по сетке Mono One) */
+function v3Set(ctx: Ctx, em: number): void {
+  ctx.font = `800 ${Math.round(em)}px ${V3_FONT}`;
+  ctx.letterSpacing = `${Math.round(em * 0.04)}px`;
+}
+
+function v3Width(ctx: Ctx, text: string, em: number): number {
+  v3Set(ctx, em);
+  return ctx.measureText(text).width - Math.round(em * 0.04);
+}
+
+/** Кегль под ширину (не меньше половины), иначе — обрезка с «…» */
+function v3Fit(ctx: Ctx, text: string, em: number, maxW: number): { em: number; text: string } {
+  let t = text;
+  const w0 = v3Width(ctx, t, em);
+  if (w0 <= maxW) return { em, text: t };
+  const floor = em * 0.5;
+  let e = Math.max(floor, (em * maxW) / w0);
+  // кегль округляется до пикселя, разрядка тоже: дожимаем по 2 %, и только потом — многоточие
+  while (v3Width(ctx, t, e) > maxW && e > floor) e = Math.max(floor, e * 0.98);
+  while (v3Width(ctx, t, e) > maxW && t.length > 1) t = `${t.slice(0, -2).trimEnd()}…`;
+  return { em: e, text: t };
+}
+
+function v3Text(ctx: Ctx, text: string, x: number, base: number, em: number, color: string): void {
+  v3Set(ctx, em);
+  ctx.fillStyle = color;
+  ctx.fillText(text, x, base);
+  ctx.letterSpacing = '0px';
+}
+
+/** Табличка v3: тёмный контур → золотая кайма → слива с переходом (тот же, что у плашки статуса) */
+function v3Body(ctx: Ctx, w: number, h: number, cut: number, ink: number, line: number): void {
+  v3Path(ctx, 0, 0, w, h, cut);
+  ctx.fillStyle = SIGN_V3.ink;
+  ctx.fill();
+  v3Path(ctx, ink, ink, w - 2 * ink, h - 2 * ink, Math.max(1, cut - ink * 0.6));
+  ctx.fillStyle = SIGN_V3.gold;
+  ctx.fill();
+  const i2 = ink + line;
+  v3Path(ctx, i2, i2, w - 2 * i2, h - 2 * i2, Math.max(1, cut - i2 * 0.6));
+  const body = ctx.createLinearGradient(0, 0, 0, h);
+  body.addColorStop(0, SIGN_V3.plumTop);
+  body.addColorStop(1, SIGN_V3.plumBottom);
+  ctx.fillStyle = body;
+  ctx.fill();
+}
+
+/** Медальон-портрет: контур → золотая кайма → кольцо акцента режима → кремовый портрет с иконкой */
+function v3Medal(ctx: Ctx, cx: number, cy: number, r: number, ring: string, icon: IconId | null, img: HTMLImageElement | undefined): void {
+  const ink = Math.max(1.5, r * 0.035);
+  const gold = Math.max(2, r * 0.05);
+  const band = Math.max(3, r * 0.1);
+  const disc = (rr: number, fill: string | CanvasGradient): void => {
+    ctx.fillStyle = fill;
+    ctx.beginPath();
+    ctx.arc(cx, cy, rr, 0, Math.PI * 2);
+    ctx.fill();
+  };
+  disc(r, SIGN_V3.ink);
+  disc(r - ink, SIGN_V3.gold);
+  disc(r - ink - gold, ring);
+  disc(r - ink - gold - band, SIGN_V3.ink);
+  const ri = r - ink * 2 - gold - band;
+  const bg = ctx.createRadialGradient(cx - ri * 0.16, cy - ri * 0.4, ri * 0.05, cx, cy, ri);
+  bg.addColorStop(0, SIGN_V3.iconA);
+  bg.addColorStop(0.8, SIGN_V3.iconB);
+  disc(ri, bg);
+  if (icon === 'ball') drawBall(ctx, cx, cy, ri * 0.74);
+  else if (img) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, ri, 0, Math.PI * 2);
+    ctx.clip();
+    const d = ri * 2 * 1.04;
+    ctx.drawImage(img, cx - d / 2, cy - d / 2, d, d);
+    ctx.restore();
+  }
+}
+
+/** Щит v3: слива, кайма, звёздочки по углам; медальон, название кремом. Статус — на своей плашке (drawStatusV3). */
+function drawSignHeadV3(ctx: Ctx, s: Sign, icons: ReadonlyMap<string, HTMLImageElement>): void {
+  const { x, y, w, h } = s.head;
+  const c = s.content;
+  const f = c.frame;
+  ctx.save();
+  ctx.translate(x, y);
+  const cut = f.radius;
+  v3Body(ctx, w, h, cut, f.outline, f.rim);
+  // звёздочки — в скосах углов, внутри каймы (как у крупных карточек HUD)
+  const sp = cut * 0.62 + f.outline;
+  const sr = Math.max(3, cut * 0.3);
+  for (const [sx, sy] of [[sp, sp], [w - sp, sp], [sp, h - sp], [w - sp, h - sp]]) v3Star(ctx, sx, sy, sr, SIGN_V3.gold);
+  const ic = c.icon;
+  if (ic) v3Medal(ctx, ic.cx, ic.cy, ic.r, RING_V3[s.meta.mode] ?? SIGN_V3.goldHi, s.meta.icon, s.meta.icon ? icons.get(s.meta.icon) : undefined);
+  ctx.textBaseline = 'alphabetic';
+  ctx.textAlign = 'left';
+  if (s.meta.mode === 'ferry') {
+    const fit = v3Fit(ctx, s.title, c.titleEm * 0.78, c.textW);
+    v3Text(ctx, fit.text, (w - v3Width(ctx, fit.text, fit.em)) / 2, h * 0.27, fit.em, SIGN_V3.text);
+    ctx.fillStyle = SIGN_V3.textDim;
+    ctx.textAlign = 'center';
+    ctx.font = `700 ${Math.round(h * 0.095)}px ${V3_FONT}`;
+    const rows = ['к «Альбатросу» и обратно', `с ${FERRY_LEVEL}-го уровня · бесплатно`, `${FERRY_SEATS} мест · ${BARKAS_FISH_SPOTS.length} мест ловли · E`];
+    rows.forEach((line, i) => ctx.fillText(line, w / 2, h * (0.42 + i * 0.12), w - 2 * (f.rim + f.outline) - 12));
+    ctx.restore();
+    return;
+  }
+  // без статуса и иконки (ленты) — по центру; Rubik 800 ниже Mono One: кегль чуть крупнее при той же высоте строки
+  const fit = v3Fit(ctx, s.title, c.titleEm * 1.08, c.textW);
+  const tw = v3Width(ctx, fit.text, fit.em);
+  const tx = ic ? c.textX : Math.round(c.textX + (c.textW - tw) / 2);
+  v3Text(ctx, fit.text, tx, c.titleBase, fit.em, SIGN_V3.text);
+  ctx.restore();
+}
+
+/** Доска-указатель v3: слива, золотые волосяные линии сверху и снизу, название кремом */
+function drawPlankV3(ctx: Ctx, p: Plank): void {
+  const { x, y, w, h } = p.rect;
+  const line = Math.max(2, Math.round(h * 0.035));
+  const at = Math.max(2, Math.round(h * 0.09));
+  ctx.save();
+  ctx.translate(x, y);
+  const body = ctx.createLinearGradient(0, 0, 0, h);
+  body.addColorStop(0, SIGN_V3.plumTop);
+  body.addColorStop(1, SIGN_V3.plumBottom);
+  ctx.fillStyle = body;
+  ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = SIGN_V3.gold;
+  ctx.fillRect(0, at, w, line);
+  ctx.fillRect(0, h - at - line, w, line);
+  const fit = v3Fit(ctx, p.name.toUpperCase(), p.em * 1.08, w - 2 * Math.round(h * 0.28));
+  const tw = v3Width(ctx, fit.text, fit.em);
+  ctx.textBaseline = 'alphabetic';
+  v3Text(ctx, fit.text, Math.round((w - tw) / 2), Math.round(h / 2 + fit.em * 0.36), fit.em, SIGN_V3.text);
+  ctx.restore();
+}
+
+/** Плашка статуса v3: фон — тот же переход сливы; слова — тёплым кремом, числа — золотом; точка-медальон смысла справа */
+function drawStatusV3(ctx: Ctx, s: Sign, st: SignStatus): void {
+  const strip = s.strip;
+  const status = s.content.status;
+  if (!strip || !status) return;
+  const k = s.ss;
+  const z = status.zone;
+  const h = s.head.h;
+  const g = ctx.createLinearGradient(0, strip.y - PAD / 2, 0, strip.y + strip.h + PAD / 2);
+  g.addColorStop(0, plumAt(z.y - PAD / (2 * k), h));
+  g.addColorStop(1, plumAt(z.y + z.h + PAD / (2 * k), h));
+  ctx.fillStyle = g;
+  ctx.fillRect(strip.x - PAD / 2, strip.y - PAD / 2, strip.w + PAD, strip.h + PAD);
+  if (!st.text) return;
+  const em = status.em * k;
+  const base = strip.y + (status.base - z.y) * k;
+  const dot = st.tone === 'none' ? 0 : status.dot.r * k * 2.6;
+  ctx.textBaseline = 'alphabetic';
+  ctx.letterSpacing = '0px';
+  const measure = (t: string, size: number): number => {
+    let sum = 0;
+    for (const part of t.split(/(\d+(?::\d+)*)/)) {
+      if (!part) continue;
+      ctx.font = `${/^\d/.test(part) ? 800 : 700} ${size}px ${V3_FONT}`;
+      sum += ctx.measureText(part).width;
+    }
+    return sum;
+  };
+  const { em: e, text } = fitStatus(st.text, em, strip.w - dot, measure);
+  let x = strip.x;
+  for (const part of text.split(/(\d+(?::\d+)*)/)) {
+    if (!part) continue;
+    const num = /^\d/.test(part);
+    ctx.font = `${num ? 800 : 700} ${e}px ${V3_FONT}`;
+    ctx.fillStyle = num ? SIGN_V3.goldHi : SIGN_V3.textDim;
+    ctx.fillText(part, x, base);
+    x += ctx.measureText(part).width;
+  }
+  if (st.tone !== 'none') {
+    const r = status.dot.r * k;
+    const cx = strip.x + strip.w - r;
+    const cy = strip.y + (status.dot.cy - z.y) * k;
+    ctx.fillStyle = SIGN_V3.ink;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r + Math.max(1, r * 0.22), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = TONE_V3[st.tone];
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
     ctx.fill();
@@ -618,7 +816,7 @@ export class Plaza3Signs {
     const hw = w / 2;
     const hh = h / 2;
     const at = (a: number, b: number, k: number): V3 => [cx + d[0] * a + nR[0] * k, cy + b, cz + d[2] * a + nR[2] * k];
-    const col: V3 = [0.05, 0.32, 0.3];
+    const col: V3 = PLANK_SIDE;
     A.flat(at(-hw, hh, half), at(hw, hh, half), at(hw, hh, -half), at(-hw, hh, -half), wuv, col);
     A.flat(at(-hw, -hh, -half), at(hw, -hh, -half), at(hw, -hh, half), at(-hw, -hh, half), wuv, [col[0] * 0.6, col[1] * 0.6, col[2] * 0.6]);
     A.flat(at(-hw, -hh, half), at(-hw, hh, half), at(-hw, hh, -half), at(-hw, -hh, -half), wuv, col);
@@ -687,8 +885,8 @@ export class Plaza3Signs {
     const w = this.headAtlas.rects.find((r) => r.id === '_white')!;
     ctx.fillStyle = '#fff';
     ctx.fillRect(w.x, w.y, w.w, w.h);
-    for (const s of this.signs) drawSignHead(ctx, s, icons, this.mono);
-    for (const p of this.planks) drawPlank(ctx, p, this.mono);
+    for (const s of this.signs) if (SIGNS3) drawSignHeadV3(ctx, s, icons); else drawSignHead(ctx, s, icons, this.mono);
+    for (const p of this.planks) if (SIGNS3) drawPlankV3(ctx, p); else drawPlank(ctx, p, this.mono);
     this.headTex.needsUpdate = true;
   }
 
@@ -748,7 +946,7 @@ export class Plaza3Signs {
       const ctx = this.statusCanvas.getContext('2d')!;
       for (const s of this.signs) {
         if (s.status && s.strip) {
-          drawStatus(ctx, s, s.status);
+          if (SIGNS3) drawStatusV3(ctx, s, s.status); else drawStatus(ctx, s, s.status);
           s.status = null;
         }
       }

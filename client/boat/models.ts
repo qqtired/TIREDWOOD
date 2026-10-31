@@ -9,6 +9,8 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { BOATS, type BoatId } from '../../shared/fishboat.ts';
 import { PLAZA3 } from '../../shared/layout.ts';
 import { OB_WORLD_MAX, PARK, PARK_COUNT, PARK_RAMP } from '../../shared/ownboat.ts';
+import { SIGNS3, V3, v3Font, v3Path } from '../ui/signs3.ts';
+import { v3Plaque } from '../lobby/signs3plaque.ts';
 
 const url = (f: string): string => new URL(`../assets/ownboats/${f}`, import.meta.url).href;
 const BOAT_URLS: Record<BoatId, [string, string]> = {
@@ -385,6 +387,29 @@ export class PierModel {
       const x = (i % COLS) * CW;
       const y = Math.floor(i / COLS) * CH;
       const p = list[i] ?? null;
+      if (SIGNS3) {
+        // v3: табличка места — слива с золотой каймой (своя — кайма ярче и толще); номер — золотом, «свободно» — зелёным
+        c.fillStyle = V3.ink;
+        c.fillRect(x, y, CW, CH);
+        v3Plaque(c, x + 3, y + 3, CW - 6, CH - 6, 22, { line: 3 });
+        if (p?.mine) {
+          v3Path(c, x + 12, y + 12, CW - 24, CH - 24, 16);
+          c.strokeStyle = V3.goldHi;
+          c.lineWidth = 6;
+          c.stroke();
+        }
+        c.textAlign = 'center';
+        c.textBaseline = 'middle';
+        c.fillStyle = V3.goldHi;
+        c.font = v3Font(800, 96);
+        c.fillText(String(i + 1), x + CW / 2, y + 80);
+        c.font = v3Font(700, 38);
+        let label = p ? p.nick : 'свободно';
+        while (label.length > 3 && c.measureText(label).width > CW - 40) label = label.slice(0, -2) + '…';
+        c.fillStyle = p ? (p.mine ? V3.goldHi : V3.cream) : V3.good;
+        c.fillText(label, x + CW / 2, y + 160);
+        continue;
+      }
       c.fillStyle = p ? (p.mine ? '#ffe2a8' : '#efe6d4') : '#cfe8cf';
       c.fillRect(x, y, CW, CH);
       c.strokeStyle = 'rgba(40,30,20,0.55)';
