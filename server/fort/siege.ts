@@ -8,9 +8,10 @@ import * as S from '../../shared/fortsiege.ts';
 import type { Horde, HordeHost, Zombie } from './horde.ts';
 import { r2, rageCheck, targetOf, walk } from './boss-kit.ts';
 import { bossSpeed, type BossCtx } from './bosses.ts';
+import { WALL_DMG, WALL_NORTH, WALL_NORTH_PASSAGES, wallOuterPoint } from '../../shared/fort50.ts';
 
 interface Pool { id: number; x: number; y: number; z: number; until: number; source: number }
-interface Shell { id: number; markId: number; x: number; y: number; z: number; at: number; gate: boolean; dmg: number; pool?: boolean }
+interface Shell { id: number; markId: number; x: number; y: number; z: number; at: number; gate: boolean; dmg: number; pool?: boolean; wallSec?: number }
 type Warning = Extract<FortEvent, ['warn', ...number[]]>;
 const hit = { x: 0, y: 0, z: 0 };
 const escortKind = (k: number) => k === Z_WALKER || k === Z_RUNNER || k === Z_CLIMBER;
@@ -57,7 +58,9 @@ export class Siege {
         continue;
       }
       // Выпущенное ядро имеет собственное время: гибель расчёта его не отменяет.
-      if (s.gate) { if (this.host.gateUp()) { this.host.hitGate(s.dmg); this.failed = true; } }
+      if (s.wallSec !== undefined) {
+        if (this.host.wallUp?.(s.wallSec)) { this.host.hitWall?.(s.wallSec, s.dmg, s.x, s.y, s.z); this.failed = true; }
+      } else if (s.gate) { if (this.host.gateUp()) { this.host.hitGate(s.dmg); this.failed = true; } }
       else { this.host.hitCrystal(s.dmg); this.failed = true; }
       for (const p of this.host.targets()) if (Math.hypot(p.x - s.x, p.y + .8 - s.y, p.z - s.z) < 3
         && !this.host.traceAttack(s.x, s.y + .1, s.z, p.x, p.y + .8, p.z, hit)) this.host.hitPlayer(s.id, p.id, 35);
@@ -139,8 +142,11 @@ export class Siege {
     const markId = this.nextMark++;
     const gate = z.chase === -1;
     const foreman = z.kind === S.Z_FOREMAN;
+    const wallSec = !pool && this.host.fort50Enabled && z.kind === S.Z_BATTERY ? z.wallSec : -1;
     const s: Shell = { id: z.id, markId, x: z.toX, y: z.toY, z: z.toZ, at: this.host.tick + ticks, gate, pool,
-      dmg: pool ? Math.min(45, this.horde.dmgOf(z, 12)) : this.horde.dmgOf(z, foreman ? gate ? 160 : 90 : gate ? S.BATTERY_GATE_DAMAGE : S.BATTERY_CRYSTAL_DAMAGE) };
+      ...(wallSec >= 0 ? { wallSec } : {}),
+      dmg: pool ? Math.min(45, this.horde.dmgOf(z, 12)) : this.horde.dmgOf(z, wallSec >= 0 ? WALL_DMG.battery
+        : foreman ? gate ? 160 : 90 : gate ? S.BATTERY_GATE_DAMAGE : S.BATTERY_CRYSTAL_DAMAGE) };
     this.shells.push(s);
     this.clearWarning(z.id, true);
     this.host.event(['warn', markId, pool ? S.ZS_SIEGE_GLOB : S.ZS_SIEGE_SHELL, s.x, s.y, s.z, pool ? S.PUMP_POOL_RADIUS : 3, s.at]);
@@ -305,7 +311,7 @@ export class Siege {
     let best: Zombie | undefined;
     let dist = 13;
     for (const o of this.horde.zombies) {
-      if (!o.alive || !escortKind(o.kind) || o.y > .1 || insideFort(o.x, o.z) || o.state === S.ZS_BOARD || o.siegeCarrier) continue;
+      if (!o.alive || o.guard || !escortKind(o.kind) || o.y > .1 || insideFort(o.x, o.z) || o.state === S.ZS_BOARD || o.siegeCarrier) continue;
       const d = Math.hypot(z.x - o.x, z.z - o.z);
       if (d < dist) { dist = d; best = o; }
     }
@@ -316,6 +322,7 @@ export class Siege {
 
   board(z: Zombie, climb: number): void {
     const c = CLIMBS[climb];
+    if (this.horde.landAtBreach(z, c.x, c.z)) return;
     z.climb = climb;
     z.siegeCarrier = 0;
     z.fromX = z.x; z.fromY = z.y; z.fromZ = z.z;
@@ -324,6 +331,7 @@ export class Siege {
     this.syncPhase(z);
   }
   private boardStep(z: Zombie): void {
+    if (this.horde.landAtBreach(z, z.toX, z.toZ)) return;
     const u = 1 - Math.max(0, --z.t) / S.BOARD_TICKS;
     z.x = z.fromX + (z.toX - z.fromX) * u;
     z.y = z.fromY + (z.toY - z.fromY) * u + 4 * 4.5 * u * (1 - u);
@@ -412,7 +420,12 @@ export class Siege {
     if (z.state === S.ZS_SIEGE_DEPLOY) {
       if (--z.t > 0) return;
       z.chase = this.host.gateUp() ? -1 : -2;
-      this.wind(z, 0, z.chase === -1 ? 1.5 : CRYSTAL.y, z.chase === -1 ? GATE.face : CRYSTAL.z, 3, S.BATTERY_WARN_TICKS, S.BATTERY_FLIGHT_TICKS);
+      z.wallSec = !foreman && this.host.fort50Enabled && ++z.wallAttackCount % 2 === 0 ? this.host.weakestWall?.(WALL_NORTH) ?? -1 : -1;
+      if (z.wallSec >= 0) {
+        const point = wallOuterPoint(z.wallSec, 0);
+        z.chase = 0;
+        this.wind(z, point.x, WALL_H, point.z, 3, S.BATTERY_WARN_TICKS, S.BATTERY_FLIGHT_TICKS);
+      } else this.wind(z, 0, z.chase === -1 ? 1.5 : CRYSTAL.y, z.chase === -1 ? GATE.face : CRYSTAL.z, 3, S.BATTERY_WARN_TICKS, S.BATTERY_FLIGHT_TICKS);
       return;
     }
     if (z.state === S.ZS_SIEGE_WINDUP) {
@@ -467,10 +480,23 @@ export class Siege {
     if (z.state === S.ZS_SIEGE_DEPLOY) {
       if (--z.t > 0) return;
       const p = targetOf(this.c, z.attackIndex);
+      z.wallSec = -1;
       // Каждый второй мах краба — по одному указанному сооружению. Ветер сооружения не повреждает.
       if (!miller && z.attackIndex % 2 === 0) {
         z.chase = this.host.gateUp() ? -1 : -2;
-        this.wind(z, 0, z.chase === -1 ? 1.5 : CRYSTAL.y, z.chase === -1 ? GATE.face : CRYSTAL.z, 3, S.SIEGE_BOSS_WINDUP_TICKS, S.CRAB_IMPACT_REMAINING);
+        if (this.host.fort50Enabled && ++z.wallAttackCount % 2 === 0) {
+          let nearest = Infinity;
+          for (const sec of WALL_NORTH_PASSAGES) {
+            if (!this.host.wallUp?.(sec)) continue;
+            const point = wallOuterPoint(sec, 0), distance = Math.hypot(point.x - z.x, point.z - z.z);
+            if (distance < nearest) { nearest = distance; z.wallSec = sec; }
+          }
+        }
+        if (z.wallSec >= 0) {
+          const point = wallOuterPoint(z.wallSec, 0);
+          z.chase = 0;
+          this.wind(z, point.x, WALL_H, point.z, 3, S.SIEGE_BOSS_WINDUP_TICKS, S.CRAB_IMPACT_REMAINING);
+        } else this.wind(z, 0, z.chase === -1 ? 1.5 : CRYSTAL.y, z.chase === -1 ? GATE.face : CRYSTAL.z, 3, S.SIEGE_BOSS_WINDUP_TICKS, S.CRAB_IMPACT_REMAINING);
       } else {
         z.chase = p?.id ?? 0;
         this.wind(z, p?.x ?? -8, p?.y ?? WALL_H, p?.z ?? -14.5, miller ? 4 : 3, S.SIEGE_BOSS_WINDUP_TICKS,
@@ -502,7 +528,8 @@ export class Siege {
         this.host.hitPlayer(z.id, p.id, Math.min(75, this.horde.dmgOf(z, 30)));
         this.host.pushPlayer?.(p.id, p.x < z.toX ? -2 : 2, 0);
       }
-      if (!miller && z.chase === -1 && this.host.gateUp()) this.host.hitGate(this.horde.dmgOf(z, 260));
+      if (!miller && this.host.fort50Enabled && z.wallSec >= 0) this.host.hitWall?.(z.wallSec, this.horde.dmgOf(z, WALL_DMG.crab), z.toX, z.toY, z.toZ);
+      else if (!miller && z.chase === -1 && this.host.gateUp()) this.host.hitGate(this.horde.dmgOf(z, 260));
       else if (!miller && z.chase === -2) this.host.hitCrystal(this.horde.dmgOf(z, 140));
       this.host.event(['blast', S.ZS_SIEGE_ACTION, z.toX, z.toY, z.toZ, radius]);
     }

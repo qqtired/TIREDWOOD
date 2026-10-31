@@ -4,7 +4,7 @@
 // карточка крепости с мини-картой (верх-лево), плитки под бейджем, плашка волны / босса / голосования и тосты
 // (верх-центр), подсказка действия, стрелки угроз, Tab и итоги. Здесь же прилавок справа (stall.ts) и цифры урона
 // и золота (floaters.ts). match.ts и arsenalc.ts говорят только с этим классом.
-import { FORT_WAVES, FT_END, FT_WAVE, ZK, Z_BOSS, Z_KRAKEN,
+import { FT_END, FT_WAVE, ZK, Z_BOSS, Z_KRAKEN,
   isBossKind, type FortPlayerRow, type FortResultRow, type FortRunRec, type FortWaveCard } from '../../shared/fort.ts';
 import { krakenInfo } from './krakenfx.ts';
 import { KRAKEN_OPEN_RAGE, KRAKEN_OPEN_TICKS } from '../../shared/fortkraken.ts';
@@ -16,6 +16,8 @@ import { FortFloaters } from './floaters.ts';
 import { StallPanel } from './stall.ts';
 import { FortUi, type AlarmOpts, type FortKit } from './ui/index.ts';
 import { el } from './ui/dom.ts';
+import { lastWave } from './ui/schedule.ts';
+import { WALL_SECTIONS, wallStage, type F50Camp } from '../../shared/fort50.ts';
 
 /** Точка на мини-карте: зомби (тип) или человек */
 export interface MapDot {
@@ -159,6 +161,54 @@ export class FortHud {
     this.ui.prompt.setStation(text, price, can, afford);
   }
 
+  // ------------------------------------------------------------ «Крепость 50»: стены и лагерь
+
+  private walls: { hp: readonly number[]; max: readonly number[]; camp: F50Camp | null } | null = null;
+
+  /** Участки стены и лагерь Барона: строка «Стены» в карточке и мини-карта */
+  setWalls(hp: readonly number[], max: readonly number[], camp: F50Camp | null): void {
+    this.walls = { hp, max, camp };
+    this.ui.card.walls.set(hp, max);
+  }
+
+  /** Удар по участку — строка «Стены» вздрагивает */
+  hurtWall(sec: number): void {
+    this.ui.card.walls.hurt(sec);
+  }
+
+  /** Мини-карта: повреждённые участки — цветом поверх стены, пролом мигает, лагерь — палаткой */
+  private drawWalls(ctx: CanvasRenderingContext2D, X: (x: number) => number, Z: (z: number) => number): void {
+    const w = this.walls;
+    if (!w) return;
+    const ink = this.mapInk;
+    const blink = Math.floor(performance.now() / 300) % 2 === 0;
+    WALL_SECTIONS.forEach((s, i) => {
+      const st = wallStage(w.hp[i] ?? 1, w.max[i] ?? 1);
+      if (st === 0) return;
+      const [x0, x1, z0, z1] = s.hole;
+      ctx.fillStyle = st === 3 ? (blink ? ink.enemy : ink.land) : st === 2 ? ink.enemy : ink.gold;
+      ctx.globalAlpha = st === 1 ? 0.8 : 1;
+      ctx.fillRect(X(x0), Z(z0), X(x1) - X(x0), Z(z1) - Z(z0));
+    });
+    ctx.globalAlpha = 1;
+    const c = w.camp;
+    if (c) {
+      // палатка: треугольник; сожжён — тёмный
+      const cx = X(c.x);
+      const cz = Z(c.z);
+      ctx.fillStyle = c.burnt ? ink.dark : ink.enemy;
+      ctx.strokeStyle = ink.dark;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(cx, cz - 8);
+      ctx.lineTo(cx + 8, cz + 6);
+      ctx.lineTo(cx - 8, cz + 6);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }
+  }
+
   // ------------------------------------------------------------ мини-карта
 
   private drawMapBase(w: number, h: number): HTMLCanvasElement {
@@ -242,6 +292,7 @@ export class FortHud {
     // Ворота: латунная черта или красный пролом.
     ctx.fillStyle = gateUp ? ink.gold : ink.enemy;
     ctx.fillRect(X(GATE.x0) - 1, Z(GATE.face) - 3, (GATE.x1 - GATE.x0) * k + 2, gateUp ? 5 : 7);
+    this.drawWalls(ctx, X, Z);
     // кристалл
     ctx.fillStyle = ink.crystal;
     ctx.strokeStyle = ink.dark;
@@ -322,7 +373,7 @@ export class FortHud {
   showEnd(win: boolean, wave: number, mvp: FortResultRow | null, rows: FortResultRow[], myId: number,
     top: readonly FortRunRec[] = [], record = false, prev = 0, surr = false, run = 0): void {
     this.stall.close();
-    this.ui.results.show({ win, wave, lastWave: FORT_WAVES, mvp, rows, myId,
+    this.ui.results.show({ win, wave, lastWave: lastWave(), mvp, rows, myId,
       record: record || prev > 0 ? { best: prev, isNew: record } : null, top, run, surr });
   }
 

@@ -3,6 +3,7 @@
 // — fortwaves.ts, карта — fortmap.ts, прицел по зомби — fortaim.ts, хвост снимка — fortnet.ts.
 // Всё, что даёт жетоны и очки, решает сервер; клиент по этим же таблицам рисует и подсказывает.
 import { TICK_RATE } from './constants.ts';
+import type { Fort50Event } from './fort50.ts';
 import { FORT_LAST_WAVE } from './fortwaves.ts';
 import type { ArsenalEvent, ArsenalRow } from './fortarsenal.ts';
 import type { FortRankId } from './fortranks.ts';
@@ -51,6 +52,8 @@ export const CRYSTAL_HP = 2500;
 export const RALLY_TICKS = 8 * TICK_RATE;
 export const RALLY_COOLDOWN = 30 * TICK_RATE;
 export const RALLY_MITIGATION = 0.5;
+/** {t:'use', id}: щит клавишей J (подтверждение вторым нажатием — на клиенте), из любой точки, только в бою */
+export const USE_RALLY_HOTKEY = 5400;
 
 export const FORT_HP = 100;
 /** Сбили — снова на террасе через 5 с */
@@ -183,6 +186,8 @@ export function defenderCount(humans: number): number {
 export interface FortWaveCard {
   /** Канал ремонта и новые осадные контрходы включены сервером. */
   siege?: boolean;
+  /** «Крепость 50» (FORT50=1): 50 волн, ломаемые стены, камни, лагерь — shared/fort50.ts */
+  f50?: boolean;
   w: number;
   /** Короткое название волны */
   title: string;
@@ -304,6 +309,8 @@ export const FORT_TOP = 5;
 export type FortEvent =
   | ArsenalEvent
   | SiegeEvent
+  // «Крепость 50»: стены, камни, лагерь (shared/fort50.ts)
+  | Fort50Event
   // выстрел: кто, откуда, куда, чем кончился (0 — стена, 1 — зомби, 2 — в никуда), нормаль стены
   | ['shot', number, number, number, number, number, number, number, number, number, number, number]
   // попадание по зомби: кто, какой зомби, урон, куда (0 — тело, 1 — голова, 2 — щит, 3 — броня, 4 — канат), где

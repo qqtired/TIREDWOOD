@@ -1,5 +1,6 @@
 // Мини-карта и колокол остаются в углу; ворота и кристалл — в общей верхней панели.
 import { CRYSTAL_TIERS, GATE_TIERS } from '../../../shared/fortarsenal.ts';
+import { WallRow } from '../f50/wallrow.ts';
 import { el, setText } from './dom.ts';
 import { fortImg } from './icons.ts';
 import { shieldReadout } from './text.ts';
@@ -89,11 +90,17 @@ export class FortCard {
   readonly map: HTMLCanvasElement;
   readonly gate: HpRow;
   readonly crystal: HpRow;
+  /** «Крепость 50»: участки стены (спрятана, пока сервер не прислал стены) */
+  readonly walls: WallRow;
   readonly stats: HTMLElement;
   private readonly bell: HTMLElement;
   private readonly bellLabel: HTMLElement;
   private readonly bellProgress: HTMLElement;
+  /** Плашка подсказки после J — рядом с карточкой (в карточке не помещается) */
+  private readonly bellAsk: HTMLElement;
   private bellKey = '';
+  /** Подсказка на плашке щита после J: текст, вид (ask — «J ещё раз», deny — почему нельзя, ok — включили), до какого времени */
+  private ask: { text: string; mode: 'ask' | 'deny' | 'ok'; until: number } | null = null;
 
   constructor(slot: HTMLElement, structures: HTMLElement) {
     this.root = el('div', 'ft-fort');
@@ -110,6 +117,7 @@ export class FortCard {
     const side = el('div', 'ft-hps', structures);
     this.gate = new HpRow(side, 'Ворота', 'gate', 'k-meter--mode', 'пали', GATE_TIERS);
     this.crystal = new HpRow(side, 'Кристалл', 'crystal', 'k-meter--info', 'пал', CRYSTAL_TIERS);
+    this.walls = new WallRow(side);
     this.bell = el('div', 'ft-bell', this.root);
     this.bell.setAttribute('role', 'img');
     this.bell.innerHTML = fortImg('shield', 'ft-shield-icon');
@@ -117,7 +125,13 @@ export class FortCard {
     this.bellProgress = el('span', 'ft-shield-progress', this.bell);
     this.bellProgress.innerHTML = '<i></i>';
     this.bellProgress.setAttribute('aria-hidden', 'true');
-    this.bell.title = 'В бою нажми E у колокола: он защищает ворота и кристалл на 8 секунд';
+    this.bellAsk = el('b', 'ft-shield-ask', this.bell);
+    this.bellAsk.hidden = true;
+    // J дважды — щит из любой точки (31.10, просьба владельца): колпачок клавиши на значке щита
+    const key = el('kbd', 'k-key ft-shield-key', this.bell);
+    key.textContent = 'J';
+    key.setAttribute('aria-hidden', 'true');
+    this.bell.title = 'В бою: J дважды (или E у колокола) — щит воротам и кристаллу на 8 секунд';
     this.stats = el('div', 'k-faint ft-stats');
     this.stats.hidden = true;
     slot.append(this.root, this.stats);
@@ -126,14 +140,26 @@ export class FortCard {
   /** Колокол: rally — щит идёт (тики), cd — откат (тики), fight — идёт волна */
   setBell(fight: boolean, rally: number, cd: number): void {
     const view = shieldReadout(fight, rally, cd);
-    const key = `${view.mode}|${view.label}`;
+    if (this.ask && performance.now() > this.ask.until) this.ask = null;
+    const ask = this.ask;
+    const key = ask ? `${ask.mode}!${ask.text}` : `${view.mode}|${view.label}`;
     if (key === this.bellKey) return;
     this.bellKey = key;
     this.bell.dataset.state = view.mode;
+    if (ask) this.bell.dataset.ask = ask.mode;
+    else delete this.bell.dataset.ask;
+    this.bellAsk.hidden = !ask;
+    if (ask) this.bellAsk.textContent = ask.text;
     this.root.classList.toggle('is-shielded', view.mode === 'active');
     this.bellLabel.textContent = view.label;
     this.bellProgress.style.setProperty('--v', view.progress.toFixed(3));
-    this.bell.setAttribute('aria-label', view.label);
+    this.bell.setAttribute('aria-label', ask ? ask.text : view.label);
+  }
+
+  /** J: «J ещё раз — щит» (ask), причина отказа (deny) или «Щит!» (ok) на плашке щита на ms миллисекунд */
+  promptBell(text: string, mode: 'ask' | 'deny' | 'ok', ms: number): void {
+    this.ask = { text, mode, until: performance.now() + ms };
+    this.bellKey = '';
   }
 
   setStats(text: string | null): void {
@@ -145,7 +171,9 @@ export class FortCard {
   reset(): void {
     this.gate.reset();
     this.crystal.reset();
+    this.walls.reset();
     this.bellKey = '';
+    this.ask = null;
     this.root.classList.remove('is-shielded');
   }
 }

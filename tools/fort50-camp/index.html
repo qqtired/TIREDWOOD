@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Крепость — стенд лагеря Барона</title>
+    <style>
+      html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #9cc8ec; }
+      #game { width: 100vw; height: 100vh; display: block; }
+      #qa { position: fixed; z-index: 40; right: 12px; bottom: 12px; width: min(340px, calc(100vw - 24px)); max-height: 76vh; overflow: auto; padding: 12px 14px; background: rgba(36, 26, 20, .9); border: 1px solid #a5794f; border-radius: 12px; color: #fff3e0; font: 13px/1.35 system-ui, sans-serif; }
+      #qa.hide { display: none; }
+      #qa .row { margin: 4px 0; }
+      #qa button { margin: 3px 4px 3px 0; padding: 4px 8px; border: 1px solid #a5794f; border-radius: 5px; color: #fff3e0; background: #5a3d28; font: inherit; cursor: pointer; }
+      #metrics, #log { display: block; white-space: pre-wrap; color: #ffe2b8; font-size: 12px; margin-top: 8px; }
+      #log { color: #d9c3a5; }
+    </style>
+  </head>
+  <body>
+    <canvas id="game" aria-label="Стенд лагеря Барона"></canvas>
+    <aside id="qa" aria-label="Управление стендом">
+      <b>Лагерь Барона (без сервера)</b>
+      <div class="row">Стадия: <button data-act="s0" type="button">0</button><button data-act="s1" type="button">1 рама</button><button data-act="s2" type="button">2 рычаг</button><button data-act="s3" type="button">3 готова</button></div>
+      <div class="row"><button data-act="shoot" type="button">Замах + выстрел</button><button data-act="cycle" type="button">Цикл 15 с</button></div>
+      <div class="row"><button data-act="burn" type="button">Поджог 3 с</button><button data-act="cancel" type="button">Поджог и сорвать</button><button data-act="burnt" type="button">Сгорел</button><button data-act="torch" type="button">Факел</button></div>
+      <div class="row"><button data-act="remove" type="button">Убрать</button><button data-act="restore" type="button">Поставить</button><button data-act="slow" type="button">×0,25</button><button data-act="pause" type="button">Пауза</button></div>
+      <div class="row"><button data-cam="wall" type="button">Со стены</button><button data-cam="near" type="button">Рядом</button><button data-cam="gate" type="button">Вход</button><button data-cam="side" type="button">Сбоку</button><button data-cam="back" type="button">Сзади</button><button data-cam="high" type="button">Сверху</button><button data-cam="flight" type="button">Полёт</button></div>
+      <output id="metrics"></output>
+      <output id="log"></output>
+    </aside>
+    <!-- Только для разработки (Vite), в сборку не входит -->
+    <script type="module" src="/client/fort/f50/camp-stand.ts"></script>
+  </body>
+</html>

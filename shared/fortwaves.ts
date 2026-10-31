@@ -281,8 +281,8 @@ export function bossHp(w: number, humans: number, tier = bossTier(w)): number {
 export const TENTACLE_BASE_HP = 320;
 export const KRAKEN_HEAD_BASE_HP = 800;
 
-export function krakenHp(base: number, w: number, humans: number): number {
-  return base * BODY_MUL * waveHpMul(w) * bossTeamMul(humans) * (1 + 0.35 * superTier(w));
+export function krakenHp(base: number, w: number, humans: number, tier = superTier(w)): number {
+  return base * BODY_MUL * waveHpMul(w) * bossTeamMul(humans) * (1 + 0.35 * tier);
 }
 
 // ------------------------------------------------------------ передышка

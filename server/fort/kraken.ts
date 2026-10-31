@@ -35,6 +35,7 @@ import {
   krakenSpitEvery, tentacleGap, tentacleRoot,
 } from '../../shared/fortkraken.ts';
 import { CRYSTAL } from '../../shared/fortmap.ts';
+import { WALL_DMG } from '../../shared/fort50.ts';
 import { KRAKEN_HEAD_BASE_HP, TENTACLE_BASE_HP, krakenHp, superTier } from '../../shared/fortwaves.ts';
 import type { BossCtx } from './bosses.ts';
 import type { Horde, HordeTarget, Zombie } from './horde.ts';
@@ -55,7 +56,7 @@ function raging(z: Zombie): boolean {
 
 /** Круг супер-босса (0 — Кракен 25-й волны, 1 — II на 50-й …) */
 function tierOf(c: BossCtx): number {
-  return superTier(c.horde.current?.w ?? 0);
+  return c.horde.current?.krakenTier ?? superTier(c.horde.current?.w ?? 0);
 }
 
 /**
@@ -64,7 +65,7 @@ function tierOf(c: BossCtx): number {
  * формуле Кракена.
  */
 function fixHp(c: BossCtx, z: Zombie, base: number, fill = false): void {
-  const want = krakenHp(base, c.horde.current?.w ?? 1, c.horde.defenders);
+  const want = krakenHp(base, c.horde.force, c.horde.defenders, tierOf(c));
   if (fill) {
     z.maxHp = want;
     z.hp = want;
@@ -510,6 +511,7 @@ function stepSlam(c: BossCtx, z: Zombie, lane: number): void {
 function impact(c: BossCtx, z: Zombie): void {
   const { host } = c;
   const floor = z.toY - 0.06;
+  if (host.fort50Enabled) host.hitWallAt?.(z.toX, z.toZ, 1.5, c.horde.dmgOf(z, WALL_DMG.tentacle), 1);
   for (const p of host.targets()) {
     if (Math.hypot(p.x - z.toX, p.z - z.toZ) >= TENT_SLAM_R) continue;
     if (p.y < floor - 0.8 || p.y > floor + 2.4) continue;

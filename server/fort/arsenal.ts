@@ -13,7 +13,7 @@ import {
   TOWER_SPOT_COUNT, TOWER_UPGRADE, TW_BALLISTA, TW_BRAZIER, TW_CANNON, TW_TAR, TW_TYPES, UP_CRIT, UP_DMG, UP_MAG, UP_POUCH, UP_RATE,
   baseBounty, bountyMul, crystalMax, crystalRows, critChance, dmgMul, encodeArsenalTail, gateMax, gateRows, grenadeMax, gunDamage, kindFlags,
   killBounty,
-  makeArsenalTail, shopRows, towerMul, towerRows, waveBonus,
+  makeArsenalTail, shopRows, towerMul, towerRows,
   type ArsenalRow, type Loadout, type PanelRow,
 } from '../../shared/fortarsenal.ts';
 import { grenadeLaunch, grenadeStep, makeGrenade, type Grenade } from '../../shared/fortgren.ts';
@@ -23,6 +23,7 @@ import { hashFloat } from '../../shared/math.ts';
 import { BTN_ADS, BTN_SHOULDER, SHOT_RANGE, applySpread, damageAt, type Input } from '../../shared/sim.ts';
 import { makeRayHit } from '../../shared/world.ts';
 import type { FortGame, FortPlayer } from './game.ts';
+import { F50_GOLD_MUL } from '../../shared/fort50.ts';
 import type { Zombie } from './horde.ts';
 import { tearWebAt, webSlowAt } from './boss-weaver.ts';
 import { makeRun, type FortRun } from './ledger.ts';
@@ -252,7 +253,7 @@ export class Arsenal {
   onWaveEnd(): void {
     const list = [...this.game.players.values()];
     const clean = this.downs === 0 && !this.gateFell;
-    const bonus = waveBonus(this.game.wave);
+    const bonus = this.game.waveGold;
     const share = list.length ? Math.round((this.pot * (clean ? CLEAN_MULT : 1)) / list.length) : 0;
     for (const p of list) {
       this.credit(p.run.arsenal, share + bonus);
@@ -287,7 +288,7 @@ export class Arsenal {
     // части супер-босса (щупальца Кракена) — без награды
     if (baseBounty(z.kind) <= 0) return;
     // ступень (элита ×2, чемпион ×5) и экипаж лодки — от орды агента fort; «вызвали раньше» — ×goldMul
-    const shooter = killBounty(z.kind, Math.max(1, g.wave), z.tier, z.crew) * g.goldMul;
+    const shooter = killBounty(z.kind, g.force, z.tier, z.crew) * g.goldMul;
     const total = shooter / KILL_SHARE;
     let given = 0;
     let dmgSum = 0;
@@ -343,7 +344,7 @@ export class Arsenal {
   teamBounty(amount = BOAT_BOUNTY, x = 0, y = 0, z = 0): void {
     const list = [...this.game.players.values()];
     if (!list.length) return;
-    const each = Math.round((amount * bountyMul(this.game.wave)) / list.length);
+    const each = Math.round((amount * bountyMul(this.game.fort50Enabled ? this.game.force : this.game.wave) * (this.game.fort50Enabled ? F50_GOLD_MUL : 1)) / list.length);
     for (const p of list) {
       this.credit(p.run.arsenal, each);
       this.game.event(['gold', p.id, each, r2(x), r2(y), r2(z)]);
@@ -668,7 +669,7 @@ export class Arsenal {
     const team = this.teamDmgMul();
     for (let i = 0; i < TOWER_SPOT_COUNT; i++) {
       const t = this.towers[i];
-      if (t.type < 0) continue;
+      if (t.type < 0 || !g.towerAvailable(i)) continue;
       if (t.cd > 0) {
         // в паутине Ткачихи башня перезаряжается вдвое дольше (server/fort/boss-weaver.ts)
         const at = TOWER_SPOTS[i];
@@ -853,7 +854,7 @@ export class Arsenal {
 
   private teamView() {
     const g = this.game;
-    return { wave: Math.max(1, g.wave), calm: this.calm(), gold: 0, gate: g.gate, gateTier: this.gateTier, crystal: g.crystal, crystalTier: this.crystalTier };
+    return { wave: g.force, calm: this.calm(), gold: 0, gate: g.gate, gateTier: this.gateTier, crystal: g.crystal, crystalTier: this.crystalTier };
   }
 
   /** Действие из панели (id ≥ 2000). false — не наше. */
@@ -878,6 +879,7 @@ export class Arsenal {
       const k = (id - ACT_TOWER) % 10;
       const t = this.towers[spot];
       if (!t || (k >= TW_TYPES && k !== TOWER_UPGRADE)) return true;
+      if (!g.towerAvailable(spot)) { g.event(['anope', p.id, id, NOPE_LOCKED]); return true; }
       st = this.station('tower', spot);
       row = towerRows(spot, t.type, t.level, a.gold, this.teamDmgMul()).find((r) => r.id === id);
     }

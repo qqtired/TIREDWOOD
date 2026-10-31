@@ -25,7 +25,8 @@ export class FortScene implements Scene {
    */
   get wantsPointer(): boolean { return !(this.hud.shopShown || this.hud.endShown || this.match?.cursorFree); }
   private readonly d: SceneDeps;
-  readonly map = buildFort();
+  /** Карта с участками стены, разрезанными по проломам («Крепость 50»): пока стены целы, коллизия та же */
+  readonly map = buildFort({ sections: true });
   readonly collision: CollisionWorld;
   readonly world: FortWorld;
   private readonly effects: Effects;

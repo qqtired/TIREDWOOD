@@ -16,10 +16,12 @@ import { raySphere } from './siege.ts';
 import type { CollisionWorld } from '../../shared/world.ts';
 import type { WavePlan } from './director.ts';
 import type { Horde, HordeTarget, Zombie } from './horde.ts';
+import { WALL_DMG } from '../../shared/fort50.ts';
 
 /** Что событиям нужно от игры (FortGame) */
 export interface EventHost {
   readonly tick: number;
+  readonly fort50Enabled?: boolean;
   readonly horde: Horde;
   readonly world: CollisionWorld;
   readonly rng: () => number;
@@ -28,6 +30,7 @@ export interface EventHost {
   hitPlayer(zid: number, pid: number, dmg: number): void;
   hitGate(dmg: number): void;
   hitCrystal?(dmg: number): void;
+  hitWallAt?(x: number, z: number, r: number, dmg: number, max?: number): void;
   gateUp(): boolean;
   event(e: FortEvent): void;
   systemChat(text: string): void;
@@ -40,6 +43,8 @@ interface Strike {
   at: number;
   /** В гущу орды (иначе — рядом с людьми) */
   crowd: boolean;
+  /** Осадный метеор, назначенный по сооружению. */
+  structure?: boolean;
   warned: boolean;
   x: number;
   y: number;
@@ -187,6 +192,7 @@ export class WaveEvents {
     }
     const p = this.spot;
     if (this.siege && (s.id! % 3 === 0 || !this.host.targets().length)) {
+      s.structure = true;
       p.x = 0; p.y = this.host.gateUp() ? 1.5 : CRYSTAL.y; p.z = this.host.gateUp() ? GATE.face : CRYSTAL.z;
     } else if (!(s.crowd ? this.crowdSpot(p) || this.peopleSpot(p) : this.peopleSpot(p) || this.crowdSpot(p))) this.fieldSpot(p);
     s.warned = true;
@@ -220,6 +226,7 @@ export class WaveEvents {
     }
     if (this.siege) {
       if (Math.hypot(s.x - CRYSTAL.x, s.z - CRYSTAL.z) <= radius && Math.abs(s.y - CRYSTAL.y) < 3) h.hitCrystal?.(S.SIEGE_METEOR_CRYSTAL);
+      if (h.fort50Enabled && s.structure) h.hitWallAt?.(s.x, s.z, S.SIEGE_METEOR_RADIUS, WALL_DMG.meteor, 1);
       this.meteorEvent(s, 3); h.event(['warnend', s.id!]);
     }
     h.event(['blast', ZS_METEOR, r2(s.x), r2(s.y + 0.3), r2(s.z), radius]);

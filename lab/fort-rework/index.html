@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="ru" data-skin="retro2" data-hud="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="../../client/assets/ui/icons/pin.webp">
+<title>Крепость 50 — что переделать</title>
+<link rel="stylesheet" href="../quiz/v2/v2-fonts.css">
+<link rel="stylesheet" href="../../client/ui/kit/tokens.css">
+<link rel="stylesheet" href="../../client/ui/kit/kit.css">
+<link rel="stylesheet" href="fort.css">
+</head>
+<body>
+<header class="fr-head">
+  <img src="../../client/assets/ui/icons/pin.webp" alt="">
+  <div>
+    <p class="k-eyebrow">TIREDWOOD · крепость · 31.10</p>
+    <h1>Крепость 50 — что переделать</h1>
+    <p class="fr-sub">Все мобы и боссы в движении с вердиктом, план 50 волн вместо 100, ломаемые стены с ремонтом и новые механики. Ответь кодами — внизу соберётся список.</p>
+  </div>
+  <nav class="fr-nav" aria-label="Разделы">
+    <a href="#mobs">Мобы</a><a href="#bosses">Новые боссы</a><a href="#waves">50 волн</a><a href="#walls">Стены</a><a href="#ideas">Механики</a><a href="#pick">Выбор</a>
+  </nav>
+</header>
+
+<main class="fr-main">
+  <section class="fr-sec fr-sum" id="summary"></section>
+
+  <section class="fr-sec" id="mobs">
+    <h2>Мобы и боссы — все в движении</h2>
+    <p class="fr-lead" id="mobsLead"></p>
+    <div class="fr-filters">
+      <div class="k-seg fr-seg" id="fGroup"></div>
+      <div class="k-seg fr-seg" id="fVerdict"></div>
+      <span class="fr-hint">Тяни мышью — повернуть, колесо — ближе. Кнопки под моделью — позы; «По кругу» — все подряд.</span>
+    </div>
+    <div class="fr-grid" id="mobGrid"></div>
+    <div class="fr-card fr-compare" id="compare"></div>
+  </section>
+
+  <section class="fr-sec" id="bosses">
+    <h2>Новые боссы — финальный и летающий</h2>
+    <p class="fr-lead" id="bossesLead"></p>
+    <div class="fr-card fr-boss-plan" id="bossPlan"></div>
+    <div class="fr-frame-wrap">
+      <iframe id="bossFrame" src="bosses.html" title="Новые боссы крепости" loading="lazy"></iframe>
+      <p class="fr-note" id="bossFrameNote">Страницу боссов делает второй агент. Если она ещё пустая — открой <a href="bosses.html" target="_blank">bosses.html</a> позже.</p>
+    </div>
+  </section>
+
+  <section class="fr-sec" id="waves">
+    <h2>План 50 волн вместо 100</h2>
+    <p class="fr-lead" id="wavesLead"></p>
+    <div class="fr-cols" id="wavesWhy"></div>
+    <div class="fr-card">
+      <div class="fr-chart-head"><b>Сложность по минутам забега</b><span class="fr-legend" id="chartLegend"></span></div>
+      <div id="chart" class="fr-chart"></div>
+    </div>
+    <div class="fr-variants" id="waveVariants"></div>
+    <div class="fr-card fr-table-wrap">
+      <div class="fr-chart-head"><b>Ф50-1 по волнам</b><span class="fr-note" id="tableNote"></span></div>
+      <div id="waveTable"></div>
+    </div>
+  </section>
+
+  <section class="fr-sec" id="walls">
+    <h2>Ломаемые стены</h2>
+    <p class="fr-lead" id="wallsLead"></p>
+    <div class="fr-walls">
+      <div class="fr-card fr-map-card">
+        <div class="fr-chart-head"><b>Участки стены — вид сверху</b><span class="fr-note">наведи на участок</span></div>
+        <div id="wallMap"></div>
+        <p class="fr-note" id="wallMapInfo"></p>
+      </div>
+      <div class="fr-card fr-stage-card">
+        <div class="fr-chart-head"><b>Стадии участка</b><span class="k-seg fr-seg" id="stageSeg"></span></div>
+        <div id="wallStages"></div>
+        <p class="fr-stage-cap" id="stageCap"></p>
+      </div>
+    </div>
+    <div class="fr-cols" id="wallRules"></div>
+    <div class="fr-card"><div class="fr-chart-head"><b>Кто ломает и сколько</b><span class="fr-note">урон по участку за удар, до множителя волны</span></div><div id="breakers"></div></div>
+    <h3 class="fr-h3">Как выглядит пролом — выбери оформление</h3>
+    <div class="fr-variants" id="breachLooks"></div>
+    <div class="fr-cols" id="wallHud"></div>
+  </section>
+
+  <section class="fr-sec" id="ideas">
+    <h2>Новые механики крепости</h2>
+    <p class="fr-lead">Сначала прошёл по тому, что в крепости уже есть (лавка, 8 мест под башни, гранаты, щит у колокола, ремонт ворот и кристалла, осадные контрмеры, события, десант, рекорды), — повторов нет. S — до дня, M — 2–3 дня, L — неделя.</p>
+    <div class="fr-ideas" id="ideaGrid"></div>
+  </section>
+
+  <section class="fr-sec" id="pickInfo">
+    <h2>Как выбирать</h2>
+    <div class="fr-card fr-how" id="how"></div>
+  </section>
+</main>
+
+<div class="fr-pick" id="pick">
+  <span class="fr-pick-l">Беру <b id="pickN">0</b>:</span>
+  <span class="fr-pick-list" id="pickList"></span>
+  <button class="k-btn k-btn--ghost k-btn--sm" id="pickReset" type="button">Рекомендованное</button>
+  <button class="k-btn k-btn--ghost k-btn--sm" id="pickClear" type="button">Очистить</button>
+  <button class="k-btn k-btn--gold k-btn--sm" id="pickCopy" type="button">Скопировать</button>
+</div>
+<script type="module" src="./page.ts"></script>
+</body>
+</html>

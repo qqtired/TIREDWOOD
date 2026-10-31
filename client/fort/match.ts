@@ -9,7 +9,7 @@ import * as THREE from 'three';
 import { DASH_COOLDOWN_TICKS, EYE_HEIGHT, TICK_MS, TICK_RATE, WATER_Y } from '../../shared/constants.ts';
 import { AIM_FALLBACK, PIVOT_Y, RIG_PB, RIG_PB_ADS, type RigParams, type V3 } from '../../shared/aim.ts';
 import {
-  CRYSTAL_HP, FORT_HP, FORT_MAX_ALIVE, FORT_MIN_DELAY, FORT_RESPAWN_TICKS, FT_BREAK, FT_END, FT_GATHER, FT_WAVE, GATE_HP, ZK,
+  CRYSTAL_HP, FORT_HP, FORT_MAX_ALIVE, FORT_MIN_DELAY, FORT_RESPAWN_TICKS, FT_BREAK, FT_END, FT_GATHER, FT_WAVE, GATE_HP, USE_RALLY_HOTKEY, ZK,
   Z_BLOATER, Z_BOSS, Z_BRUTE, Z_RUNNER, ZS_BOSS_OPEN, ZS_FLY_WARN, ZS_BOSS_GATE, ZS_BOSS_PULSE, isBossKind,
   ZS_BARREL, ZS_KRAKEN_SPIT, ZS_PLANT, ZS_SPIT, ZS_THROW, Z_FLYER, Z_SAPPER, Z_SPITTER, Z_RAM, Z_GOLEM,
   ZS_CHARGE, ZS_CHARGE_WARN, ZS_HOWL, ZS_QUAKE, ZS_STOMP, Z_BOAT, ZS_BOAT, ZS_BOAT_LEAVE, ZS_METEOR, Z_KRAKEN, Z_TENTACLE, Z_WEAVER,
@@ -61,6 +61,7 @@ import { TENT_COUNT } from '../../shared/fortkraken.ts';
 import { Webs3D, newBossBlast, newBossBreachText, newBossRageText, newBossThrow, newBossWarnText } from './bosses-f.ts';
 import { noteFortRecord } from './record.ts';
 import { eventBanner, introBanner } from './ui/record.ts';
+import { f50Client, type Fort50Client } from './f50/index.ts';
 
 export interface FortMatchDeps {
   map: FortMap;
@@ -92,6 +93,8 @@ interface Pose extends AvatarPose {
 const BLOCK_MARGIN = 0.3;
 /** Подсказка стойки — чуть ближе, чем пускает сервер (r + 0,6): нажал — точно сработает */
 const STATION_PAD = 0.35;
+/** J: окно подтверждения щита, мс */
+const SHIELD_ASK_MS = 2500;
 /** Зелёная слизь зомби (клякса на «маске», когда бьют) */
 const SLIME_CSS = '#8fd06a';
 
@@ -112,6 +115,8 @@ export class FortMatch {
   private repairEnd = 0;
   /** Арсенал: стволы, гранаты, лестницы, лавка и панели, башни, золото */
   private readonly ars: ArsenalClient;
+  /** J нажата один раз: до какого времени ждём второе нажатие (performance.now) */
+  private shieldAskUntil = 0;
   private readonly tracks = new Map<number, RemoteTrack>();
   private readonly avatars = new Map<number, Avatar>();
   private readonly poses = new Map<number, Pose>();
@@ -196,6 +201,8 @@ export class FortMatch {
 
   // служебное
   private time = 0;
+  /** «Крепость 50»: стены, камни, лагерь (появляется по первому {t:'f50'}; без флага — null) */
+  private f50: Fort50Client | null = null;
   private boardHeld = false;
   private fps = 0;
   private fpsFrames = 0;
@@ -328,6 +335,8 @@ export class FortMatch {
 
   dispose(): void {
     window.removeEventListener('wheel', this.onWheel);
+    this.f50?.leave();
+    this.f50 = null;
     this.ars.dispose();
     for (const av of this.avatars.values()) av.dispose(this.d.world.scene);
     this.avatars.clear();
@@ -396,6 +405,13 @@ export class FortMatch {
       if (down && !e.repeat) this.d.net.send({ t: 'call', kind: 'fort' });
       return true;
     }
+    // J дважды — щит из любой точки (в поле чата клавиши сюда не доходят)
+    if (code === 'KeyJ' && down && !chat.isOpen && input.locked) {
+      if (!e.repeat) this.shieldKey();
+      return true;
+    }
+    // «Крепость 50»: отпустил E — ремонт стены или поджог лагеря прерывается
+    if (code === 'KeyE' && !down) this.f50?.useUp();
     if (!down || chat.isOpen || !input.locked) return false;
     if (this.surr.onKey(code, e)) return true;
     if (code === 'KeyQ') {
@@ -408,6 +424,30 @@ export class FortMatch {
       return true;
     }
     return false;
+  }
+
+  /** J: первое нажатие — «J ещё раз — щит» на плашке щита (2,5 с), второе в это окно — щит; нельзя — сразу почему */
+  private shieldKey(): void {
+    const card = this.d.hud.ui.card;
+    const now = performance.now();
+    const deny = (text: string) => {
+      this.shieldAskUntil = 0;
+      card.promptBell(text, 'deny', 1800);
+      this.ars.sfx.deny();
+    };
+    if (!this.alive) return deny('Щит — когда встанешь');
+    if (this.phase !== FT_WAVE) return deny('Щит — только в бою');
+    if ((this.tail.rally ?? 0) > 0) return deny('Щит уже держит');
+    const cd = this.tail.rallyCd ?? 0;
+    if (cd > 0) return deny(`Щит через ${Math.ceil(cd / TICK_RATE)} с`);
+    if (now < this.shieldAskUntil) {
+      this.shieldAskUntil = 0;
+      this.d.net.send({ t: 'use', id: USE_RALLY_HOTKEY });
+      card.promptBell('Щит!', 'ok', 900);
+      return;
+    }
+    this.shieldAskUntil = now + SHIELD_ASK_MS;
+    card.promptBell('J ещё раз — щит', 'ask', SHIELD_ASK_MS);
   }
 
   /** E (не ЛКМ — она стреляет): у стойки — панель арсенала (лавка, ворота, кристалл, башня) или колокол. */
@@ -426,6 +466,8 @@ export class FortMatch {
     }
     // панель открыта — E её закрывает; у стойки арсенала — открывает (игра не встаёт, мышь остаётся в игре)
     if (this.ars.use(this.alive ? this.station : null)) return;
+    // «Крепость 50»: вне стоек — камень со стены, ремонт участка, поджог лагеря
+    if (this.alive && !this.station && this.f50?.useDown()) return;
     if (!this.alive || !this.station) return;
     this.d.net.send({ t: 'use', id: this.station.id });
   }
@@ -479,6 +521,14 @@ export class FortMatch {
       case 'fsurr':
         this.surr.onState(m);
         break;
+      case 'f50':
+        this.f50 ??= f50Client({
+          world: this.d.world, map: this.d.map, collision: this.d.collision, hud: this.d.hud, sound: this.d.sound, net: this.d.net,
+          est: () => this.clock.estimate(performance.now()), myId: () => this.myId,
+          avatarOf: (pid) => (pid === this.myId ? this.localAvatar : this.avatars.get(pid) ?? null),
+        });
+        this.f50.onState(m);
+        break;
     }
   }
 
@@ -520,6 +570,7 @@ export class FortMatch {
 
   private onPhase(phase: number, end: number, wave: number): void {
     const { hud, sound, effects } = this.d;
+    const prevPhase = this.phase;
     const same = phase === this.phase && wave === this.wave;
     if (!same) this.clearReadyInvite();
     this.phase = phase;
@@ -537,6 +588,7 @@ export class FortMatch {
     const wasEnd = hud.endShown;
     hud.ui.onPhase(phase, wave, this.card);
     if (phase === FT_GATHER) {
+      if (prevPhase === FT_END) this.f50?.reset();
       hud.hideEnd();
       if (wasEnd && !this.d.input.locked) this.ars.releaseCursor();
       this.surr.reset();
@@ -792,6 +844,7 @@ export class FortMatch {
     const { hud, sound, effects, world, zombies, chat } = this.d;
     for (const e of list) {
       if (this.krakenFx.onEvent(e)) continue;
+      if (this.f50?.onEvent(e)) continue;
       switch (e[0]) {
         case 'shot': {
           const [, pid, ox, oy, oz, ex, ey, ez, kind, nx, ny, nz] = e;
@@ -1400,6 +1453,7 @@ export class FortMatch {
     }
     d.effects.update(dt);
     d.world.update(dt, this.camPos);
+    this.f50?.frame(dt, this.time, this.predictor.state, this.alive, this.phase, this.wave, cam.position);
     tickAvatarShared(this.time, d.world.renderer.canvas.clientHeight || window.innerHeight);
     this.updateStation();
     this.updateMarks();
@@ -1670,7 +1724,7 @@ export class FortMatch {
       return;
     }
     // у открытой панели подсказка не нужна: всё в панели
-    const hint = best && !hud.stall.shown ? this.stationHint(best) : null;
+    const hint = best && !hud.stall.shown ? this.stationHint(best) : !best && !hud.stall.shown ? this.f50?.hint(this.phase) ?? null : null;
     const marks = this.d.marks;
     if (!hint && marks && marks.crateState === CRATE_DOWN && Math.hypot(s.x - marks.crateX, s.z - marks.crateZ) < SUPPLY_PICK_R - 0.2
       && Math.abs(s.y - marks.crateY) < 2.5) {
@@ -1688,6 +1742,7 @@ export class FortMatch {
   /** Подсказка у стойки: текст, цена (0 — без цены), сработает ли E; null — сказать нечего (всё цело) */
   private stationHint(st: FortStation): [string, number, boolean] | null {
     if (st.kind === 'flag') return this.surr.hint(this.phase);
+    if (st.kind === 'tower' && this.f50?.towerLocked(st.arg)) return ['участок стены разрушен — башня молчит · почини стену', 0, false];
     if (st.kind !== 'bell') return this.ars.hint(st);
     switch (st.kind) {
       case 'bell': {
@@ -1736,6 +1791,8 @@ export class FortMatch {
     const est = this.clock.estimate(performance.now());
     const leftS = (this.phaseEnd - est) / TICK_RATE;
     hud.ui.prompt.setRepair(this.repairEnd > est ? (this.repairEnd-est)/TICK_RATE : 0,1-(this.repairEnd-est)/REPAIR_WORK_TICKS);
+    const f50bar = this.repairEnd > est ? null : this.f50?.progress();
+    if (f50bar) hud.ui.prompt.setRepair(f50bar[0], f50bar[1], f50bar[2], f50bar[3]);
     hud.setDefense(this.phase, this.tail.defenders ?? this.rosterList.length, this.tail.rally ?? 0, this.tail.rallyCd ?? 0);
     hud.setGate(this.gate, this.ars.gateMax);
     hud.setCrystal(this.crystal, this.ars.crystalMax);
@@ -1770,7 +1827,7 @@ export class FortMatch {
       parts = kp;
     }
     // полное HP — по формуле сервера: волна и под сколько защитников усилена орда (в бою снимок шлёт horde.defenders)
-    const bossMax = boss && this.phase === FT_WAVE ? bossMaxHp(boss.kind, this.wave, this.tail.defenders ?? 0, this.card?.siege === true) : 0;
+    const bossMax = boss && this.phase === FT_WAVE && !this.f50 ? bossMaxHp(boss.kind, this.wave, this.tail.defenders ?? 0, this.card?.siege === true) : 0;
     hud.setBoss(this.phase === FT_WAVE ? boss?.hp ?? 0 : 0, boss?.stage ?? 1, boss?.state ?? 0, boss?.wind ?? 0,
       boss?.kind ?? Z_BOSS, this.card?.tier ?? 0, ((boss?.flags ?? 0) & ZF_RAGE) !== 0, parts, bossMax);
     if (this.phase === FT_END && hud.endShown) hud.setEndTimer(leftS);
@@ -1891,7 +1948,7 @@ export class FortMatch {
       defenders: this.tail.defenders, rally: this.tail.rally, rallyCd: this.tail.rallyCd,
       pos: [s.x, s.y, s.z], ammo: s.ammo, corrections: this.predictor.corrections, zombies: this.d.zombies.count,
       station: this.station?.kind ?? null, vote: this.surr.open, renderTick: this.clock.renderTick, delay: this.clock.delay, remotes: this.tracks.size,
-      fps: this.fps, cam: [c.x, c.y, c.z], end: this.d.hud.endShown, arsenal: this.ars.debug(),
+      fps: this.fps, cam: [c.x, c.y, c.z], end: this.d.hud.endShown, arsenal: this.ars.debug(), f50: this.f50?.debug(this.phase) ?? null,
     };
   }
 }
