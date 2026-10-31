@@ -36,7 +36,7 @@
 | викторина в чате | `server/chatquiz.ts` |
 | отправка в Telegram, частота, отметка недели | `server/tgcall.ts` (`tg-call.json`) |
 | плашка «Иду», кнопка «Позвать» | `client/ui/social.ts` |
-| столб света, огни и салют | `client/lobby/social3d.ts`, `client/lobby/tiredwood.ts` (`setLit`, свечение — один меш) |
+| столб света, огни и салют | `client/lobby/social3d.ts`, `client/lobby/tiredwood.ts` (`setLit`; кайма — один меш из копий лица букв, золото — цвет вершин; незажжённые буквы не тронуты) |
 | где показывать «Позвать» | `LobbyScene.callSpot()` (`client/lobby/scene.ts`), Tab крепости — `client/fort/ui/board.ts`, `client/fort/match.ts` |
 | выключатель викторины | `client/settings.ts` (`quizChat`), `client/ui/menu/settings-panel.ts` |
 | тесты | `test/social.test.ts`, `test/chatquiz.test.ts`, `test/tgcall.test.ts` |

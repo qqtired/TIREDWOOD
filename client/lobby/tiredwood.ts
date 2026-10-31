@@ -332,40 +332,32 @@ function beam(a: THREE.Vector3, b: THREE.Vector3, w: number): THREE.BufferGeomet
   return g;
 }
 
-/** Огни букв (флаг SOCIAL, shared/social.ts): горящая буква — тёплое золото и свечение, ещё не горящая — приглушена */
-const LIT_TINT: Pt3 = [1, 0.84, 0.42];
-const DIM_TINT: Pt3 = [0.5, 0.56, 0.64];
-const HALO_COLOR: Pt3 = [1, 0.74, 0.3];
+/**
+ * Огни букв (флаг SOCIAL, shared/social.ts): горящая буква — насыщенное золото с оранжевой каймой сзади (кайма чёткая,
+ * без размытого ореола: форма буквы не теряется), ещё не горящая — ровно такая, как без флага.
+ */
+const LIT_TINT: Pt3 = [1, 0.6, 0.08];
+const RIM_COLOR: Pt3 = [0.9, 0.2, 0.02];
+/** Толщина каймы, в высотах буквы; копий плиты вокруг буквы — по кругу */
+const RIM_W = 0.04;
+const RIM_DIRS = 8;
 type Pt3 = [number, number, number];
-
-/** Мягкое пятно света для свечения за буквой */
-function haloTexture(): THREE.CanvasTexture {
-  const c = document.createElement('canvas');
-  c.width = c.height = 64;
-  const ctx = c.getContext('2d')!;
-  const g = ctx.createRadialGradient(32, 32, 2, 32, 32, 32);
-  g.addColorStop(0, 'rgba(255,255,255,1)');
-  g.addColorStop(0.45, 'rgba(255,255,255,0.45)');
-  g.addColorStop(1, 'rgba(255,255,255,0)');
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, 64, 64);
-  const t = new THREE.CanvasTexture(c);
-  t.colorSpace = THREE.SRGBColorSpace;
-  return t;
-}
 
 export class Tiredwood {
   readonly letters: SignLetter[];
   private readonly ground: Ground;
   private readonly h: number;
-  /** Огни букв: цвета вершин лицевого меша и места букв в них; свечение — один меш из девяти плоскостей за буквами */
+  /** Огни букв: цвета вершин лицевого меша и места букв в них; кайма — копии лица, сдвинутые в плоскости буквы и назад */
   private lights: {
     color: THREE.BufferAttribute;
     base: Float32Array;
     ranges: Array<[number, number]>;
-    /** Свечение собирается при первых огнях (флаг SOCIAL): без флага у надписи те же два меша, что и были */
-    halo: THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial> | null;
-    haloColor: THREE.BufferAttribute | null;
+    /** Кайма собирается при первых огнях (флаг SOCIAL): без флага у надписи те же два меша, что и были */
+    rim: THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial> | null;
+    rimPos: THREE.BufferAttribute | null;
+    /** Исходные позиции вершин лица (мир) */
+    rimBase: Float32Array;
+    faceIndex: THREE.BufferAttribute | null;
     scene: THREE.Scene;
   } | null = null;
   /** Сколько букв горит; −1 — огни выключены (флаг SOCIAL не включён): надпись белая, как была */
@@ -436,66 +428,77 @@ export class Tiredwood {
     const meshes = [face, staticMesh(mergeColored(parts), dark, false)];
     scene.add(...meshes);
     const color = face.geometry.getAttribute('color') as THREE.BufferAttribute;
-    this.lights = { color, base: Float32Array.from(color.array), ranges, halo: null, haloColor: null, scene };
+    this.lights = { color, base: Float32Array.from(color.array), ranges, rim: null, rimPos: null, rimBase: Float32Array.from(face.geometry.getAttribute('position').array as Float32Array), faceIndex: face.geometry.getIndex(), scene };
     return meshes;
   }
 
-  /** Свечение за буквами: по плоскости на букву, сзади и чуть больше; цвета вершин — яркость (чёрный — не светится) */
-  private buildHalo(scene: THREE.Scene): { halo: THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>; haloColor: THREE.BufferAttribute } {
-    const h = this.h;
-    const pos: number[] = [];
-    const uv: number[] = [];
-    const idx: number[] = [];
-    for (const l of this.letters) {
-      const hw = l.w * 0.95;
-      const hh = h * 0.78;
-      const back = -h * (DEPTH + 0.02);
-      const cy = h / 2;
-      const base = pos.length / 3;
-      for (const [sx, sy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]] as const) {
-        const [x, z] = world(l, sx * hw, back);
-        pos.push(x, l.y + cy + sy * hh, z);
-        uv.push((sx + 1) / 2, (sy + 1) / 2);
-      }
-      idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
-    }
+  /** Кайма: восемь копий лица букв вокруг, каждая сдвинута в плоскости буквы и назад за её плиту — выглядывает чёткой полосой */
+  private buildRim(scene: THREE.Scene): { rim: THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>; rimPos: THREE.BufferAttribute } {
+    const L = this.lights!;
+    const nv = L.rimBase.length / 3;
     const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-    g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
-    const haloColor = new THREE.BufferAttribute(new Float32Array(pos.length), 3);
-    g.setAttribute('color', haloColor);
-    g.setIndex(idx);
-    const mat = new THREE.MeshBasicMaterial({
-      map: haloTexture(), vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, toneMapped: false,
-    });
-    const halo = new THREE.Mesh(g, mat);
-    halo.frustumCulled = false;
-    halo.renderOrder = 3;
-    halo.visible = false;
-    scene.add(halo);
-    return { halo, haloColor };
+    const rimPos = new THREE.BufferAttribute(new Float32Array(nv * 3 * RIM_DIRS), 3);
+    rimPos.setUsage(THREE.DynamicDrawUsage);
+    g.setAttribute('position', rimPos);
+    const src = L.faceIndex;
+    const ni = src ? src.count : nv;
+    const idx = new Uint32Array(ni * RIM_DIRS);
+    for (let k = 0; k < RIM_DIRS; k++) for (let j = 0; j < ni; j++) idx[k * ni + j] = (src ? src.getX(j) : j) + k * nv;
+    g.setIndex(new THREE.BufferAttribute(idx, 1));
+    const mat = new THREE.MeshBasicMaterial({ color: new THREE.Color(RIM_COLOR[0], RIM_COLOR[1], RIM_COLOR[2]), fog: false, toneMapped: false });
+    const rim = new THREE.Mesh(g, mat);
+    rim.frustumCulled = false;
+    rim.visible = false;
+    scene.add(rim);
+    return { rim, rimPos };
+  }
+
+  /** Кайму на места: у горящих букв копии разведены по кругу, у остальных лежат строго за плитой (не видны) */
+  private placeRim(): void {
+    const L = this.lights;
+    if (!L?.rimPos) return;
+    const p = L.rimPos.array as Float32Array;
+    const b = L.rimBase;
+    const nv = b.length / 3;
+    const d = this.h * RIM_W;
+    const back = this.h * DEPTH * 1.15;
+    for (const [i, [from, to]] of L.ranges.entries()) {
+      const l = this.letters[i];
+      const lit = i < this.lit;
+      const rx = Math.cos(l.yaw), rz = -Math.sin(l.yaw), fx = Math.sin(l.yaw), fz = Math.cos(l.yaw);
+      for (let k = 0; k < RIM_DIRS; k++) {
+        const a = (k / RIM_DIRS) * Math.PI * 2;
+        const ox = lit ? Math.cos(a) * d : 0;
+        const oy = lit ? Math.sin(a) * d : 0;
+        const dx = rx * ox - fx * back, dy = oy, dz = rz * ox - fz * back;
+        for (let v = from; v < to; v++) {
+          const o = (k * nv + v) * 3;
+          p[o] = b[v * 3] + dx;
+          p[o + 1] = b[v * 3 + 1] + dy;
+          p[o + 2] = b[v * 3 + 2] + dz;
+        }
+      }
+    }
+    L.rimPos.needsUpdate = true;
   }
 
   /**
-   * Огни букв (флаг SOCIAL): n первых букв горят тёплым золотом и светятся, остальные приглушены. −1 — вернуть белую
-   * надпись, как без флага. Яркостью цветов вершин, без ламп и без смены видимости (шейдеры не пересобираются).
+   * Огни букв (флаг SOCIAL): n первых букв горят золотом с каймой, остальные — как без флага. −1 — вернуть всё как было.
+   * Цветами вершин и копиями лица, без ламп и без смены видимости (шейдеры не пересобираются).
    */
   setLit(n: number): void {
     const L = this.lights;
     if (!L || n === this.lit) return;
     this.lit = n;
     const a = L.color.array as Float32Array;
-    if (n >= 0 && !L.halo) Object.assign(L, this.buildHalo(L.scene));
-    const halo = L.halo!, haloColor = L.haloColor!;
-    halo.visible = n >= 0;
+    if (n >= 0 && !L.rim) Object.assign(L, this.buildRim(L.scene));
+    L.rim!.visible = n >= 0;
     for (const [i, [from, to]] of L.ranges.entries()) {
-      const tint = n < 0 ? null : i < n ? LIT_TINT : DIM_TINT;
+      const tint = n >= 0 && i < n ? LIT_TINT : null;
       for (let v = from; v < to; v++) for (let c = 0; c < 3; c++) a[v * 3 + c] = L.base[v * 3 + c] * (tint ? tint[c] : 1);
-      // свечение: четыре вершины плоскости буквы
-      for (let k = 0; k < 4; k++) for (let c = 0; c < 3; c++) haloColor.setComponent(i * 4 + k, c, i < n ? HALO_COLOR[c] : 0);
     }
     L.color.needsUpdate = true;
-    haloColor.needsUpdate = true;
+    this.placeRim();
   }
 
   /** Сколько букв горит сейчас (−1 — огни выключены) */
@@ -503,10 +506,11 @@ export class Tiredwood {
     return this.lit;
   }
 
-  /** Свечение чуть дышит; time — секунды мира, fast — все девять горят (празднуем) */
+  /** Кайма чуть дышит; time — секунды мира, fast — все девять горят (празднуем) */
   tickLit(time: number, fast = false): void {
     const L = this.lights;
-    if (!L?.halo || this.lit < 0) return;
-    L.halo.material.color.setScalar(0.78 + 0.22 * Math.sin(time * (fast ? 4.2 : 1.6)));
+    if (!L?.rim || this.lit < 0) return;
+    const k = 0.8 + 0.2 * Math.sin(time * (fast ? 4.2 : 1.6));
+    L.rim.material.color.setRGB(RIM_COLOR[0] * k, RIM_COLOR[1] * k, RIM_COLOR[2] * k);
   }
 }

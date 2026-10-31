@@ -145,6 +145,8 @@ class SparkCloud {
       const points = new THREE.Points(this.geo, mat);
       points.frustumCulled = false;
       points.renderOrder = order;
+      // искры — игровое: набережная plaza3 не прячет их по дальности (plaza3/perf.ts считает сферу по точкам, спрятанным под полом)
+      points.userData.p3keep = true;
       scene.add(points);
     }
     for (let i = 0; i < max; i++) {
