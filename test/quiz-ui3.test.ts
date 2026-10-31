@@ -7,7 +7,7 @@ import { paintBoard, boardAnimating } from '../client/lobby/quiz/ui/board.ts';
 import { boardUi } from '../client/lobby/quiz/ui/board-base.ts';
 import { jpNext } from '../client/lobby/quiz/ui/hud-jp-model.ts';
 import { buzzModel } from '../client/lobby/quiz/ui/hud-jp-model.ts';
-import { crocNext, crocPlate, todoRow } from '../client/lobby/quiz/ui/hud-modes-model.ts';
+import { bravoBtn, crocNext, crocPlate, todoRow } from '../client/lobby/quiz/ui/hud-modes-model.ts';
 import {
   againBar, dockModel, hostBar, keysRow, plateSpec, queueBar, riddleNext, warmBar, warmModel,
 } from '../client/lobby/quiz/ui/hud-model.ts';
@@ -194,20 +194,23 @@ describe('B1 плашка: что дальше', () => {
 describe('B2 строка «что мне делать»', () => {
   const jp = (o: Partial<QzJpBoard> = {}): QzView => hview({ phase: 'game', mode: 'jeopardy', jp: { step: 'pick', players: [{ ...who(7, 'А'), pult: 0, score: 0, away: 0 }], host: who(9, 'В'), themes: [], q: null, ...o } as unknown as QzJpView });
 
-  it('зритель «Своей игры»: у стоящего — «E: сесть за пульт», у сидящего — «B: Браво»; игроку и ведущему — ничего', () => {
-    const stand = todoRow(jp(), me({ place: -1 }))!;
-    assert.match(stand.html, /<kbd[^>]*>E<\/kbd><em>смотри или садись за свободный пульт<\/em>/);
-    assert.doesNotMatch(stand.html, /Браво/);
-    const sit = todoRow(jp(), me({ place: 0 }));
-    assert.match(sit!.html, /<kbd[^>]*>B<\/kbd><em>«Браво!»<\/em>/);
-    assert.doesNotMatch(sit!.html, /пульт/);
+  it('зритель «Своей игры»: стоящему — ничего (пульт подсказывает сам), сидящему — кнопка «Браво!»; игроку и ведущему — ничего', () => {
+    // Х-4: «E — сесть за пульт» только у свободного пульта (index.ts pointHint), а не по всей площадке
+    assert.equal(todoRow(jp(), me({ place: -1 })), null);
+    // Х-3: «Браво!» — кнопка (мышь, палец, B), а не надпись в ряду клавиш
+    const sit = todoRow(jp(), me({ place: 0 }))!;
+    assert.equal(sit.bravo, true);
+    assert.equal(sit.html, '');
+    assert.match(bravoBtn(), /<button type="button"[^>]*data-qz="bravo"[^>]*>«Браво!»<kbd[^>]*>B<\/kbd><\/button>/);
     assert.equal(todoRow(jp(), me({ role: 'player', place: -1, jp: { pult: 0, canBuzz: false, lockUntil: 0, cat: false } })), null);
     assert.equal(todoRow(jp({ step: 'packvote' }), me({ place: -1 })), null);
   });
 
   it('«Загадка»: пиши догадки (Enter), если полосы «Хочу загадать» нет; загадывающему — нет', () => {
     assert.match(todoRow(game(), me())!.html, /<kbd[^>]*>Enter<\/kbd><em>пиши догадки<\/em>/);
-    assert.equal(todoRow(game(), me(), true), null);
+    // с полосой «Хочу загадать» догадки подсказывает полоса: сидящему — только кнопка «Браво!», стоящему — ничего
+    assert.deepEqual(todoRow(game(), me(), true), { sig: 'riddle|1|0', html: '', bravo: true });
+    assert.equal(todoRow(game(), me({ place: -1 }), true), null);
     assert.equal(todoRow(game(), me({ role: 'riddler' })), null);
     assert.equal(todoRow(game({ step: 'reveal' }), me()), null);
   });

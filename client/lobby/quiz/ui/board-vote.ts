@@ -252,8 +252,9 @@ export function paintResults(ctx: CanvasRenderingContext2D, b: QzBoard, nowMs: n
   ctx.fillText(clip(ctx, `·  ${name}`, 1240 - tw), PAD + tw + 36, 108);
   ctx.restore();
   const PLACE: Array<[string, string]> = [[C.gold, C.goldInk], ['#d9dee6', '#26303d'], ['#d99a63', '#3a1d08']];
-  const top = res.top.slice(0, 3);
-  if (!top.length) centerText(ctx, 'Очков не набрали — в следующий раз!', 700, 440, 64, C.creamDim, 1240, 700);
+  // ноль у всех — мест нет: «Без очков», а не «1» у каждого
+  const top = (res.top[0]?.pts ?? 0) > 0 ? res.top.slice(0, 3) : [];
+  if (!top.length) centerText(ctx, 'Без очков — в следующий раз!', 700, 440, 64, C.creamDim, 1240, 700);
   top.forEach((p, i) => {
     const place = 1 + top.filter((q) => q.pts > p.pts).length;
     const y = 200 + i * 196, x = PAD, w = 1200, h = 170, [bg, fg] = PLACE[Math.min(2, place - 1)];
@@ -294,7 +295,8 @@ export function paintResults(ctx: CanvasRenderingContext2D, b: QzBoard, nowMs: n
   ctx.textBaseline = 'middle';
   ctx.textAlign = 'left';
   ctx.fillStyle = C.goldText;
-  ctx.fillText(res.titles?.length ? 'ТИТУЛЫ' : 'СЧЁТ ВЕЧЕРА', rx, 214);
+  // пустой счёт вечера (очков ещё ни у кого) — без заголовка над пустотой
+  if (res.titles?.length || b.evening.length) ctx.fillText(res.titles?.length ? 'ТИТУЛЫ' : 'СЧЁТ ВЕЧЕРА', rx, 214);
   ctx.letterSpacing = '0px';
   if (res.titles?.length) {
     res.titles.slice(0, 5).forEach((t, i) => {

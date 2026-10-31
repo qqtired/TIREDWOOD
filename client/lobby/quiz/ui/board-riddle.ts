@@ -225,7 +225,7 @@ function end(ctx: CanvasRenderingContext2D, b: QzBoard, r: QzRiddleBoard, nowMs:
   if (win && r.step === 'reveal') confetti(ctx, W, H, nowMs, 120, 11);
   const nick = (last.riddler.nick || '').toUpperCase();
   const head = win ? 'РАЗГАДАЛИ!' : last.end === 'left' ? `${nick} УШЁЛ` : last.end === 'swap' ? 'МЕНЯЕМ ИГРУ' : last.end === 'empty' ? 'ВСЕ УШЛИ' : 'НЕ УГАДАЛИ';
-  title(ctx, clip(ctx, head, 1800), W / 2, 130, 96, win ? C.gold : C.coral, 'center', 7);
+  title(ctx, head, W / 2, 130, 96, win ? C.gold : C.coral, 'center', 7, 1800);
   ctx.save();
   const word = last.answer.toUpperCase();
   const px = fit(ctx, word, 400, 180, 1640, DISPLAY, 80);
@@ -262,8 +262,32 @@ function end(ctx: CanvasRenderingContext2D, b: QzBoard, r: QzRiddleBoard, nowMs:
     ctx.fillText('СЧЁТ ВЕЧЕРА', W / 2, 736);
     ctx.letterSpacing = '0px';
     ctx.restore();
-    centerText(ctx, ev.map((p) => `${p.nick} ${p.pts}`).join('   ·   '), W / 2, 840, 70, C.cream, W - PAD * 2 - 40);
+    eveningRow(ctx, ev, W / 2, 840, 70, W - PAD * 2 - 40);
   }
+}
+
+/** Счёт вечера одной строкой по центру: ник кремом, число золотом — «Tester101 7» не сливается в «Tester1017»;
+ *  не влезает — шрифт меньше, длинные ники с «…» */
+function eveningRow(ctx: CanvasRenderingContext2D, rows: QzBoard['evening'], cx: number, y: number, px: number, maxW: number): void {
+  ctx.save();
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  const parts: Array<[string, string]> = [];
+  rows.forEach((p, i) => {
+    if (i) parts.push(['   ·   ', C.creamDim]);
+    parts.push([`${p.nick.length > 12 ? `${p.nick.slice(0, 11)}…` : p.nick} `, C.cream], [String(p.pts), C.goldText]);
+  });
+  const width = (): number => parts.reduce((w, [t]) => w + ctx.measureText(t).width, 0);
+  let size = px;
+  ctx.font = font(800, size);
+  while (size > 36 && width() > maxW) { size -= 2; ctx.font = font(800, size); }
+  let x = cx - Math.min(maxW, width()) / 2;
+  for (const [t, col] of parts) {
+    ctx.fillStyle = col;
+    ctx.fillText(t, x, y);
+    x += ctx.measureText(t).width;
+  }
+  ctx.restore();
 }
 
 /** Ждём слово: загадывающий пишет его у себя в окне */

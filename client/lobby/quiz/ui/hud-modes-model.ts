@@ -196,32 +196,32 @@ export const whoHint = (v: QzView, me: QzMe): boolean => v.phase === 'game' && v
 /** Ряд подсказок под полосой внизу: [клавиша] что делать. Кто не играет сейчас, всё равно видит, что можно */
 export interface TodoSpec {
   sig: string;
+  /** подсказки клавиш (ряд key-hint, прячется настройкой «Подсказки клавиш»); пусто — нет */
   html: string;
+  /** кнопка «Браво!» рядом — мышью, пальцем или B (сидящему в кресле) */
+  bravo: boolean;
 }
 
 const mo = (key: string, text: string): string => `<span class="mo-key">${keyCap(key, undefined, '')}<em>${esc(text)}</em></span>`;
 
+/** Кнопка «Браво!» строки «что мне делать»: то же, что B */
+export const bravoBtn = (): string => `<button type="button" class="k-btn k-btn--ghost k-btn--sm qz-bravo" data-qz="bravo">«Браво!»${keyCap('B', 'tr')}</button>`;
+
 /**
- * Что делать роли без своей полосы: угадывающему — писать догадки (Enter), зрителю «Своей игры» — смотреть или сесть за
- * свободный пульт (E), сидящему зрителю — «Браво!» (B). queueBarOn — у угадывающего «Загадки» эту строку уже несёт полоса
- * «Хочу загадать». null — нечего подсказывать.
+ * Что делать роли без своей полосы: угадывающему — писать догадки (Enter), сидящему зрителю — кнопка «Браво!» (B).
+ * Сесть за свободный пульт «Своей игры» подсказывает сам пульт, когда стоишь у него (index.ts pointHint).
+ * queueBarOn — у угадывающего «Загадки» эту строку уже несёт полоса «Хочу загадать». null — нечего подсказывать.
  */
 export function todoRow(v: QzView, me: QzMe, queueBarOn = false): TodoSpec | null {
   if (v.phase !== 'game') return null;
   const chair = me.place >= 0 && placeAt(me.place)?.kind === 'chair';
-  const bravo = chair ? mo('B', '«Браво!»') : '';
-  const row = (sig: string, ...parts: string[]): TodoSpec | null => {
-    const html = parts.filter(Boolean).join('');
-    return html ? { sig, html } : null;
-  };
+  const row = (sig: string, html = ''): TodoSpec | null => (html || chair ? { sig: `${sig}|${chair ? 1 : 0}|${html ? 1 : 0}`, html, bravo: chair } : null);
   const jp = v.jp;
-  if (v.mode === 'jeopardy' && jp && jp.step !== 'setup' && jp.step !== 'packvote' && !isHost(jp, me) && !isPlayer(me)) {
-    const free = jp.players.length < QZ_JP.PLAYERS_MAX;
-    return row(`jp|${chair ? 1 : 0}|${free ? 1 : 0}`, !chair && free ? mo('E', 'смотри или садись за свободный пульт') : '', bravo);
-  }
+  if (v.mode === 'jeopardy' && jp && jp.step !== 'setup' && jp.step !== 'packvote' && !isHost(jp, me) && !isPlayer(me)) return row('jp');
   const s = v.riddle?.step;
-  if (v.mode === 'riddle' && v.riddle && me.role !== 'riddler' && !queueBarOn && (s === 'round' || s === 'check')) return row(`riddle|${chair ? 1 : 0}`, mo('Enter', 'пиши догадки'), bravo);
-  if (v.mode === 'croc' && v.croc && !isDrawer(v, me) && !me.croc?.got && v.croc.step === 'draw') return row(`croc|${chair ? 1 : 0}`, mo('Enter', 'пиши догадки'), bravo);
+  // «пиши догадки» у угадывающего с полосой «Хочу загадать» несёт полоса — здесь остаётся только «Браво!»
+  if (v.mode === 'riddle' && v.riddle && me.role !== 'riddler' && (s === 'round' || s === 'check')) return row('riddle', queueBarOn ? '' : mo('Enter', 'пиши догадки'));
+  if (v.mode === 'croc' && v.croc && !isDrawer(v, me) && v.croc.step === 'draw') return row('croc', me.croc?.got ? '' : mo('Enter', 'пиши догадки'));
   return null;
 }
 

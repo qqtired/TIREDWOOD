@@ -204,7 +204,9 @@ export function plateSpec(v: QzView, me: QzMe, now: number, armed = false, liked
   if (v.phase === 'results' && v.results) {
     const r = me.result;
     const ic = pic(QZ_MODES.find((m) => m.id === v.results?.mode)?.icon ?? 'scroll');
-    // place 0 — ведущий или зритель без места: в строке итога только жетоны, без места и очков
+    // ноль у всех — победителя и мест нет (сервер шлёт place 0, табло — «Без очков»)
+    const none = (v.results.top[0]?.pts ?? 0) <= 0;
+    // place 0 — ведущий, зритель без места или ноль у всех: в строке итога только жетоны, без места и очков
     if (r && r.place <= 0) {
       return mk(ev({ ic, title: r.tokens > 0 ? `Итоги: <b class="k-gold">+${r.tokens}</b> ${COIN_K}` : 'Игра окончена' }), { tone: r.tokens > 0 ? 'good' : undefined });
     }
@@ -213,7 +215,7 @@ export function plateSpec(v: QzView, me: QzMe, now: number, armed = false, liked
       return mk(ev({ ic, title: `Итоги: <b class="k-gold">${r.place}-е место</b>`, sub: `${r.pts} ${plural(r.pts, 'очко', 'очка', 'очков')}${coins}`, side: likeButton(v, me, liked) }), { tone: 'good' });
     }
     const top = v.results.top[0];
-    return mk(ev({ ic, title: 'Игра окончена', sub: top ? `Больше всех у ${esc(top.nick)}` : undefined }));
+    return mk(ev({ ic, title: 'Игра окончена', sub: top && !none ? `Больше всех у ${esc(top.nick)}` : undefined }));
   }
 
   // «Своя игра», «Крокодил», «Кто из нас?»: их HUD — следующим заходом; здесь только название и «Сменить игру?»

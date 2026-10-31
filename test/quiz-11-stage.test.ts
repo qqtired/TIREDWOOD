@@ -11,6 +11,7 @@ import { QUIZ_VENUE as V, placeAt, chairPlace } from '../shared/quiz/venue.ts';
 import { QZ, QZ_WARM, QZ_WHO as WHO, type QzPack, type QzQuestion } from '../shared/quiz/types.ts';
 import { newRiddle, reduceRiddle, riddleView, type RiddleAction } from '../shared/quiz/riddle.ts';
 import type { QuizServerMsg } from '../shared/quiz/net.ts';
+import { plural } from '../shared/hideprops.ts';
 
 function setup(n = 3) {
   let now = 100_000;
@@ -18,6 +19,7 @@ function setup(n = 3) {
     ...V.chairs[i], action: ACT_NONE, arg: 0, ephemeral: false, riding: false }));
   const sent: Array<{ slot: number; msg: QuizServerMsg }> = [], paid: Array<{ pid: number; n: number }> = [];
   const toasts: string[] = [];
+  const announced: string[] = [];
   const host: QuizHost = {
     now: () => now, rand: () => 0, people: () => people,
     hold: (slot, place) => { const p = people.find(p => p.slot === slot); if (p) Object.assign(p, placeAt(place), { action: ACT_QUIZ, arg: place }); },
@@ -25,11 +27,11 @@ function setup(n = 3) {
     send: (slot, msg) => sent.push({ slot, msg: structuredClone(msg) }),
     sendLobby: (msg, except = []) => { for (const p of people) if (!except.includes(p.slot)) host.send(p.slot, msg); },
     credit: (slot, n, pid) => paid.push({ pid: pid ?? people.find(p => p.slot === slot)!.pid, n }),
-    announce: () => {}, toast: (_slot, text) => toasts.push(text), log: () => {},
+    announce: (text) => announced.push(text), toast: (_slot, text) => toasts.push(text), log: () => {},
   };
   const q = new QuizStage(host);
   const g = {
-    q, people, sent, paid, toasts, get now() { return now; },
+    q, people, sent, paid, toasts, announced, get now() { return now; },
     advance(ms: number) { now += ms; q.step(); },
     msg(slot: number, msg: Record<string, unknown>) { q.message(slot, { t: 'qz', ...msg }); },
     sit(slot: number) { Object.assign(people.find(p => p.slot === slot)!, V.chairs[slot - 1]); q.use(slot, chairPlace(slot - 1)); },
@@ -257,4 +259,39 @@ test('заказ «Кто из нас?»: свободные места — во
   const game = new WhoOfUsGame(h, 0, 1);
   assert.equal(game.phase, 'game'); assert.deepEqual(used, ['mine']);
   game.tick(WHO.ASK_MS); assert.match(game.boardFields().who?.q ?? '', /^Кто из нас найдёт клад №\d+\?$/);
+});
+
+/** «Загадка» целиком: каждый раз загадывает тот, кого зовут; solve — в первой загадке угадывают слово. Перед концом
+ *  последней загадки ждём ANNOUNCE_GAP_MS — строка в общий чат идёт не чаще раза в две минуты, иначе её не проверить */
+function playRiddle(g: ReturnType<typeof setup>, solve: boolean): void {
+  g.select(0);
+  for (let i = 0; i < QZ.RIDDLES; i++) {
+    if (g.q.view().call) g.msg(g.people.find(p => g.q.me(p.slot)?.canTake)!.slot, { a: 'role', take: true });
+    const slot = g.q.board().riddle!.riddler!.slot;
+    g.ask(slot);
+    if (i === QZ.RIDDLES - 1) g.advance(QZ.ANNOUNCE_GAP_MS);
+    if (solve && i === 0) { g.msg(g.people.find(p => p.slot !== slot)!.slot, { a: 'say', text: 'пароход' }); g.advance(QZ.CHECK_MS); }
+    else g.msg(slot, { a: 'giveup' });
+    g.advance(QZ.REVEAL_MS);
+  }
+  assert.equal(g.q.board().phase, 'results');
+}
+
+test('Х-1: ноль очков у всех — победителя нет: ни «Лучший», ни строки в чат, ни мест', () => {
+  const g = setup(); playRiddle(g, false);
+  assert.ok(g.q.board().results!.top.every(r => r.pts === 0));
+  assert.deepEqual(g.announced.filter(t => t.startsWith('🏆')), []);
+  assert.equal(g.q.board().zat?.text, 'Очков никто не набрал — в другой раз!');
+  for (const p of g.people) assert.equal(g.q.me(p.slot)?.result?.place ?? 0, 0);
+});
+
+test('Х-1: победа с очками — строка в чат без склонения названия игры, очки склоняются', () => {
+  const g = setup(); playRiddle(g, true);
+  const top = g.q.board().results!.top[0];
+  assert.ok(top.pts > 0);
+  const word = (n: number): string => (n % 10 === 1 && n % 100 !== 11 ? 'очко' : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'очка' : 'очков');
+  assert.deepEqual(g.announced.filter(t => t.startsWith('🏆')), [`🏆 ${top.nick} побеждает в игре «Загадка» на «Ракушке» — ${top.pts} ${word(top.pts)}`]);
+  assert.equal(g.q.board().zat?.text, `Молодцы! Лучший — ${top.nick}`);
+  assert.equal(g.q.me(top.slot)?.result?.place, 1);
+  assert.deepEqual([1, 2, 5, 11, 21, 22].map(n => plural(n, 'очко', 'очка', 'очков')), ['очко', 'очка', 'очков', 'очков', 'очко', 'очка']);
 });

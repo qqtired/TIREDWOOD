@@ -9,6 +9,7 @@ import { QUIZ_VENUE, type QuizPlace } from '../../../shared/quiz/venue.ts';
 import type { Chat } from '../../chat.ts';
 import type { Avatar } from '../../render/avatar.ts';
 import type { LobbyFx } from '../fx.ts';
+import { TOUCH } from '../../touch.ts';
 import { plaza3Shadows } from '../plaza3/mounts.ts';
 import type { SignExtras } from '../plaza3/status.ts';
 import { QuizCheer } from './cheer.ts';
@@ -196,7 +197,7 @@ export class QuizClient {
       });
       // Затейник: стандартный материал со скинингом и цветом вершин — как у зверьков набережной (critter-kit.ts)
       this.zat = new Zatejnik(this.venue.group, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.4, metalness: 0 }));
-      this.hud = new QuizHud((m) => (m.t === 'unuse' ? d.send(m) : this.state.send(m)), d.hudKit);
+      this.hud = new QuizHud((m) => (m.t === 'unuse' ? d.send(m) : m.a === 'bravo' ? this.bravo() : this.state.send(m)), d.hudKit);
       this.cheer = new QuizCheer({ group: this.venue.group, avatarOf: d.avatarOf, audio: d.hudKit?.audio, party: (sec) => this.venue?.party(sec) });
     }
     if (this.venue) this.venue.group.visible = on;
@@ -388,10 +389,11 @@ export class QuizClient {
     return { px: c.pos[0], py: c.pos[1] + lift, pz: c.pos[2], tx: c.pos[0] + Math.sin(yaw) * k, ty: c.pos[1] + lift + Math.sin(pitch), tz: c.pos[2] + Math.cos(yaw) * k, fov: c.fovV };
   }
 
-  /** Своя желейка в кресле не рисуется (камера за спинкой смотрит сквозь неё на табло) */
+  /** Своя желейка в кресле не рисуется (камера за спинкой смотрит сквозь неё на табло); загадывающему на сцене она
+   *  закрыла бы середину зала с облачками догадок — тоже прячем */
   hidesSelf(act: number, arg: number): boolean {
     const k = this.placeOf(act, arg)?.kind;
-    return (k === 'chair' && !this.whoVoting()) || k === 'drawer';
+    return (k === 'chair' && !this.whoVoting()) || k === 'drawer' || k === 'riddler';
   }
 
   /** На месте «Ракушки» мышь свободна: кнопки плашки и строки дока нажимаются мышью */
@@ -428,8 +430,8 @@ export class QuizClient {
       const nick = h?.k === 'jelly' ? this.state.view?.people.find((x) => x.slot === h.slot)?.nick : undefined;
       return nick ? [['ЛКМ'], `Голос за ${nick}`] : [null, ''];
     }
-    // B4: подсказка — только первые 10 с после посадки, до следующей посадки она спрятана
-    if (p?.kind === 'chair') return performance.now() - this.sitAt < LOOK_HINT_MS ? [['ЛКМ'], 'зажми — осмотреться'] : [null, ''];
+    // B4: подсказка — только первые 10 с после посадки, до следующей посадки она спрятана; на телефоне клавиш нет — без неё
+    if (p?.kind === 'chair') return !TOUCH && performance.now() - this.sitAt < LOOK_HINT_MS ? [['ЛКМ'], 'зажми — осмотреться'] : [null, ''];
     return [null, ''];
   }
 
@@ -439,8 +441,13 @@ export class QuizClient {
     // трибуна: E — окно «Ракушки» в любой шаг (встать за неё как ведущий сервер даст только в шаге «Веду я»)
     // A2: в выборе пака можно стать ведущим — E у трибуны (или F, где стоишь)
     if (p?.kind === 'podium') return [['E'], this.state.me?.jp?.canHost ? 'Веду я · вести «Свою игру» самому' : 'окно «Ракушки» · игры, паки, рекорды'];
-    // пульт: встать за него можно только посреди «Своей игры» (сервер: jeopardy.use); вне игры он в люке — без подсказки
-    if (p?.kind === 'pult') return this.state.board?.jp ? [['E'], 'встать за пульт · играть'] : [null, ''];
+    // пульт: встать за него можно только посреди «Своей игры» (сервер: jeopardy.use); вне игры он в люке — без подсказки;
+    // за ним другой игрок — «Место занято», как у кресла (подсказка E — только у свободного пульта и одна)
+    if (p?.kind === 'pult') {
+      const jp = this.state.board?.jp;
+      if (!jp) return [null, ''];
+      return jp.players.some((x) => x.pult === p.n && x.slot !== this.d.mySlot()) ? [[], 'Место занято'] : [['E'], 'встать за пульт · играть'];
+    }
     const busy = !!p && p.kind === 'chair' && !!this.state.view?.people.some((x) => x.chair === p.n && x.slot !== this.d.mySlot());
     return busy ? [[], 'Место занято'] : [['E'], 'сесть · смотреть на сцену и играть'];
   }
@@ -474,12 +481,9 @@ export class QuizClient {
     if (!st.inside || !st.board) return false;
     // часть 2б: клавиши режимов — сначала HUD Sonnet (Пробел, 1/2 ведущего, R…), остальное — здесь
     if (this.hud?.onKey?.(code)) return true;
-    // E1: «Браво!» — B у сидящего в кресле
+    // E1: «Браво!» — B у сидящего в кресле (или кнопка «Браво!» в HUD)
     if (code === 'KeyB' && st.me && quizPlace(st.me.place)?.kind === 'chair') {
-      if (performance.now() - this.bravoAt >= QZ.BRAVO_GAP_MS) {
-        this.bravoAt = performance.now();
-        st.send({ t: 'qz', a: 'bravo' });
-      }
+      this.bravo();
       return true;
     }
     const me = st.me;
@@ -513,6 +517,13 @@ export class QuizClient {
     if (b.phase === 'game' && this.part2Key(code, n, b)) return true;
     // в эти моменты эмоции выключены — цифры не уходят в жесты
     return this.emotesBlocked && EMOTE_DIGITS.has(code);
+  }
+
+  /** «Браво!» (B или кнопка HUD): не чаще раза в BRAVO_GAP_MS */
+  private bravo(): void {
+    if (performance.now() - this.bravoAt < QZ.BRAVO_GAP_MS) return;
+    this.bravoAt = performance.now();
+    this.state.send({ t: 'qz', a: 'bravo' });
   }
 
   /** Клавиши части 2: «Своя игра» — 1–3 пак, Пробел — «Жму!» (ведущему — открыть кнопки), 1 / 2 — ✓ / ✗ ведущего,

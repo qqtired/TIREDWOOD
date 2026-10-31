@@ -234,6 +234,8 @@ export class QuizHud {
         break;
       }
       case 'hint': this.windows.openHint(v, me); break;
+      // «Браво!» мышью или пальцем — то же письмо, что B (частоту держит контроллер, index.ts bravo)
+      case 'bravo': this.send({ t: 'qz', a: 'bravo' }); break;
       case 'askopen': this.windows.openAsk(v, me); break;
       case 'unuse': this.send({ t: 'unuse' }); break;
       case 'giveup':

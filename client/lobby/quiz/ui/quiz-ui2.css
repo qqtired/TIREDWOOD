@@ -222,8 +222,10 @@
 .qz-queue2 .qz-roles-t kbd { margin-left: 6px; vertical-align: 1px; }
 .qz-word-t { display: inline-block; max-width: 200px; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; white-space: nowrap; color: var(--gold-text); }
 
-/* B2: строка «что мне делать» под полосой — ряд подсказок кита (.mo-keys), прячется настройкой «Подсказки клавиш» */
+/* B2: строка «что мне делать» под полосой — ряд подсказок кита (.mo-keys, прячется настройкой «Подсказки клавиш»)
+   и рядом кнопка «Браво!» (не прячется: жмётся мышью и пальцем). На телефоне клавиш нет — значки клавиш не показываем */
 .qz-todo { align-self: center; }
+.touch .qz-todo kbd { display: none; }
 
 /* C1 «Горячо!»: у загадывающего в доке четыре кнопки — док шире, ник короче, кнопка-слово ниже обычной */
 .qz-dock.is-marks { width: 440px; }

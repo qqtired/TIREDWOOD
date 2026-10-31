@@ -105,10 +105,12 @@ export function awning(ctx: CanvasRenderingContext2D, x: number, y: number, w: n
   ctx.restore();
 }
 
-/** Заголовок «вывеской»: Rubik Mono One с тёмной ступенькой, как --title-shadow */
-export function title(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, px: number, color: string = C.cream, align: CanvasTextAlign = 'left', step = 5): void {
+/** Заголовок «вывеской»: Rubik Mono One с тёмной ступенькой, как --title-shadow. maxW — обрезать с «…», меряя своим
+ *  шрифтом (clip до вызова мерил бы прежним шрифтом холста: «РАЗГАДАЛИ!» резалось до «РАЗГА…») */
+export function title(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, px: number, color: string = C.cream, align: CanvasTextAlign = 'left', step = 5, maxW = 0): void {
   ctx.save();
   ctx.font = font(400, px, DISPLAY);
+  if (maxW > 0) text = clip(ctx, text, maxW);
   ctx.textAlign = align;
   ctx.textBaseline = 'middle';
   ctx.fillStyle = C.ink;

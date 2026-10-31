@@ -18,6 +18,7 @@ import { loadBuiltinPacks } from './builtin.ts';
 import type { QuizPacks } from './packs.ts';
 import type { QuizHttp } from './http.ts';
 import { PackError } from '../../../shared/quiz/pack.ts';
+import { plural } from '../../../shared/hideprops.ts';
 import { QuizTokens, quizPlaces, quizMyRecords, quizTopRecords, type QuizStats, type QuizRewardEvent, type QuizAward } from './tokens.ts';
 
 export interface QuizPerson extends RiddleWho {
@@ -268,8 +269,10 @@ export class QuizStage {
     const up = this.h.http?.uploadCheck(p.nick, p.level ?? 1) ?? { ok: false, why: 'Паки пока недоступны.' };
     me.canUpload = up.ok; me.uploadWhy = up.why;
     const score = this.scores.get(p.pid);
+    // ноль у всех — мест нет (place 0: в итоге только жетоны, как у ведущего)
+    const anyPts = [...this.scores.values()].some(s => s.pts > 0);
     if (this.phase === 'results' && (score || this.tokens.gameCoins(p.pid))) me.result = {
-      place: score ? 1 + [...this.scores.values()].filter(s => s.pts > score.pts).length : 0,
+      place: score && anyPts ? 1 + [...this.scores.values()].filter(s => s.pts > score.pts).length : 0,
       pts: score?.pts ?? 0, tokens: this.tokens.gameCoins(p.pid) };
     return me;
   }
@@ -592,13 +595,16 @@ export class QuizStage {
     this.restore(); this.phase = 'results'; this.call = null; this.deadline = now + QZ.RESULTS_MS; this.swaps.clear(); this.swapPending = false;
     this.again.clear();
     this.tokens.endGame();
+    // Победитель — только с очками: ноль у всех (никто не загадал, не угадал, все ушли) — без «лучшего» и строки в чат
     const top = this.rows(this.scores)[0];
-    if (top) {
-      if (cheer) this.say(this.mode === 'jeopardy' ? `Победил ${top.nick} — ${top.pts}!` : `Молодцы! Лучший — ${top.nick}`, this.mode === 'jeopardy' ? 'cheer' : 'clap', now);
-      if (this.mode === 'jeopardy') this.announce(`🏆 ${top.nick} выиграл «Свою игру» (пак «${this.controller?.outcome?.pack?.title ?? ''}») — ${top.pts}`, now);
-      else if (this.mode === 'whoofus') this.announce(`🏆 Самый «в теме» на «Ракушке» — ${top.nick}: ${top.pts} из 10`, now);
-      else this.announce(`🏆 ${top.nick} выиграл «${QZ_MODES.find(m => m.id === this.mode)!.name}» на «Ракушке» — ${top.pts} очков`, now);
+    if (!top || top.pts <= 0) {
+      if (cheer && top) this.say('Очков никто не набрал — в другой раз!', 'shrug', now);
+      return;
     }
+    if (cheer) this.say(this.mode === 'jeopardy' ? `Победил ${top.nick} — ${top.pts}!` : `Молодцы! Лучший — ${top.nick}`, this.mode === 'jeopardy' ? 'cheer' : 'clap', now);
+    if (this.mode === 'jeopardy') this.announce(`🏆 ${top.nick} выиграл «Свою игру» (пак «${this.controller?.outcome?.pack?.title ?? ''}») — ${top.pts}`, now);
+    else if (this.mode === 'whoofus') this.announce(`🏆 Самый «в теме» на «Ракушке» — ${top.nick}: ${top.pts} из 10`, now);
+    else this.announce(`🏆 ${top.nick} побеждает в игре «${QZ_MODES.find(m => m.id === this.mode)!.name}» на «Ракушке» — ${top.pts} ${plural(top.pts, 'очко', 'очка', 'очков')}`, now);
   }
 
   private choice(slot: number): number {

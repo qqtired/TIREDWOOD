@@ -92,6 +92,12 @@ test('вывеска над аркой и афиша кафе', () => {
   assert.equal(quizSignLine(null, 0).text, 'Игры нет — заходи');
   const v = view({ phase: 'vote', endsAt: 15_000, now: 0 });
   assert.equal(quizSignLine(v, 1000).text, 'Голосуем · 0:14');
+  // Х-6: вывеска говорит то же, что табло: «Ещё раз!» — «Играем снова», выбор — «Играем», ничья, никто
+  const decided = (o: Record<string, unknown>) => view({ phase: 'vote', mode: 'riddle', endsAt: 2_000, now: 0, vote: { options: [], voted: 0, people: 3, closing: true, spin: null, win: 0, nobody: false, why: '', ...o } as never });
+  assert.equal(quizSignLine(decided({ again: true }), 1000).text, 'Играем снова · Загадка');
+  assert.equal(quizSignLine(decided({}), 1000).text, 'Играем · Загадка');
+  assert.equal(quizSignLine(decided({ spin: { tied: [0, 1], win: 0 } }), 1000).text, 'Ничья · крутим колесо');
+  assert.equal(quizSignLine(decided({ win: -1, nobody: true }), 1000).text, 'Никто не выбрал');
   const g = view({ count: 5 });
   g.riddle!.endsAt = 151_000;
   assert.equal(quizSignLine(g, 0).text, 'Загадка · 2:31 · 5 игроков');

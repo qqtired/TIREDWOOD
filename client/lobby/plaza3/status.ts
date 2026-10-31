@@ -186,7 +186,14 @@ const quizMode = (b: QzBoard): string => QZ_MODES.find((m) => m.id === b.mode)?.
 export function quizSignLine(b: QzBoard | null, serverNow: number): SignStatus {
   if (!b || b.phase === 'idle') return { text: 'Игры нет — заходи', tone: 'open' };
   const left = (at: number): string => clock(Math.ceil((at - serverNow) / 1000));
-  if (b.phase === 'vote') return { text: b.endsAt ? `Голосуем · ${left(b.endsAt)}` : 'Голосуем', tone: 'go' };
+  if (b.phase === 'vote') {
+    // то же, что табло: «Никто не выбрал», «Ничья», «Играем снова» / «Играем» — без отсчёта голосования
+    const v = b.vote;
+    if (v?.nobody) return { text: 'Никто не выбрал', tone: 'open' };
+    if (v?.spin) return { text: 'Ничья · крутим колесо', tone: 'go' };
+    if (v && v.win >= 0) return { text: cut(`${v.again ? 'Играем снова' : 'Играем'} · ${quizMode(b)}`), tone: 'go' };
+    return { text: b.endsAt ? `Голосуем · ${left(b.endsAt)}` : 'Голосуем', tone: 'go' };
+  }
   if (b.phase === 'results') return { text: cut(`Итоги · ${quizMode(b)}`), tone: 'go' };
   const r = b.riddle;
   const time = r && r.endsAt && (r.step === 'round' || r.step === 'check') ? ` · ${left(r.endsAt)}` : '';

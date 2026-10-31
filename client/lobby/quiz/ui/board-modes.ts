@@ -572,7 +572,7 @@ function crocReveal(ctx: CanvasRenderingContext2D, c: QzCrocBoard, nowMs: number
   const head1 = all ? 'ВСЕ УГАДАЛИ!' : end === 'left' ? `${nick} УШЁЛ` : end === 'swap' ? 'МЕНЯЕМ ИГРУ' : end === 'empty' ? 'ВСЕ УШЛИ' : 'НЕ УГАДАЛИ';
   // повтор рисунка (C7): рамка 4:3 слева, как в шаге draw, справа слово и итог; рисунка нет — слово по центру
   if (boardUi.drawing) return crocRevealPic(ctx, c, W, H, head1, all, nowMs);
-  title(ctx, clip(ctx, head1, 1800), W / 2, 130, 96, all ? C.gold : C.coral, 'center', 7);
+  title(ctx, head1, W / 2, 130, 96, all ? C.gold : C.coral, 'center', 7, 1800);
   const word = (last?.word ?? '').toUpperCase();
   ctx.save();
   const px = fit(ctx, word, 400, 170, 1640, DISPLAY, 70);
@@ -598,7 +598,7 @@ function crocReveal(ctx: CanvasRenderingContext2D, c: QzCrocBoard, nowMs: number
 /** Итог рисунка с повтором: рисунок в рамке шага draw (crocRect), справа — слово, сколько угадали и кто рисовал */
 function crocRevealPic(ctx: CanvasRenderingContext2D, c: QzCrocBoard, W: number, H: number, head1: string, all: boolean, nowMs: number): void {
   const last = c.last;
-  title(ctx, clip(ctx, head1, W - PAD * 2), PAD, 104, 70, all ? C.gold : C.coral, 'left', 5);
+  title(ctx, head1, PAD, 104, 70, all ? C.gold : C.coral, 'left', 5, W - PAD * 2);
   const { x: cx, y: cy, w: cw, h: ch } = crocRect(H);
   rr(ctx, cx, cy + 8, cw, ch, 22);
   ctx.fillStyle = C.ink;

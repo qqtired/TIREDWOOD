@@ -2,7 +2,7 @@
 // под ней у загадывающего — ряд клавиш «1 тепло · 2 мимо · 3 угадал» → «Z отменить» и кнопка «Подсказка». Образец —
 // lab/quiz/v2/js/vote.js (roles) и riddle.js (riddlerUi). Разметка меняется только когда поменялось содержимое (sig), время — отдельным узлом.
 import { hintLabel, keysRow, type BarSpec } from './hud-model.ts';
-import type { TodoSpec } from './hud-modes-model.ts';
+import { bravoBtn, type TodoSpec } from './hud-modes-model.ts';
 
 const el = (cls: string, html?: string): HTMLElement => {
   const e = document.createElement('div');
@@ -65,7 +65,7 @@ export class BottomBars {
     }
   }
 
-  /** B2: строка «что мне делать» под полосой; null — убрать */
+  /** B2: строка «что мне делать» под полосой — подсказки клавиш и кнопка «Браво!» рядом; null — убрать */
   setTodo(spec: TodoSpec | null): void {
     if (!spec) {
       this.todo?.remove();
@@ -73,8 +73,12 @@ export class BottomBars {
       this.todoSig = '';
       return;
     }
-    if (!this.todo) this.todo = el('k-plate mo-keys key-hint qz-todo');
-    if (this.todoSig !== spec.sig) { this.todo.innerHTML = spec.html; this.todoSig = spec.sig; }
+    // ряд клавиш прячется настройкой «Подсказки клавиш», кнопка «Браво!» — нет: она жмётся мышью и пальцем
+    if (!this.todo) this.todo = el('qz-bc qz-todo');
+    if (this.todoSig !== spec.sig) {
+      this.todo.innerHTML = (spec.html ? `<div class="k-plate mo-keys key-hint">${spec.html}</div>` : '') + (spec.bravo ? bravoBtn() : '');
+      this.todoSig = spec.sig;
+    }
     if (!this.todo.isConnected) this.host.append(this.todo);
   }
 
