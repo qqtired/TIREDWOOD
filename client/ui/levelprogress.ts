@@ -1,6 +1,7 @@
 // Уровень и опыт в «Обзоре» профиля (меню Esc): кольцо с номером уровня, полоса опыта с подписью, ряд рамок ника
 // по уровням. Раскладку собирает профиль (client/ui/profile.ts), здесь — части и их обновление. Вид — кит (.k-ring, .k-meter).
 import { FRAME_TIERS, frameForLevel, levelProgress } from '../../shared/levels.ts';
+import { TABLE_XP_BILLIARDS, TABLE_XP_DAILY_GAMES, TABLE_XP_DURAK } from '../../shared/tables2.ts';
 
 const fmt = new Intl.NumberFormat('ru-RU');
 
@@ -45,7 +46,7 @@ export class LevelProgressView {
     }
     const note = this.tiers.appendChild(document.createElement('p'));
     note.className = 'k-faint mn-xp-rule';
-    note.textContent = 'Опыт — за игру в режимах; рыба — по цене улова; ферма, казино и бонусы опыта не дают. Навык рыбалки развивается отдельно.';
+    note.textContent = `Опыт — за игру в режимах; рыба — по цене улова; дурак с людьми +${TABLE_XP_DURAK}, бильярд +${TABLE_XP_BILLIARDS} — до ${TABLE_XP_DAILY_GAMES} партий в день; ферма, остальное казино и бонусы опыта не дают. Навык рыбалки развивается отдельно.`;
   }
 
   update(xp: number): void {

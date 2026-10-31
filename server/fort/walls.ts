@@ -10,6 +10,7 @@ import {
 import { WALL_H } from '../../shared/fortmap.ts';
 import type { FortGame, FortPlayer } from './game.ts';
 import { rectDist } from './nav.ts';
+import { addRankCount } from './ranks.ts';
 
 interface Worker { pid: number; x: number; y: number; z: number; hurt: number }
 interface Repair { sec: number; payer: number; price: number; progress: number; workers: Map<number, Worker> }
@@ -194,6 +195,8 @@ export class Walls {
       this.dirty = true;
       if (repair.progress < 1000 - 1e-7) continue;
       this.repairs.delete(sec);
+      // звание «Ремонтник» (Ф-3): заделанный участок — каждому, кто чинил
+      if (g.ranksEnabled) for (const id of repair.workers.keys()) { const w = g.players.get(id); if (w) addRankCount(w.run, 'fix'); }
       const payer = g.players.get(repair.payer);
       if (payer) this.complete(payer, sec, repair.price);
     }
