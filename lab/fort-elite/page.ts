@@ -17,7 +17,7 @@ function sync(): void {
   $('segMob').hidden = s.view !== 'near';
   $('pause').textContent = s.paused ? 'Дальше' : 'Пауза';
   for (const c of document.querySelectorAll<HTMLElement>('[data-card]')) c.classList.toggle('is-on', s.auraOn && c.dataset.card === s.variant);
-  const v = s.auraOn ? `${s.variant} · ${AURA_VARIANTS[s.variant].name}` : 'Без ауры';
+  const v = !s.auraOn ? 'Без ауры' : s.variant === 'A2' ? AURA_VARIANTS.A2.name : `${s.variant} · ${AURA_VARIANTS[s.variant].name}`;
   const who = s.view === 'near' ? `${TYPES[s.mob].name}: обычный · элита ×1,25 · чемпион ×1,5` : '20 обычных · 3 элиты · чемпион';
   $('tag').textContent = `${v} — ${who}`;
   $('hint').textContent = s.view === 'near' ? 'Тяни мышью — повернуть, колесо — ближе' : 'Вид игрока с хода стены. Тяни — осмотреться, колесо — камера';

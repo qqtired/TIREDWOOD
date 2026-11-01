@@ -20,7 +20,7 @@ import { FORT_CAM_DEFAULT, FORT_CAM_MAX, FORT_CAM_MIN } from '../../client/fort/
 import { ALL_MOBS } from '../../client/fort/mobs/index.ts';
 import { MOB_STRIDE, type MobAnim, type MobDef } from '../../client/fort/mobs/kit.ts';
 import { MobRenderer, mobRoot, mobSeed } from '../../client/fort/mobs/renderer.ts';
-import { AURA_JELLY, EliteAura, setAuraLook, type AuraColorMode, type AuraVariant } from '../../client/fort/elite/aura.ts';
+import { AURA_JELLY, EliteAura, GAME_AURA, setAuraLook, type AuraColorMode, type AuraVariant } from '../../client/fort/elite/aura.ts';
 import { patchJellyAura } from '../../client/fort/elite/rim.ts';
 
 export type View = 'near' | 'crowd';
@@ -283,7 +283,7 @@ canvas.addEventListener('wheel', (e) => {
 
 // ------------------------------------------------------------ вид ауры
 
-let variant: AuraVariant = (['A', 'B', 'C'] as const).find((v) => v === params.get('v')) ?? 'A';
+let variant: AuraVariant = (['A', 'B', 'C', 'A2'] as const).find((v) => v === params.get('v')) ?? GAME_AURA;
 let colorMode: AuraColorMode = params.get('mode') === 'mono' ? 'mono' : 'rank';
 let auraOn = params.get('v') !== 'off';
 export function setVariant(v: AuraVariant | 'off'): void {

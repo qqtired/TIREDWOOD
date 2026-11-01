@@ -1,16 +1,18 @@
-// Аура элиток «Крепости» (FORT_ELITE): свечение идёт от самой 3D-модели, как в Solo Leveling. Две части:
+// Аура элиток «Крепости» (с FORT50; новый вид включает setEliteEnabled, client/fort/elite/flag.ts): свечение идёт от самой 3D-модели, как в Solo Leveling. Две части:
 //  - контур по краю силуэта и глаза в цвет ауры — в общем материале мобов (client/fort/elite/rim.ts), без новой
 //    программы и без новых отрисовок: ступень особи едет в атрибуте вспышки (MobRenderer.add(…, tier));
 //  - языки пламени, дым или искры — один пул квадратов, повёрнутых к камере (EliteAura): одна отрисовка и одна программа
 //    на все ауры в кадре. Частицы рождаются на поверхности модели в её текущей позе (точки на треугольниках частей,
 //    по костям), чаще — у края силуэта со стороны камеры, и живут в мире: идущая элитка тянет за собой шлейф.
 // Без настоящих ламп, пост-эффектов и размытия. Вид (вариант и цвет) — setAuraLook; стенд — lab/fort-elite.
+// Выбор владельца 01.11: «А по рангу делаем со свечениями» — вариант A2 (пламя A + контур и искры C), цвет по рангу.
 import * as THREE from 'three';
 import { BODY_H, bodyR } from '../../render/outfit3d.ts';
+import type { Quality } from '../../settings.ts';
 import { BONES, newPose, type MobAnim, type MobDef, type MobPose } from '../mobs/kit.ts';
 import { AURA_RIM } from './rim.ts';
 
-export type AuraVariant = 'A' | 'B' | 'C';
+export type AuraVariant = 'A' | 'B' | 'C' | 'A2';
 export type AuraColorMode = 'rank' | 'mono';
 
 /** Подписи вариантов — для стенда и страницы выбора */
@@ -18,11 +20,21 @@ export const AURA_VARIANTS: Readonly<Record<AuraVariant, { name: string; hint: s
   A: { name: 'Тёмное пламя', hint: 'языки пламени поднимаются от силуэта, глаза горят и оставляют след' },
   B: { name: 'Дымные тени', hint: 'тёмный дым стекает с тела и тянется следом, край светится' },
   C: { name: 'Искры и контур', hint: 'яркий контур по краю силуэта и поднимающиеся искры' },
+  A2: { name: 'A + свечение', hint: 'пламя со светлой сердцевиной, светящийся контур тела и глаза, искры вверх' },
 };
+
+/** Вариант игры (выбор владельца 01.11) */
+export const GAME_AURA: AuraVariant = 'A2';
 
 /** Желейка без модели: тело — профиль outfit3d в осях тела (ноги в 0, лицо к −Z) */
 export const AURA_JELLY = 'jelly' as const;
-export type AuraSource = MobDef | typeof AURA_JELLY;
+/** Модели нет (осадные GLB): частицы — по хитбоксу, цилиндр радиуса r и высоты h в осях корня. Объект можно переиспользовать */
+export interface AuraHull {
+  hull: true;
+  r: number;
+  h: number;
+}
+export type AuraSource = MobDef | typeof AURA_JELLY | AuraHull;
 
 /** Частиц в кадре на все ауры: ~50 на элитку, у чемпиона больше */
 export const AURA_CAP = 2048;
@@ -37,6 +49,9 @@ const VIOLET: Pal = { core: 0xf1ebff, mid: 0x7f5cff, deep: 0x2c1680 };
 const GOLD: Pal = { core: 0xfff4c6, mid: 0xffa126, deep: 0xa13a08 };
 const SMOKE_VIOLET: Pal = { core: 0xe9ddff, mid: 0x9b6bff, deep: 0x1b1030 };
 const SMOKE_GOLD: Pal = { core: 0xfff0c0, mid: 0xffa13a, deep: 0x2a1408 };
+/** A2: золото светлее и желтее (почти белая сердцевина) — аура, а не поджог жаровни (оранжевые языки) */
+const VIOLET_LIT: Pal = { core: 0xc4b2ff, mid: 0x7350ff, deep: 0x2e159a };
+const GOLD_LIT: Pal = { core: 0xfffdf2, mid: 0xffd04a, deep: 0xd98a12 };
 
 const SHAPE_FLAME = 0;
 const SHAPE_SMOKE = 1;
@@ -72,6 +87,10 @@ interface Style {
   stretch: number;
   glow: number;
   pal: [Pal, Pal];
+  /** Сердцевина языка: 0 — тёмная (A), 1 — светлая, почти белая (A2) */
+  core?: number;
+  /** Искры сверх основного вида: в секунду на элитку (A2) */
+  sparks?: number;
 }
 
 const STYLES: Record<AuraVariant, Style> = {
@@ -86,6 +105,11 @@ const STYLES: Record<AuraVariant, Style> = {
   C: {
     rim: [3.0, 2.8, 0.3, 0.06], eye: [2.6, 1], shape: SHAPE_SPARK, rate: 70, life: [0.5, 1.0], size: [0.09, 0.035], rise: [1.6, 2.8],
     push: 0.5, drag: 0.6, lift: 0.6, swirl: 0.7, low: false, eyes: 0, alpha: 0.9, stretch: 1.7, glow: 1.5, pal: [VIOLET, GOLD],
+  },
+  A2: {
+    rim: [3.0, 2.4, 0.45, 0.08], eye: [3.0, 1], shape: SHAPE_FLAME, rate: 64, life: [0.36, 0.7], size: [0.34, 0.1], rise: [1.2, 1.9],
+    push: 0.35, drag: 1.0, lift: 1.4, swirl: 0.4, low: false, eyes: 22, alpha: 0.9, stretch: 1.7, glow: 1.2, pal: [VIOLET_LIT, GOLD_LIT],
+    core: 1, sparks: 26,
   },
 };
 
@@ -107,6 +131,7 @@ interface Surface {
 const SURF_N = 192;
 const surfaces = new WeakMap<MobDef, Surface>();
 let jellySurf: Surface | null = null;
+let hullSurf: Surface | null = null;
 
 function rng(seed: number): () => number {
   let a = seed >>> 0;
@@ -221,19 +246,38 @@ function jellySurface(): Surface {
   return s;
 }
 
+/** Хитбокс без модели: точки на боку единичного цилиндра (r = 1, h = 1) и на верхушке */
+function hullSurface(): Surface {
+  if (hullSurf) return hullSurf;
+  const r = rng(91);
+  const n = SURF_N;
+  const s: Surface = { n, bone: new Uint8Array(n), p: new Float32Array(n * 3), nrm: new Float32Array(n * 3), eyeBone: [], eyeP: [] };
+  for (let k = 0; k < n; k++) {
+    const a = r() * Math.PI * 2;
+    const top = r() < 0.2;
+    const y = top ? 1 : 0.06 + r() * 0.9;
+    const rad = top ? Math.sqrt(r()) * 0.85 : 1;
+    s.p.set([Math.cos(a) * rad, y, Math.sin(a) * rad], k * 3);
+    s.nrm.set(top ? [0, 1, 0] : [Math.cos(a), 0, Math.sin(a)], k * 3);
+  }
+  hullSurf = s;
+  return s;
+}
+
 // ------------------------------------------------------------ шейдер частиц
 
 const VERT = /* glsl */ `
 attribute vec4 iA;
 attribute vec4 iB;
 uniform float uStretch;
+uniform float uSparkStretch;
 varying vec2 vUv;
 varying vec4 vB;
 void main() {
   vUv = position.xy;
   vB = iB;
   float shape = iB.w;
-  float st = ( shape < 0.5 || ( shape > 1.5 && shape < 2.5 ) ) ? uStretch : 1.0;
+  float st = shape < 0.5 ? uStretch : ( shape > 1.5 && shape < 2.5 ) ? uSparkStretch : 1.0;
   float lift = shape < 0.5 ? 0.3 : 0.0;
   vec4 mv = modelViewMatrix * vec4( iA.xyz, 1.0 );
   mv.xy += vec2( position.x, ( position.y + lift ) * st ) * iA.w;
@@ -251,6 +295,7 @@ uniform float uAlpha;
 uniform float uGlow;
 uniform float uChampGlow;
 uniform float uTime;
+uniform float uFlameCore;
 varying vec2 vUv;
 varying vec4 vB;
 void main() {
@@ -279,6 +324,11 @@ void main() {
     vec3 c = mix( deep, mid * 1.35, edge );
     c = mix( c, deep, smoothstep( 0.55, 1.0, y ) * 0.45 );
     c += core * hot * 0.3;
+    // светлая сердцевина (A2): белое ядро внизу языка, к краю — цвет ауры, кончик гаснет в цвет
+    float inner = ( 1.0 - edge ) * ( 1.0 - smoothstep( 0.2, 0.8, y ) ) * 0.9;
+    vec3 lit = mix( mid * 1.15, core * 1.3, inner );
+    lit = mix( lit, mid, smoothstep( 0.72, 1.0, y ) * 0.5 );
+    c = mix( c, lit, uFlameCore );
     a = body * fade * uAlpha;
     rgb = c * a * glow;
     a *= 0.95;
@@ -367,6 +417,11 @@ export class EliteAura {
   private readonly boneOk = new Uint8Array(BONES.length);
   private dt = 0;
   private time = 0;
+  private qualityK = 1;
+  /** Источник текущей особи: 0 — модель, 1 — желейка, 2 — хитбокс (hullR, hullH) */
+  private src = 0;
+  private hullR = 1;
+  private hullH = 1;
 
   constructor(parent: THREE.Object3D) {
     const quad = new THREE.PlaneGeometry(1, 1);
@@ -385,7 +440,8 @@ export class EliteAura {
       uniforms: {
         uE0: { value: new THREE.Color() }, uE1: { value: new THREE.Color() }, uE2: { value: new THREE.Color() },
         uC0: { value: new THREE.Color() }, uC1: { value: new THREE.Color() }, uC2: { value: new THREE.Color() },
-        uAlpha: { value: 1 }, uGlow: { value: 1 }, uChampGlow: { value: 1 }, uStretch: { value: 1 }, uTime: { value: 0 },
+        uAlpha: { value: 1 }, uGlow: { value: 1 }, uChampGlow: { value: 1 }, uStretch: { value: 1 }, uSparkStretch: { value: 1.7 }, uFlameCore: { value: 0 },
+        uTime: { value: 0 },
       },
       vertexShader: VERT,
       fragmentShader: FRAG,
@@ -427,6 +483,17 @@ export class EliteAura {
     u.uGlow.value = style.glow;
     u.uChampGlow.value = CHAMP[mode].glow;
     u.uStretch.value = style.stretch;
+    u.uSparkStretch.value = style.shape === SHAPE_SPARK ? style.stretch : 1.7;
+    u.uFlameCore.value = style.core ?? 0;
+  }
+
+  /**
+   * Качество графики: на низком частиц втрое меньше, на среднем — на четверть (как MobRenderer.setQuality: auto — по
+   * скорости машины).
+   */
+  setQuality(q: Quality, slow = false): void {
+    const tier = q === 'auto' ? (slow ? 'low' : 'medium') : q;
+    this.qualityK = tier === 'low' ? 0.35 : tier === 'medium' ? 0.75 : 1;
   }
 
   /** Начало кадра: состарить и сдвинуть живые частицы, мёртвые убрать. camPos — откуда смотрят (край силуэта). */
@@ -474,28 +541,40 @@ export class EliteAura {
   }
 
   /**
-   * Аура одной элитки в кадр. src — модель (MobDef) или AURA_JELLY; root — корень особи (mobRoot, с масштабом ступени) или
-   * у желейки — матрица тела; anim — та же поза, что у модели; tier — 1 элита, 2 чемпион; scale — масштаб ступени (ELITE_SCALE).
+   * Аура одной элитки в кадр. src — модель (MobDef), AURA_JELLY или хитбокс (AuraHull, осадные GLB); root — корень особи
+   * (mobRoot, с масштабом ступени) или у желейки — матрица тела; anim — та же поза, что у модели; tier — 1 элита, 2 чемпион;
+   * scale — масштаб ступени (ELITE_SCALE). Дальние элитки рождают меньше частиц (от 22 м), на низком качестве — ещё меньше.
    */
   add(src: AuraSource, root: THREE.Matrix4, anim: MobAnim | null, tier: number, scale: number): void {
     if (!enabled || tier <= 0 || this.dt <= 0) return;
     const jelly = src === AURA_JELLY;
-    const surf = jelly ? jellySurface() : surfaceOf(src);
+    const hull = typeof src === 'object' && 'hull' in src ? src : null;
+    const def = typeof src === 'object' && !('hull' in src) ? src : null;
+    this.src = jelly ? 1 : hull ? 2 : 0;
+    if (hull) {
+      this.hullR = hull.r;
+      this.hullH = hull.h;
+    }
+    const surf = def ? surfaceOf(def) : hull ? hullSurface() : jellySurface();
     if (!surf.n) return;
     const st = style;
     const champ = tier >= 2;
     const ck = CHAMP[mode];
-    const height = jelly ? BODY_H : src.height;
+    const height = def ? def.height : hull ? hull.h : BODY_H;
     const hk = Math.sqrt(Math.max(0.6, height) / 1.6);
-    const sizeK = Math.sqrt(scale) * hk * (champ ? ck.size : 1);
+    // даль: до 22 м — всё, дальше реже (не меньше четверти), языки чуть крупнее — чтобы читалось издалека
+    const e = root.elements;
+    const dist = Math.hypot(e[12] - _cam.x, e[13] - _cam.y, e[14] - _cam.z);
+    const lod = (dist <= 22 ? 1 : Math.max(0.25, Math.pow(22 / dist, 1.2))) * this.qualityK;
+    const sizeK = Math.sqrt(scale) * hk * (champ ? ck.size : 1) * (1 + 0.35 * (1 - Math.min(1, lod)));
     const riseK = Math.sqrt(scale) * hk * (champ ? ck.rise : 1);
     this.boneOk.fill(0);
-    if (!jelly && anim) {
+    if (def && anim) {
       for (const b of BONES) this.pose[b].identity();
-      src.pose(anim, this.pose);
+      def.pose(anim, this.pose);
     }
     // сколько родить в этот кадр: дробная часть — случаем
-    const want = st.rate * hk * scale * (champ ? ck.rate : 1) * this.dt;
+    const want = st.rate * hk * scale * (champ ? ck.rate : 1) * lod * this.dt;
     let count = Math.floor(want) + (Math.random() < want % 1 ? 1 : 0);
     while (count-- > 0 && this.n < AURA_CAP) {
       // из трёх случайных точек — та, что ближе к краю силуэта (нормаль поперёк взгляда); у дыма — ещё и пониже
@@ -503,7 +582,7 @@ export class EliteAura {
       let bestScore = Infinity;
       for (let t = 0; t < 3; t++) {
         const k = (Math.random() * surf.n) | 0;
-        this.world(surf, k, root, jelly, _tmp, _n);
+        this.world(surf, k, root, _tmp, _n);
         const toCam = _c.subVectors(_cam, _tmp).normalize();
         let score = Math.abs(_n.dot(toCam));
         if (st.low) score += (_tmp.y - root.elements[13]) / Math.max(0.5, height * scale) * 0.9;
@@ -535,14 +614,36 @@ export class EliteAura {
       this.tier[i] = champ ? 2 : 1;
       this.sw[i] = st.swirl * (0.4 + Math.random() * 0.8) * Math.sqrt(scale);
     }
-    // след глаз (вариант A): короткие огоньки у глаз — на ходу тянутся полосой
-    if (st.eyes > 0 && surf.eyeBone.length) {
-      for (let e = 0; e < surf.eyeBone.length; e++) {
+    // искры сверх пламени (A2): из любой точки тела, быстро вверх с зигзагом
+    const wantS = (st.sparks ?? 0) * hk * scale * (champ ? ck.rate : 1) * lod * this.dt;
+    let cs = Math.floor(wantS) + (Math.random() < wantS % 1 ? 1 : 0);
+    while (cs-- > 0 && this.n < AURA_CAP) {
+      this.world(surf, (Math.random() * surf.n) | 0, root, _wp, _wn);
+      const i = this.n++;
+      const i3 = i * 3;
+      this.pos[i3] = _wp.x + _wn.x * 0.05 * scale;
+      this.pos[i3 + 1] = _wp.y + _wn.y * 0.05 * scale;
+      this.pos[i3 + 2] = _wp.z + _wn.z * 0.05 * scale;
+      this.vel[i3] = _wn.x * 0.5 + (Math.random() - 0.5) * 0.3;
+      this.vel[i3 + 1] = (1.8 + Math.random() * 1.4) * riseK;
+      this.vel[i3 + 2] = _wn.z * 0.5 + (Math.random() - 0.5) * 0.3;
+      this.age[i] = 0;
+      this.life[i] = 0.55 + Math.random() * 0.5;
+      this.s0[i] = 0.1 * sizeK;
+      this.s1[i] = 0.04 * sizeK;
+      this.seed[i] = Math.random();
+      this.shape[i] = SHAPE_SPARK;
+      this.tier[i] = champ ? 2 : 1;
+      this.sw[i] = 0.6 * Math.sqrt(scale);
+    }
+    // след глаз (вариант A): короткие огоньки у глаз — на ходу тянутся полосой; издалека не нужен
+    if (st.eyes > 0 && surf.eyeBone.length && dist < 35 && this.qualityK > 0.5) {
+      for (let ei = 0; ei < surf.eyeBone.length; ei++) {
         const wantE = st.eyes * (champ ? 1.3 : 1) * this.dt;
         let ce = Math.floor(wantE) + (Math.random() < wantE % 1 ? 1 : 0);
         if (!ce) continue;
-        const m = this.boneMatrix(surf.eyeBone[e], root, jelly);
-        _wp.set(surf.eyeP[e * 3], surf.eyeP[e * 3 + 1], surf.eyeP[e * 3 + 2]).applyMatrix4(m);
+        const m = this.boneMatrix(surf.eyeBone[ei], root);
+        _wp.set(surf.eyeP[ei * 3], surf.eyeP[ei * 3 + 1], surf.eyeP[ei * 3 + 2]).applyMatrix4(m);
         // чуть вперёд от лица, чтобы огонёк не прятался в глазнице
         _fw.set(m.elements[8], m.elements[9], m.elements[10]).normalize().multiplyScalar(jelly ? -0.05 * scale : 0.05 * scale);
         while (ce-- > 0 && this.n < AURA_CAP) {
@@ -611,8 +712,8 @@ export class EliteAura {
   }
 
   /** Матрица кости в мире (корень × кость), по разу на кость за особь */
-  private boneMatrix(bone: number, root: THREE.Matrix4, jelly: boolean): THREE.Matrix4 {
-    if (jelly) return root;
+  private boneMatrix(bone: number, root: THREE.Matrix4): THREE.Matrix4 {
+    if (this.src !== 0) return root;
     const m = this.bones[bone];
     if (!this.boneOk[bone]) {
       m.multiplyMatrices(root, this.pose[BONES[bone]]);
@@ -622,9 +723,11 @@ export class EliteAura {
   }
 
   /** Точка k поверхности и её нормаль — в мир */
-  private world(surf: Surface, k: number, root: THREE.Matrix4, jelly: boolean, outP: THREE.Vector3, outN: THREE.Vector3): void {
-    const m = this.boneMatrix(surf.bone[k], root, jelly);
-    outP.set(surf.p[k * 3], surf.p[k * 3 + 1], surf.p[k * 3 + 2]).applyMatrix4(m);
+  private world(surf: Surface, k: number, root: THREE.Matrix4, outP: THREE.Vector3, outN: THREE.Vector3): void {
+    const m = this.boneMatrix(surf.bone[k], root);
+    const hr = this.src === 2 ? this.hullR : 1;
+    const hh = this.src === 2 ? this.hullH : 1;
+    outP.set(surf.p[k * 3] * hr, surf.p[k * 3 + 1] * hh, surf.p[k * 3 + 2] * hr).applyMatrix4(m);
     outN.set(surf.nrm[k * 3], surf.nrm[k * 3 + 1], surf.nrm[k * 3 + 2]).transformDirection(m);
   }
 }

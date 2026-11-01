@@ -75,3 +75,31 @@ test('пул частиц: только у элиток, без ауры — п�
   assert.equal(AURA_RIM.uAuraRim.value.y, 0, 'и контура нет');
   pool.dispose();
 });
+
+test('A2 в игре: хитбокс без модели даёт частицы, на низком качестве и вдали их меньше; без вызова флага — старый вид', async () => {
+  const { eliteEnabled, setEliteEnabled } = await import('../client/fort/elite/flag.ts');
+  assert.equal(eliteEnabled(), false, 'по умолчанию — старый вид');
+  setEliteEnabled(true);
+  assert.equal(eliteEnabled(), true);
+  setEliteEnabled(false);
+  setAuraLook('A2', 'rank');
+  const cam = new THREE.Vector3(0, 6, 0);
+  const run = (q: 'high' | 'low', z: number): number => {
+    const pool = new EliteAura(new THREE.Group());
+    pool.setQuality(q);
+    const root = mobRoot(new THREE.Matrix4(), 0, 0, z, 0, 1.5);
+    let sum = 0;
+    for (let i = 0; i < 120; i++) {
+      pool.begin(1 / 60, cam);
+      for (let k = 0; k < 4; k++) pool.add({ hull: true, r: 0.9, h: 2.4 }, root, null, 2, 1.5);
+      pool.end();
+      sum += pool.count;
+    }
+    pool.dispose();
+    return sum;
+  };
+  const near = run('high', -12);
+  assert.ok(near > 0, 'осадный GLB без модели — частицы по хитбоксу');
+  assert.ok(run('low', -12) < near * 0.6, 'низкое качество — меньше');
+  assert.ok(run('high', -70) < near * 0.6, 'далеко — меньше');
+});

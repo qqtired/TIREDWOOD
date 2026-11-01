@@ -36,6 +36,8 @@ b { font-weight: 800; }
 .fe-cards .fe-card { cursor: pointer; }
 .fe-cards .fe-card.is-on { outline: 3px solid var(--gold, #e9b347); outline-offset: -3px; }
 .fe-answer { border-color: var(--w-line-strong); }
+.fe-chosen { border-color: var(--w-line-strong); cursor: pointer; }
+.fe-chosen.is-on { outline: 3px solid var(--gold, #e9b347); outline-offset: -3px; }
 
 @media (max-width: 860px) {
   .fe-cards, .fe-info { grid-template-columns: minmax(0, 1fr); }
