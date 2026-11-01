@@ -46,8 +46,10 @@ function openWallet(tr: HTMLElement): HTMLElement {
   tr.prepend(box);
   const badge = tr.querySelector<HTMLElement>(':scope > .k-badge');
   const fit = (): void => {
-    box.style.setProperty('--v3m-badge-w', `${badge ? badge.offsetWidth : -10}px`);
-    box.style.setProperty('--v3m-badge-h', `${badge ? badge.offsetHeight : 40}px`);
+    // бейдж скрыт (крепость: своя верхняя плашка) — размеры 0: кошелёк в угол, как без бейджа, а не на 20 px за край экрана
+    const shown = !!badge && badge.offsetHeight > 0;
+    box.style.setProperty('--v3m-badge-w', `${shown ? badge.offsetWidth : -10}px`);
+    box.style.setProperty('--v3m-badge-h', `${shown ? badge.offsetHeight : 40}px`);
   };
   fit();
   if (badge && typeof ResizeObserver === 'function') new ResizeObserver(fit).observe(badge);
