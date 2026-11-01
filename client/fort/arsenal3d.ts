@@ -93,7 +93,7 @@ function signTexture(text: string): THREE.CanvasTexture {
 }
 
 /** Чёрная блестящая лужа смолы */
-function tarTexture(): THREE.CanvasTexture {
+export function tarTexture(): THREE.CanvasTexture {
   const S = 256;
   const [c, ctx] = canvas(S, S);
   ctx.translate(S / 2, S / 2);

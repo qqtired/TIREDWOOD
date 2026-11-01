@@ -1,5 +1,29 @@
 # Иконки интерфейса TIREDWOOD (client/assets/ui/icons)
 
+## Дополнение 8 — «Т-идеи» крепости (с FORT50), 01.11.2026
+
+Значки ремёсел (окно вешалки, плитка у золота, Tab), золотого краба (баннер, плитка) и двух карточек (голосование после босса):
+`craft-mason`, `craft-gunner`, `craft-sapper`, `craft-rifle`, `gold-crab`, `card-stones`, `card-wall`. Остальным карточкам хватило готовых
+значков (арбалет, молоток, смола, золото, магазин, сердце, кристалл, прицел, баллиста, ящик гранат). Codex CLI
+(`codex exec -m gpt-6-astra`, встроенный `image_gen`, прозрачный фон), одна иконка на вызов, с первого раза, без правок
+руками. Промпт = обёртка (та же, что в `docs/ui-redesign/icons-pipeline/gen.mjs`) + Subject. Обработка — тот же алгоритм
+`post.mjs` (чистка альфы, обрезка, 256×256 WebP). Синий и жёлтый вместе не использованы.
+
+- **`craft-mason.webp`** — шапка ремесла «Каменщик». Subject: a sturdy sandy-cream stonemason's hard hat with a rounded crown, a short front brim, a thick brown leather chin strap hanging at the side, a small steel trowel tucked into the strap and a light dusting of grey stone chips and chalk on the crown, friendly storybook craftsman look.
+  - сессия Codex `01a19726-81ef-7562-b566-6f78b175b0f2`, исходник 1254×1254, sha256 cb34abc5c2b9…, в игре 12 КБ
+- **`craft-gunner.webp`** — шапка ремесла «Канонир». Subject: a dark maroon naval gunner's tricorn hat with a brass-gold braid trim along the three folded brims, a round brass cannonball-shaped button on the side cockade and a short white feather plume, jaunty pirate-town look but not scary.
+  - сессия Codex `01a19726-81ee-7192-a571-d1b5918f29c3`, исходник 1254×1254, sha256 61fc84ad70b4…, в игре 11 КБ
+- **`craft-sapper.webp`** — шапка ремесла «Подрывник». Subject: a rugged rust-orange sapper's helmet with a thick dark leather rim and a small round brass lantern fixed to the front with a warm glowing candle flame inside its glass (cozy, not electric), a short coil of rope fuse hanging from the side, soot smudges.
+  - сессия Codex `01a19726-81ef-71a2-8c79-e1c62395c313`, исходник 1254×1254, sha256 e972cd3f38f5…, в игре 15 КБ
+- **`craft-rifle.webp`** — шапка ремесла «Стрелок». Subject: an olive-green marksman's peaked officer cap with a short glossy black visor, a brown leather band, a small round brass badge made of concentric rings like a target (no letters, no symbols) and one small striped feather tucked in the band.
+  - сессия Codex `01a19727-c00d-7c61-aaab-17c59950cfda`, исходник 1254×1254, sha256 ccc3aafbdcb5…, в игре 10 КБ
+- **`gold-crab.webp`** — золотой краб (Т-16). Subject: a plump shiny golden crab with a glossy rounded shell like polished gold, two big raised claws, small dark eyes on short stalks, a cheeky friendly grin, six little legs, a few gold coins scattered around it, joyful cartoon treasure creature.
+  - сессия Codex `01a19727-eb01-7e83-86be-cf018f4fb5eb`, исходник 1254×1254, sha256 976b5fd3bfee…, в игре 21 КБ
+- **`card-stones.webp`** — карточка «Тяжёлые камни». Subject: two heavy rounded light-grey boulders, one stacked on the other, with chiselled crack lines, small patches of green moss and a few loose stone chips at the base, solid and chunky.
+  - сессия Codex `01a19727-fafa-70c1-9267-0ec71c85311e`, исходник 1254×1254, sha256 96d503969c9f…, в игре 13 КБ
+- **`card-wall.webp`** — карточка «Каменные стены». Subject: a short section of a cream-grey stone fortress wall with a crenellated top (square merlons), visible brick courses, one patch of lighter fresh bricks repaired in the middle, solid and chunky.
+  - сессия Codex `01a19729-2c05-7771-84a9-b237b669fdfe`, исходник 1254×1254, sha256 03ea87a01c45…, в игре 13 КБ
+
 ## Дополнение 7 — боссы «Крепости 50», 01.11.2026
 
 Значки полоски босса и тревог: `hut-boss.webp` (Избушка, финал 50-й волны) и `pelican-boss.webp` (Пеликан-Бомбардир, 35-я).

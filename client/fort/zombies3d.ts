@@ -50,6 +50,8 @@ const SINK_S = 1.6;
 const DIE_S = 1.1;
 /** Полоска здоровья: видна ближе этого */
 const BAR_DIST = 36;
+/** За сколько секунд темп анимаций доходит до цели (setTimeScale) */
+const SLOW_FADE = 0.15;
 
 const _m = new THREE.Matrix4();
 const _arm = new THREE.Matrix4();
@@ -571,6 +573,10 @@ export class Zombies3D {
   /** Избушка и Пеликан «Крепости 50» (client/fort/bosses) — группой, по одной на вид */
   private readonly big: BigBosses;
   private frameDt = 0;
+  /** Темп анимаций (Т-27): сейчас, цель и сколько времени отрисовки потеряно */
+  private tempo = 1;
+  private tempoGoal = 1;
+  private lag = 0;
   private readonly anchors: BoardingAnchors;
   private readonly siegePhases = new SiegePhaseClock();
   private renderTick = 0;
@@ -951,7 +957,40 @@ export class Zombies3D {
     return a;
   }
 
-  update(t: number, dt: number, time: number, cam: THREE.Camera): void {
+  /**
+   * Т-27 «Замедленный миг»: темп анимаций мобов (1 — обычный). Положение мобов замедляет сам сервер, здесь — замахи, шаг на
+   * месте, гибель, вздрагивание; плавно за SLOW_FADE_S, туда и обратно. Игроков и башен это не касается.
+   */
+  setTimeScale(k: number): void {
+    this.tempoGoal = Math.max(0.05, Math.min(1, k));
+  }
+
+  /** Текущий темп анимаций (для проверки) */
+  get timeScale(): number {
+    return this.tempo;
+  }
+
+  /**
+   * Видимые враги кадра — для слабых мест в прицеле (Т-23): fn(вид, ноги x y z, курс, признаки, номер). Сбитые и ещё не
+   * вышедшие из земли не в счёте. Обход без выделений: функцию делает вызывающий один раз.
+   */
+  scan(fn: (kind: number, x: number, y: number, z: number, yaw: number, flags: number, id: number) => void): void {
+    for (const tr of this.tracks.values()) {
+      if (!tr.valid || tr.dead) continue;
+      const r = tr.r;
+      fn(tr.kind, r.x, r.y, r.z, r.yaw, r.flags, tr.id);
+    }
+  }
+
+  update(t: number, dtReal: number, timeIn: number, cam: THREE.Camera): void {
+    // темп анимаций: время отрисовки отстаёт на потерянное при замедлении (без замедления — ровно timeIn)
+    if (this.tempo !== this.tempoGoal) {
+      const step = (dtReal / SLOW_FADE) * 0.7;
+      this.tempo = this.tempo < this.tempoGoal ? Math.min(this.tempoGoal, this.tempo + step) : Math.max(this.tempoGoal, this.tempo - step);
+    }
+    this.lag += dtReal * (1 - this.tempo);
+    const time = timeIn - this.lag;
+    const dt = dtReal * this.tempo;
     this.time = time;
     this.renderTick = t;
     const camPos = cam.position;
@@ -992,8 +1031,8 @@ export class Zombies3D {
       if (moved > 0.004 && moved < 1.5) tr.back = (r.x - tr.lastX) * Math.sin(r.yaw) + (r.z - tr.lastZ) * Math.cos(r.yaw) > 0.5 * moved;
       tr.lastX = r.x;
       tr.lastZ = r.z;
-      const v = dt > 0 && moved < 1.5 ? moved / dt : 0;
-      tr.speed += (v - tr.speed) * Math.min(1, dt * 8);
+      const v = dtReal > 0 && moved < 1.5 ? moved / dtReal : 0;
+      tr.speed += (v - tr.speed) * Math.min(1, dtReal * 8);
       // шаг модели — по пройденному пути (и по стене вверх-вниз), MOB_STRIDE метров на цикл: ноги не скользят
       const climbed = Number.isNaN(tr.lastY) ? 0 : Math.abs(r.y - tr.lastY);
       tr.lastY = r.y;

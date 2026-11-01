@@ -63,6 +63,8 @@ import { PL_GUST_W } from '../../shared/fortbosses50.ts';
 import { noteFortRecord } from './record.ts';
 import { eventBanner, introBanner } from './ui/record.ts';
 import { f50Client, type Fort50Client } from './f50/index.ts';
+import { Z_GOLDCRAB, type FortIdeasMsg } from '../../shared/fortideas.ts';
+import type { FortIdeasClient } from './ideas/index.ts';
 
 export interface FortMatchDeps {
   map: FortMap;
@@ -204,6 +206,12 @@ export class FortMatch {
   private time = 0;
   /** «Крепость 50»: стены, камни, лагерь (появляется по первому {t:'f50'}; без флага — null) */
   private f50: Fort50Client | null = null;
+  /** «Т-идеи» (с FORT50): ремесло, карточки, краб, батуты, слабые места, замедление (появляется по первому {t:'fideas'}) */
+  private ideas: FortIdeasClient | null = null;
+  /** Клиент идей грузится отдельным куском по первому fideas (модули с картинками и стилями не читаются тестами в node) */
+  private ideasLoad: Promise<void> | null = null;
+  private ideasDead = false;
+  private ideasLast: FortIdeasMsg | null = null;
   private boardHeld = false;
   private fps = 0;
   private fpsFrames = 0;
@@ -338,6 +346,9 @@ export class FortMatch {
     window.removeEventListener('wheel', this.onWheel);
     this.f50?.leave();
     this.f50 = null;
+    this.ideasDead = true;
+    this.ideas?.dispose();
+    this.ideas = null;
     this.ars.dispose();
     for (const av of this.avatars.values()) av.dispose(this.d.world.scene);
     this.avatars.clear();
@@ -361,7 +372,7 @@ export class FortMatch {
 
   /** Лавка или панель стойки открыта, а мышь отпущена (Esc у панели) — меню игры не звать, клик вернёт мышь */
   get cursorFree(): boolean {
-    return this.ars.cursorFree;
+    return this.ars.cursorFree || (this.ideas?.windowOpen ?? false);
   }
 
   /** «Ещё раз» в итогах: окно прочь, мышь — снова в игру (новая игра начнётся сама) */
@@ -393,6 +404,8 @@ export class FortMatch {
       }
       return true;
     }
+    // «Т-идеи» раньше арсенала: окно ремёсел (1–5, E, Esc) и голосование за карточку (1/2/3 — оружие не меняется)
+    if (!chat.isOpen && !this.d.hud.stall.shown && this.ideas?.onKey(code, down, e)) return true;
     // арсенал первым: 1/2 — руки, G — граната, у открытой панели 1–9 — купить, Esc — закрыть только её
     if (!chat.isOpen && this.ars.onKey(code, down, e)) return true;
     if (code === 'Tab') {
@@ -460,6 +473,8 @@ export class FortMatch {
     if (this.d.chat.isOpen || this.d.input.blocked) return;
     // E first closes an already open panel; it must never confirm readiness through a menu.
     if (this.d.hud.stall.shown && this.ars.use(this.alive ? this.station : null)) return;
+    // вешалка ремёсел и пустое место батута: рядом с ними E — их, а не «готов к волне»
+    if (this.alive && this.ideas?.use()) return;
     if (this.alive && this.remoteReady) {
       const bell = this.d.map.stations.find((s) => s.kind === 'bell');
       if (bell) this.d.net.send({ t: 'use', id: bell.id });
@@ -522,6 +537,9 @@ export class FortMatch {
       case 'fsurr':
         this.surr.onState(m);
         break;
+      case 'fideas':
+        this.onIdeas(m);
+        break;
       case 'f50':
         this.f50 ??= f50Client({
           world: this.d.world, map: this.d.map, collision: this.d.collision, hud: this.d.hud, sound: this.d.sound, net: this.d.net,
@@ -531,6 +549,32 @@ export class FortMatch {
         this.f50.onState(m);
         break;
     }
+  }
+
+  /** Состояние «Т-идей»: клиент появляется по первому сообщению с включённым флагом; без него крепость как раньше */
+  private onIdeas(m: FortIdeasMsg): void {
+    if (this.ideas) {
+      this.ideas.onMsg(m);
+      return;
+    }
+    if (!m.ideas) return;
+    this.ideasLast = m;
+    if (this.ideasLoad) return;
+    this.ideasLoad = import('./ideas/index.ts').then(({ FortIdeasClient }) => {
+      if (this.ideasDead) return;
+      const d = this.d;
+      this.ideas = new FortIdeasClient({
+        scene: d.world.scene, camera: d.world.camera, hud: d.hud, sound: d.sound, effects: d.effects, zombies: d.zombies, eventFx: d.eventFx,
+        collision: d.collision, map: d.map, hudLayer: d.hud.stall.wrap.parentElement ?? document.body,
+        input: d.input, send: (msg) => d.net.send(msg), myId: () => this.myId, nameOf: (id) => this.nameOf(id),
+        tick: () => this.clock.estimate(performance.now()), phase: () => this.phase, wave: () => this.wave, alive: () => this.alive,
+        pos: () => this.predictor.state, gold: () => this.myPts, releaseCursor: () => this.ars.releaseCursor(),
+        deny: () => this.ars.sfx.deny(), bought: (big) => this.ars.sfx.buy(big),
+      });
+      // последнее состояние, пришедшее, пока кусок грузился
+      if (this.ideasLast) this.ideas.onMsg(this.ideasLast);
+      this.ideasLast = null;
+    });
   }
 
   private setRoster(list: FortPlayerRow[], towers: readonly FortTowerRow[] = []): void {
@@ -844,6 +888,7 @@ export class FortMatch {
   private onEvents(list: FortEvent[]): void {
     const { hud, sound, effects, world, zombies, chat } = this.d;
     for (const e of list) {
+      if (this.ideas?.onEvent(e)) continue;
       if (this.krakenFx.onEvent(e)) continue;
       if (this.f50?.onEvent(e)) continue;
       switch (e[0]) {
@@ -884,7 +929,7 @@ export class FortMatch {
             hud.pb.hitmarker(isHead, false);
             if (head !== 3) sound.hitmarker(isHead);
             // цифры — из своего пула арсенала (слияние, лимит): пулемёт по толпе не плодит сотни элементов
-            this.ars.hitNumber(zid, dmg, isHead, x, y, z);
+            if (zombies.kindOf(zid) !== Z_GOLDCRAB) this.ars.hitNumber(zid, dmg, isHead, x, y, z);
             if (head === 2 && this.time - this.shieldHintAt > 12) {
               this.shieldHintAt = this.time;
               hud.alert('🛡 Попал в щит · стреляй в голову сверху или сбоку', 2200);
@@ -1355,6 +1400,7 @@ export class FortMatch {
     const s = this.predictor.state;
     if (ev.fired) this.localShot(s, ev, (inp.buttons & BTN_ADS) !== 0, inp.viewTick);
     if (ev.jumped) sound.jump();
+    if (ev.bounced) this.ideas?.bounced(s.x, s.z);
     if (ev.landed) {
       sound.land(ev.landSpeed);
       this.dipV -= Math.min(2.2, ev.landSpeed * 0.1);
@@ -1472,6 +1518,7 @@ export class FortMatch {
     this.updateStation();
     this.updateMarks();
     this.surr.frame();
+    this.ideas?.frame(dt, this.poses);
     this.updateHud(dt);
     this.ambience();
 
@@ -1636,7 +1683,7 @@ export class FortMatch {
 
     const vBase = (2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(settings.fov) / 2) / (16 / 9)) * 180) / Math.PI;
     const zoom = ads ? this.ars.zoom() : 1;
-    const target = (2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(vBase) / 2) / zoom) * 180) / Math.PI + this.fovKick;
+    const target = (2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(vBase) / 2) / zoom) * 180) / Math.PI + this.fovKick + (this.ideas?.fovNarrow ?? 0);
     this.curFov = damp(this.curFov, target, 18, dt);
     const f = narrowFov(this.curFov, cam.aspect);
     if (Math.abs(cam.fov - f) > 0.01) {
@@ -1733,6 +1780,12 @@ export class FortMatch {
       bd = dist;
     }
     this.station = best;
+    // вешалка ремёсел и пустое место батута (их нет среди стоек карты): подсказка «E — …», цена — золото
+    const near = hud.stall.shown ? null : this.ideas?.hint();
+    if (near) {
+      hud.setHint(near[0], near[1], near[2], near[1] <= this.myPts);
+      return;
+    }
     if (this.remoteReady && !hud.stall.shown) {
       hud.setHint('готов к волне · подходить к колоколу не нужно', 0, true, true);
       return;

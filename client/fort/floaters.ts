@@ -22,6 +22,8 @@ interface Floater {
   max: number;
   vy: number;
   value: number;
+  /** Своя надпись вместо числа (key −2: «×2,5» на слабом месте) */
+  label: string;
   cls: string;
   shownText: string;
   shownCls: string;
@@ -43,7 +45,7 @@ export class FortFloaters {
       el.className = 'k-float';
       el.hidden = true;
       this.layer.appendChild(el);
-      this.pool.push({ el, key: -3, pos: new THREE.Vector3(), born: -9, life: 0, max: 1, vy: 0, value: 0, cls: '', shownText: '', shownCls: '' });
+      this.pool.push({ el, key: -3, pos: new THREE.Vector3(), born: -9, life: 0, max: 1, vy: 0, value: 0, label: '', cls: '', shownText: '', shownCls: '' });
     }
   }
 
@@ -85,6 +87,14 @@ export class FortFloaters {
     this.start(this.take(), -1, x, y + 0.7, z, amount, 'k-float--gold', 1.25, 1.5);
   }
 
+  /** Надпись над точкой (Т-23: «×2,5» на слабом месте): одна на 0,3 с, не складывается с цифрами урона */
+  note(x: number, y: number, z: number, label: string, cls = 'k-float--head'): void {
+    for (const f of this.pool) if (f.life > 0 && f.key === -2 && this.time - f.born < MERGE_DMG) return;
+    const f = this.take();
+    this.start(f, -2, x, y, z, 0, cls, 1.1, 1.1);
+    f.label = label;
+  }
+
   private start(f: Floater, key: number, x: number, y: number, z: number, value: number, cls: string, life: number, vy: number): void {
     f.key = key;
     f.pos.set(x, y, z);
@@ -93,6 +103,7 @@ export class FortFloaters {
     f.max = life;
     f.vy = vy;
     f.value = value;
+    f.label = '';
     f.cls = cls;
     f.shownText = '';
     f.shownCls = '';
@@ -119,7 +130,7 @@ export class FortFloaters {
       }
       f.pos.y += f.vy * dt;
       f.vy *= Math.exp(-dt * 2.4);
-      const text = f.key === -1 ? `+${Math.round(f.value)}` : String(Math.round(f.value));
+      const text = f.key === -2 ? f.label : f.key === -1 ? `+${Math.round(f.value)}` : String(Math.round(f.value));
       if (text !== f.shownText) {
         if (f.key === -1) f.el.innerHTML = `${text}${this.nug}`;
         else f.el.textContent = text;

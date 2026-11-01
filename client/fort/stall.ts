@@ -10,7 +10,7 @@ import { fortImg } from './ui/icons.ts';
 
 export { iconUrl } from './ui/icons.ts';
 
-export type StallKind = 'shop' | 'gate' | 'crystal' | 'tower';
+export type StallKind = 'shop' | 'gate' | 'crystal' | 'tower' | 'craft';
 
 interface RowEl {
   root: HTMLButtonElement;
@@ -31,6 +31,7 @@ const FOOT: Record<StallKind, string> = {
   gate: 'Ворота сломали — новые ставят в передышку',
   crystal: 'Лечить можно и в бою — не стой на месте',
   tower: 'Потом здесь же — улучшение до 10-го уровня',
+  craft: 'Одно ремесло на игрока · все четыре в команде — золото +10 %',
 };
 
 const nug = (): string => fortImg('gold', 'ft-nug');

@@ -32,6 +32,10 @@ interface EngineVoice {
 export class Sound {
   private ctx: AudioContext | null = null;
   private master!: GainNode;
+  /** Компрессор после master и «замедленный миг» крепости (slowMo): фильтр и громкость между ними, появляются с первым замедлением */
+  private comp: DynamicsCompressorNode | null = null;
+  private slowLp: BiquadFilterNode | null = null;
+  private slowGain: GainNode | null = null;
   private sfx!: GainNode;
   private ui!: GainNode;
   private amb!: GainNode;
@@ -101,6 +105,7 @@ export class Sound {
       this.limiter = ctx.createDynamicsCompressor();
       this.limTrim = ctx.createGain();
       this.setLimiter(true);
+      this.comp = comp;
       this.master.connect(comp).connect(this.limiter).connect(this.limTrim).connect(ctx.destination);
       this.mute = ctx.createGain();
       this.sfxDuck = ctx.createGain();
@@ -1851,6 +1856,36 @@ export class Sound {
   }
 
   // --- «Крепость»: новые враги, боссы, море, события
+
+  /** Т-23: тихий «дзынь» по слабому месту — свой выстрел, без позиции, не чаще раза в 0,12 с. */
+  weakPing(): void {
+    if (!this.ok || !this.once('weakPing', 0.12)) return;
+    const d = this.ui;
+    this.tone(d, 1480, 1480, 0.28, 'sine', 0.13);
+    this.tone(d, 2220, 2190, 0.2, 'sine', 0.07, 0.012);
+    this.tone(d, 3330, 3290, 0.12, 'sine', 0.035, 0.024);
+  }
+
+  /** Т-27 «Замедленный миг»: мир глуше и тише. k — доля замедления 0…1; плавно за 0,15 с; 0 — как обычно. */
+  slowMo(k: number): void {
+    const ctx = this.ctx;
+    if (!ctx || !this.comp) return;
+    if (!this.slowLp) {
+      if (k <= 0) return;
+      const lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = 20000;
+      lp.Q.value = 0.6;
+      const g = ctx.createGain();
+      this.master.disconnect();
+      this.master.connect(lp).connect(g).connect(this.comp);
+      this.slowLp = lp;
+      this.slowGain = g;
+    }
+    const t = ctx.currentTime;
+    this.slowLp.frequency.setTargetAtTime(20000 * Math.pow(0.04, k), t, 0.05);
+    this.slowGain!.gain.setTargetAtTime(1 - 0.42 * k, t, 0.05);
+  }
 
   /** Шарик по кастрюле Чугунка: звонкий металл с искрой. */
   clang(pos: V3 | null): void {
