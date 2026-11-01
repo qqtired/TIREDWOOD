@@ -297,12 +297,12 @@ export const WALL_DMG = {
 
 /** Ремонт: E у пролома (или у повреждённого участка). Один — 5 с, вдвоём — 3 с, втроём и больше — 2,5 с. */
 export const WALL_FIX_SECONDS: readonly number[] = [5, 3, 2.5];
-export function wallFixTicks(workers: number): number {
-  return Math.round(WALL_FIX_SECONDS[Math.min(WALL_FIX_SECONDS.length, Math.max(1, workers)) - 1] * TICK_RATE);
+export function wallFixTicks(workers: number, timeMul = 1): number {
+  return Math.round(WALL_FIX_SECONDS[Math.min(WALL_FIX_SECONDS.length, Math.max(1, workers)) - 1] * TICK_RATE * timeMul);
 }
 /** Цена ремонта, золото забега (платит начавший, в конце): 60 + 5·w — 110 на 10-й, 210 на 30-й */
-export function wallFixPrice(w: number): number {
-  return 60 + 5 * Math.max(1, w);
+export function wallFixPrice(w: number, priceMul = 1): number {
+  return Math.round((60 + 5 * Math.max(1, w)) * priceMul);
 }
 /** Итог ремонта: пролом → заплатка 40 %, повреждённый участок → +35 % (до 100 %). Чинить можно ниже 95 %. */
 export const WALL_PATCH = 0.4;

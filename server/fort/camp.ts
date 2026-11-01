@@ -61,7 +61,7 @@ export class Camp {
       this.place(placed, campSide(placed), campStage(placed, w));
     } else this.setStage(campStage(placed, w));
     this.reinforce();
-    this.nextShot = this.game.tick + CATA_FIRST;
+    this.nextShot = this.game.enemyTick + CATA_FIRST;
   }
 
   private setStage(stage: number): void {
@@ -146,7 +146,7 @@ export class Camp {
     delete camp.burn;
     this.burnStart = null;
     this.burnt.add(camp.placed);
-    if (this.shot && g.tick < this.shot[2]) this.cancelShot();
+    if (this.shot && g.enemyTick < this.shot[2]) this.cancelShot();
     const gold = p ? CAMP_CHEST_SUPPLIES * supplyGold(g.force) : 0;
     if (p) for (const q of g.players.values()) g.arsenal.giveGold(q, gold, camp.x, 1, camp.z);
     g.event(['camp', 2, camp.by, gold]);
@@ -154,13 +154,13 @@ export class Camp {
     g.walls.touch();
   }
 
-  step(): void {
+  step(enemyStep = true): void {
     const g = this.game, camp = this.current;
     if (!g.fort50Enabled || !camp) return;
     if (g.phase === FT_END) { this.stopBurn(); this.cancelShot(); return; }
     this.updateGuards();
     if (g.phase !== FT_WAVE) this.cancelShot();
-    if (this.shot && g.tick >= this.shot[3]) {
+    if (enemyStep && this.shot && g.enemyTick >= this.shot[3]) {
       const [, sec, , , x, y, z] = this.shot;
       this.shot = null;
       g.hitWall(sec, WALL_DMG.catapult * waveDmgMul(g.force), x, y, z);
@@ -175,17 +175,17 @@ export class Camp {
         || Math.hypot(p.state.x - start.x, p.state.y - start.y, p.state.z - start.z) > WALL_FIX_MOVE) this.stopBurn();
       else if (g.tick >= camp.burn[1]) this.burn(p);
     }
-    if (g.phase !== FT_WAVE || camp.burnt || camp.stage !== 3 || g.tick < this.nextShot) return;
-    this.nextShot = g.tick + CATA_EVERY;
+    if (!enemyStep || g.phase !== FT_WAVE || camp.burnt || camp.stage !== 3 || g.enemyTick < this.nextShot) return;
+    this.nextShot = g.enemyTick + CATA_EVERY;
     const sections = WALL_SECTIONS.map((s, sec) => s.side === camp.side ? sec : -1).filter((sec) => sec >= 0);
     const sec = g.weakestWall(sections);
     if (sec < 0) return;
-    const { x, z } = wallOuterPoint(sec, 0.3), fire = g.tick + CATA_WINDUP;
+    const { x, z } = wallOuterPoint(sec, 0.3), fire = g.enemyTick + CATA_WINDUP;
     this.shot = ['cata', sec, fire, fire + CATA_FLIGHT, x, WALL_H * 0.7, z];
-    g.event([...this.shot]);
+    g.event(g.ideas.enemyEvent([...this.shot]));
   }
 
-  replay(): FortEvent[] { return this.shot && this.game.phase === FT_WAVE ? [[...this.shot]] : []; }
+  replay(): FortEvent[] { return this.shot && this.game.phase === FT_WAVE ? [this.game.ideas.enemyEvent([...this.shot])] : []; }
 
   dev(arg = '3'): void {
     if (arg === 'burn') { this.burn(); return; }
@@ -194,7 +194,7 @@ export class Camp {
     if (!this.current) this.place(Math.max(1, this.game.wave), -1, stage);
     else this.setStage(stage);
     this.cancelShot();
-    this.nextShot = this.game.tick + CATA_FIRST;
+    this.nextShot = this.game.enemyTick + CATA_FIRST;
     this.reinforce();
   }
 }

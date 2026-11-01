@@ -25,7 +25,8 @@ test('gift set is appended, hidden until owned, individually equippable and neve
     assert.equal(catalog.sanitizeOutfit(catalog.withItem(catalog.DEFAULT_OUTFIT, it), [id])[it.slot], it.key);
     assert.equal(catalog.sanitizeOutfit(catalog.withItem(catalog.DEFAULT_OUTFIT, it), [])[it.slot], 'none');
   }
-  for (const it of catalog.ITEMS.filter(it => it.tier !== 'promo')) assert.equal(visible(it, []), true);
+  // шапки ремёсел крепости (Т-4) в гардеробе не видны никогда — их надевает вешалка на время забега
+  for (const it of catalog.ITEMS.filter(it => it.tier !== 'promo' && !catalog.CRAFT_HATS.has(it.id))) assert.equal(visible(it, []), true);
   const worn = { ...catalog.DEFAULT_OUTFIT, c: 12, h: 'devil', a: 'deviltail' };
   assert.deepEqual(catalog.sanitizeOutfit(JSON.parse(JSON.stringify(worn)), ids), worn);
   assert.equal(catalog.sanitizeOutfit(worn, ['h:devil']).a, 'none');

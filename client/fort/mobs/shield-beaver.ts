@@ -9,6 +9,7 @@ import { Z_SHIELD } from '../../../shared/fortkinds.ts';
 import { type MobAnim, type MobDef, type MobPose } from './kit.ts';
 import { EYE, ball, jamOn, join, lathe, mix, paint, paintTris, taper } from './b-parts.ts';
 import { shieldPose, splitTris, type ShieldRig } from './b-shield.ts';
+import { backStrap } from '../ideas/models/weakparts.ts';
 
 const FUR = 0x8b5a3a;
 const FUR_DARK = 0x6e4429;
@@ -43,7 +44,9 @@ function bodyGeo(): THREE.BufferGeometry {
   const tailRoot = taper([[0, 0.06, -0.24], [0, 0.03, -0.34]], 0.09, 0.07, FUR_DARK, 2, 6, false);
   // плечи — бугорки, из них растут руки (отдельные кости)
   const shoulders = [-1, 1].map((sx) => ball(0.085, sx * SHOULDER[0], SHOULDER[1], SHOULDER[2], FUR, 1, 1, 1, 5, 3));
-  return join([torso, tail, tailRoot, ...shoulders, jamOn(0, 0.3, 0, 0.36, 0.42, 0.33, 1.2, 2.4, 0.1, 0.12)]);
+  const base = [torso, tail, tailRoot, ...shoulders, jamOn(0, 0.3, 0, 0.36, 0.42, 0.33, 1.2, 2.4, 0.1, 0.12)];
+  // Т-23: ремень щита наискось по спине по меху, пряжка — слабое место (shared/fortweak.ts Z_SHIELD)
+  return join([...base, ...backStrap(join(base.map((g) => g.clone())), 0.62, 0.25, 0.25)]);
 }
 
 /** Обе руки одной частью (от линии плеч): в позе «держит щит за края», в позе «держит дверь за край» */

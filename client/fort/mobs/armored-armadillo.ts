@@ -4,6 +4,8 @@
 // зомби; атака — молот двумя кулаками сверху. От удара втягивает голову в латы и закрывается руками; гибель —
 // сворачивается в шар, качается, как упавший чугунок, и уходит в землю. Части: латы, голова, глаза, руки (одной
 // частью), две ноги.
+// Т-23 (FORT_IDEAS): из ворота лат сзади торчит труба с вентилем (латунь, красный маховик, манометр) — слабое место
+// «клапан на кастрюле» (центр — shared/fortweak.ts Z_ARMORED); при втягивании головы вентиль остаётся сверху.
 import * as THREE from 'three';
 import { ZS_ATTACK } from '../../../shared/fort.ts';
 import { Z_ARMORED } from '../../../shared/fortkinds.ts';
@@ -12,6 +14,7 @@ import {
   JAM_LIGHT, attach, ellipsoid, eyeBalls, finish, lathe, limb, mix, paint, paintFaces, pupils, rnd, smooth, splat, step,
   type Step,
 } from './c-kit.ts';
+import { valveGeo } from '../ideas/models/weakparts.ts';
 
 interface Look {
   id: string;
@@ -34,6 +37,9 @@ const HIP_X = 0.22;
 const NECK = new THREE.Vector3(0, 1.4, 0.06);
 const SHOULDER_Y = 1.3;
 const ATTACK_PERIOD = 0.5;
+/** Вентиль (Т-23) в осях лат до сдвига на HIP: сзади над воротом */
+const VALVE_Y = 1.545;
+const VALVE_Z = -0.33;
 /** Голова крупнее — в неё целятся */
 const HEAD_S = 1.2;
 
@@ -58,6 +64,8 @@ function bodyGeo(l: Look): THREE.BufferGeometry {
   // хвост в кольцах волочится сзади
   p.push(paintFaces(limb([0, 0.62, -0.38], [0, 0.07, -0.95], 0.15, 0.045, 8, false), (x, y) => ((Math.floor(y * 9) & 1) ? l.iron : l.rim)));
   p.push(splat([0.25, 0.93, 0.47], [0.45, 0.1, 0.89], 0.14, JAM_LIGHT), splat([-0.49, 0.7, 0.1], [-0.97, 0, 0.2], 0.12, JAM_LIGHT));
+  // вентиль сзади над воротом: центр — там, где в обычном шаге стоит точка слабого места (в осях лат до сдвига на HIP)
+  p.push(valveGeo(0.17, mix(l.iron, 0x000000, 0.2)).rotateX(-0.35).translate(0, VALVE_Y, VALVE_Z));
   return merge(p).translate(0, -HIP, 0);
 }
 

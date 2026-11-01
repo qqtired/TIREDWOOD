@@ -1,6 +1,6 @@
 // Сцена «Крепости»: мир «Старой крепости» строится при первом входе и остаётся в памяти (как склад пейнтбола),
 // игра на клиенте (предсказание, орда, интерфейс) создаётся заново на каждый вход.
-import { buildFort } from '../../shared/fortmap.ts';
+import { buildFort, syncFortTramps } from '../../shared/fortmap.ts';
 import type { ServerMsg } from '../../shared/messages.ts';
 import { CollisionWorld } from '../../shared/world.ts';
 import { Effects } from '../render/effects.ts';
@@ -26,7 +26,7 @@ export class FortScene implements Scene {
   get wantsPointer(): boolean { return !(this.hud.shopShown || this.hud.endShown || this.match?.cursorFree); }
   private readonly d: SceneDeps;
   /** Карта с участками стены, разрезанными по проломам («Крепость 50»): пока стены целы, коллизия та же */
-  readonly map = buildFort({ sections: true });
+  readonly map = buildFort({ sections: true, ideas: true });
   readonly collision: CollisionWorld;
   readonly world: FortWorld;
   private readonly effects: Effects;
@@ -41,6 +41,8 @@ export class FortScene implements Scene {
   constructor(d: SceneDeps) {
     this.d = d;
     this.collision = new CollisionWorld(this.map);
+    // боксы батутов «Т-идей» стоят выключенными, пока сервер не сообщит, какие куплены (client/fort/ideas/tramps.ts)
+    syncFortTramps(this.collision, this.map, 0);
     this.world = new FortWorld(d.renderer, this.map);
     this.effects = new Effects(this.world.scene, this.collision);
     this.zombies = new Zombies3D(this.world.scene, this.collision);

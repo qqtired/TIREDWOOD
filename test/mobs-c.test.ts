@@ -1,5 +1,6 @@
 // Набор C мобов «Крепости» (улитка-плевун, бобёр-подрывник, сова-лекарь, броненосец): части окрашены, бюджет,
 // конечные позы во всех состояниях вида, существующие виды, 2–3 варианта на вид, ступни в опоре не скользят.
+import { WEAK_SPOTS } from '../shared/fortweak.ts';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import * as THREE from 'three';
@@ -35,7 +36,8 @@ test('набор C: четыре вида, у каждого 2–3 вариан�
       assert.ok(p.geo.getAttribute('normal'), `${d.id}: нормали`);
       tris += (p.geo.index ? p.geo.index.count : pos.count) / 3;
     }
-    assert.ok(tris <= 1500, `${d.id}: треугольников ${tris}`);
+    // мобы со слабым местом (Т-23: бочонок, клапан, ремень) — до 3500, в пределах правила «моб 1–4 тыс.»
+    assert.ok(tris <= (d.kinds.some((k) => WEAK_SPOTS[k]) ? 3500 : 1500), `${d.id}: треугольников ${tris}`);
     assert.ok(d.parts.some((p) => p.glow), `${d.id}: светящиеся глаза`);
     const k = ZK[d.kinds[0]];
     assert.ok(Math.abs(d.height - (k.hcy + k.hry)) < 0.15, `${d.id}: рост ${d.height} под хитбокс ${k.hcy + k.hry}`);

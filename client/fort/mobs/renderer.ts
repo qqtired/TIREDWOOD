@@ -191,9 +191,10 @@ export class MobRenderer {
   /**
    * Особь в кадр: root — корень (ноги, курс; см. mobRoot; масштаб может быть неравномерным — босс в воротах), anim —
    * поза (anim.flags участвует в выборе особого варианта, when), flash 0…1 — вспышка в белый, tint и tintMix — оттенок
-   * (экипаж, лечение, ярость). false — модели для вида нет или она переполнена: рисуй по-старому.
+   * (экипаж, лечение, ярость), tier — ступень элитки (1 элита, 2 чемпион): контур и глаза ауры (client/fort/elite/rim.ts),
+   * 0 — как раньше. false — модели для вида нет или она переполнена: рисуй по-старому.
    */
-  add(kind: number, seed: number, root: THREE.Matrix4, anim: MobAnim, flash = 0, tint: THREE.Color | null = null, tintMix = 0.3): boolean {
+  add(kind: number, seed: number, root: THREE.Matrix4, anim: MobAnim, flash = 0, tint: THREE.Color | null = null, tintMix = 0.3, tier = 0): boolean {
     if (!this.open) return false;
     const slot = this.pick(kind, seed, anim.flags ?? 0);
     if (!slot || slot.n >= MOB_CAP) return false;
@@ -203,7 +204,8 @@ export class MobRenderer {
     for (const bone of slot.bones) pose[bone].identity();
     slot.def.pose(anim, pose);
     for (let p = 0; p < slot.meshes.length; p++) slot.meshes[p].setMatrixAt(i, _m.multiplyMatrices(root, pose[slot.bones[p]]));
-    (slot.flash.array as Float32Array)[i] = flash > 0 ? Math.min(1, flash) : 0;
+    // ступень едет в том же атрибуте: вспышка 0…1 + 2 × ступень (без нового атрибута и новой программы)
+    (slot.flash.array as Float32Array)[i] = (flash > 0 ? Math.min(1, flash) : 0) + (tier > 0 ? 2 * Math.min(2, Math.floor(tier)) : 0);
     const t = slot.tint.array as Float32Array;
     if (tint && tintMix > 0) {
       t[i * 4] = tint.r;

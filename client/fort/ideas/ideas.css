@@ -1,0 +1,78 @@
+/* Пакет «Т-идеи» крепости: окно ремёсел, голосование за карточку, ряд взятых, плитки у золота, прицел на слабом месте,
+   виньетка замедления. Всё на переменных кита (tokens.css); окно — тот же прилавок (client/fort/ui/ui.css .ft-stall). */
+
+/* ---------------------------------------------------------------- Т-4: окно ремёсел и плитки */
+.ft-craft .ft-gold-pill { display: none; }
+.ft-craft .ft-stall-sub { color: var(--surf-dim); }
+.ft-craft .ft-row.is-own { box-shadow: inset 0 0 0 2px var(--gold-text); }
+.ft-craft .ft-row.is-own .ft-row-name b { color: var(--gold-text); }
+.ft-craft .ft-row-ic { width: 44px; height: 44px; }
+.ft-craft .ft-row { min-height: 56px; }
+/* ряд значков под плашкой команды: ремесло, «Полный расчёт», краб, взятые карточки */
+.ft-ideas-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px; max-width: 760px; margin-top: 6px; pointer-events: none; }
+.ft-ideas-row:not(:has(> :not([hidden]))) { display: none; }
+.ft-chip { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px 0 4px; border: var(--plate-border); border-radius: var(--r-pill, 999px); background: var(--plate-bg); box-shadow: var(--plate-shadow); color: var(--plate-text); pointer-events: auto; }
+.ft-chip[hidden] { display: none; }
+.ft-chip-ic { display: grid; place-items: center; width: 26px; height: 26px; }
+.ft-chip-ic img { width: 26px; height: 26px; object-fit: contain; }
+.ft-chip-tx { font: 800 var(--fs-14)/1 var(--font-text); white-space: nowrap; }
+.ft-craft-tile { border-color: var(--gold); }
+
+/* ---------------------------------------------------------------- Т-8: плашка голосования */
+.ft-cards { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, 134px); gap: 8px; margin-top: 8px; }
+.ft-card {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; padding: 10px 8px 8px;
+  color: var(--surf-text); font: inherit; text-align: center; cursor: pointer; border: 2px solid var(--line-strong); border-radius: var(--r-md);
+  background: var(--surf-2); transition: box-shadow .15s, transform .06s, background-color .15s;
+}
+.ft-card:hover { box-shadow: inset 0 0 0 1.5px var(--line-strong), 0 2px 6px rgba(20, 10, 12, .2); }
+.ft-card:active { transform: translateY(1px); }
+.ft-card .k-key { position: absolute; z-index: 2; top: 5px; left: 5px; }
+.ft-card-ic { display: grid; place-items: center; width: 44px; height: 44px; }
+.ft-card-ic img { width: 44px; height: 44px; object-fit: contain; filter: drop-shadow(0 2px 2px rgba(20, 10, 12, .3)); }
+.ft-card-name { font: 800 var(--fs-14)/1.15 var(--font-text); }
+.ft-card-text { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 3; min-height: 3.75em; color: var(--surf-dim); font: 500 var(--fs-13)/1.25 var(--font-text); }
+.ft-card-votes { min-width: 28px; justify-content: center; }
+/* золотая карточка — золотая рамка и тёплая заливка */
+.ft-card.is-gold { border-color: var(--gold); background: linear-gradient(180deg, var(--gold-soft), var(--surf-2)); box-shadow: 0 0 0 1px var(--gold-lo, var(--gold)); }
+.ft-card.is-gold .ft-card-name { color: var(--gold-text); }
+/* мой выбор — зелёная кайма внутри и отметка */
+.ft-card.is-mine { box-shadow: inset 0 0 0 3px var(--good); background-color: var(--good-soft); }
+.ft-card.is-gold.is-mine { box-shadow: inset 0 0 0 3px var(--good), 0 0 0 1px var(--gold); }
+.ft-card.is-lead:not(.is-mine) { border-color: var(--info); }
+.ft-card.is-wait { opacity: .75; }
+
+/* ---------------------------------------------------------------- Т-8: ряд взятых карточек у плашки волны */
+.ft-taken { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; pointer-events: none; }
+.ft-taken[hidden] { display: none; }
+.ft-taken-card { position: relative; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; border: 2px solid var(--line-strong); background: var(--plate-bg); box-shadow: var(--plate-shadow); }
+.ft-taken-card.is-gold { border-color: var(--gold); }
+.ft-taken-ic { width: 24px; height: 24px; object-fit: contain; }
+.ft-taken-tip { position: absolute; top: calc(100% + 6px); left: 50%; z-index: 3; display: none; flex-direction: column; gap: 2px; width: max-content; max-width: 220px; padding: 6px 10px; transform: translateX(-50%); border: var(--plate-border); border-radius: var(--r-md); background: var(--plate-bg); box-shadow: var(--plate-shadow); color: var(--plate-text); text-align: left; }
+.ft-taken-tip b { font: 800 var(--fs-14)/1.2 var(--font-text); }
+.ft-taken-tip small { color: var(--surf-dim); font: 500 var(--fs-13)/1.25 var(--font-text); }
+/* Alt: подробности — подписи под значками сразу у всех (по очереди, чтобы не налезали) */
+.ft-taken.is-alt { flex-direction: column; align-items: center; }
+.ft-taken.is-alt .ft-taken-card { width: auto; height: auto; padding: 3px 12px 3px 4px; border-radius: var(--r-md); grid-auto-flow: column; gap: 8px; }
+.ft-taken.is-alt .ft-taken-tip { position: static; display: flex; transform: none; padding: 0; border: 0; background: none; box-shadow: none; }
+
+/* ---------------------------------------------------------------- Т-23: прицел на слабом месте */
+.ft-cross.is-weak > i { background: var(--gold); }
+.ft-cross.is-weak::before { width: 22px; height: 22px; margin: -11px 0 0 -11px; background: transparent; border: 2px solid var(--gold); box-shadow: 0 0 0 1.5px rgba(20, 10, 12, .65), inset 0 0 0 1.5px rgba(20, 10, 12, .65); animation: ft-weak-pulse .6s ease-in-out infinite alternate; }
+@keyframes ft-weak-pulse { from { opacity: 1; transform: scale(1); } to { opacity: .7; transform: scale(1.12); } }
+
+/* ---------------------------------------------------------------- Т-27: виньетка замедления (без размытия) */
+.ft-slow-vig { position: absolute; inset: 0; z-index: 2; opacity: 0; pointer-events: none; transition: opacity .15s linear;
+  background: radial-gradient(ellipse at 50% 50%, transparent 52%, rgba(46, 30, 74, .22) 78%, rgba(46, 30, 74, .46) 100%); }
+@media (prefers-reduced-motion: reduce) { .ft-cross.is-weak::before { animation: none; } .ft-slow-vig { transition: none; } }
+
+/* ---------------------------------------------------------------- Tab: ремесло у ника и карточки забега */
+.ft-tab .ft-craft-tag { display: inline-flex; align-items: center; gap: 4px; margin-left: 8px; vertical-align: middle; color: var(--surf-dim); }
+.ft-tab .ft-craft-ic { width: 26px; height: 26px; object-fit: contain; }
+.ft-tab .ft-craft-tag small { font: 700 var(--fs-13)/1 var(--font-text); }
+.ft-cardlist { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.ft-cardrow { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 6px 12px 6px 8px; border-radius: var(--r-md); background: var(--surf-2); }
+.ft-cardrow.is-gold { box-shadow: inset 0 0 0 2px var(--gold); }
+.ft-cardrow-ic { flex: none; width: 34px; height: 34px; object-fit: contain; }
+.ft-cardrow b { display: block; font: 800 var(--fs-14)/1.2 var(--font-text); }
+.ft-cardrow small { display: block; margin-top: 1px; color: var(--surf-dim); font: 500 var(--fs-13)/1.25 var(--font-text); }

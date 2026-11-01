@@ -3,6 +3,9 @@
 // (лезут на стену, стоят на ходу, прыгают во двор), пузыри (лопаются, задевая соседей, — цепочкой), застрявшие (обратно
 // на дорогу), урон по области (гранаты arsenal, метеоры), история позиций для отката выстрелов. Пул на FORT_MAX_ALIVE
 // мест, в тике без аллокаций. Люди, ворота, кристалл и награды — через HordeHost (game.ts).
+import { ELITE_SCALE } from '../../shared/fortideas.ts';
+import { Z_GOLDCRAB } from '../../shared/fortkinds.ts';
+import { WEAK_STAGGER_S, WEAK_STAGGER_GAP_S } from '../../shared/fortweak.ts';
 import { DT, TICK_RATE, WATER_Y } from '../../shared/constants.ts';
 import {
   BOSS_ARMOR, BOSS_BOMB_R, BOSS_PULSE_R,
@@ -62,6 +65,8 @@ export interface HordeTarget {
 
 export interface HordeHost {
   readonly tick: number;
+  readonly realTick?: number;
+  readonly eliteEnabled?: boolean;
   readonly fort50Enabled?: boolean;
   wallUp?(sec: number): boolean;
   weakestWall?(sections: readonly number[]): number;
@@ -161,6 +166,8 @@ export class Zombie {
   siegeUsed = 0;
   /** К какому живому трамплину/мостику подошёл (0 — обычный маршрут). */
   siegeCarrier = 0;
+  weakUntil = 0;
+  weakReadyAt = 0;
 
   constructor(slot: number) {
     this.slot = slot;
@@ -222,7 +229,7 @@ export class Horde {
   private readonly next: Int32Array;
   // история: на тик — по месту x, y, z, номер (0 — пусто)
   private readonly histTick = new Int32Array(ZHIST_TICKS).fill(-1);
-  private readonly hist = new Float64Array(ZHIST_TICKS * FORT_MAX_ALIVE * 4);
+  private readonly hist = new Float64Array(ZHIST_TICKS * FORT_MAX_ALIVE * 6);
   /** Пузыри и бочки, которые лопнут в этом же тике (цепочка), и кто их лопнул */
   private readonly pops: Zombie[] = [];
   private readonly popBy: number[] = [];
@@ -373,7 +380,7 @@ export class Horde {
     const bossRatio = bossTeamMul(n) / bossTeamMul(prevHumans);
     this.hpScale = scale;
     for (const z of this.zombies) {
-      if (!z.alive) continue;
+      if (!z.alive || z.kind === Z_GOLDCRAB) continue;
       const fraction = z.hp / z.maxHp;
       z.maxHp *= isBossKind(z.kind) ? bossRatio
         : (siegeBodyMul(z.kind, 2) > 1 ? siegeRatio : ratio) * siegeBodyMul(z.kind, n) / siegeBodyMul(z.kind, prevHumans);
@@ -404,6 +411,7 @@ export class Horde {
 
   /** HP врага на этой волне: босс — по формуле боссов, остальные — база × нормировка волны × ступень */
   hpFor(kind: number, tier: number, hpHumans = this.hpHumans): number {
+    if (kind === Z_GOLDCRAB) return ZK[kind].hp;
     if (isBossKind(kind)) {
       if (this.plan && this.plan.boss === kind) return this.plan.bossHp * bossTeamMul(hpHumans) / bossTeamMul(this.plan.defenders);
       return BOSS_BASE_HP * waveHpMul(this.force) * bossTeamMul(hpHumans) * (kind === Z_GOLEM || kind === Z_HUT ? 3 : 1);
@@ -510,19 +518,28 @@ export class Horde {
     z.cargoTier.length = 0;
     z.fromY = z.toY = 0;
     z.fromX = z.toX = z.fromZ = z.toZ = 0;
-    this.alive++;
+    z.weakUntil = z.weakReadyAt = 0;
+    if (kind !== Z_GOLDCRAB) this.alive++;
     return z;
+  }
+
+  stagger(z: Zombie): void {
+    const tick = this.host.realTick ?? this.host.tick;
+    if (tick < z.weakReadyAt) return;
+    z.weakUntil = tick + WEAK_STAGGER_S * TICK_RATE;
+    z.weakReadyAt = tick + WEAK_STAGGER_GAP_S * TICK_RATE;
+    z.vx = z.vz = 0;
   }
 
   // ------------------------------------------------------------ урон
 
   /** Камень со стены: прямой урон без брони, с обычным учётом вклада и наград. */
-  stoneHit(sec: number, by: number): number {
+  stoneHit(sec: number, by: number, mul = 1): number {
     const s = WALL_SECTIONS[sec];
-    const dmg = STONE_WALKERS * this.hpFor(Z_WALKER, 0);
+    const dmg = STONE_WALKERS * this.hpFor(Z_WALKER, 0) * mul;
     let killed = 0;
     for (const z of this.zombies) {
-      if (!z.alive) continue;
+      if (!z.alive || z.kind === Z_GOLDCRAB) continue;
       const along = s.nx ? z.z - s.stack[2] : z.x - s.stack[0];
       const out = s.nx ? (z.x - s.face) * s.nx : (z.z - s.face) * s.nz;
       if (Math.abs(along) > STONE_HALF || out < 0 || out > STONE_OUT) continue;
@@ -540,8 +557,8 @@ export class Horde {
    * Попадание (выстрел — by = номер стрелка, краскомёт — 0). ox, oz — откуда стреляли (для щита: спереди держит,
    * голову не закрывает). Чугунок гасит попадание в тело на броню волны (не меньше 30 % проходит), голову — нет.
    */
-  damage(z: Zombie, dmg: number, by: number, head: boolean, hx: number, hy: number, hz: number, ox = hx, oz = hz): void {
-    if (!z.alive) return;
+  damage(z: Zombie, dmg: number, by: number, head: boolean, hx: number, hy: number, hz: number, ox = hx, oz = hz, weak = false): void {
+    if (!z.alive || z.kind === Z_GOLDCRAB) return;
     if (!(dmg > 0) || !Number.isFinite(dmg)) return;
     if (head) this.siege.precision(z, by);
     if (!z.alive) return;
@@ -550,12 +567,12 @@ export class Horde {
     else if (isBossKind(z.kind) && !bossExposed(z)) dmg *= BOSS_ARMOR;
     if (!(dmg > 0)) return;
     let mark = head ? 1 : 0;
-    if (!head && z.kind === Z_ARMORED) {
+    if (!head && !weak && z.kind === Z_ARMORED) {
       const armor = armorFor(this.force) * (1 + 0.5 * z.tier);
       dmg = Math.max(dmg * ARMOR_MIN_PASS, dmg - armor);
       mark = 3;
     }
-    if (!head && z.shield > 0 && frontOf(z, ox, oz)) {
+    if (!head && !weak && z.shield > 0 && frontOf(z, ox, oz)) {
       const taken = Math.min(z.shield, dmg);
       z.shield -= taken;
       dmg -= taken;
@@ -580,9 +597,10 @@ export class Horde {
     if (!(dmg > 0) || !Number.isFinite(dmg) || !(r > 0)) return 0;
     let hits = 0;
     for (const o of this.zombies) {
-      if (!o.alive) continue;
+      if (o.kind === Z_GOLDCRAB || !o.alive) continue;
       const k = ZK[o.kind];
-      const d = Math.hypot(o.x - x, o.y + k.hcy - y, o.z - z) - Math.max(k.hrx, k.hry) * 0.6;
+      const scale = this.host.eliteEnabled ? ELITE_SCALE[o.tier] ?? 1 : 1;
+      const d = Math.hypot(o.x - x, o.y + k.hcy * scale - y, o.z - z) - Math.max(k.hrx, k.hry) * scale * 0.6;
       if (d > r) continue;
       let amount = dmg;
       if (o.kind === Z_KRAKEN || o.kind === Z_TENTACLE) amount *= krakenArmor(this, o);
@@ -604,7 +622,7 @@ export class Horde {
     if (!(frac > 0) || !(r > 0)) return 0;
     let hits = 0;
     for (const o of this.zombies) {
-      if (!o.alive || o.kind === Z_BOAT) continue;
+      if (o.kind === Z_GOLDCRAB || !o.alive || o.kind === Z_BOAT) continue;
       if (o.y < y - 1.5 || o.y > y + 3) continue;
       const k = ZK[o.kind];
       if (Math.hypot(o.x - x, o.z - z) > r + k.r) continue;
@@ -637,7 +655,7 @@ export class Horde {
 
   /** Сбит (by — кто; 0 — взрыв, сам, краскомёт без хозяина). Пузырь и бочка рвутся следом, очередью. */
   kill(z: Zombie, by: number): void {
-    if (!z.alive) return;
+    if (!z.alive || z.kind === Z_GOLDCRAB) return;
     // Прямой контрход по механизму и остаток до порога смерти тоже снимают оставшиеся HP.
     this.host.damageDealt?.(by, Math.max(0, z.hp));
     // Цепной взрыв принадлежит этому уничтожению, а не последнему прежнему попаданию.
@@ -731,7 +749,7 @@ export class Horde {
   remove(z: Zombie): void {
     if (!z.alive) return;
     z.alive = false;
-    this.alive--;
+    if (z.kind !== Z_GOLDCRAB) this.alive--;
   }
 
   /** Пузыри и бочки: ворота, кристалл, люди и зомби рядом; сбитые ими лопаются следом (тут же, очередью). */
@@ -761,7 +779,7 @@ export class Horde {
       // своим — слабо (BARREL_ZOMBIE), и соседних подрывников не трогает: один взрыв не рвёт остальные бочки
       const hit = BARREL_ZOMBIE * waveHpMul(this.force);
       for (const o of this.zombies) {
-        if (!o.alive || o === b || o.kind === Z_SAPPER) continue;
+        if (o.kind === Z_GOLDCRAB || !o.alive || o === b || o.kind === Z_SAPPER) continue;
         if (Math.hypot(o.x - b.x, o.y - b.y, o.z - b.z) >= BARREL_R) continue;
         if (host.traceAttack(b.x, y, b.z, o.x, o.y + ZK[o.kind].hcy, o.z, _attack)) continue;
         const dealt = isBossKind(o.kind) ? hit * BOSS_ARMOR : hit;
@@ -792,7 +810,7 @@ export class Horde {
       // по своим — как 100 HP шаркуна на этой волне: цепочка пузырей остаётся оружием и на высоких волнах
       const popZ = POP_ZOMBIE * waveHpMul(this.force);
       for (const o of this.zombies) {
-        if (!o.alive || o === b) continue;
+        if (o.kind === Z_GOLDCRAB || !o.alive || o === b) continue;
         if (Math.hypot(o.x - b.x, o.y - b.y, o.z - b.z) >= POP_R) continue;
         if (host.traceAttack(b.x, b.y + 0.8, b.z, o.x, o.y + ZK[o.kind].hcy, o.z, _attack)) continue;
         const dealt = isBossKind(o.kind) ? popZ * BOSS_ARMOR : popZ;
@@ -829,7 +847,8 @@ export class Horde {
     const gateUp = this.host.gateUp();
     if (tick % 15 === 0) this.auras();
     for (const z of this.zombies) {
-      if (!z.alive) continue;
+      if (!z.alive || z.kind === Z_GOLDCRAB) continue;
+      if ((this.host.realTick ?? tick) < z.weakUntil) continue;
       if (z.atkCd > 0) z.atkCd--;
       if (z.guard) {
         if (z.kind === Z_SPITTER) this.stepSpitter(z, gateUp);
@@ -873,14 +892,14 @@ export class Horde {
       if (gateUp && z.z < GATE.face && Math.abs(z.x) < GATE.x1) z.z = Math.min(z.z, GATE.face - Z_GATE_GAP - r);
     }
     this.drainPops();
-    this.record(tick);
+    this.record(this.host.realTick ?? tick);
   }
 
   /** В передышке у лагеря остаются только стражи: без расписания и осадных атак. */
   stepGuards(): void {
     const gate = this.host.gateUp();
     for (const z of this.zombies) {
-      if (!z.alive || !z.guard) continue;
+      if (!z.alive || !z.guard || (this.host.realTick ?? this.host.tick) < z.weakUntil) continue;
       if (z.atkCd > 0) z.atkCd--;
       if (z.kind === Z_SPITTER) this.stepSpitter(z, gate);
       else this.stepGround(z, gate);
@@ -891,7 +910,7 @@ export class Horde {
       this.nav.collide(_p, ZK[z.kind].r, gate, this.breachMask);
       z.x = _p.x; z.z = _p.z;
     }
-    this.record(this.host.tick);
+    this.record(this.host.realTick ?? this.host.tick);
   }
 
   private guardTarget(z: Zombie, p: HordeTarget): boolean {
@@ -1090,7 +1109,7 @@ export class Horde {
       z.healT = HEAL_EVERY;
       let healed = 0;
       for (const o of this.zombies) {
-        if (!o.alive || o === z || o.hp >= o.maxHp) continue;
+        if (o.kind === Z_GOLDCRAB || !o.alive || o === z || o.hp >= o.maxHp) continue;
         if (Math.hypot(o.x - z.x, o.y - z.y, o.z - z.z) > HEAL_R) continue;
         o.hp = Math.min(o.maxHp, o.hp + o.maxHp * HEAL_FRAC * (isBossKind(o.kind) ? 0.2 : 1));
         healed++;
@@ -1437,35 +1456,42 @@ export class Horde {
 
   // ------------------------------------------------------------ история и снимок
 
-  private record(tick: number): void {
+  /** Записывается и в пропущенные замедлением тики: снимок и перемотка используют обычные часы. */
+  record(tick: number): void {
     const s = tick % ZHIST_TICKS;
     this.histTick[s] = tick;
-    const base = s * FORT_MAX_ALIVE * 4;
+    const base = s * FORT_MAX_ALIVE * 6;
     for (const z of this.zombies) {
-      const o = base + z.slot * 4;
+      const o = base + z.slot * 6;
       this.hist[o] = z.x;
       this.hist[o + 1] = z.y;
       this.hist[o + 2] = z.z;
       this.hist[o + 3] = z.alive ? z.id : 0;
+      this.hist[o + 4] = z.yaw;
+      this.hist[o + 5] = z.tier;
     }
   }
 
   /** Где был зомби в дробный тик t (тот же номер — тот же зомби). false — его тогда не было. */
-  sample(z: Zombie, t: number, out: { x: number; y: number; z: number }): boolean {
+  sample(z: Zombie, t: number, out: { x: number; y: number; z: number; yaw?: number; tier?: number }): boolean {
     const t0 = Math.floor(t);
     const f = t - t0;
     const a = this.slotOf(t0);
     if (a < 0) return false;
-    const oa = (a * FORT_MAX_ALIVE + z.slot) * 4;
+    const oa = (a * FORT_MAX_ALIVE + z.slot) * 6;
     if (this.hist[oa + 3] !== z.id) return false;
+    out.yaw = this.hist[oa + 4];
+    out.tier = this.hist[oa + 5];
     const b = f > 0 ? this.slotOf(t0 + 1) : -1;
-    const ob = (b * FORT_MAX_ALIVE + z.slot) * 4;
+    const ob = (b * FORT_MAX_ALIVE + z.slot) * 6;
     if (b < 0 || this.hist[ob + 3] !== z.id) {
       out.x = this.hist[oa];
       out.y = this.hist[oa + 1];
       out.z = this.hist[oa + 2];
       return true;
     }
+    const turn = Math.atan2(Math.sin(this.hist[ob + 4] - this.hist[oa + 4]), Math.cos(this.hist[ob + 4] - this.hist[oa + 4]));
+    out.yaw += turn * f;
     out.x = this.hist[oa] + (this.hist[ob] - this.hist[oa]) * f;
     out.y = this.hist[oa + 1] + (this.hist[ob + 1] - this.hist[oa + 1]) * f;
     out.z = this.hist[oa + 2] + (this.hist[ob + 2] - this.hist[oa + 2]) * f;

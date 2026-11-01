@@ -12,6 +12,7 @@ import type { FortEvent, FortPlayerRow, FortResultRow, FortRunRec, FortStatus, F
 import type { FortRecIntro, FortRecKind } from './fortrecord.ts';
 import type { FortSurrender } from './fortsurrender.ts';
 import type { F50State } from './fort50.ts';
+import type { FortIdeasMsg } from './fortideas.ts';
 import type { Outfit } from './outfit.ts';
 import type { P4Event } from './paint4.ts';
 import type { BlackjackAct, BlackjackView } from './blackjack.ts';
@@ -465,6 +466,7 @@ export interface FishSpotSnapshot extends FishSpotView {
 }
 
 export type ServerMsg =
+  | FortIdeasMsg
   | KickServerMsg
   /** «Позвать», огни букв TIREDWOOD (shared/social.ts, флаг SOCIAL) */
   | SocialServerMsg

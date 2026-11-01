@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Модели идей крепости</title>
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+<style>
+/* Модели пакета «Т-идеи» крепости (01.11): шапки ремёсел и вешалка (Т-4), золотой краб (Т-16), слабые места тяжёлых (Т-23).
+   Стиль — как lab/fort-rework/bosses.html; стенд — настоящий мир крепости: models/stand.ts. */
+:root {
+  --page: #f3e7cf;
+  --card: #fffaf0;
+  --ink: #2b2026;
+  --dim: #6d5a4b;
+  --line: #d9c4a2;
+  --jam: #7e2fa8;
+  --gold: #c98f27;
+  --hot: #e0702a;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--page); color: var(--ink); font: 400 15px/1.5 Rubik, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 1280px; margin: 0 auto; padding: 22px 16px 48px; }
+header.top h1 { margin: 0 0 4px; font-size: 30px; font-weight: 900; letter-spacing: -0.01em; }
+header.top p { margin: 0; color: var(--dim); max-width: 860px; }
+.tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 12px; }
+.tab { border: 2px solid transparent; border-radius: 999px; padding: 9px 16px; cursor: pointer; background: var(--card); color: #4a3a2e; font: 700 15px Rubik, sans-serif; box-shadow: 0 2px 0 var(--line); display: inline-flex; align-items: center; gap: 8px; }
+.tab small { font-weight: 500; color: #8a7462; }
+.tab i { width: 10px; height: 10px; border-radius: 50%; background: var(--gold); display: inline-block; }
+.tab:hover { background: #fff; }
+.tab.on { border-color: #4a3a2e; background: #fff; }
+.stand { position: relative; border-radius: 16px; overflow: hidden; box-shadow: 0 3px 0 var(--line), 0 10px 30px rgba(60, 40, 20, .12); background: #9fd3ef; }
+#stage { display: block; width: 100%; height: min(64vh, 640px); min-height: 380px; cursor: grab; touch-action: none; }
+#stage:active { cursor: grabbing; }
+.views { position: absolute; right: 12px; top: 12px; display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; max-width: calc(100% - 24px); }
+.views button { border: 0; border-radius: 999px; padding: 6px 11px; background: rgba(255, 250, 240, .92); color: #4a3a2e; font: 700 13px Rubik, sans-serif; cursor: pointer; box-shadow: 0 2px 0 rgba(120, 90, 60, .35); }
+.views button.on { background: #4a3a2e; color: #fff8ec; }
+#info { position: absolute; left: 12px; bottom: 12px; padding: 6px 10px; border-radius: 10px; background: rgba(255, 250, 240, .9); font: 500 13px Rubik, sans-serif; color: #4a3a2e; }
+.hint { position: absolute; left: 12px; top: 12px; padding: 6px 10px; border-radius: 10px; background: rgba(255, 250, 240, .85); font: 500 12px Rubik, sans-serif; color: #6d5a4b; }
+.controls { display: flex; gap: 12px; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; margin: 12px 0 6px; }
+#clips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; flex: 1 1 560px; }
+#clips button, .opts button { border: 2px solid transparent; border-radius: 10px; padding: 7px 11px; background: var(--card); color: #3c2e35; font: 700 13.5px Rubik, sans-serif; cursor: pointer; box-shadow: 0 2px 0 var(--line); }
+#clips button:hover, .opts button:hover { background: #fff; }
+#clips button.on, .opts button.on { border-color: var(--gold); background: #fff; }
+.opts { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font: 500 13.5px Rubik, sans-serif; color: #4a3a2e; }
+.opts label { display: inline-flex; gap: 5px; align-items: center; cursor: pointer; }
+.opts[hidden] { display: none; }
+.note { margin: 4px 0 18px; padding: 10px 14px; border-radius: 12px; background: #fff3dc; border-left: 4px solid var(--gold); min-height: 46px; font-size: 15px; }
+article[hidden] { display: none; }
+.grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 960px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.card { background: var(--card); border-radius: 14px; box-shadow: 0 2px 0 var(--line); padding: 16px 18px; margin-bottom: 16px; }
+.card h2 { margin: 0 0 8px; font-size: 21px; font-weight: 900; }
+.card p { margin: 6px 0; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { text-align: left; vertical-align: top; padding: 7px 8px; border-bottom: 1px solid #ecdcc0; }
+th { font: 800 12px Rubik, sans-serif; text-transform: uppercase; letter-spacing: .04em; color: #8a7462; }
+.muted { color: var(--dim); font-size: 13.5px; }
+.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hot { color: #b8561c; font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>Модели идей крепости</h1>
+    <p>Шапки ремёсел и вешалка (Т-4), золотой краб (Т-16), слабые места тяжёлых (Т-23) — те же модели, что в игре, в мире
+      крепости с её светом. Мышью — вращать, колесо — ближе и дальше.</p>
+  </header>
+
+  <div class="tabs" role="tablist">
+    <button class="tab on" type="button" data-tab="hats"><i></i>Шапки ремёсел <small>и вешалка</small></button>
+    <button class="tab" type="button" data-tab="crab"><i style="background:#e8b947"></i>Золотой краб</button>
+    <button class="tab" type="button" data-tab="weak"><i style="background:var(--hot)"></i>Слабые места <small>Бугай, Чугунок, Щитоносец</small></button>
+  </div>
+
+  <div class="stand">
+    <canvas id="stage" aria-label="Стенд моделей в крепости"></canvas>
+    <div class="hint">Тяни мышью — вращать · колесо — зум</div>
+    <div class="views" id="views"></div>
+    <div id="info"></div>
+  </div>
+  <div class="controls">
+    <div id="clips"></div>
+    <div class="opts" id="weakOpts" hidden>
+      <label><input id="spheres" type="checkbox" checked> показать шары попадания</label>
+      <span class="muted">рост:</span>
+      <button type="button" data-scale="1" class="on">×1</button>
+      <button type="button" data-scale="1.25">×1,25</button>
+      <button type="button" data-scale="1.5">×1,5</button>
+    </div>
+  </div>
+  <p id="note" class="note"></p>
+
+  <article data-for="hats">
+    <div class="grid">
+      <div class="card">
+        <h2>Четыре шапки — четыре ремесла</h2>
+        <p>Надеваются на желейку как обычные шапки и гнутся вместе с телом. У каждой одна крупная примета — различимы без подписей.
+          В гардеробе их нет: шапку выдаёт вешалка на время забега.</p>
+        <table>
+          <tr><th>Ремесло</th><th>Шапка</th><th>Примета</th><th>Треуг.</th></tr>
+          <tr><td>Каменщик</td><td>оранжевая каска с козырьком и рёбрами</td><td>кельма за ремешком справа, латунный отвес слева</td><td class="num" id="t-craft-mason">—</td></tr>
+          <tr><td>Канонир</td><td>тёмно-красная треуголка</td><td>золотой кант, кокарда, шнур с кистью</td><td class="num" id="t-craft-gunner">—</td></tr>
+          <tr><td>Подрывник</td><td>кожаная шахтёрская каска</td><td>фонарь светится, бомбочка с тлеющим фитилём, моток шнура</td><td class="num" id="t-craft-sapper">—</td></tr>
+          <tr><td>Стрелок</td><td>оливковое кепи</td><td>длинное фазанье перо, кокарда-мишень</td><td class="num" id="t-craft-rifle">—</td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <h2>Вешалка во дворе</h2>
+        <p>Стойка-вешалка, как в прихожей: на четырёх рожках деревянные «болванки», на них те же шапки. У ног — ящик с мелочами
+          ремёсел (ядро, моток шнура) и табуретка. Высота 1,9 м, ноги на земле, лицом к югу.</p>
+        <p class="muted"><span id="t-rack">—</span> треугольников, 3 отрисовки, без новых шейдеров (материалы как у вещей желеек).</p>
+      </div>
+    </div>
+  </article>
+
+  <article data-for="crab" hidden>
+    <div class="grid">
+      <div class="card">
+        <h2>Золотой краб</h2>
+        <p>Не враг: бежит вдоль стены к морю, каждое попадание — золото всем. Золотой панцирь с бликами, на спине прилипли монеты
+          (они и блестят), глаза на стебельках с хитрым прищуром, две большие клешни.</p>
+        <p>Бежит боком, как настоящий краб: смотрит в сторону, ножки перебирают четвёрками «через одну», корпус покачивается.</p>
+      </div>
+      <div class="card">
+        <h2>Анимации</h2>
+        <p><b>Бег</b> — ножки по пройденному пути, стебельки отстают. <b>Попадание</b> — подпрыгнул, клешни вверх, глаза вытянулись.
+          <b>Пойман</b> — подпрыгивает с разворотом и сжимается в искорку. <b>Нырок</b> — у воды поворачивается к морю и ныряет носом вниз.</p>
+        <p class="muted"><span id="t-crab">—</span> треугольников, 9 частей. Ширина 1,4 м, рост 0,9 м — как попадание на сервере.</p>
+      </div>
+    </div>
+  </article>
+
+  <article data-for="weak" hidden>
+    <div class="grid">
+      <div class="card">
+        <h2>Слабые места тяжёлых</h2>
+        <p>Деталь крепится к спине и живёт в анимациях. Видна, но не кричит — подсветку в прицеле делает интерфейс.
+          Оранжевый шар — точка попадания из таблицы <code>shared/fortweak.ts</code>.</p>
+        <table id="weakTable">
+          <tr><th>Моб</th><th>Деталь</th><th>Точка таблицы</th><th>Центр детали в шаге</th></tr>
+        </table>
+      </div>
+      <div class="card">
+        <h2>Что видно</h2>
+        <p><b>Бугай</b> — бочонок варенья на заплечной раме, лямки через плечи. <b>Чугунок</b> — труба из ворота лат с латунным вентилем,
+          красным маховиком и манометром: голова прячется в латы, а вентиль остаётся. <b>Щитоносец</b> — ремень щита наискось
+          по спине, латунная пряжка.</p>
+        <p class="muted">Рост ×1,25 и ×1,5 — элита и чемпион: шар и деталь растут вместе.</p>
+      </div>
+    </div>
+  </article>
+</div>
+<script>
+document.addEventListener('tab', (e) => {
+  for (const a of document.querySelectorAll('article[data-for]')) a.hidden = a.dataset.for !== e.detail;
+  document.getElementById('weakOpts').hidden = e.detail !== 'weak';
+});
+</script>
+<script type="module" src="./models/stand.ts"></script>
+</body>
+</html>

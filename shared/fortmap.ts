@@ -5,6 +5,8 @@
 import { Builder } from './maps/builder.ts';
 import type { GameMap, MapBox, SpawnPoint } from './maps/types.ts';
 import { WALL_SECTIONS } from './fort50.ts';
+import { TRAMP_SPOTS } from './fortideas.ts';
+import type { CollisionWorld } from './world.ts';
 
 /** Высота стен (верх хода по стене), бруствер снаружи: высота и толщина, зубцы на нём */
 export const WALL_H = 3.4;
@@ -128,6 +130,8 @@ export interface FortMap extends GameMap {
   stations: FortStation[];
   /** Номера боксов, которые выключаются при проломе / обвале участка. */
   sections?: number[][];
+  /** Боксы купленных батутов (маска из fideas.tramps). */
+  trampBoxes?: number[];
 }
 
 const STONE = 0xcbbfa6;
@@ -135,7 +139,7 @@ const STONE_DARK = 0xb3a68c;
 const TRIM = 0xdfd5bf;
 const WOOD = 0x8a5a34;
 
-export function buildFort(opts?: { sections?: boolean }): FortMap {
+export function buildFort(opts?: { sections?: boolean; ideas?: boolean }): FortMap {
   const b = new Builder(false);
   const H = WALL_H;
   const P = H + PARAPET_H;
@@ -271,7 +275,22 @@ export function buildFort(opts?: { sections?: boolean }): FortMap {
     stations,
   };
   if (opts?.sections) splitSections(map);
+  if (opts?.ideas) {
+    map.trampBoxes = TRAMP_SPOTS.map(({ x, z }) => {
+      const i = map.boxes.length;
+      map.boxes.push({ min: [x - 1.15, 0, z - 1.15], max: [x + 1.15, 0.42, z + 1.15], mat: 'tramp', color: 0x2b2f36, tramp: true });
+      return i;
+    });
+  }
   return map;
+}
+
+/** После создания CollisionWorld вызвать с 0; после fideas — с маской tramps. */
+export function syncFortTramps(world: CollisionWorld, map: FortMap, mask = 0): void {
+  for (const [spot, box] of (map.trampBoxes ?? []).entries()) {
+    world.tramp[box] = 2;
+    world.setEnabled(box, (mask & (1 << spot)) !== 0);
+  }
 }
 
 /** Режем только кладку стены и её верх; карта для рисования без опции остаётся прежней. */

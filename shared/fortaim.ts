@@ -11,20 +11,20 @@ import { makeRayHit, rayEllipsoid, type CollisionWorld } from './world.ts';
 export const FT_STRIDE = 4;
 
 /** Луч по зомби номер i из списка целей: t до попадания (в длинах dir) или −1 */
-export function zombieRay(ox: number, oy: number, oz: number, dx: number, dy: number, dz: number, tg: ArrayLike<number>, i: number): number {
+export function zombieRay(ox: number, oy: number, oz: number, dx: number, dy: number, dz: number, tg: ArrayLike<number>, i: number, scale = 1): number {
   const o = i * FT_STRIDE;
   const k = ZK[tg[o + 3]] ?? ZK[0];
-  return rayEllipsoid(ox, oy, oz, dx, dy, dz, tg[o], tg[o + 1] + k.hcy, tg[o + 2], k.hrx, k.hry);
+  return rayEllipsoid(ox, oy, oz, dx, dy, dz, tg[o], tg[o + 1] + k.hcy * scale, tg[o + 2], k.hrx * scale, k.hry * scale);
 }
 
 /** Ближайший зомби на луче ближе maxT: номер в списке (−1 — нет); hit.t — расстояние */
 export function nearestZombie(
-  ox: number, oy: number, oz: number, dx: number, dy: number, dz: number, maxT: number, tg: ArrayLike<number>, count: number, hit: { t: number },
+  ox: number, oy: number, oz: number, dx: number, dy: number, dz: number, maxT: number, tg: ArrayLike<number>, count: number, hit: { t: number }, scales?: ArrayLike<number>,
 ): number {
   let best = maxT;
   let who = -1;
   for (let i = 0; i < count; i++) {
-    const t = zombieRay(ox, oy, oz, dx, dy, dz, tg, i);
+    const t = zombieRay(ox, oy, oz, dx, dy, dz, tg, i, scales?.[i] ?? 1);
     if (t >= 0 && t < best) {
       best = t;
       who = i;
@@ -35,8 +35,8 @@ export function nearestZombie(
 }
 
 /** Попадание в голову: точка попадания выше ZK.headY над ногами */
-export function zombieHead(kind: number, hitY: number, feetY: number): boolean {
-  return hitY - feetY >= (ZK[kind] ?? ZK[0]).headY;
+export function zombieHead(kind: number, hitY: number, feetY: number, scale = 1): boolean {
+  return hitY - feetY >= (ZK[kind] ?? ZK[0]).headY * scale;
 }
 
 const hit = makeRayHit();
@@ -44,7 +44,7 @@ const near = { t: 0 };
 const f = { x: 0, y: 0, z: 0 };
 
 /** Точка прицела: луч из камеры по взгляду, начиная с глубины опоры (как aimPoint), до стены или зомби. */
-export function fortAimPoint(cam: V3, pivotX: number, pivotY: number, pivotZ: number, yaw: number, pitch: number, world: CollisionWorld, tg: ArrayLike<number>, count: number, out: V3): void {
+export function fortAimPoint(cam: V3, pivotX: number, pivotY: number, pivotZ: number, yaw: number, pitch: number, world: CollisionWorld, tg: ArrayLike<number>, count: number, out: V3, scales?: ArrayLike<number>): void {
   viewDir(yaw, pitch, f);
   const fx = f.x;
   const fy = f.y;
@@ -56,7 +56,7 @@ export function fortAimPoint(cam: V3, pivotX: number, pivotY: number, pivotZ: nu
   const oz = cam.z + fz * t0;
   let best = SHOT_RANGE;
   if (world.raycast(ox, oy, oz, fx, fy, fz, best, hit, true)) best = hit.t;
-  if (nearestZombie(ox, oy, oz, fx, fy, fz, best, tg, count, near) >= 0) best = near.t;
+  if (nearestZombie(ox, oy, oz, fx, fy, fz, best, tg, count, near, scales) >= 0) best = near.t;
   out.x = ox + fx * best;
   out.y = oy + fy * best;
   out.z = oz + fz * best;
@@ -68,10 +68,10 @@ const P = { x: 0, y: 0, z: 0 };
 /** Направление выстрела от третьего лица по зомби: камера → P → из глаз в P → разброс (как tpsShotDir). */
 export function fortShotDir(
   s: PlayerState, aimYaw: number, aimPitch: number, spread: number, seed: number, shot: number, side: number, ads: boolean,
-  world: CollisionWorld, tg: ArrayLike<number>, count: number, out: { dirX: number; dirY: number; dirZ: number },
+  world: CollisionWorld, tg: ArrayLike<number>, count: number, out: { dirX: number; dirY: number; dirZ: number }, scales?: ArrayLike<number>,
 ): void {
   cameraRig(s.x, s.y, s.z, aimYaw, aimPitch, ads ? RIG_PB_ADS : RIG_PB, side, world, cam);
-  fortAimPoint(cam, s.x, s.y + PIVOT_Y, s.z, aimYaw, aimPitch, world, tg, count, P);
+  fortAimPoint(cam, s.x, s.y + PIVOT_Y, s.z, aimYaw, aimPitch, world, tg, count, P, scales);
   viewDir(aimYaw, aimPitch, f);
   let vx = P.x - s.x;
   let vy = P.y - (s.y + EYE_HEIGHT);

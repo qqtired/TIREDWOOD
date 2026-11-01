@@ -110,7 +110,9 @@ export class FortRoom implements Room {
     if (!p || !c.profile) return;
     p.level = c.profile.level;
     p.name = c.profile.nick;
-    p.outfit = this.hooks.outfitOf(c.profile);
+    p.originalOutfit = this.hooks.outfitOf(c.profile);
+    if (this.game.ideasEnabled) this.game.ideas.outfit(p);
+    else p.outfit = p.originalOutfit;
     this.game.touchRoster();
   }
 

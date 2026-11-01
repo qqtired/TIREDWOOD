@@ -196,6 +196,270 @@ const RED = 0xd8473a;
 const GOLD_GEM_RED = 0xd0203a;
 const GOLD_GEM_BLUE = 0x2a5ad8;
 
+// ------------------------------------------------------------ шапки ремёсел крепости (Т-4, shared/fortideas.ts CRAFTS)
+
+/** Низ шапочки domeCap на угле φ (0 — спина, π — лицо): высота и наружный радиус */
+function capBase(t: number, yFront: number, yBack: number, phi: number): [number, number] {
+  const y = yBack + (yFront - yBack) * ((1 - Math.cos(phi)) / 2);
+  return [y, bodyR(y - t) + t];
+}
+
+/** Наружный радиус шапочки domeCap на высоте y (низ шапочки — на yBase) */
+function capR(t: number, yBase: number, y: number): number {
+  const u = (BODY_H + t - y) / (BODY_H + t - yBase);
+  return bodyR(y - t) + t * u;
+}
+
+/**
+ * Поля вокруг шапки: от base(φ) = [высота, радиус] наружу на w(φ), подъём края lift(φ, u) (u = 0 у тульи, 1 — край).
+ * φ от a0 до a1 (по умолчанию — всё кольцо); материал вещей двусторонний — одной поверхности хватает.
+ */
+function brim(base: (phi: number) => [number, number], w: (phi: number) => number, lift: (phi: number, u: number) => number, seg = 48, rows = 4, a0 = 0, a1 = Math.PI * 2): Geo {
+  const pos: number[] = [];
+  const uv: number[] = [];
+  const idx: number[] = [];
+  for (let i = 0; i <= seg; i++) {
+    const phi = a0 + (i / seg) * (a1 - a0);
+    const [y0, r0] = base(phi);
+    for (let j = 0; j <= rows; j++) {
+      const u = j / rows;
+      const r = r0 + w(phi) * u;
+      pos.push(r * Math.sin(phi), y0 + lift(phi, u), r * Math.cos(phi));
+      uv.push(i / seg, u);
+    }
+  }
+  const at = (i: number, j: number) => i * (rows + 1) + j;
+  for (let i = 0; i < seg; i++) {
+    for (let j = 0; j < rows; j++) idx.push(at(i, j), at(i + 1, j), at(i, j + 1), at(i + 1, j), at(i + 1, j + 1), at(i, j + 1));
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  return g;
+}
+
+/** Ребро по шапочке domeCap на угле φ от u0 до u1 (0 — макушка, 1 — край); through — ещё и через макушку на другую сторону */
+function capRib(t: number, yFront: number, yBack: number, phi: number, r: number, u0: number, u1: number, through: boolean): Geo {
+  const pts: V3[] = [];
+  const at = (a: number, u: number) => {
+    const [yBase] = capBase(t, yFront, yBack, a);
+    const y = BODY_H + t - u * (BODY_H + t - yBase);
+    const rr = (u === 0 ? 0 : bodyR(y - t) + t * u) + r * 0.4;
+    pts.push([rr * Math.sin(a), y + r * 0.4 * (1 - u), rr * Math.cos(a)]);
+  };
+  if (through) for (let k = 8; k > 0; k--) at(phi + Math.PI, u0 + ((u1 - u0) * k) / 8);
+  for (let k = 0; k <= 8; k++) at(phi, u0 + ((u1 - u0) * k) / 8);
+  return tube(pts, r, through ? 24 : 12);
+}
+
+/** Плоская фигура по контуру (x, y) толщиной d вдоль Z (лопатка кельмы) */
+function flat(points: Array<[number, number]>, d: number): Geo {
+  const s = new THREE.Shape(points.map(([x, y]) => new THREE.Vector2(x, y)));
+  return new THREE.ExtrudeGeometry(s, { depth: d, bevelEnabled: false, curveSegments: 4 }).translate(0, 0, -d / 2);
+}
+
+/** Каменщик: оранжевая каска с козырьком и рёбрами, кельма за ремешком справа, латунный отвес на шнурке слева */
+function craftMason(): Wear {
+  const t = 0.05;
+  const yF = 1.34;
+  const yB = 1.29;
+  const ORANGE = 0xe8832a;
+  const RIB = 0xc9661c;
+  const front = (phi: number) => Math.max(0, -Math.cos(phi)) ** 2;
+  const parts: Geo[] = [
+    col(domeCap(t, yF, yB, 28, 10), ORANGE),
+    // поля: узкие по кругу, спереди — козырёк вниз
+    col(brim((phi) => capBase(t, yF, yB, phi), (phi) => 0.035 + 0.11 * front(phi), (phi, u) => -u * (0.012 + 0.035 * front(phi)), 48, 3), RIB),
+    col(capRib(t, yF, yB, Math.PI, 0.026, 0, 0.9, true), RIB),
+    ...[Math.PI - 0.62, Math.PI + 0.62].map((phi) => col(capRib(t, yF, yB, phi, 0.02, 0.3, 0.9, false), RIB)),
+    // ремешок справа, за ним кельма
+    col(new THREE.TorusGeometry(0.045, 0.015, 5, 12).scale(1, 1, 0.55).rotateY(Math.PI / 2).translate(capR(t, 1.31, 1.4) + 0.008, 1.4, 0.05), 0x6b4a2e),
+  ];
+  // кельма: лопатка в плоскости бока (лицом наружу, +X), острие назад-вверх; рукоять стоит от каски наружу и смотрит вперёд-вниз
+  const trowel = (g: Geo) => g.rotateZ(0.95).rotateY(Math.PI / 2).rotateZ(0.16).translate(capR(t, 1.31, 1.42) + 0.012, 1.4, 0.05);
+  parts.push(trowel(col(flat([[0, 0.015], [0.095, 0.08], [0.078, 0.2], [0, 0.34], [-0.078, 0.2], [-0.095, 0.08]], 0.014), 0xb9c2c8)));
+  parts.push(trowel(col(new THREE.BoxGeometry(0.016, 0.17, 0.006).translate(0, 0.13, 0.009), 0x8e979d)));
+  parts.push(trowel(col(new THREE.CylinderGeometry(0.008, 0.008, 0.07, 6).rotateX(-0.6).translate(0, 0.0, 0.025), 0x5f666b)));
+  parts.push(trowel(col(new THREE.CylinderGeometry(0.024, 0.02, 0.13, 10).translate(0, -0.09, 0.05), 0xa8703a)));
+  const metal: Geo[] = [
+    trowel(new THREE.CylinderGeometry(0.026, 0.026, 0.022, 10).translate(0, -0.02, 0.05)),
+    // отвес: латунный конус на шнурке с края полей
+    new THREE.ConeGeometry(0.032, 0.08, 10).rotateX(Math.PI).translate(-0.49, 1.15, 0.03),
+    new THREE.SphereGeometry(0.032, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2).translate(-0.49, 1.19, 0.03),
+  ];
+  parts.push(col(tube([[-0.47, 1.3, 0.03], [-0.485, 1.26, 0.03], [-0.49, 1.21, 0.03]], 0.005, 8), 0xf2ead8));
+  return wear(parts, metal, 1.45);
+}
+
+/** Канонир: тёмно-красная треуголка, угол к лицу; золотой кант по краю, кокарда слева, шнур по тулье с кистью сзади */
+function craftGunner(): Wear {
+  const t = 0.035;
+  const y0 = 1.385;
+  const FELT = 0x7b2b26;
+  const R = 0.64;
+  // углы: к лицу (φ = π) и два назад-в-стороны; между ними поля подняты стенкой почти вплотную к тулье
+  const corner = (phi: number) => (1 - Math.cos(3 * phi)) / 2;
+  const r0 = bodyR(y0 - t) + t;
+  const base = (): [number, number] => [y0, r0];
+  const w = (phi: number) => 0.035 + (R - r0 - 0.035) * corner(phi) ** 1.6;
+  const lift = (phi: number, u: number) => 0.2 * (1 - 0.88 * corner(phi)) * u ** 1.5 - 0.01 * u;
+  const parts: Geo[] = [
+    col(domeCap(t, y0, y0, 28, 9), FELT),
+    col(brim(base, w, lift, 72, 5), 0x6a221e),
+  ];
+  // золотой кант по краю полей
+  const edge: THREE.Vector3[] = [];
+  for (let i = 0; i < 72; i++) {
+    const phi = (i / 72) * Math.PI * 2;
+    const r = r0 + w(phi) + 0.004;
+    edge.push(new THREE.Vector3(r * Math.sin(phi), y0 + lift(phi, 1) + 0.004, r * Math.cos(phi)));
+  }
+  const trim = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(edge, true), 96, 0.014, 5, true);
+  // кокарда — на левой передней стенке (−X): чёрная розетка, красная середина, золотая пуговка
+  const cockAt = (Math.PI * 4) / 3;
+  const cr = r0 + w(cockAt) * 0.75 + 0.012;
+  const cy = y0 + lift(cockAt, 0.7);
+  const cock = (g: Geo) => g.rotateX(Math.PI / 2).rotateY(cockAt).translate(cr * Math.sin(cockAt), cy, cr * Math.cos(cockAt));
+  parts.push(cock(colTri(new THREE.CylinderGeometry(0.075, 0.075, 0.018, 16), (x, _y, z) => (Math.hypot(x, z) > 0.048 ? 0x1d1a1c : 0xc62f2a))));
+  const metal: Geo[] = [
+    trim,
+    cock(new THREE.SphereGeometry(0.022, 10, 6).scale(1, 0.6, 1).translate(0, 0.012, 0)),
+    // шнур по тулье над полями
+    bandOnBody((phi) => y0 + 0.04 + 0.006 * Math.sin(phi * 3), t + 0.006, 0.011, 48),
+  ];
+  // и кисть на заднем правом углу (+X)
+  const back = Math.PI / 3;
+  const bx = Math.sin(back);
+  const bz = Math.cos(back);
+  const rb = r0 + w(back) * 0.9;
+  const by = y0 + lift(back, 0.9);
+  metal.push(tube([[bx * (r0 + 0.01), y0 + 0.05, bz * (r0 + 0.01)], [bx * (r0 + 0.14), y0 + 0.03, bz * (r0 + 0.14)], [bx * rb, by - 0.02, bz * rb], [bx * (rb + 0.01), by - 0.1, bz * (rb + 0.01)]], 0.009, 16));
+  metal.push(new THREE.CylinderGeometry(0.016, 0.032, 0.08, 10).translate(bx * (rb + 0.01), by - 0.14, bz * (rb + 0.01)));
+  return wear(parts, metal, 1.48);
+}
+
+/** Подрывник: тёмная кожаная каска шахтёра, латунный фонарь со светящимся стеклом, на ремешке — бомбочка с тлеющим фитилём */
+function craftSapper(): Wear {
+  const t = 0.055;
+  const yF = 1.345;
+  const yB = 1.28;
+  const parts: Geo[] = [
+    col(domeCap(t, yF, yB, 28, 10), 0x5b4335),
+    col(capRib(t, yF, yB, Math.PI, 0.03, 0, 0.86, true), 0x4a362a),
+    // поля: узкие спереди, шире сзади (назатыльник)
+    col(brim((phi) => capBase(t, yF, yB, phi), (phi) => 0.04 + 0.05 * Math.max(0, Math.cos(phi)), (_phi, u) => -0.02 * u, 48, 3), 0x4a362a),
+    // ремешок по тулье
+    col(bandOnBody((phi) => capBase(t, yF, yB, phi)[0] + 0.045, t + 0.006, 0.02, 48), 0x7a5232),
+  ];
+  // фонарь: латунный корпус на скобе, стекло светится (свой материал вещей с emissive, без настоящей лампы)
+  const lampY = 1.44;
+  const lampR = capR(t, yF, lampY);
+  const lz = -(lampR + 0.06);
+  const metal: Geo[] = [
+    new THREE.BoxGeometry(0.08, 0.11, 0.04).translate(0, lampY - 0.02, -(lampR + 0.005)),
+    new THREE.CylinderGeometry(0.075, 0.068, 0.1, 16).rotateX(Math.PI / 2).translate(0, lampY, lz),
+    new THREE.TorusGeometry(0.07, 0.013, 6, 18).translate(0, lampY, lz - 0.05),
+  ];
+  const glow: Geo[] = [col(new THREE.CircleGeometry(0.062, 16).rotateY(Math.PI).translate(0, lampY, lz - 0.052), 0xfff0b8)];
+  // бомбочка слева на ремешке: чёрный шар, латунное горлышко, фитиль завитком, тлеющий кончик
+  const bx = -0.45;
+  const by = 1.37;
+  const bz = 0.08;
+  parts.push(col(new THREE.SphereGeometry(0.08, 14, 10).translate(bx, by, bz), 0x2a2a2e));
+  parts.push(col(new THREE.SphereGeometry(0.022, 8, 6).translate(bx - 0.045, by + 0.035, bz - 0.05), 0x5a5a62));
+  metal.push(new THREE.CylinderGeometry(0.026, 0.03, 0.035, 10).rotateZ(0.35).translate(bx - 0.025, by + 0.085, bz));
+  parts.push(col(tube([[bx - 0.03, by + 0.1, bz], [bx - 0.05, by + 0.16, bz + 0.02], [bx - 0.02, by + 0.2, bz + 0.05], [bx - 0.05, by + 0.23, bz + 0.07]], 0.009, 14), 0xc9a66b));
+  glow.push(col(new THREE.SphereGeometry(0.02, 8, 6).translate(bx - 0.05, by + 0.235, bz + 0.07), 0xff9a3a));
+  // моток бикфордова шнура справа
+  const coilR = capR(t, 1.31, 1.37) + 0.02;
+  parts.push(col(new THREE.TorusGeometry(0.06, 0.016, 6, 16).rotateY(Math.PI / 2).translate(coilR, 1.37, 0.06), 0xc9a66b));
+  parts.push(col(new THREE.TorusGeometry(0.042, 0.014, 6, 14).rotateY(Math.PI / 2).translate(coilR + 0.012, 1.37, 0.06), 0xb8945a));
+  const w = wear(parts, metal, 1.45);
+  w.glow = merge(glow.map((g) => g.translate(0, -1.45, 0)));
+  w.halo = { x: 0, y: lampY - 1.45, z: lz - 0.09, size: 0.42 };
+  return w;
+}
+
+/** Стрелок: оливковое кепи с наклоном вперёд, козырёк, кокарда-мишень спереди, длинное фазанье перо слева */
+function craftRifle(): Wear {
+  const OLIVE = 0x6b7a3a;
+  const OLIVE_DARK = 0x4e5a2a;
+  const LEATHER = 0x3a2a1e;
+  const y0 = 1.33;
+  const r0 = bodyR(y0) + 0.03;
+  const LEAN = 0.24;
+  // верх сдвинут к лицу (−Z) — кепи «клюёт» вперёд
+  const shear = (g: Geo): Geo => {
+    const p = g.getAttribute('position');
+    for (let i = 0; i < p.count; i++) p.setZ(i, p.getZ(i) - (p.getY(i) - y0) * LEAN);
+    g.computeVertexNormals();
+    return g;
+  };
+  const crown = new THREE.LatheGeometry([[r0, y0 - 0.005], [r0 - 0.004, y0 + 0.08], [r0 - 0.03, y0 + 0.2], [r0 - 0.045, y0 + 0.27], [r0 - 0.1, y0 + 0.285], [0.001, y0 + 0.29]]
+    .map(([r, y]) => new THREE.Vector2(r, y)), 32);
+  const strap: V3[] = [];
+  for (let k = 0; k <= 12; k++) {
+    const a = Math.PI - 1.2 + (2.4 * k) / 12;
+    strap.push([(r0 + 0.012) * Math.sin(a), y0 + 0.075, (r0 + 0.012) * Math.cos(a)]);
+  }
+  const parts: Geo[] = [
+    col(shear(crown), OLIVE),
+    col(shear(new THREE.CylinderGeometry(r0 + 0.006, r0 + 0.006, 0.065, 32, 1, true).translate(0, y0 + 0.032, 0)), OLIVE_DARK),
+    // козырёк: полукруг спереди, вниз
+    col(brim(() => [y0 + 0.005, r0 + 0.004], (phi) => 0.13 * Math.max(0, -Math.cos(phi)) ** 0.7, (_phi, u) => -0.05 * u - 0.015 * u * u, 24, 3, Math.PI / 2 + 0.1, Math.PI * 1.5 - 0.1), LEATHER),
+    // подбородный ремешок над козырьком
+    col(shear(tube(strap, 0.011, 16)), LEATHER),
+  ];
+  // кокарда-мишень: кольца в одной плоскости (без наложений), обод — короткий цилиндр без крышек
+  const cyM = y0 + 0.17;
+  const czM = -(r0 - 0.012) - (cyM - y0) * LEAN - 0.014;
+  const face = (g: Geo) => g.rotateX(-0.12).translate(0, cyM, czM);
+  const rings: Array<[number, number, number]> = [[0.001, 0.02, 0xd8332a], [0.02, 0.037, 0xf4efe6], [0.037, 0.055, 0xd8332a], [0.055, 0.072, 0xf4efe6]];
+  for (const [a, b, c] of rings) parts.push(face(col(new THREE.RingGeometry(a, b, 20, 1).rotateY(Math.PI), c)));
+  parts.push(face(col(new THREE.CylinderGeometry(0.073, 0.073, 0.022, 20, 1, true).rotateX(Math.PI / 2).translate(0, 0, 0.011), OLIVE_DARK)));
+  const metal: Geo[] = [Math.PI - 1.2, Math.PI + 1.2].map((a) => shear(new THREE.SphereGeometry(0.02, 8, 6).translate((r0 + 0.02) * Math.sin(a), y0 + 0.075, (r0 + 0.02) * Math.cos(a))));
+  // перо слева (−X): от зажима вверх и назад, полосатое, светлый кончик; лента из трёх рядов (края и стержень)
+  const curve = new THREE.CatmullRomCurve3(([[-r0 + 0.02, y0 + 0.1, 0.05], [-r0 - 0.035, y0 + 0.3, 0.12], [-r0 - 0.055, y0 + 0.47, 0.27], [-r0 - 0.02, y0 + 0.58, 0.46]] as V3[]).map((p) => new THREE.Vector3(...p)));
+  const N = 22;
+  const pos: number[] = [];
+  const colr: number[] = [];
+  const idx: number[] = [];
+  const c = new THREE.Color();
+  const tan = new THREE.Vector3();
+  const side = new THREE.Vector3();
+  const across = new THREE.Vector3(1, 0, 0.35);
+  for (let i = 0; i <= N; i++) {
+    const u = i / N;
+    const p = curve.getPoint(u);
+    curve.getTangent(u, tan);
+    side.crossVectors(tan, across).normalize();
+    const half = 0.066 * Math.sin(Math.PI * Math.min(1, u * 1.04) ** 0.7) + 0.004;
+    for (const k of [-1, 0, 1]) {
+      pos.push(p.x + side.x * half * k - (k === 0 ? 0.006 : 0), p.y + side.y * half * k, p.z + side.z * half * k);
+      c.set(u > 0.92 ? 0xf1e2c0 : Math.floor(u * 11) % 2 ? (k === 0 ? 0x7a4220 : 0x5e3218) : k === 0 ? 0xd08040 : 0xb5652e);
+      colr.push(c.r, c.g, c.b);
+    }
+  }
+  for (let i = 0; i < N; i++) {
+    for (let k = 0; k < 2; k++) {
+      const a = i * 3 + k;
+      idx.push(a, a + 3, a + 1, a + 1, a + 3, a + 4);
+    }
+  }
+  const quill = new THREE.BufferGeometry();
+  quill.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  quill.setAttribute('color', new THREE.Float32BufferAttribute(colr, 3));
+  quill.setAttribute('uv', new THREE.Float32BufferAttribute(new Array((pos.length / 3) * 2).fill(0), 2));
+  quill.setIndex(idx);
+  const feather = quill.toNonIndexed();
+  feather.computeVertexNormals();
+  parts.push(feather);
+  metal.push(new THREE.CylinderGeometry(0.026, 0.026, 0.05, 10).rotateZ(0.2).translate(-r0 + 0.012, y0 + 0.11, 0.05));
+  return wear(parts, metal, 1.47);
+}
+
 const HATS: Record<string, () => Wear> = {
   devil: () => wear(devilHeadParts(bodyR), [], 1.45),
   astronaut: () => wear([
@@ -322,6 +586,11 @@ const HATS: Record<string, () => Wear> = {
     ], [bell(0), bell(Math.PI), bell(-Math.PI / 2)], 1.48);
   },
   // панама и жилет рыболова, сеты и аксессуары рыбалки — в outfitfish.ts
+  // шапки ремёсел крепости (Т-4): выдаёт игра на забег, в гардеробе их нет (shared/outfit.ts)
+  'craft-mason': craftMason,
+  'craft-gunner': craftGunner,
+  'craft-sapper': craftSapper,
+  'craft-rifle': craftRifle,
 };
 
 const ACCS: Record<string, () => Wear> = {

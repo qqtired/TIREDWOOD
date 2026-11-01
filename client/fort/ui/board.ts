@@ -9,6 +9,7 @@ import { voiceTalkers } from '../../voice-prefs.ts';
 import { socialState } from '../../ui/socialstate.ts';
 import { el, escapeHtml, num } from './dom.ts';
 import { fortImg } from './icons.ts';
+import { CRAFT_ICON, cardById, cardIcon, craftName } from '../ideas/logic.ts';
 
 /** Общак последней отбитой волны: сколько досталось каждому (событие pot) — до него общак не известен */
 export interface PotInfo {
@@ -25,6 +26,9 @@ export class Board {
   readonly scrim: HTMLElement;
   private html = '';
   private towers: readonly FortTowerRow[] = [];
+  /** «Т-идеи»: ремесло по номеру защитника и взятые карточки забега (client/fort/ideas) */
+  private crafts: ReadonlyMap<number, number> = new Map();
+  private taken: readonly string[] = [];
 
   constructor(parent: HTMLElement) {
     this.scrim = el('div', 'k-scrim ft-scrim ft-scrim-light ft-tab-scrim', parent);
@@ -34,6 +38,11 @@ export class Board {
 
   setTowers(towers: readonly FortTowerRow[]): void {
     this.towers = towers;
+  }
+
+  setIdeas(crafts: ReadonlyMap<number, number>, taken: readonly string[]): void {
+    this.crafts = crafts;
+    this.taken = taken;
   }
 
   show(on: boolean, rows: readonly FortPlayerRow[], myId: number, phase: number, wave: number, others: readonly OnlineEntry[], pot: PotInfo | null = null): void {
@@ -48,7 +57,7 @@ export class Board {
       const lv = r.level ?? 1;
       const pills = `${talk.has(r.pid) ? '<span class="k-pill k-pill--good k-pill--sm"><span class="k-eq"><i></i><i></i><i></i></span>говорит</span>' : ''}${calm && r.ready ? '<span class="k-pill k-pill--good k-pill--sm">готов</span>' : ''}`;
       return `<tr${r.id === myId ? ' class="is-own"' : ''}><td><span class="k-ring k-ring--sm" style="--p:0"><b>${num(lv)}</b></span></td>`
-        + `<td><span class="k-who">${escapeHtml(r.name)}${pills}</span></td><td class="k-r ft-damage">${num(r.damage ?? 0)}</td><td class="k-r">${num(r.k)}</td><td class="k-r">${num(r.d)}</td>`
+        + `<td><span class="k-who">${escapeHtml(r.name)}${this.craftHtml(r.id)}${pills}</span></td><td class="k-r ft-damage">${num(r.damage ?? 0)}</td><td class="k-r">${num(r.k)}</td><td class="k-r">${num(r.d)}</td>`
         + `<td class="k-r">${num(r.pts)}</td><td class="k-r ft-ping">${num(r.ping)} мс</td></tr>`;
     }).join('');
     const away = others.filter((o) => o.room !== 'fort');
@@ -72,7 +81,7 @@ export class Board {
       <header class="k-win-head"><div class="k-win-titles"><p class="k-eyebrow">Отпусти Tab — закроется</p><h2 class="k-win-title">${title}</h2></div>${potHtml}</header>
       <div class="k-win-body">
         <div class="ft-table-scroll"><table class="k-table ft-player-table"><thead><tr><th></th><th>Защитник</th><th class="k-r">Урон</th><th class="k-r">Сбил</th><th class="k-r">Повален</th><th class="k-r" title="Золото на руках">Золото</th><th class="k-r">Связь</th></tr></thead>
-        <tbody>${body}</tbody></table></div><p class="ft-tab-h">Вышки · за этот забег</p><div class="ft-table-scroll">${towerHtml}</div>${awayHtml}${callHtml}
+        <tbody>${body}</tbody></table></div><p class="ft-tab-h">Вышки · за этот забег</p><div class="ft-table-scroll">${towerHtml}</div>${this.cardsHtml()}${awayHtml}${callHtml}
       </div>
       <footer class="k-win-foot"><span class="k-note">Урон — снятые HP и щиты за забег; вышки считаются отдельно. Золото вышек — выплаты вкладчикам, без общака.</span></footer>
     </section>`;
@@ -81,6 +90,20 @@ export class Board {
     this.html = html;
     this.scrim.innerHTML = html;
     if (first) this.scrim.querySelector('.k-window')?.classList.add('is-in');
+  }
+
+  /** Ремесло защитника: значок и имя у ника (если есть) */
+  private craftHtml(id: number): string {
+    const c = this.crafts.get(id) ?? 0;
+    const name = craftName(c);
+    return c && name ? `<span class="ft-craft-tag" title="${name}">${fortImg(CRAFT_ICON[c] ?? 'level', 'ft-craft-ic')}<small>${name}</small></span>` : '';
+  }
+
+  /** Карточки забега: что взяла команда */
+  private cardsHtml(): string {
+    const list = this.taken.map((id) => cardById(id)).filter((c) => !!c);
+    if (!list.length) return '';
+    return `<p class="ft-tab-h">Карточки команды · за этот забег</p><div class="ft-cardlist">${list.map((c) => `<div class="ft-cardrow${c!.gold ? ' is-gold' : ''}">${fortImg(cardIcon(c!.id), 'ft-cardrow-ic')}<span><b>${escapeHtml(c!.name)}</b><small>${escapeHtml(c!.text)}</small></span></div>`).join('')}</div>`;
   }
 
   hide(): void {

@@ -9,7 +9,7 @@ import { FORT_MAX_ALIVE, FT_BREAK, FT_END, FT_GATHER, FT_WAVE, type FortEvent, t
 import { FT_STRIDE, fortShotDir, nearestZombie } from '../../shared/fortaim.ts';
 import {
   ACT_SHOP, ACT_TOWER, GREN_CD, GREN_FUSE, GUNS, GUN_CROSSBOW, GUN_MARKER, GUN_SHOTGUN, NOPE_FAR, NOPE_GOLD, TOWERS, TOWER_UPGRADE, UP_DMG,
-  UP_POUCH, crystalMax, crystalRows, decodeArsenalTail, dmgMul, gateMax, gateRows, grenadeMax, gunMag, gunReload, makeArsenalRow,
+  UP_POUCH, crystalMax, crystalRows, decodeArsenalTail, dmgMul, gateMax, gateRows, grenadeMax, gunMag, gunReload, discounted, loadoutOf, makeArsenalRow,
   makeArsenalTail, shopRows, towerRows, towerUpgradePrice, type ArsenalRow, type Loadout, type PanelRow,
 } from '../../shared/fortarsenal.ts';
 import { grenadeLaunch, grenadeStep, makeGrenade, type Grenade } from '../../shared/fortgren.ts';
@@ -224,9 +224,8 @@ export class ArsenalClient {
     const me = this.host.row(this.host.myId());
     this.row = me?.ar ?? makeArsenalRow();
     const had = this.load.heavy;
-    this.load.heavy = this.row.hv;
-    this.load.rate = this.row.lv[1] ?? 0;
-    this.load.mag = this.row.lv[2] ?? 0;
+    // стволы — с готовыми числами сервера (карточки «Полный магазин», «Шквал», ремесло): row.weapons
+    loadoutOf(this.row, this.load);
     // купили первый тяжёлый ствол — сразу в руки
     if (!had && this.load.heavy > 0) this.wantHeavy = true;
     if (this.load.heavy <= 0) this.wantHeavy = false;
@@ -254,7 +253,7 @@ export class ArsenalClient {
   }
 
   get crystalMax(): number {
-    return crystalMax(this.tail.crystalTier);
+    return this.row.crystalMax ?? crystalMax(this.tail.crystalTier);
   }
 
   private teamDmg(): number {
@@ -370,11 +369,12 @@ export class ArsenalClient {
     const st = this.station;
     if (!st) return [];
     const wave = Math.max(1, this.host.phase() === FT_WAVE ? this.host.wave() : this.host.wave() + 1);
-    const team = { wave, calm: this.calm, gold: this.row.g, gate: this.host.gate(), gateTier: this.tail.gateTier, crystal: this.host.crystal(), crystalTier: this.tail.crystalTier };
+    const team = { wave, calm: this.calm, gold: this.row.g, gate: this.host.gate(), gateTier: this.tail.gateTier, crystal: this.host.crystal(), crystalTier: this.tail.crystalTier,
+      repairMul: this.row.repairMul, crystalMax: this.row.crystalMax };
     if (st.kind === 'shop') return shopRows({ wave, calm: this.calm, row: this.row });
     if (st.kind === 'gate') return gateRows(team);
     if (st.kind === 'crystal') return crystalRows(team);
-    return towerRows(st.arg, this.tail.type[st.arg] ?? -1, this.tail.level[st.arg] ?? 0, this.row.g, this.teamDmg());
+    return towerRows(st.arg, this.tail.type[st.arg] ?? -1, this.tail.level[st.arg] ?? 0, this.row.g, this.teamDmg(), this.row.towerPriceMul);
   }
 
   private renderPanel(force = false): void {
@@ -447,7 +447,7 @@ export class ArsenalClient {
         const type = this.tail.type[st.arg] ?? -1;
         if (type < 0) return ['место для башни · баллиста, пушка, котёл, жаровня', 0, true];
         const lv = this.tail.level[st.arg] ?? 1;
-        return [`${TOWERS[type].name} · ур. ${lv} · улучшить`, towerUpgradePrice(type, lv), true];
+        return [`${TOWERS[type].name} · ур. ${lv} · улучшить`, discounted(towerUpgradePrice(type, lv), this.row.towerPriceMul), true];
       }
     }
     return null;
@@ -839,7 +839,7 @@ export class ArsenalClient {
     const gun = gunInHands(s, this.load);
     setAvatarGun(this.host.localAvatar(), gun);
     const heavy = this.load.heavy;
-    hud.arms.set(gun, heavy, heavy ? GUNS[heavy].name : '', GUN_ICONS[heavy] ?? 'shotgun', heavy ? holsteredAmmo(s, this.load) : 0, this.row.gr, grenadeMax(this.row.lv[UP_POUCH] ?? 0));
+    hud.arms.set(gun, heavy, heavy ? GUNS[heavy].name : '', GUN_ICONS[heavy] ?? 'shotgun', heavy ? holsteredAmmo(s, this.load) : 0, this.row.gr, this.row.grenadeMax ?? grenadeMax(this.row.lv[UP_POUCH] ?? 0));
     // панель бойца — всю игру (повален — серая, как на странице); в итогах и до новой игры — нет
     hud.arms.setVisible(this.host.phase() !== FT_END);
   }

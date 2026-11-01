@@ -1,11 +1,13 @@
 // «Тролль-лесоруб» — бугай: сутулый лесной тролль, ручищи до колен, клетчатая рубаха, вязаная шапочка, картофельный нос,
 // клыки снизу, мох на плечах. В правой — бревно-дубина в варенье. Ходит тяжело и вразвалку, бьёт бревном сверху по
 // воротам, гибнет — валится лицом вперёд, как подрубленное дерево, и уходит в землю.
+// Т-23 (FORT_IDEAS): за спиной на заплечной раме — бочонок варенья, слабое место (центр — shared/fortweak.ts Z_BRUTE).
 import * as THREE from 'three';
 import { ZS_ATTACK, ZS_HOP } from '../../../shared/fort.ts';
 import { Z_BRUTE } from '../../../shared/fortkinds.ts';
 import { ARMY, colored, merge, setBone, setChild, setChildS, type MobAnim, type MobDef, type MobPose } from './kit.ts';
 import { TAU, blob, drip, eyePair, jolt, legAt, mirrorX, newLeg, paintFaces, smooth, splat, stepLen, walkAmount } from './set-a-shapes.ts';
+import { kegFrame, kegGeo, surfaceStrap } from '../ideas/models/weakparts.ts';
 
 const SKIN = 0x86a06c;
 const SKIN_DARK = 0x5f7a4c;
@@ -62,7 +64,28 @@ function bodyGeo(): THREE.BufferGeometry {
     splat(0.25, 0.62, 0.48, 0.09, 0.4, 0, 0.9),
     splat(-0.36, 0.42, 0.43, 0.07, -0.6, 0, 0.8, ARMY.jamLight),
   ];
-  return merge(parts);
+  return merge([...parts, ...kegOnBack(merge(parts))]);
+}
+
+/**
+ * Бочонок варенья на заплечной раме (Т-23): центр — в осях тела там, где в обычном шаге стоит точка слабого места
+ * (−0,8 м назад, 1,5 м над ногами при наклоне корпуса ~0,35); рама — между бочонком и спиной, лямки — через плечи.
+ */
+const KEG: readonly [number, number, number] = [0, 0.39, -0.975];
+function kegOnBack(torso: THREE.BufferGeometry): THREE.BufferGeometry[] {
+  const [x, y, z] = KEG;
+  const out = [kegGeo(0.32, 0.64).translate(x, y, z), kegFrame(0.32, 0.64, 0.165, 0.9).translate(x, y, z)];
+  for (const s of [-1, 1]) {
+    out.push(surfaceStrap(torso, [
+      { from: [s * 0.24, 0.9, -0.6], dir: [0, 0, 0] },
+      { from: [s * 0.34, 0.95, -2], dir: [0, 0, 1] },
+      { from: [s * 0.36, 2, -0.15], dir: [0, -1, 0] },
+      { from: [s * 0.37, 2, 0.12], dir: [0, -1, 0] },
+      { from: [s * 0.38, 0.75, 2], dir: [0, 0, -1] },
+      { from: [s * 0.36, 0.3, 2], dir: [0, 0, -1] },
+    ], 0.075, 0.018));
+  }
+  return out;
 }
 
 /** Ручища от плеча вниз: плечо, предплечье, кулак; правая — с бревном */

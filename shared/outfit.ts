@@ -152,6 +152,12 @@ const CATALOG: Array<[Slot, string, string, Tier]> = [
   ['l', 'none', 'Без низа', 'free'],
   ['f', 'none', 'Без эффекта', 'free'],
   ...FARM_WEAR.map(([slot, key, name]): [Slot, string, string, Tier] => [slot, key, name, 'trophy']),
+  // Крепость, Т-4 «Ремесло на забег» (shared/fortideas.ts CRAFTS): шапку надевает игра на время забега — не продаётся,
+  // не выпадает и не видна в гардеробе (CRAFT_HATS) — только в конец.
+  ['h', 'craft-mason', 'Каска каменщика', 'system'],
+  ['h', 'craft-gunner', 'Треуголка канонира', 'system'],
+  ['h', 'craft-sapper', 'Каска подрывника', 'system'],
+  ['h', 'craft-rifle', 'Кепи стрелка', 'system'],
 ];
 
 export const ITEMS: readonly Item[] = CATALOG.map(([slot, key, name, tier]) => ({ id: `${slot}:${key}`, slot, key, name, tier }));
@@ -191,8 +197,12 @@ export function isOwned(owned: readonly string[], item: Item): boolean {
   return owned.includes(item.id);
 }
 
-/** Скрытые подарки появляются в гардеробе только после получения. */
+/** Шапки ремёсел крепости: только на забеге, в гардеробе их нет */
+export const CRAFT_HATS: ReadonlySet<string> = new Set(['h:craft-mason', 'h:craft-gunner', 'h:craft-sapper', 'h:craft-rifle']);
+
+/** Скрытые подарки появляются в гардеробе только после получения; шапок ремёсел там нет совсем. */
 export function isItemVisible(item: Item, owned: readonly string[]): boolean {
+  if (CRAFT_HATS.has(item.id)) return false;
   return item.tier !== 'promo' || isOwned(owned, item);
 }
 

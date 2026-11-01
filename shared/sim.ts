@@ -5,6 +5,7 @@ import {
   GRAVITY, GROUND_BLEND, JUMP_BUFFER_TICKS, JUMP_VELOCITY, MAX_AIR_SPEED, PLAYER_HALF, PLAYER_HEIGHT, RUN_SPEED,
   STEP_HEIGHT, TRAMPOLINE_VELOCITY,
 } from './constants.ts';
+import { FORT_TRAMP_VELOCITY } from './fortideas.ts';
 import { hashFloat, sinCos } from './math.ts';
 import type { CollisionWorld } from './world.ts';
 
@@ -445,8 +446,8 @@ export function stepPlayer(s: PlayerState, inp: Input, w: CollisionWorld, canFir
   }
 
   // Батут
-  if (grounded && groundBox >= 0 && w.tramp[groundBox] === 1) {
-    s.vy = TRAMPOLINE_VELOCITY;
+  if (grounded && groundBox >= 0 && w.tramp[groundBox] > 0) {
+    s.vy = w.tramp[groundBox] === 2 ? FORT_TRAMP_VELOCITY : TRAMPOLINE_VELOCITY;
     grounded = false;
     ev.bounced = true;
   }

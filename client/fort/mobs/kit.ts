@@ -5,6 +5,7 @@
 // Договор только расширяем: не переименовывай и не меняй смысл полей — по нему пишут три помощника сразу.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { AURA_FRAGMENT, AURA_PARS, bindAuraUniforms } from '../elite/rim.ts';
 
 export const BONES = ['body', 'head', 'armL', 'armR', 'legL', 'legR', 'tail', 'wingL', 'wingR', 'prop', 'extra'] as const;
 export type BoneName = (typeof BONES)[number];
@@ -226,7 +227,8 @@ uniform float uMobFlash;
 uniform vec4 uMobTint;
 #endif
 varying float vMobFlash;
-varying vec4 vMobTint;`;
+varying vec4 vMobTint;
+varying float vMobAura;`;
 const FX_VERTEX = /* glsl */ `#include <color_vertex>
 #ifdef USE_INSTANCING
 vMobFlash = mobFlash;
@@ -234,7 +236,10 @@ vMobTint = mobTint;
 #else
 vMobFlash = uMobFlash;
 vMobTint = uMobTint;
-#endif`;
+#endif
+// ступень элитки едет во вспышке: mobFlash = вспышка 0…1 + 2 × ступень (client/fort/elite/rim.ts)
+vMobAura = floor( vMobFlash * 0.5 );
+vMobFlash -= 2.0 * vMobAura;`;
 // Нормаль инстанса — присоединённой матрицей (три векторных произведения): точно при любом неравномерном масштабе
 // корня и костей вместе с поворотами (у three — приближение без сдвига, в сжатом боссе свет бы поплыл).
 const FX_NORMAL = /* glsl */ `vec3 transformedNormal = objectNormal;
@@ -255,7 +260,7 @@ transformedTangent = ( modelViewMatrix * vec4( transformedTangent, 0.0 ) ).xyz;
 #endif`;
 const FX_FRAGMENT_PARS = /* glsl */ `#include <common>
 varying float vMobFlash;
-varying vec4 vMobTint;`;
+varying vec4 vMobTint;${AURA_PARS}`;
 const FX_FRAGMENT = /* glsl */ `#include <color_fragment>
 #ifdef MOB_GLOW
 totalEmissiveRadiance *= diffuseColor.rgb;
@@ -278,16 +283,21 @@ export function mobMaterial(glow = false): THREE.MeshStandardMaterial {
   mat.onBeforeCompile = (shader) => {
     shader.uniforms.uMobFlash = fx.uMobFlash;
     shader.uniforms.uMobTint = fx.uMobTint;
+    bindAuraUniforms(shader.uniforms);
     shader.vertexShader = shader.vertexShader.replace('#include <common>', FX_VERTEX_PARS).replace('#include <color_vertex>', FX_VERTEX)
       .replace('#include <defaultnormal_vertex>', FX_NORMAL);
-    shader.fragmentShader = shader.fragmentShader.replace('#include <common>', FX_FRAGMENT_PARS).replace('#include <color_fragment>', FX_FRAGMENT);
+    shader.fragmentShader = shader.fragmentShader.replace('#include <common>', FX_FRAGMENT_PARS).replace('#include <color_fragment>', FX_FRAGMENT)
+      .replace('#include <emissivemap_fragment>', AURA_FRAGMENT);
   };
   mat.customProgramCacheKey = () => (glow ? 'mob-glow' : 'mob');
   return mat;
 }
 
-/** Превью одной особи обычной группой (стенд, превью, отладка). update — каждый кадр; flash 0…1 — вспышка в белый. */
-export function buildPreview(def: MobDef): { group: THREE.Group; update(a: MobAnim, flash?: number, tint?: THREE.Color | null, tintMix?: number): void } {
+/**
+ * Превью одной особи обычной группой (стенд, превью, отладка). update — каждый кадр; flash 0…1 — вспышка в белый; tier —
+ * ступень элитки (1 элита, 2 чемпион): контур и глаза ауры (client/fort/elite/rim.ts), 0 — как раньше.
+ */
+export function buildPreview(def: MobDef): { group: THREE.Group; update(a: MobAnim, flash?: number, tint?: THREE.Color | null, tintMix?: number, tier?: number): void } {
   const group = new THREE.Group();
   const pose = newPose();
   const meshes: Array<{ mesh: THREE.Mesh; bone: BoneName; fx: MobFxUniforms }> = [];
@@ -301,12 +311,13 @@ export function buildPreview(def: MobDef): { group: THREE.Group; update(a: MobAn
   }
   return {
     group,
-    update(a: MobAnim, flash = 0, tint: THREE.Color | null = null, tintMix = 0.35) {
+    update(a: MobAnim, flash = 0, tint: THREE.Color | null = null, tintMix = 0.35, tier = 0) {
       def.pose(a, pose);
+      const fl = tier > 0 ? Math.min(1, Math.max(0, flash)) + 2 * Math.min(2, Math.floor(tier)) : flash;
       for (const { mesh, bone, fx } of meshes) {
         mesh.matrix.copy(pose[bone]);
         mesh.matrixWorldNeedsUpdate = true;
-        fx.uMobFlash.value = flash;
+        fx.uMobFlash.value = fl;
         if (tint) fx.uMobTint.value.set(tint.r, tint.g, tint.b, tintMix);
         else fx.uMobTint.value.w = 0;
       }

@@ -55,11 +55,29 @@ export class Walls {
 
   startWave(wave: number): void {
     for (let sec = 0; sec < WALL_COUNT; sec++) {
-      const max = wallMaxHp(sec, wave);
+      const max = wallMaxHp(sec, wave) * (this.game.ideas.has('stonewalls') ? 1.3 : 1);
       this.hp[sec] = this.hp[sec] / this.max[sec] * max;
       this.max[sec] = max;
     }
     this.dirty = true;
+  }
+
+  stonewalls(): void {
+    this.cancelRepairs();
+    for (let sec = 0; sec < WALL_COUNT; sec++) {
+      this.max[sec] *= 1.3;
+      this.setHp(sec, this.max[sec]);
+    }
+    this.refill();
+  }
+
+  private repairTicks(repair: Repair): number {
+    let mul = 1;
+    for (const id of repair.workers.keys()) {
+      const p = this.game.players.get(id);
+      if (p) mul = Math.min(mul, this.game.ideas.repairTime(p));
+    }
+    return wallFixTicks(repair.workers.size, mul);
   }
 
   refill(): void {
@@ -144,7 +162,7 @@ export class Walls {
     if (this.hp[sec] >= this.max[sec] * WALL_FIX_BELOW) return g.toast(p, 'Участок цел');
     const existing = this.repairs.get(sec);
     if (existing?.workers.has(p.id)) return;
-    const price = existing?.price ?? wallFixPrice(g.phase === FT_BREAK ? g.wave + 1 : g.wave);
+    const price = existing?.price ?? wallFixPrice(g.phase === FT_BREAK ? g.wave + 1 : g.wave, g.ideas.repairMul(p));
     if (!existing && p.run.arsenal.gold < price) { g.event(['anope', p.id, USE_WALL_FIX + sec, NOPE_GOLD]); return; }
     this.stop(p.id);
     if (g.phase === FT_GATHER || g.phase === FT_BREAK) { this.complete(p, sec, price); return; }
@@ -191,7 +209,7 @@ export class Walls {
           || Math.hypot(p.state.x - worker.x, p.state.y - worker.y, p.state.z - worker.z) > WALL_FIX_MOVE) this.stop(worker.pid);
       }
       if (!this.repairs.has(sec)) continue;
-      repair.progress += 1000 / wallFixTicks(repair.workers.size);
+      repair.progress += 1000 / this.repairTicks(repair);
       this.dirty = true;
       if (repair.progress < 1000 - 1e-7) continue;
       this.repairs.delete(sec);
@@ -206,7 +224,7 @@ export class Walls {
       const s = WALL_SECTIONS[stone.sec];
       const x = s.nx ? s.face + s.nx * STONE_OUT / 2 : s.stack[0];
       const z = s.nz ? s.face + s.nz * STONE_OUT / 2 : s.stack[2];
-      const killed = g.horde.stoneHit(stone.sec, stone.by);
+      const killed = g.horde.stoneHit(stone.sec, stone.by, g.ideas.has('stones') ? 2 : 1);
       g.event(['stone', stone.sec, stone.by, x, z, killed]);
       this.falling.splice(i, 1);
     }
@@ -216,7 +234,7 @@ export class Walls {
     return {
       hp: this.hp.map((hp) => hp > 0 ? Math.max(1, Math.round(hp)) : 0), max: this.max.map(Math.round), stones: [...this.stones], camp: this.game.camp.state(),
       fix: [...this.repairs.values()].map((r) => [r.sec, Math.floor(r.progress),
-        this.game.tick + Math.ceil((1000 - r.progress) * wallFixTicks(r.workers.size) / 1000), r.price, r.payer, ...r.workers.keys()]),
+        this.game.tick + Math.ceil((1000 - r.progress) * this.repairTicks(r) / 1000), r.price, r.payer, ...r.workers.keys()]),
     };
   }
 
