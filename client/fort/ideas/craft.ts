@@ -79,9 +79,9 @@ export class CraftPart {
   }
 
   private tile(cls: string): HTMLElement {
-    const t = el('div', `ft-chip ${cls}`, this.d.row);
-    el('span', 'ft-chip-ic', t);
-    el('span', 'ft-chip-tx', t);
+    const t = el('div', `fti-chip ${cls}`, this.d.row);
+    el('span', 'fti-chip-ic', t);
+    el('span', 'fti-chip-tx', t);
     return t;
   }
 

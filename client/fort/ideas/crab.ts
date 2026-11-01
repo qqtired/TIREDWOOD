@@ -27,10 +27,10 @@ export class CrabPart {
 
   constructor(d: IdeasDeps) {
     this.d = d;
-    this.tile = el('div', 'ft-chip ft-crab-tile', d.row);
+    this.tile = el('div', 'fti-chip ft-crab-tile', d.row);
     this.tile.hidden = true;
-    el('span', 'ft-chip-ic', this.tile).innerHTML = fortImg('gold-crab');
-    this.cap = el('span', 'ft-chip-tx', this.tile);
+    el('span', 'fti-chip-ic', this.tile).innerHTML = fortImg('gold-crab');
+    this.cap = el('span', 'fti-chip-tx', this.tile);
     this.tile.title = `Золотой краб: попадай — золото всем; ${CRAB_HITS} попаданий — джекпот`;
   }
 

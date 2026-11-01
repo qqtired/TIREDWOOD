@@ -54,6 +54,7 @@ export const FORT_TRAMP_VELOCITY = 13.2;
 
 // ------------------------------------------------------------ Т-8 карточки
 
+/** text — две короткие строки: карточка на плашке голосования шириной 88 px (владелец 01.11: «раза в 2 меньше») */
 export interface CardDef {
   id: string;
   name: string;
@@ -62,20 +63,20 @@ export interface CardDef {
 }
 
 export const CARDS: readonly CardDef[] = [
-  { id: 'pierce', name: 'Пробивной болт', text: 'арбалет прошивает на 2 цели больше', gold: false },
-  { id: 'stones', name: 'Тяжёлые камни', text: 'камни со стены бьют вдвое сильнее', gold: false },
-  { id: 'repair', name: 'Дешёвый ремонт', text: 'весь ремонт на 30 % дешевле', gold: false },
-  { id: 'tar', name: 'Смола из гранат', text: 'граната оставляет лужу смолы на 4 с', gold: false },
-  { id: 'towers', name: 'Быстрые башни', text: 'башни стреляют на 25 % чаще', gold: false },
-  { id: 'bounty', name: 'Жирный общак', text: 'награда за врагов +20 %', gold: false },
-  { id: 'mag', name: 'Полный магазин', text: 'магазин оружия +30 %', gold: false },
-  { id: 'bandage', name: 'Перевязка', text: 'в начале волны всем +50 % здоровья', gold: false },
+  { id: 'pierce', name: 'Пробивной болт', text: 'болт прошивает +2 цели', gold: false },
+  { id: 'stones', name: 'Тяжёлые камни', text: 'камни со стены ×2', gold: false },
+  { id: 'repair', name: 'Дешёвый ремонт', text: 'ремонт на 30 % дешевле', gold: false },
+  { id: 'tar', name: 'Смола из гранат', text: 'граната — лужа смолы', gold: false },
+  { id: 'towers', name: 'Быстрые башни', text: 'башни бьют на 25 % чаще', gold: false },
+  { id: 'bounty', name: 'Жирный общак', text: 'за врагов +20 % золота', gold: false },
+  { id: 'mag', name: 'Полный магазин', text: 'магазин +30 %', gold: false },
+  { id: 'bandage', name: 'Перевязка', text: 'каждую волну +50 % здоровья', gold: false },
   { id: 'crystal', name: 'Крепкий кристалл', text: 'кристалл +20 % прочности', gold: false },
-  { id: 'eye', name: 'Меткий глаз', text: 'в голову +30 % урона', gold: false },
+  { id: 'eye', name: 'Меткий глаз', text: 'в голову +30 %', gold: false },
   { id: 'goldtowers', name: 'Золотые башни', text: 'урон башен ×1,5', gold: true },
-  { id: 'squall', name: 'Шквал', text: 'всё оружие стреляет на 25 % чаще', gold: true },
-  { id: 'stonewalls', name: 'Каменные стены', text: 'стены +30 % прочности и чинятся сразу', gold: true },
-  { id: 'grenadebox', name: 'Ящик гранат', text: '+2 гранаты к запасу и полный запас', gold: true },
+  { id: 'squall', name: 'Шквал', text: 'оружие бьёт на 25 % чаще', gold: true },
+  { id: 'stonewalls', name: 'Каменные стены', text: 'стены +30 % и целые', gold: true },
+  { id: 'grenadebox', name: 'Ящик гранат', text: '+2 гранаты и полный запас', gold: true },
 ];
 
 export const CARD_VOTE_S = 15;
