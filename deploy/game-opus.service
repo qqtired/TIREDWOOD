@@ -57,6 +57,14 @@ Environment=QUIZ=1
 Environment=QUIZ_UPLOADERS=Tired
 # UI 3.0: HUD «Веранда v3», вывески v3, табло «Панели», меню входа на живой набережной — «да» владельца 2026-10-31
 Environment=UI3=1
+# Пакет 31.10: «Крепость 50», «Позвать» и зов в Telegram, викторина в чате, огни букв, режимы и столы, банан, пейнтбол — «да владельца 2026-11-01»
+Environment=FORT50=1
+Environment=SOCIAL=1
+Environment=TG_CALL=1
+Environment=MODES2=1
+Environment=TABLES2=1
+Environment=BANANA=1
+Environment=PAINT4=1
 StateDirectory=game-opus
 StateDirectoryMode=0700
 Restart=always
