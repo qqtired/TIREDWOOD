@@ -8,6 +8,7 @@ import { Z_SHIELD } from '../../../shared/fortkinds.ts';
 import { type MobAnim, type MobDef, type MobPose } from './kit.ts';
 import { EYE, ball, hexPlate, jamOn, join, lathe, mix, onEllipsoid, paint, taper } from './b-parts.ts';
 import { shieldPose, splitTris, type ShieldRig } from './b-shield.ts';
+import { backStrap } from '../ideas/models/weakparts.ts';
 
 const SKIN = 0x9fb86a;
 const SKIN_DARK = 0x7d9550;
@@ -49,7 +50,9 @@ function bodyGeo(): THREE.BufferGeometry {
   }
   // плечи — бугорки, из них растут руки (отдельные кости)
   const shoulders = [-1, 1].map((sx) => ball(0.085, sx * SHOULDER[0], SHOULDER[1], SHOULDER[2], SKIN, 1, 1, 1, 5, 3));
-  return join([torso, shell, ...plates, ...shoulders, jamOn(C[0], C[1], C[2], R[0], R[1], R[2], 0.75, 2.45, 0.09)]);
+  const base = [torso, shell, ...plates, ...shoulders, jamOn(C[0], C[1], C[2], R[0], R[1], R[2], 0.75, 2.45, 0.09)];
+  // Т-23: ремень щита наискось по спине на панцире, пряжка — слабое место (shared/fortweak.ts Z_SHIELD)
+  return join([...base, ...backStrap(join(base.map((g) => g.clone())), 0.62, 0.27, 0.35)]);
 }
 
 /** Обе руки одной частью (от линии плеч): в позе «держит щит за края», в позе «держит щит за край», ладонь — кулак */

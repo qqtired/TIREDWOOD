@@ -7,6 +7,10 @@ import { hash32, makeRng } from '../../shared/math.ts';
 import type { FortGame } from './game.ts';
 import type { Zombie } from './horde.ts';
 
+/** Путь краба по z: северный луг → вода */
+const CRAB_Z0 = -45;
+const CRAB_Z1 = 27.5;
+
 export function crabWaves(seed: number): number[] {
   const rng = makeRng(hash32(seed, 0xc4ab));
   const waves: number[] = [];
@@ -47,8 +51,8 @@ export class GoldCrab {
     const z = g.horde.spawn(Z_GOLDCRAB, 1);
     if (!z) { this.pending = g.tick + 1; return; }
     const side = makeRng(hash32(g.seed, g.wave ^ 0xc4ab51))() < .5 ? -1 : 1;
-    // 70 м: за бастионами (до x=21) и наружными лестницами (до x=22.4), к кромке моря z=24.
-    Object.assign(z, { x: side * 25, y: 0, z: -45, yaw: Math.PI, state: ZS_WALK, vx: 0, vz: 70 / CRAB_RUN_S });
+    // за бастионами (до x=21) и наружными лестницами (до x=22.4) к морю: вода у x=±25 начинается с z≈26,5 — путь до 27,5
+    Object.assign(z, { x: side * 25, y: 0, z: CRAB_Z0, yaw: Math.PI, state: ZS_WALK, vx: 0, vz: (CRAB_Z1 - CRAB_Z0) / CRAB_RUN_S });
     this.active = { zombie: z, id: z.id, start: g.tick, side, hits: 0, gold: crabGold(g.wave, g.goldMul) };
     this.pending = -1;
     g.event(['crab', 'run', z.id]);
@@ -63,10 +67,10 @@ export class GoldCrab {
     if (!z.alive || z.id !== a.id) { this.active = null; return; }
     const age = g.tick - a.start, total = CRAB_RUN_S * TICK_RATE;
     z.x = a.side * 25;
-    z.z = -45 + 70 * Math.min(1, age / total);
+    z.z = CRAB_Z0 + (CRAB_Z1 - CRAB_Z0) * Math.min(1, age / total);
     if (age >= total - TICK_RATE) {
       z.state = ZS_CRAB_DIVE;
-      z.y = -.8 * (age - total + TICK_RATE) / TICK_RATE;
+      z.y = -1.4 * (age - total + TICK_RATE) / TICK_RATE;
     }
     if (age >= total) {
       g.event(['crab', 'gone', z.id]);

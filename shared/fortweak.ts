@@ -16,7 +16,8 @@ export interface WeakSpot {
 export const WEAK_SPOTS: Readonly<Record<number, WeakSpot>> = {
   [Z_BRUTE]: { fwd: -0.8, up: 1.5, side: 0, r: 0.34, name: 'бочонок на спине' },
   [Z_ARMORED]: { fwd: -0.25, up: 1.62, side: 0, r: 0.2, name: 'клапан на кастрюле' },
-  [Z_SHIELD]: { fwd: -0.5, up: 1.0, side: 0, r: 0.24, name: 'ремень щита' },
+  // у бобра спина тоньше черепахи: −0,3 — обе пряжки внутри шара (стенд lab/fort-ideas/models.html)
+  [Z_SHIELD]: { fwd: -0.3, up: 1.0, side: 0, r: 0.24, name: 'ремень щита' },
 };
 
 /** Урон в слабое место — вместо множителя головы */

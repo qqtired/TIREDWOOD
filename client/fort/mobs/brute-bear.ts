@@ -1,11 +1,13 @@
 // «Медведь в шлеме-кастрюле» — бугай: бурый медведь на задних лапах, на голове кастрюля донцем вверх (ручки торчат, как
 // у шлема), морда и лапа в варенье — объелся. Переваливается с боку на бок, бьёт наотмашь то левой, то правой лапой,
 // гибнет — плюхается на попу, потом на спину и уходит в землю.
+// Т-23 (FORT_IDEAS): за спиной на лямках — бочонок варенья, слабое место (центр — shared/fortweak.ts Z_BRUTE).
 import * as THREE from 'three';
 import { ZS_ATTACK, ZS_HOP } from '../../../shared/fort.ts';
 import { Z_BRUTE } from '../../../shared/fortkinds.ts';
 import { ARMY, colored, merge, setBone, setChild, setChildS, type MobAnim, type MobDef, type MobPose } from './kit.ts';
 import { TAU, blob, drip, eyePair, jolt, legAt, mirrorX, newLeg, paint, smooth, splat, stepLen, walkAmount } from './set-a-shapes.ts';
+import { kegFrame, kegGeo, surfaceStrap } from '../ideas/models/weakparts.ts';
 
 const FUR = 0x8a5a3a;
 const FUR_DARK = 0x6a4129;
@@ -53,7 +55,28 @@ function bodyGeo(): THREE.BufferGeometry {
     splat(0.18, 0.6, 0.53, 0.07, 0.3, 0, 1, ARMY.jamLight),
     splat(-0.36, 0.3, 0.42, 0.08, -0.6, 0, 0.8),
   ];
-  return merge(parts);
+  return merge([...parts, ...kegOnBack(merge(parts))]);
+}
+
+/**
+ * Бочонок варенья за спиной (Т-23): центр — в осях тела там, где в обычном шаге стоит точка слабого места (−0,8 м назад,
+ * 1,5 м над ногами); тонкая рама прижата к спине, лямки — через плечи к животу.
+ */
+const KEG: readonly [number, number, number] = [0, 0.74, -0.885];
+function kegOnBack(torso: THREE.BufferGeometry): THREE.BufferGeometry[] {
+  const [x, y, z] = KEG;
+  const out = [kegGeo(0.31, 0.6).translate(x, y, z), kegFrame(0.31, 0.6, 0.04, 0.8).translate(x, y, z)];
+  for (const s of [-1, 1]) {
+    out.push(surfaceStrap(torso, [
+      { from: [s * 0.2, 1.06, -0.56], dir: [0, 0, 0] },
+      { from: [s * 0.27, 1.0, -2], dir: [0, 0, 1] },
+      { from: [s * 0.36, 2, -0.14], dir: [0, -1, 0] },
+      { from: [s * 0.37, 2, 0.12], dir: [0, -1, 0] },
+      { from: [s * 0.36, 0.75, 2], dir: [0, 0, -1] },
+      { from: [s * 0.3, 0.35, 2], dir: [0, 0, -1] },
+    ], 0.07, 0.018));
+  }
+  return out;
 }
 
 /** Лапища от плеча вниз с когтями; правая — в варенье по локоть */
