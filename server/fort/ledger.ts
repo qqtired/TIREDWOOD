@@ -8,6 +8,8 @@ import type { FtReward } from '../../shared/fort.ts';
 import { makeArsenalRun, type ArsenalRun } from './arsenal.ts';
 
 export interface FortRun {
+  /** FORT_IDEAS: ремесло живёт столько же, сколько золото забега. */
+  craft?: number;
   /** Очки лавки (старая лавка; у arsenal — золото) */
   pts: number;
   kills: number;

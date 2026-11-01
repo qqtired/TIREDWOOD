@@ -1,6 +1,8 @@
 // Арсенал «Крепости» (агент arsenal): золото матча 💰, награды за врагов, личная прокачка, стволы, гранаты, башни на
 // стенах, ворота и кристалл. Общее для сервера и клиента: цены и эффекты считают одни и те же функции — сервер решает,
 // клиент рисует лавку и подсказки. Шаг стволов и лестниц для предсказания — fortgun.ts / fortladder.ts.
+import type { FortIdeasEvent } from './fortideas.ts';
+import { KF_CRAB } from './fortkinds.ts';
 import { TICK_RATE } from './constants.ts';
 import { CRYSTAL_HP, GATE_HP, KF_AIR, KF_ARMORED, KF_BOSS, KF_SEA, KF_SUPER, ZK, Z_BOSS } from './fort.ts';
 
@@ -58,6 +60,7 @@ export function kindFlags(kind: number): KindFlags {
 
 /** База награды стрелку за тип (до роста по волнам): боссы — как Барон, части супер-босса (щупальца) — без награды */
 export function baseBounty(kind: number): number {
+  if ((ZK[kind]?.flags & KF_CRAB) !== 0) return 0;
   const f = kindFlags(kind);
   if (f.superBoss) return SUPERBOSS_BOUNTY;
   if (f.boss) return BASE_BOUNTY[Z_BOSS];
@@ -202,16 +205,19 @@ export function gunDamage(gun: number, dist: number, head: boolean): number {
 }
 
 /** Сколько патронов в магазине ствола при ступени «Магазина» */
-export function gunMag(gun: number, magTier: number): number {
+export function gunMag(gun: number, magTier: number | readonly number[]): number {
+  if (typeof magTier !== 'number') return magTier[gun] ?? magTier[0];
   return Math.max(1, Math.round((GUNS[gun] ?? GUNS[0]).mag * magMul(magTier)));
 }
 
 /** Между выстрелами, в четвертях тика (не меньше 1 тика) */
-export function gunIntervalQ(gun: number, rateTier: number): number {
+export function gunIntervalQ(gun: number, rateTier: number | WeaponTiming): number {
+  if (typeof rateTier !== 'number') return rateTier.intervalQ[gun] ?? rateTier.intervalQ[0];
   return Math.max(4, Math.round(((GUNS[gun] ?? GUNS[0]).interval * 4) / rateMul(rateTier)));
 }
 
-export function gunReload(gun: number, rateTier: number): number {
+export function gunReload(gun: number, rateTier: number | WeaponTiming): number {
+  if (typeof rateTier !== 'number') return rateTier.reload[gun] ?? rateTier.reload[0];
   return Math.max(12, Math.round((GUNS[gun] ?? GUNS[0]).reload * reloadMul(rateTier)));
 }
 
@@ -299,9 +305,10 @@ export function crystalMax(tier: number): number {
   return Math.round(CRYSTAL_HP * (1 + 0.2 * tier));
 }
 
-export const repairPrice = (wave: number): number => 40 + 4 * Math.max(1, wave);
-export const newGatePrice = (wave: number): number => 120 + 8 * Math.max(1, wave);
-export const crystalHealPrice = (wave: number): number => 60 + 6 * Math.max(1, wave);
+export const repairPrice = (wave: number, mul = 1): number => discounted(40 + 4 * Math.max(1, wave), mul);
+export const newGatePrice = (wave: number, mul = 1): number => discounted(120 + 8 * Math.max(1, wave), mul);
+export const crystalHealPrice = (wave: number, mul = 1): number => discounted(60 + 6 * Math.max(1, wave), mul);
+export const discounted = (price: number, mul = 1): number => mul === 1 ? price : Math.round(price * mul);
 export const gateTierPrice = (tier: number): number => nicePrice(200 * 1.6 ** tier);
 export const crystalTierPrice = (tier: number): number => nicePrice(250 * 1.6 ** tier);
 
@@ -336,6 +343,18 @@ export interface ArsenalRow {
   hv: number;
   /** Гранат в запасе */
   gr: number;
+  /** FORT_IDEAS: готовые значения, без повторения эффектов в клиентском предсказании. */
+  weapons?: WeaponTiming & { mag: number[]; nextMag?: number[] };
+  repairMul?: number;
+  towerPriceMul?: number;
+  grenadeMax?: number;
+  critBonus?: number;
+  crystalMax?: number;
+}
+
+export interface WeaponTiming {
+  intervalQ: readonly number[];
+  reload: readonly number[];
 }
 
 export function makeArsenalRow(): ArsenalRow {
@@ -345,14 +364,14 @@ export function makeArsenalRow(): ArsenalRow {
 /** Что нужно предсказанию стволов */
 export interface Loadout {
   heavy: number;
-  rate: number;
-  mag: number;
+  rate: number | WeaponTiming;
+  mag: number | readonly number[];
 }
 
 export function loadoutOf(row: ArsenalRow | undefined, out: Loadout): Loadout {
   out.heavy = row?.hv ?? 0;
-  out.rate = row?.lv[UP_RATE] ?? 0;
-  out.mag = row?.lv[UP_MAG] ?? 0;
+  out.rate = row?.weapons ?? row?.lv[UP_RATE] ?? 0;
+  out.mag = row?.weapons?.mag ?? row?.lv[UP_MAG] ?? 0;
   return out;
 }
 
@@ -407,11 +426,11 @@ export function shopRows(v: ShopView): PanelRow[] {
   const r = row.lv[UP_RATE] ?? 0;
   line(UP_RATE, `темп и перезарядка: ×${fmt(rateMul(r))} → ×${fmt(rateMul(r + 1))}`);
   const m = row.lv[UP_MAG] ?? 0;
-  line(UP_MAG, `+25 % патронов: ${gunMag(GUN_MARKER, m)} → ${gunMag(GUN_MARKER, m + 1)}`);
+  line(UP_MAG, `+25 % патронов: ${gunMag(GUN_MARKER, row.weapons?.mag ?? m)} → ${row.weapons?.nextMag?.[GUN_MARKER] ?? gunMag(GUN_MARKER, m + 1)}`);
   const c = row.lv[UP_CRIT] ?? 0;
-  line(UP_CRIT, `шанс урона ×2,5: ${Math.round(critChance(c) * 100)} % → ${Math.round(critChance(c + 1) * 100)} %`);
+  line(UP_CRIT, `шанс урона ×2,5: ${Math.round((critChance(c) + (row.critBonus ?? 0)) * 100)} % → ${Math.round((critChance(c + 1) + (row.critBonus ?? 0)) * 100)} %`);
   const pouch = row.lv[UP_POUCH] ?? 0;
-  const gmax = grenadeMax(pouch);
+  const gmax = row.grenadeMax ?? grenadeMax(pouch);
   const full = row.gr >= gmax;
   rows.push(money({ id: ACT_SHOP + ROW_GRENADES, key: 'gren', icon: 'gren', name: `Гранаты +${GREN_BUY}`, detail: `в запасе ${row.gr} из ${gmax} · G — бросок`,
     tier: -1, max: 0, price: grenadePrice(v.wave), locked: full, reason: full ? 'полный запас' : undefined }, gold));
@@ -435,6 +454,8 @@ export interface TeamView {
   gateTier: number;
   crystal: number;
   crystalTier: number;
+  repairMul?: number;
+  crystalMax?: number;
 }
 
 export function gateRows(v: TeamView): PanelRow[] {
@@ -443,37 +464,38 @@ export function gateRows(v: TeamView): PanelRow[] {
   const top = v.gateTier >= GATE_TIERS;
   return [
     money({ id: ACT_GATE, key: 'repair', icon: 'gate', name: 'Ремонт ворот', detail: `+25 % прочности · сейчас ${Math.round((v.gate / max) * 100)} %`, tier: -1, max: 0,
-      price: repairPrice(v.wave), locked: down || v.gate >= max, reason: down ? 'нужны новые ворота' : v.gate >= max ? 'ворота целы' : undefined }, v.gold),
+      price: repairPrice(v.wave, v.repairMul), locked: down || v.gate >= max, reason: down ? 'нужны новые ворота' : v.gate >= max ? 'ворота целы' : undefined }, v.gold),
     money({ id: ACT_GATE + 1, key: 'gatetier', icon: 'gate', name: 'Укрепить ворота', detail: `+25 % прочности навсегда: ${max} → ${gateMax(v.gateTier + 1)}`,
       tier: v.gateTier, max: GATE_TIERS, price: top ? 0 : gateTierPrice(v.gateTier), locked: top || down, reason: top ? 'МАКС' : down ? 'сначала новые ворота' : undefined }, v.gold),
-    money({ id: ACT_GATE + 2, key: 'newgate', icon: 'gate', name: 'Новые ворота', detail: `полная прочность ${max}`, tier: -1, max: 0, price: newGatePrice(v.wave),
+    money({ id: ACT_GATE + 2, key: 'newgate', icon: 'gate', name: 'Новые ворота', detail: `полная прочность ${max}`, tier: -1, max: 0, price: newGatePrice(v.wave, v.repairMul),
       locked: !down || !v.calm, reason: !down ? 'ворота стоят' : !v.calm ? 'ставят в передышку' : undefined }, v.gold),
   ];
 }
 
 export function crystalRows(v: TeamView): PanelRow[] {
-  const max = crystalMax(v.crystalTier);
+  const max = v.crystalMax ?? crystalMax(v.crystalTier);
+  const next = Math.round(crystalMax(v.crystalTier + 1) * max / crystalMax(v.crystalTier));
   const top = v.crystalTier >= CRYSTAL_TIERS;
   return [
     money({ id: ACT_CRYSTAL, key: 'heal', icon: 'crystal', name: 'Подлечить кристалл', detail: `+10 % прочности · сейчас ${Math.round((v.crystal / max) * 100)} %`, tier: -1, max: 0,
-      price: crystalHealPrice(v.wave), locked: v.crystal >= max, reason: v.crystal >= max ? 'кристалл цел' : undefined }, v.gold),
-    money({ id: ACT_CRYSTAL + 1, key: 'crystier', icon: 'crystal', name: 'Укрепить кристалл', detail: `+20 % прочности навсегда: ${max} → ${crystalMax(v.crystalTier + 1)}`,
+      price: crystalHealPrice(v.wave, v.repairMul), locked: v.crystal >= max, reason: v.crystal >= max ? 'кристалл цел' : undefined }, v.gold),
+    money({ id: ACT_CRYSTAL + 1, key: 'crystier', icon: 'crystal', name: 'Укрепить кристалл', detail: `+20 % прочности навсегда: ${max} → ${next}`,
       tier: v.crystalTier, max: CRYSTAL_TIERS, price: top ? 0 : crystalTierPrice(v.crystalTier), locked: top, reason: top ? 'МАКС' : undefined }, v.gold),
   ];
 }
 
 /** Точка башни: пустая — выбор типа (1–4); построена — улучшение (1) */
-export function towerRows(spot: number, type: number, level: number, gold: number, teamDmgMul: number): PanelRow[] {
+export function towerRows(spot: number, type: number, level: number, gold: number, teamDmgMul: number, priceMul = 1): PanelRow[] {
   const icons = ['ballista', 'cannon', 'tar', 'brazier'];
   if (type < 0) {
-    return TOWERS.map((t, i) => money({ id: ACT_TOWER + spot * 10 + i, key: `tw${i}`, icon: icons[i], name: t.name, detail: t.role, tier: -1, max: 0, price: t.price, locked: false }, gold));
+    return TOWERS.map((t, i) => money({ id: ACT_TOWER + spot * 10 + i, key: `tw${i}`, icon: icons[i], name: t.name, detail: t.role, tier: -1, max: 0, price: discounted(t.price, priceMul), locked: false }, gold));
   }
   const t = TOWERS[type];
   const top = level >= TOWER_MAX_LEVEL;
   const now = towerMul(level, teamDmgMul);
   const next = towerMul(level + 1, teamDmgMul);
   return [money({ id: ACT_TOWER + spot * 10 + TOWER_UPGRADE, key: `tw${type}`, icon: icons[type], name: `${t.name} → ур. ${level + 1}`,
-    detail: `${t.role} · сила ×${fmt(now)} → ×${fmt(next)}`, tier: level, max: TOWER_MAX_LEVEL, price: top ? 0 : towerUpgradePrice(type, level), locked: top, reason: top ? 'МАКС' : undefined }, gold)];
+    detail: `${t.role} · сила ×${fmt(now)} → ×${fmt(next)}`, tier: level, max: TOWER_MAX_LEVEL, price: top ? 0 : discounted(towerUpgradePrice(type, level), priceMul), locked: top, reason: top ? 'МАКС' : undefined }, gold)];
 }
 
 // ------------------------------------------------------------ хвост снимка: блок арсенала (после списка зомби)
@@ -526,8 +548,11 @@ export function decodeArsenalTail(buf: ArrayBuffer, at: number, t: ArsenalTail):
 export const NOPE_FAR = 0;
 export const NOPE_LOCKED = 1;
 export const NOPE_GOLD = 2;
+/** Сменить ремесло можно в передышке. */
+export const NOPE_CRAFT_PHASE = 3;
 
 export type ArsenalEvent =
+  | FortIdeasEvent
   // выстрел тяжёлого ствола: кто, ствол, откуда, куда (центральная дробина), чем кончился (0 — стена, 1 — зомби,
   // 2 — в никуда), нормаль стены
   | ['gshot', number, number, number, number, number, number, number, number, number, number, number, number]

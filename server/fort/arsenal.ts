@@ -28,7 +28,10 @@ import type { Zombie } from './horde.ts';
 import { tearWebAt, webSlowAt } from './boss-weaver.ts';
 import { makeRun, type FortRun } from './ledger.ts';
 import { addRankCount } from './ranks.ts';
-import { REPAIR_COOLDOWN_TICKS, REPAIR_WORK_TICKS, Z_CANOPY } from '../../shared/fortsiege.ts';
+import { CRAFT_RIFLE, ELITE_SCALE, Z_GOLDCRAB } from '../../shared/fortideas.ts';
+import { WEAK_MUL, weakHit, weakSpotWorld } from '../../shared/fortweak.ts';
+import { GUN_CROSSBOW, gunMag, gunIntervalQ, gunReload, loadoutOf } from '../../shared/fortarsenal.ts';
+import { REPAIR_COOLDOWN_TICKS, REPAIR_WORK_TICKS, Z_CANOPY, isSiegeKind } from '../../shared/fortsiege.ts';
 
 /** Деньги и покупки защитника на эту игру (живут в p.run.arsenal: вышел и вернулся — всё на месте) */
 export interface ArsenalRun {
@@ -95,6 +98,7 @@ interface Flying {
   g: Grenade;
   t: number;
   dmg: number;
+  radius: number;
 }
 
 interface Ball {
@@ -112,8 +116,17 @@ interface Burn {
   by: number;
 }
 
+interface RepairWorker { x: number; y: number; z: number; hurt: number }
+interface RepairWork extends RepairWorker {
+  pid: number; id: number; price: number; at: number;
+  /** Только FORT_IDEAS: платит начавший; время — лучшее из действующих ремёсел. */
+  workers?: Map<number, RepairWorker>;
+  progress: number;
+}
+
 /** Мелочь, которую отбрасывает дробь, граната и ядро */
 function knockable(z: Zombie): boolean {
+  if (z.kind === Z_GOLDCRAB) return false;
   if (z.kind === Z_BOSS || z.kind === Z_BRUTE || z.kind === Z_FLYER) return false;
   const f = kindFlags(z.kind);
   if (f.boss || f.armored || f.air || f.superBoss) return false;
@@ -126,7 +139,7 @@ interface HordeHooks {
 }
 
 export class Arsenal {
-  private repair: { pid: number; id: number; price: number; at: number; x: number; y: number; z: number; hurt: number } | null = null;
+  private repair: RepairWork | null = null;
   repairReady = 0;
   private readonly game: FortGame;
   readonly towers: TowerState[] = [];
@@ -134,6 +147,7 @@ export class Arsenal {
   readonly tarUntil: number[] = new Array(TOWER_SPOT_COUNT).fill(0);
   readonly tarAt: Array<{ x: number; z: number }> = TOWER_SPOTS.map((s) => ({ x: s.x + s.nx * 4, z: s.z + s.nz * 4 }));
   private grenades: Flying[] = [];
+  private grenadeTar: Array<{ id: number; x: number; z: number; until: number }> = [];
   private balls: Ball[] = [];
   private readonly burns = new Map<Zombie, Burn>();
   /** Общак волны (40 % наград), сбитых своих за волну, падали ли ворота */
@@ -148,7 +162,11 @@ export class Arsenal {
   private readonly who: Zombie[] = [];
   private readonly hit = makeRayHit();
   private readonly near = { t: 0 };
-  private readonly pos = { x: 0, y: 0, z: 0 };
+  private readonly pos = { x: 0, y: 0, z: 0, yaw: 0, tier: 0 };
+  private readonly scales: number[] = [];
+  private readonly yaws: number[] = [];
+  private readonly weakSpot: number[] = [];
+  private readonly accWeak: number[] = [];
   private readonly dir = { dirX: 0, dirY: 0, dirZ: 0 };
   private readonly pd = { dirX: 0, dirY: 0, dirZ: 0 };
   private readonly accDmg: number[] = [];
@@ -177,6 +195,7 @@ export class Arsenal {
     }
     this.tarUntil.fill(0);
     this.grenades = [];
+    this.grenadeTar = [];
     this.balls = [];
     this.burns.clear();
     this.pot = 0;
@@ -201,16 +220,27 @@ export class Arsenal {
   }
 
   loadout(p: FortPlayer, out: Loadout): Loadout {
-    const a = p.run.arsenal;
-    out.heavy = a.hv;
-    out.rate = a.lv[UP_RATE];
-    out.mag = a.lv[UP_MAG];
-    return out;
+    return loadoutOf(this.row(p), out);
   }
 
   row(p: FortPlayer): ArsenalRow {
     const a = p.run.arsenal;
-    return { g: Math.floor(a.gold), lv: a.lv.slice(), gn: a.gn, hv: a.hv, gr: a.gr };
+    return { g: Math.floor(a.gold), lv: a.lv.slice(), gn: a.gn, hv: a.hv, gr: a.gr,
+      ...(this.game.ideasEnabled ? {
+        weapons: {
+          // не больше 255: патроны в снимке — один байт (пулемёт с карточкой «Полный магазин» дал бы 325)
+          mag: GUNS.map((_, i) => Math.min(255, Math.round(gunMag(i, a.lv[UP_MAG]) * (this.game.ideas.has('mag') ? 1.3 : 1)))),
+          nextMag: GUNS.map((_, i) => Math.min(255, Math.round(gunMag(i, a.lv[UP_MAG] + 1) * (this.game.ideas.has('mag') ? 1.3 : 1)))),
+          intervalQ: GUNS.map((_, i) => Math.max(4, Math.round(gunIntervalQ(i, a.lv[UP_RATE]) * (this.game.ideas.has('squall') ? .8 : 1)))),
+          reload: GUNS.map((_, i) => gunReload(i, a.lv[UP_RATE])),
+        },
+        repairMul: this.game.ideas.repairMul(p), towerPriceMul: this.game.ideas.towerPrice(p),
+        grenadeMax: this.grenadeMax(p), critBonus: this.game.ideas.critBonus(p), crystalMax: this.crystalMax,
+      } : {}) };
+  }
+
+  grenadeMax(p: FortPlayer): number {
+    return grenadeMax(p.run.arsenal.lv[UP_POUCH]) + this.game.ideas.grenadeExtra(p);
   }
 
   towerStats(): FortTowerRow[] {
@@ -240,7 +270,7 @@ export class Arsenal {
     this.gateFell = false;
     for (const p of this.game.players.values()) {
       const a = p.run.arsenal;
-      const max = grenadeMax(a.lv[UP_POUCH]);
+      const max = this.grenadeMax(p);
       if (a.gr < max) {
         a.gr = Math.min(max, a.gr + GREN_PER_WAVE);
         this.game.event(['grens', p.id, a.gr]);
@@ -256,8 +286,9 @@ export class Arsenal {
     const bonus = this.game.waveGold;
     const share = list.length ? Math.round((this.pot * (clean ? CLEAN_MULT : 1)) / list.length) : 0;
     for (const p of list) {
-      this.credit(p.run.arsenal, share + bonus);
-      this.game.event(['pot', p.id, share, bonus, clean ? 1 : 0]);
+      const paid = this.credit(p.run.arsenal, share + bonus);
+      const shownShare = this.game.ideas.full ? Math.round(share * this.game.ideas.goldMul) : share;
+      this.game.event(['pot', p.id, shownShare, paid - shownShare, clean ? 1 : 0]);
     }
     this.pot = 0;
     this.game.touchRoster();
@@ -271,10 +302,12 @@ export class Arsenal {
     this.gateFell = true;
   }
 
-  private credit(a: ArsenalRun, v: number): void {
-    if (!(v > 0)) return;
+  credit(a: ArsenalRun, v: number): number {
+    if (!(v > 0)) return 0;
+    if (this.game.ideas.full) v = Math.round(v * this.game.ideas.goldMul);
     a.gold += v;
     a.earned += v;
+    return v;
   }
 
   // ------------------------------------------------------------ награды
@@ -288,7 +321,7 @@ export class Arsenal {
     // части супер-босса (щупальца Кракена) — без награды
     if (baseBounty(z.kind) <= 0) return;
     // ступень (элита ×2, чемпион ×5) и экипаж лодки — от орды агента fort; «вызвали раньше» — ×goldMul
-    const shooter = killBounty(z.kind, g.force, z.tier, z.crew) * g.goldMul;
+    const shooter = killBounty(z.kind, g.force, z.tier, z.crew) * g.goldMul * (g.ideas.has('bounty') ? 1.2 : 1);
     const total = shooter / KILL_SHARE;
     let given = 0;
     let dmgSum = 0;
@@ -303,10 +336,10 @@ export class Arsenal {
           if (!p) continue;
           const v = Math.round(part);
           if (v <= 0) continue;
-          this.credit(p.run.arsenal, v);
-          p.run.arsenal.killGold += v;
+          const paid = this.credit(p.run.arsenal, v);
+          p.run.arsenal.killGold += paid;
           given += part;
-          g.event(['gold', p.id, v, r2(z.x), r2(y), r2(z.z)]);
+          g.event(['gold', p.id, paid, r2(z.x), r2(y), r2(z.z)]);
         }
       }
     }
@@ -327,10 +360,10 @@ export class Arsenal {
       if (!p) continue;
       const amount = Math.round((part * v) / sum);
       if (amount <= 0) continue;
-      this.credit(p.run.arsenal, amount);
-      t.gold += amount;
+      const paid = this.credit(p.run.arsenal, amount);
+      t.gold += paid;
       given += (part * v) / sum;
-      this.game.event(['gold', p.id, amount, r2(x), r2(y), r2(z)]);
+      this.game.event(['gold', p.id, paid, r2(x), r2(y), r2(z)]);
     }
     return given;
   }
@@ -346,8 +379,8 @@ export class Arsenal {
     if (!list.length) return;
     const each = Math.round((amount * bountyMul(this.game.fort50Enabled ? this.game.force : this.game.wave) * (this.game.fort50Enabled ? F50_GOLD_MUL : 1)) / list.length);
     for (const p of list) {
-      this.credit(p.run.arsenal, each);
-      this.game.event(['gold', p.id, each, r2(x), r2(y), r2(z)]);
+      const paid = this.credit(p.run.arsenal, each);
+      this.game.event(['gold', p.id, paid, r2(x), r2(y), r2(z)]);
     }
     this.game.touchRoster();
   }
@@ -366,6 +399,7 @@ export class Arsenal {
     for (const z of g.horde.zombies) {
       if (!z.alive || n >= FORT_MAX_ALIVE) continue;
       const pos = this.pos;
+      pos.yaw = z.yaw; pos.tier = z.tier;
       if (rewind > 0) {
         if (!g.horde.sample(z, t, pos)) continue;
       } else {
@@ -379,6 +413,8 @@ export class Arsenal {
       tg[o + 2] = pos.z;
       tg[o + 3] = z.kind;
       this.who[n] = z;
+      this.scales[n] = g.eliteEnabled ? ELITE_SCALE[pos.tier] ?? 1 : 1;
+      this.yaws[n] = pos.yaw;
       n++;
     }
     return n;
@@ -399,20 +435,22 @@ export class Arsenal {
     const tg = this.tg;
     const side = (inp.buttons & BTN_SHOULDER) !== 0 ? -1 : 1;
     const ads = (inp.buttons & BTN_ADS) !== 0;
-    fortShotDir(s, p.ev.aimYaw, p.ev.aimPitch, p.ev.spread, p.seed, s.shots, side, ads, g.world, tg, n, this.dir);
+    fortShotDir(s, p.ev.aimYaw, p.ev.aimPitch, p.ev.spread, p.seed, s.shots, side, ads, g.world, tg, n, this.dir, this.scales);
     const ox = s.x;
     const oy = s.y + EYE_HEIGHT;
     const oz = s.z;
     const a = p.run.arsenal;
-    const crit = hashFloat(p.seed ^ 0x3c417, s.shots) < critChance(a.lv[UP_CRIT]);
+    const crit = hashFloat(p.seed ^ 0x3c417, s.shots) < critChance(a.lv[UP_CRIT]) + g.ideas.critBonus(p);
     const mul = dmgMul(a.lv[UP_DMG]) * (crit ? CRIT_MUL : 1);
     for (let i = 0; i < n; i++) {
       this.accDmg[i] = 0;
+      this.accWeak[i] = 0;
       this.accHits[i] = 0;
       this.accHead[i] = false;
     }
     this.touched.length = 0;
     const pellets = Math.max(1, spec.pellets);
+    const pierce = spec.pierce + (gun === GUN_CROSSBOW && g.ideas.has('pierce') ? 2 : 0);
     let ex = 0;
     let ey = 0;
     let ez = 0;
@@ -450,7 +488,7 @@ export class Arsenal {
       const firstBody = this.nextZombie(ox, oy, oz, dx, dy, dz, -1, wall, n);
       const targetMax = firstBody < 0 ? wall : this.near.t;
       const anchor = g.horde.siege.anchorRay(ox, oy, oz, dx, dy, dz, targetMax);
-      const meteor = g.waveEvents.meteorRay(ox, oy, oz, dx, dy, dz, anchor?.t ?? targetMax, Math.max(g.tick - MAX_REWIND_TICKS, Math.min(g.tick, inp.viewTick)));
+      const meteor = g.waveEvents.meteorRay(ox, oy, oz, dx, dy, dz, anchor?.t ?? targetMax, g.ideas.rewindTick(Math.max(g.tick - MAX_REWIND_TICKS, Math.min(g.tick, inp.viewTick))));
       const intercepted = !!meteor || !!anchor;
       if (meteor) {
         if (!hitMeteors.has(meteor.id)) { g.waveEvents.hitMeteor(meteor.id); hitMeteors.add(meteor.id); }
@@ -459,7 +497,7 @@ export class Arsenal {
         if (!hitAnchors.has(anchor.boat.id)) { g.horde.siege.hitRopeTarget(anchor.boat, p.id); hitAnchors.add(anchor.boat.id); }
         end = anchor.t; kind = 1;
       }
-      for (let hitN = 0; !intercepted && hitN < spec.pierce; hitN++) {
+      for (let hitN = 0; !intercepted && hitN < pierce; hitN++) {
         const i = this.nextZombie(ox, oy, oz, dx, dy, dz, from, wall, n);
         if (i < 0) break;
         const t = this.near.t;
@@ -469,23 +507,28 @@ export class Arsenal {
           kind = 1;
         }
         const hy = oy + dy * t;
-        const head = zombieHead(tg[i * FT_STRIDE + 3], hy, tg[i * FT_STRIDE + 1]);
-        const canopyLock = head && tg[i * FT_STRIDE + 3] === Z_CANOPY;
+        const o = i * FT_STRIDE, zkind = tg[o + 3];
+        const weak = g.ideasEnabled && weakSpotWorld(zkind, tg[o], tg[o + 1], tg[o + 2], this.yaws[i], this.scales[i], this.weakSpot)
+          && weakHit(ox, oy, oz, dx, dy, dz, t, this.weakSpot);
+        const head = !weak && zombieHead(zkind, hy, tg[o + 1], this.scales[i]);
+        const canopyLock = head && zkind === Z_CANOPY;
         const base = (gun === GUN_MARKER ? damageAt(t, canopyLock ? false : head) : gunDamage(gun, t, canopyLock ? false : head))
-          * (canopyLock ? 1.6 : 1);
+          * (weak ? WEAK_MUL : canopyLock ? 1.6 : 1) * (head && g.ideas.has('eye') ? 1.3 : 1)
+          * (g.ideas.craft(p) === CRAFT_RIFLE && isSiegeKind(zkind) ? 2 : 1);
         if (this.accHits[i] === 0) {
           this.touched.push(i);
           this.accPt[i * 3] = ox + dx * t;
           this.accPt[i * 3 + 1] = hy;
           this.accPt[i * 3 + 2] = oz + dz * t;
         }
-        this.accDmg[i] += base * mul * keep;
+        if (weak) this.accWeak[i] += base * mul * keep;
+        else this.accDmg[i] += base * mul * keep;
         this.accHits[i]++;
         if (head) this.accHead[i] = true;
         keep *= spec.pierceKeep;
       }
       // паутина Ткачихи рвётся там, куда попала дробина (server/fort/boss-weaver.ts)
-      tearWebAt(g, g.horde, ox + dx * end, oy + dy * end, oz + dz * end);
+      tearWebAt({ tick: g.enemyTick, event: (e) => g.event(e) }, g.horde, ox + dx * end, oy + dy * end, oz + dz * end);
       if (k === 0) {
         ex = ox + dx * end;
         ey = oy + dy * end;
@@ -498,6 +541,11 @@ export class Arsenal {
     for (const i of this.touched) {
       const z = this.who[i];
       if (!z.alive) continue;
+      if (z.kind === Z_GOLDCRAB) { g.ideas.crab.hit(z); continue; }
+      if (this.accWeak[i] > 0) {
+        g.event(['weak', z.id, p.id]); g.horde.stagger(z);
+        g.horde.damage(z, this.accWeak[i], p.id, false, this.accPt[i * 3], this.accPt[i * 3 + 1], this.accPt[i * 3 + 2], ox, oz, true);
+      }
       if (crit) g.event(['crit', z.id]);
       // отброс: дробь (3+ дробины) и болт — мелочь отлетает по направлению выстрела
       if (spec.knock > 0 && (pellets === 1 || this.accHits[i] >= 3) && knockable(z)) {
@@ -512,11 +560,11 @@ export class Arsenal {
 
   /** Ближайший зомби на луче дальше from и ближе maxT (номер в списке целей) */
   private nextZombie(ox: number, oy: number, oz: number, dx: number, dy: number, dz: number, from: number, maxT: number, n: number): number {
-    if (from < 0) return nearestZombie(ox, oy, oz, dx, dy, dz, maxT, this.tg, n, this.near);
+    if (from < 0) return nearestZombie(ox, oy, oz, dx, dy, dz, maxT, this.tg, n, this.near, this.scales);
     let best = maxT;
     let who = -1;
     for (let i = 0; i < n; i++) {
-      const t = zombieRay(ox, oy, oz, dx, dy, dz, this.tg, i);
+      const t = zombieRay(ox, oy, oz, dx, dy, dz, this.tg, i, this.scales[i]);
       if (t > from + 1e-4 && t < best) {
         best = t;
         who = i;
@@ -539,7 +587,7 @@ export class Arsenal {
     const gr = makeGrenade();
     grenadeLaunch(p.state.x, p.state.y, p.state.z, inp.yaw, inp.pitch, g.world, this.hit, gr);
     const id = this.nextGren++ & 0xffff;
-    this.grenades.push({ id, by: p.id, g: gr, t: GREN_FUSE, dmg: GREN_DMG * dmgMul(a.lv[UP_DMG]) });
+    this.grenades.push({ id, by: p.id, g: gr, t: GREN_FUSE, dmg: GREN_DMG * dmgMul(a.lv[UP_DMG]), radius: GREN_R * g.ideas.grenadeRadius(p) });
     g.event(['gren', p.id, id, gr.x, gr.y, gr.z, gr.vx, gr.vy, gr.vz]);
     g.touchRoster();
   }
@@ -547,7 +595,7 @@ export class Arsenal {
   /** Сбросы припасов агента fort зовут сюда: гранаты выдаёт арсенал. false — подсумок и так полон */
   grantSupply(p: FortPlayer, count = GREN_BUY): boolean {
     const a = p.run.arsenal;
-    const max = grenadeMax(a.lv[UP_POUCH]);
+    const max = this.grenadeMax(p);
     if (a.gr >= max) return false;
     a.gr = Math.min(max, a.gr + count);
     this.game.event(['grens', p.id, a.gr]);
@@ -558,8 +606,8 @@ export class Arsenal {
   /** Золото не за сбитого (ящик припасов): в кошелёк и «+N» над точкой */
   giveGold(p: FortPlayer, v: number, x: number, y: number, z: number): void {
     if (!(v > 0)) return;
-    this.credit(p.run.arsenal, v);
-    this.game.event(['gold', p.id, v, x, y, z]);
+    const paid = this.credit(p.run.arsenal, v);
+    this.game.event(['gold', p.id, paid, x, y, z]);
     this.game.touchRoster();
   }
 
@@ -574,7 +622,7 @@ export class Arsenal {
       if (!boom) {
         // задела зомби — сразу
         for (const z of g.horde.zombies) {
-          if (!z.alive) continue;
+          if (z.kind === Z_GOLDCRAB || !z.alive) continue;
           const k = ZK[z.kind] ?? ZK[0];
           if (Math.abs(f.g.y - (z.y + k.hcy)) > k.hry + 0.15) continue;
           if (Math.hypot(f.g.x - z.x, f.g.z - z.z) > k.hrx + 0.15) continue;
@@ -586,8 +634,13 @@ export class Arsenal {
         keep.push(f);
         continue;
       }
-      g.event(['boom', r2(f.g.x), r2(f.g.y), r2(f.g.z), GREN_R, 0, f.id]);
-      this.blast(f.g.x, f.g.y, f.g.z, GREN_R, f.dmg, GREN_EDGE / GREN_DMG, f.by, GREN_KNOCK);
+      g.event(['boom', r2(f.g.x), r2(f.g.y), r2(f.g.z), f.radius, 0, f.id]);
+      if (g.ideas.has('tar')) {
+        const pool = { id: f.id, x: f.g.x, z: f.g.z, until: g.tick + 4 * TICK_RATE };
+        this.grenadeTar.push(pool);
+        g.event(['gtar', pool.id, r2(pool.x), r2(pool.z), 3, pool.until]);
+      }
+      this.blast(f.g.x, f.g.y, f.g.z, f.radius, f.dmg, GREN_EDGE / GREN_DMG, f.by, GREN_KNOCK);
     }
     this.grenades = keep;
   }
@@ -601,7 +654,7 @@ export class Arsenal {
     const horde = g.horde as typeof g.horde & HordeHooks;
     if (knock > 0) {
       for (const zb of horde.zombies) {
-        if (!zb.alive || !knockable(zb)) continue;
+        if (zb.kind === Z_GOLDCRAB || !zb.alive || !knockable(zb)) continue;
         const dx = zb.x - x;
         const dz = zb.z - z;
         const d = Math.hypot(dx, dz);
@@ -616,7 +669,7 @@ export class Arsenal {
       return;
     }
     for (const zb of horde.zombies) {
-      if (!zb.alive) continue;
+      if (zb.kind === Z_GOLDCRAB || !zb.alive) continue;
       const k = ZK[zb.kind] ?? ZK[0];
       const cy = zb.y + k.hcy;
       const d = Math.max(0, Math.hypot(zb.x - x, cy - y, zb.z - z) - k.hrx * 0.6);
@@ -624,6 +677,10 @@ export class Arsenal {
       const f = 1 - (1 - edge) * (d / r);
       horde.damage(zb, dmg * f, by, false, zb.x, cy, zb.z);
     }
+  }
+
+  tarReplay(): FortEvent[] {
+    return this.grenadeTar.filter((p) => p.until > this.game.tick).map((p) => ['gtar', p.id, r2(p.x), r2(p.z), 3, p.until]);
   }
 
   // ------------------------------------------------------------ башни
@@ -648,7 +705,7 @@ export class Arsenal {
     let best: Zombie | null = null;
     let bp = Infinity;
     for (const z of g.horde.zombies) {
-      if (!z.alive) continue;
+      if (z.kind === Z_GOLDCRAB || !z.alive) continue;
       const k = ZK[z.kind] ?? ZK[0];
       const tx = z.x - ox;
       const ty = z.y + k.hcy - oy;
@@ -673,11 +730,11 @@ export class Arsenal {
       if (t.cd > 0) {
         // в паутине Ткачихи башня перезаряжается вдвое дольше (server/fort/boss-weaver.ts)
         const at = TOWER_SPOTS[i];
-        t.cd -= webSlowAt(g.horde, g.tick, at.x, at.y, at.z);
+        t.cd -= webSlowAt(g.horde, g.enemyTick, at.x, at.y, at.z);
         continue;
       }
       const spec = TOWERS[t.type];
-      const mul = towerMul(t.level, team);
+      const mul = towerMul(t.level, team) * g.ideas.towerDamage;
       const s = TOWER_SPOTS[i];
       const by = TOWER_BY + i;
       switch (t.type) {
@@ -691,7 +748,7 @@ export class Arsenal {
             t.cd = 6;
             break;
           }
-          t.cd = spec.every;
+          t.cd = spec.every * (g.ideas.has('towers') ? .8 : 1);
           const y = z.y + (ZK[z.kind]?.hcy ?? 1);
           g.event(['bolt', i, z.id, r2(z.x), r2(y), r2(z.z)]);
           g.horde.damage(z, spec.dmg * mul, by, false, z.x, y, z.z, s.x, s.z);
@@ -703,7 +760,7 @@ export class Arsenal {
             t.cd = 6;
             break;
           }
-          t.cd = spec.every;
+          t.cd = spec.every * (g.ideas.has('towers') ? .8 : 1);
           const d = Math.hypot(z.x - s.x, z.z - s.z);
           const flight = Math.max(6, Math.round((d / CANNON_SPEED) * TICK_RATE));
           // упреждение: куда зомби дойдёт за полёт ядра
@@ -722,7 +779,7 @@ export class Arsenal {
           let best: Zombie | null = null;
           let bd = 10;
           for (const z of g.horde.zombies) {
-            if (!z.alive || kindFlags(z.kind).air || z.y > 1.5 || insideFort(z.x, z.z)) continue;
+            if (z.kind === Z_GOLDCRAB || !z.alive || kindFlags(z.kind).air || z.y > 1.5 || insideFort(z.x, z.z)) continue;
             const d = Math.hypot(z.x - s.x, z.z - s.z);
             if (d < bd) {
               bd = d;
@@ -733,7 +790,7 @@ export class Arsenal {
             t.cd = 12;
             break;
           }
-          t.cd = spec.every;
+          t.cd = spec.every * (g.ideas.has('towers') ? .8 : 1);
           this.tarUntil[i] = g.tick + TAR_TICKS;
           this.tarAt[i].x = best.x;
           this.tarAt[i].z = best.z;
@@ -744,7 +801,7 @@ export class Arsenal {
           const oy = s.y + 1;
           let lit = 0;
           for (const z of g.horde.zombies) {
-            if (!z.alive || kindFlags(z.kind).air) continue;
+            if (z.kind === Z_GOLDCRAB || !z.alive || kindFlags(z.kind).air) continue;
             const k = ZK[z.kind] ?? ZK[0];
             if (Math.hypot(z.x - s.x, z.y + k.hcy - oy, z.z - s.z) > spec.range) continue;
             const b = this.burns.get(z);
@@ -763,7 +820,7 @@ export class Arsenal {
             t.cd = 6;
             break;
           }
-          t.cd = spec.every;
+          t.cd = spec.every * (g.ideas.has('towers') ? .8 : 1);
           g.event(['coals', i]);
           break;
         }
@@ -792,7 +849,7 @@ export class Arsenal {
     if (g.tick % DOT_EVERY !== 0) return;
     const sec = DOT_EVERY / TICK_RATE;
     for (const [z, b] of this.burns) {
-      if (!z.alive || g.tick >= b.until) {
+      if (z.kind === Z_GOLDCRAB || !z.alive || g.tick >= b.until) {
         this.burns.delete(z);
         continue;
       }
@@ -804,9 +861,9 @@ export class Arsenal {
       const t = this.towers[i];
       if (t.type !== TW_TAR) continue;
       const c = this.tarAt[i];
-      const dmg = TOWERS[TW_TAR].dmg * towerMul(t.level, team) * sec;
+      const dmg = TOWERS[TW_TAR].dmg * towerMul(t.level, team) * g.ideas.towerDamage * sec;
       for (const z of g.horde.zombies) {
-        if (!z.alive || z.y > 1.2 || kindFlags(z.kind).air) continue;
+        if (z.kind === Z_GOLDCRAB || !z.alive || z.y > 1.2 || kindFlags(z.kind).air) continue;
         if (Math.hypot(z.x - c.x, z.z - c.z) > TOWERS[TW_TAR].radius) continue;
         g.horde.damage(z, dmg, TOWER_BY + i, false, z.x, z.y + 0.3, z.z);
       }
@@ -816,6 +873,7 @@ export class Arsenal {
   /** Во сколько раз медленнее в точке (лужа смолы); для HordeHost.slow */
   slow(x: number, z: number): number {
     const tick = this.game.tick;
+    for (const pool of this.grenadeTar) if (pool.until > tick && Math.hypot(x - pool.x, z - pool.z) < 3) return TAR_SLOW;
     for (let i = 0; i < TOWER_SPOT_COUNT; i++) {
       if (this.tarUntil[i] <= tick) continue;
       const c = this.tarAt[i];
@@ -828,6 +886,7 @@ export class Arsenal {
   step(): void {
     this.stepRepair();
     this.stepGrenades();
+    this.grenadeTar = this.grenadeTar.filter((p) => p.until > this.game.tick);
     if (this.game.phase !== FT_WAVE) return;
     this.stepTowers();
     this.stepBalls();
@@ -841,7 +900,7 @@ export class Arsenal {
   }
 
   get crystalMax(): number {
-    return crystalMax(this.crystalTier);
+    return Math.round(crystalMax(this.crystalTier) * (this.game.ideas.has('crystal') ? 1.2 : 1));
   }
 
   private calm(): boolean {
@@ -870,10 +929,10 @@ export class Arsenal {
       row = shopRows({ wave: Math.max(1, g.wave), calm: this.calm(), row: this.row(p) })[id - ACT_SHOP];
     } else if (id >= ACT_GATE && id < ACT_GATE + 3) {
       st = this.station('gate');
-      row = gateRows({ ...this.teamView(), gold: a.gold })[id - ACT_GATE];
+      row = gateRows({ ...this.teamView(), gold: a.gold, repairMul: g.ideas.repairMul(p) })[id - ACT_GATE];
     } else if (id >= ACT_CRYSTAL && id < ACT_CRYSTAL + 2) {
       st = this.station('crystal');
-      row = crystalRows({ ...this.teamView(), gold: a.gold })[id - ACT_CRYSTAL];
+      row = crystalRows({ ...this.teamView(), gold: a.gold, repairMul: g.ideas.repairMul(p), crystalMax: this.crystalMax })[id - ACT_CRYSTAL];
     } else if (id >= ACT_TOWER) {
       const spot = Math.floor((id - ACT_TOWER) / 10);
       const k = (id - ACT_TOWER) % 10;
@@ -881,7 +940,7 @@ export class Arsenal {
       if (!t || (k >= TW_TYPES && k !== TOWER_UPGRADE)) return true;
       if (!g.towerAvailable(spot)) { g.event(['anope', p.id, id, NOPE_LOCKED]); return true; }
       st = this.station('tower', spot);
-      row = towerRows(spot, t.type, t.level, a.gold, this.teamDmgMul()).find((r) => r.id === id);
+      row = towerRows(spot, t.type, t.level, a.gold, this.teamDmgMul(), g.ideas.towerPrice(p)).find((r) => r.id === id);
     }
     if (!row || !st) return true;
     // отказ — событием: панель у игрока открыта, причину покажет в ней (общий тост панель бы не услышала)
@@ -893,6 +952,15 @@ export class Arsenal {
       g.event(['anope', p.id, id, NOPE_LOCKED]);
       return true;
     }
+    if (g.ideasEnabled && this.repair?.id === id && this.repair.workers) {
+      const r = this.repair;
+      if (!r.workers!.has(p.id)) {
+        r.workers!.set(p.id, { x: p.state.x, y: p.state.y, z: p.state.z, hurt: p.hurtTick });
+        r.at = g.tick + Math.ceil((1 - r.progress) * this.repairTicks(r));
+        for (const who of r.workers!.keys()) g.event(['repair', who, id, r.at, this.repairReady, 0]);
+      }
+      return true;
+    }
     if (row.price > a.gold) {
       g.event(['anope', p.id, id, NOPE_GOLD]);
       return true;
@@ -902,8 +970,9 @@ export class Arsenal {
         g.event(['repair', p.id, id, this.repair?.at ?? 0, this.repairReady, 3]);
         return true;
       }
-      this.repair = { pid: p.id, id, price: row.price, at: g.tick + REPAIR_WORK_TICKS,
-        x: p.state.x, y: p.state.y, z: p.state.z, hurt: p.hurtTick };
+      this.repair = { pid: p.id, id, price: row.price, at: g.tick + Math.round(REPAIR_WORK_TICKS * g.ideas.repairTime(p)),
+        x: p.state.x, y: p.state.y, z: p.state.z, hurt: p.hurtTick, progress: 0,
+        ...(g.ideasEnabled ? { workers: new Map([[p.id, { x: p.state.x, y: p.state.y, z: p.state.z, hurt: p.hurtTick }]]) } : {}) };
       g.event(['repair', p.id, id, this.repair.at, this.repairReady, 0]);
       return true;
     }
@@ -918,12 +987,21 @@ export class Arsenal {
     const r = this.repair;
     if (!r) return;
     this.repair = null;
-    this.game.event(['repair', r.pid, r.id, 0, this.repairReady, 2]);
+    for (const who of r.workers?.keys() ?? [r.pid]) this.game.event(['repair', who, r.id, 0, this.repairReady, 2]);
   }
 
   repairReplay(): FortEvent[] {
     const r = this.repair;
-    return r ? [['repair', r.pid, r.id, r.at, this.repairReady, 0]] : [];
+    return r ? [...(r.workers?.keys() ?? [r.pid])].map((who) => ['repair', who, r.id, r.at, this.repairReady, 0]) : [];
+  }
+
+  private repairTicks(r: RepairWork): number {
+    let mul = 1;
+    for (const id of r.workers?.keys() ?? [r.pid]) {
+      const p = this.game.players.get(id);
+      if (p) mul = Math.min(mul, this.game.ideas.repairTime(p));
+    }
+    return Math.round(REPAIR_WORK_TICKS * mul);
   }
 
   private stepRepair(): void {
@@ -936,13 +1014,28 @@ export class Arsenal {
       || Math.hypot(p.state.x - r.x, p.state.y - r.y, p.state.z - r.z) > .5
       || (r.id === ACT_GATE && (g.gate <= 0 || g.gate >= this.gateMax))
       || (r.id === ACT_CRYSTAL && (g.crystal <= 0 || g.crystal >= this.crystalMax))) { this.cancelRepair(); return; }
-    if (g.tick < r.at) return;
+    if (r.workers) {
+      let changed = false;
+      for (const [id, start] of r.workers) {
+        if (id === r.pid) continue;
+        const q = g.players.get(id);
+        if (!q?.alive || q.hurtTick !== start.hurt || q.firingUntil > g.tick || !g.atStation(q, st)
+          || Math.hypot(q.state.x - start.x, q.state.y - start.y, q.state.z - start.z) > .5) {
+          r.workers.delete(id); changed = true; g.event(['repair', id, r.id, 0, this.repairReady, 2]);
+        }
+      }
+      const duration = this.repairTicks(r);
+      r.progress += 1 / duration;
+      r.at = g.tick + Math.max(0, Math.ceil((1 - r.progress - 1e-9) * duration));
+      if (changed) for (const id of r.workers.keys()) g.event(['repair', id, r.id, r.at, this.repairReady, 0]);
+      if (r.progress < 1 - 1e-9) return;
+    } else if (g.tick < r.at) return;
     if (p.run.arsenal.gold < r.price) { this.cancelRepair(); g.event(['anope', p.id, r.id, NOPE_GOLD]); return; }
     p.run.arsenal.gold -= r.price;
     this.apply(p, r.id, r.price);
     this.repair = null;
     this.repairReady = g.tick + REPAIR_COOLDOWN_TICKS;
-    g.event(['repair', p.id, r.id, g.tick, this.repairReady, 1]);
+    for (const who of r.workers?.keys() ?? [p.id]) g.event(['repair', who, r.id, g.tick, this.repairReady, 1]);
     g.event(['abuy', p.id, r.id]);
     g.flushRoster();
   }
@@ -955,10 +1048,10 @@ export class Arsenal {
       if (r < 4 || r === ROW_POUCH) {
         const line = r === ROW_POUCH ? UP_POUCH : r;
         a.lv[line] = Math.min(a.lv[line] + 1, 99);
-        if (line === UP_POUCH) a.gr = Math.min(grenadeMax(a.lv[UP_POUCH]), a.gr + 1);
+        if (line === UP_POUCH) a.gr = Math.min(this.grenadeMax(p), a.gr + 1);
         if (line === UP_MAG || line === UP_RATE) this.rearm(p);
       } else if (r === ROW_GRENADES) {
-        a.gr = Math.min(grenadeMax(a.lv[UP_POUCH]), a.gr + GREN_BUY);
+        a.gr = Math.min(this.grenadeMax(p), a.gr + GREN_BUY);
       } else {
         const gun = r - ROW_GUN0 + 1;
         if (gun > GUN_MARKER && gun < GUN_COUNT) {
@@ -1014,7 +1107,7 @@ export class Arsenal {
   }
 
   /** Сменились ствол или магазин: оба ствола полные, предсказание клиента — заново от сервера */
-  private rearm(p: FortPlayer): void {
+  rearm(p: FortPlayer): void {
     this.loadout(p, p.load);
     refillFort(p.state, p.load);
     p.selfReset = true;

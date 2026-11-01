@@ -2,7 +2,7 @@
 // Бриф с решениями владельца — docs/fort50/brief-ideas.md. Числа меняет ведущий; имена и коды — договор групп.
 
 /** Золотой краб (Т-16) — новый вид в орде. В shared/fortkinds.ts — тот же номер (Z_KINDS = 32) и строка ZK */
-export const Z_GOLDCRAB = 31;
+export { Z_GOLDCRAB, ZS_CRAB_DIVE } from './fortkinds.ts';
 
 // ------------------------------------------------------------ Т-4 ремесло
 
@@ -123,6 +123,17 @@ export interface FortIdeasMsg {
   /** Идёт голосование: три карточки, голоса, свой голос (−1 — нет), тик конца */
   vote: { ids: string[]; votes: number[]; mine: number; end: number } | null;
 }
+
+export type FortIdeasEvent =
+  | ['craft', number, number]
+  | ['tramp', number, number]
+  | ['card', string]
+  | ['weak', number, number]
+  | ['slow', number]
+  | ['crab', 'run' | 'caught' | 'gone', number]
+  | ['crabgold', number, number, number]
+  /** Лужа гранаты: id, x, z, радиус, тик конца (смола котла, без урона). */
+  | ['gtar', number, number, number, number, number];
 
 // События в потоке fev (как 'zdie', 'crit'):
 //   ['craft', pid, craft]           — сменил ремесло

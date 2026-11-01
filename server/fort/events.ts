@@ -4,7 +4,7 @@
 // только видимость на клиенте. Клиент рисует метки (client/fort/marks.ts) и эффекты (eventfx.ts, помощник fort-fx).
 import { TICK_RATE } from '../../shared/constants.ts';
 import { ZK, ZS_METEOR, type FortEvent } from '../../shared/fort.ts';
-import { KF_AIR, Z_BOAT, isBossKind } from '../../shared/fortkinds.ts';
+import { KF_AIR, Z_BOAT, Z_GOLDCRAB, isBossKind } from '../../shared/fortkinds.ts';
 import {
   CRATE_DOWN, CRATE_FALL, CRATE_NONE, EV_FOG, EV_GOLD, EV_METEORS, EV_NONE, EV_SUPPLY, METEOR_COUNT, METEOR_CROWD_EVERY, METEOR_GATE, METEOR_PLAYER,
   METEOR_R, METEOR_TICKS, METEOR_WARN_TICKS, METEOR_ZOMBIE, SUPPLY_FALL_TICKS, SUPPLY_FIELD, SUPPLY_PICK_R, SUPPLY_TOUCH_R,
@@ -278,7 +278,7 @@ export class WaveEvents {
     const ground = this.ground;
     ground.length = 0;
     for (const z of zs) {
-      if (z.alive && z.kind !== Z_BOAT && !isBossKind(z.kind) && !(ZK[z.kind].flags & KF_AIR) && z.y <= 0.5) ground.push(z);
+      if (z.alive && z.kind !== Z_BOAT && z.kind !== Z_GOLDCRAB && !isBossKind(z.kind) && !(ZK[z.kind].flags & KF_AIR) && z.y <= 0.5) ground.push(z);
     }
     let best = -1;
     for (let tries = 0; tries < 10 && ground.length; tries++) {

@@ -32,7 +32,9 @@ export const Z_LESHY = 19;
 /** «Крепость 50» (shared/fortbosses50.ts): Избушка — финал 50-й волны, Пеликан-Бомбардир — 35-я (летает, сбитый ходит пешком) */
 export const Z_HUT = 29;
 export const Z_PELICAN = 30;
-export const Z_KINDS = 31;
+export const Z_GOLDCRAB = 31;
+export const Z_KINDS = 32;
+export const ZS_CRAB_DIVE = 75;
 export { Z_ROPECRAB, Z_JAMPUMP, Z_CANOPY, Z_FOREMAN, Z_CRABCRANE, Z_MILLER, Z_SIEGE_TOWER, Z_BATTERY, Z_SPRING } from './fortsiege.ts';
 
 /** Боссы по кругу на 7-й, 14-й, 21-й … волне (директор — FEATURES.bosses, интерфейс — «дальше босс») */
@@ -44,6 +46,7 @@ export const KF_SEA = 2;
 export const KF_BOSS = 4;
 export const KF_ARMORED = 8;
 export const KF_SUPER = 16;
+export const KF_CRAB = 32;
 
 export interface ZombieKind {
   name: string;
@@ -111,6 +114,7 @@ export const ZK: readonly ZombieKind[] = [
   { name: 'Гриб-пружинка', hp: 180, speed: 3.6, gateDps: 3, crystalDps: 4, hit: 8, pts: 18, cost: 3, first: 9, flags: 0, r: 0.38, hrx: 0.58, hry: 0.58, hcy: 0.52, headY: 0.65, color: 0xb06ad8, icon: '🍄', hint: 'подбрасывает соседей на стену · три попадания в шляпку сминают трамплин' },
   { name: 'Избушка', hp: 2200, speed: 1.8, gateDps: 0, crystalDps: 0, hit: 30, pts: 500, cost: 0, first: NEVER, flags: KF_BOSS, r: 2.6, hrx: 2.8, hry: 5.4, hcy: 6.0, headY: 8.6, color: 0x8b6c4c, icon: '🛖', hint: 'пинает стену и бомбит из трубы · после пинка дверь открыта — бей в печь' },
   { name: 'Пеликан-Бомбардир', hp: 2200, speed: 2.2, gateDps: 0, crystalDps: 0, hit: 24, pts: 500, cost: 0, first: NEVER, flags: KF_BOSS | KF_AIR, r: 1.4, hrx: 1.6, hry: 1.4, hcy: 2.25, headY: 3.1, color: 0xf1e9da, icon: '🪶', hint: 'бомбит ход стены и хватает в зоб · после пике зоб открыт — бей' },
+  { name: 'Золотой краб', hp: 1e9, speed: 3.5, gateDps: 0, crystalDps: 0, hit: 0, pts: 0, cost: 0, first: NEVER, flags: KF_CRAB, r: 0.5, hrx: 0.7, hry: 0.45, hcy: 0.45, headY: 99, color: 0xe8b947, icon: '🦀', hint: 'бежит к морю · попадания — монеты всем' },
 ];
 
 // ------------------------------------------------------------ умения (общие для сервера и меток на клиенте)
@@ -210,7 +214,7 @@ export function isBossKind(kind: number): boolean {
 
 /** Ходит по земле (поле расстояний, расталкивание): не летает, не плавает, не босс */
 export function isWalkerKind(kind: number): boolean {
-  return (kindOf(kind).flags & (KF_AIR | KF_SEA | KF_BOSS)) === 0;
+  return (kindOf(kind).flags & (KF_AIR | KF_SEA | KF_BOSS | KF_CRAB)) === 0;
 }
 
 /**
