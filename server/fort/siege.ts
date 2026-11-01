@@ -91,7 +91,7 @@ export class Siege {
       const warning = this.warnings.get(z.id);
       if (warning && warning[7] >= this.host.tick) events.push([...warning]);
       // An old walker using BOARD needs a flight clock, never a new mechanical weak-point counter.
-      if (z.kind < S.Z_ROPECRAB && !z.anchor) continue;
+      if (!S.isSiegeKind(z.kind) && !z.anchor) continue;
       const total = this.hitTotal(z);
       events.push(['siege', z.id, z.kind === Z_BOAT || z.kind === S.Z_ROPECRAB ? 1 : z.kind === S.Z_CANOPY ? 2
         : z.kind === S.Z_CRABCRANE || z.kind === S.Z_MILLER ? 3 : 0, Math.max(0, total - z.siegeHits), total, z.state]);
@@ -116,7 +116,7 @@ export class Siege {
   /** The ordinary tick countdown preserves end. A timer reset in the same state creates a new start. */
   private syncPhase(z: Zombie): void {
     if (!z.alive) return;
-    if (z.kind < S.Z_ROPECRAB && !z.anchor && (z.state < S.ZS_SIEGE_APPROACH || z.state > S.ZS_BOARD)) {
+    if (!S.isSiegeKind(z.kind) && !z.anchor && (z.state < S.ZS_SIEGE_APPROACH || z.state > S.ZS_BOARD)) {
       this.phases.delete(z.id);
       this.clearWarning(z.id);
       return;
@@ -195,7 +195,7 @@ export class Siege {
       return true;
     }
     if (z.kind === Z_BOAT) return this.boat(z);
-    if (z.kind < S.Z_ROPECRAB) return false;
+    if (!S.isSiegeKind(z.kind)) return false;
     if (z.kind === S.Z_CRABCRANE || z.kind === S.Z_MILLER) { this.boss(z); return true; }
     if (z.kind === S.Z_CANOPY) {
       const wasFolded = z.state === S.ZS_SIEGE_OPEN;
@@ -214,7 +214,7 @@ export class Siege {
 
   /** Одно прицельное попадание за вызов damage: дробовик уже свёл дробины, автобашни не чинят игроку контрход. */
   precision(z: Zombie, by: number): void {
-    if (by <= 0 || by >= 250 || z.kind < S.Z_ROPECRAB || z.state === S.ZS_SIEGE_SPENT) return;
+    if (by <= 0 || by >= 250 || !S.isSiegeKind(z.kind) || z.state === S.ZS_SIEGE_SPENT) return;
     if (z.kind === S.Z_CANOPY) {
       if (z.state !== S.ZS_SIEGE_OPEN) this.host.sapped?.(by);
       z.state = S.ZS_SIEGE_OPEN; z.t = S.CANOPY_OPEN_TICKS; z.siegeHits = 1; this.progress(z); this.syncPhase(z); return;
@@ -250,7 +250,7 @@ export class Siege {
   }
 
   death(z: Zombie): void {
-    if (z.kind >= S.Z_ROPECRAB || z.anchor) this.host.event(['warnend', z.id]);
+    if (S.isSiegeKind(z.kind) || z.anchor) this.host.event(['warnend', z.id]);
     this.warnings.delete(z.id);
     this.phases.delete(z.id);
   }

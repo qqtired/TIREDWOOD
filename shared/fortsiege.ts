@@ -69,6 +69,8 @@ export const SIEGE_METEOR_CRYSTAL = 420;
 
 /** Число попаданий одной очередью выстрела (дробины не считаются отдельными выстрелами). */
 export function meteorHits(humans: number): number { return 8 * Math.max(1, Math.min(6, Math.floor(humans))); }
+/** Вид осады (Канатник … Гриб-пружинка); боссы «Крепости 50» (Избушка, Пеликан) идут после них, но не осада */
+export function isSiegeKind(kind: number): boolean { return kind >= Z_ROPECRAB && kind <= Z_SPRING; }
 /** Priority bodies share the wave budget, but gain personal durability in a larger team. */
 export function siegeBodyMul(kind: number, humans: number): number {
   return (kind >= Z_ROPECRAB && kind <= Z_FOREMAN || kind >= Z_SIEGE_TOWER && kind <= Z_SPRING)

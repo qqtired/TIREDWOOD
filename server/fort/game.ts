@@ -10,7 +10,7 @@ import {
   CRYSTAL_HP, END_TICKS, FORT_HP, FORT_MAX_HUMANS, FORT_REGEN_DELAY, FORT_REGEN_EVERY, FORT_RESPAWN_TICKS, FORT_SNAP_EVERY, FORT_TOP,
   FORT_WAVES, FT_BREAK, FT_END, FT_GATHER, FT_WAVE, GATE_HP, GATHER_TICKS, READY_TICKS, ZK, type FortEvent, type FortPlayerRow,
   type FortResultRow, RALLY_TICKS, RALLY_COOLDOWN, RALLY_MITIGATION, USE_RALLY_HOTKEY, Z_BOAT, type FortRunRec, type FortStatus, type FortWaveCard,
-  type FtReward,
+  type FtReward, Z_TENTACLE, isBossKind,
 } from '../../shared/fort.ts';
 import {
   CRATE_NONE, EARLY_BONUS, EV_FOG, EV_GOLD, EV_METEORS, EV_NONE, EV_SUPPLY, GOLD_MUL, breakSecondsAfter, isBossWave, isSuperWave, supplyGold,
@@ -786,6 +786,17 @@ export class FortGame implements HordeHost, EventHost {
     }
   }
 
+  /** Пеликан несёт в зобе (Ф50): ноги — в точке, скорость 0; клиент берёт положение у сервера, а не у предсказания */
+  holdPlayer(pid: number, x: number, y: number, z: number): void {
+    const p = this.players.get(pid);
+    if (!p?.alive) return;
+    const s = p.state;
+    s.x = x; s.y = y; s.z = z;
+    s.vx = s.vy = s.vz = 0;
+    s.dashT = 0;
+    p.selfReset = true;
+  }
+
   traceAttack(ox: number, oy: number, oz: number, tx: number, ty: number, tz: number, out: { x: number; y: number; z: number }): boolean {
     const dx = tx - ox;
     const dy = ty - oy;
@@ -1029,6 +1040,11 @@ export class FortGame implements HordeHost, EventHost {
     if (this.debug && cmd.toLowerCase() === 'clear') {
       // разработка: волна отбита (орда убрана — в ближайший тик сработает «волна отбита»)
       if (this.phase === FT_WAVE) this.horde.clear();
+      return;
+    }
+    if (this.debug && cmd.toLowerCase() === 'thin') {
+      // разработка: убрать всех, кроме боссов (посмотреть босса без давки у ворот)
+      if (this.phase === FT_WAVE) for (const z of this.horde.zombies) if (z.alive && !isBossKind(z.kind) && z.kind !== Z_TENTACLE) this.horde.kill(z, 0);
       return;
     }
     if (this.debug && cmd.toLowerCase() === 'lose') {

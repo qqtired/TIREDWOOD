@@ -13,6 +13,8 @@ import {
   ZS_WV_SWEEP, ZS_WV_WEB,
 } from '../../shared/fort.ts';
 
+import { ZS_PL_DIVE, f50BossMark, f50BossTicks } from '../../shared/fortbosses50.ts';
+
 const RED = 0xff6043;
 /** Голубое — окно для урона (булава щупальца лежит после удара) */
 const OPEN = 0x5fe3f0;
@@ -54,6 +56,14 @@ const SIGNALS: Readonly<Record<number, { total: number; radius: number; color: n
  * состоянию); progress 0…1 — заполнение к моменту удара.
  */
 export function attackSignal(state: number, wind: number, radius = 0): { radius: number; progress: number; color: number; fill: number } | null {
+  // Избушка и Пеликан «Крепости 50»: состояние длится весь клип, метка — до удара (дальше — доигрывает движение)
+  const f50 = f50BossMark(state);
+  if (f50) {
+    const left = wind - f50.hitLeft;
+    if (left < 0) return null;
+    const color = state === ZS_PL_DIVE ? 0xe48cf3 : RED;
+    return { radius: radius > 0 ? radius : f50.r, progress: Math.max(0, Math.min(1, 1 - left / Math.max(1, f50BossTicks(state) - f50.hitLeft))), color, fill: color };
+  }
   const fly = state === ZS_FLY_WARN || state === ZS_FLY_DIVE;
   if (fly) {
     const total = FLY_WARN_TICKS + FLY_DIVE_TICKS;

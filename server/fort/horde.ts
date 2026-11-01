@@ -9,7 +9,7 @@ import {
   FLY_CRYSTAL_DMG, FLY_DIVE_TICKS, FLY_R, FLY_RECOVER_TICKS, FLY_WARN_TICKS,
   CLIMB_DROP_TICKS, CLIMB_SPEED, CLIMB_TOP_TICKS, FORT_MAX_ALIVE, POP_CRYSTAL, POP_FUSE_TICKS, POP_GATE, POP_PLAYER, POP_R, POP_ZOMBIE, ZK, ZS_ATTACK, ZS_CLIMB,
   ZS_DROP, ZS_TOP, ZS_WALK, Z_AGGRO, Z_BLOATER, Z_CLIMBER, Z_GATE_EVERY, Z_GATE_GAP, Z_HIT_EVERY, Z_KINDS, Z_STUCK_TICKS,
-  Z_BOSS, Z_BRUTE, Z_FLYER, ZS_BOSS_APPROACH, ZS_BOSS_BOMB, ZS_BOSS_GATE, ZS_BOSS_OPEN, ZS_BOSS_PULSE,
+  Z_BOSS, Z_BRUTE, Z_FLYER, ZS_BOSS_APPROACH, ZS_BOSS_BOMB, ZS_BOSS_GATE, ZS_BOSS_PULSE,
   ZS_FLY_DIVE, ZS_FLY_RECOVER, ZS_FLY_WARN, ZS_BARREL, ZS_PLANT, ZS_SPIT, ZS_CHARGE, ZS_CHARGE_WARN, ZS_QUAKE, ZS_STOMP, ZS_THROW,
   ZS_BOAT, ZS_HOP,
   ZS_KRAKEN_DIVE, ZS_KRAKEN_SPIT, ZS_TENT_REST, ZS_TENT_SLAM, Z_KRAKEN, Z_TENTACLE,
@@ -28,11 +28,14 @@ import {
 import { CLIMBS, CLIMB_SEA_E, CLIMB_SEA_W, CRYSTAL, GATE, PARAPET_H, PEDESTAL, ROADS, WALL_H, WALL_T, insideFort } from '../../shared/fortmap.ts';
 import { ZF_CARRY, ZF_CREW, ZF_LIT, ZF_RAGE, ZF_SHIELD, type ZombieSnap } from '../../shared/fortnet.ts';
 import { KRAKEN_DIVE_R, KRAKEN_SPIT_R, TENT_SLAM_R } from '../../shared/fortkraken.ts';
-import { raging, stepBaron, stepGolem, stepRam, type BossCtx } from './bosses.ts';
+import { stepBaron, stepGolem, stepRam, type BossCtx } from './bosses.ts';
 import { stepLeshy } from './boss-leshy.ts';
 import { stepPumpkin } from './boss-pumpkin.ts';
 import { stepWeaver } from './boss-weaver.ts';
-import { Z_LESHY, Z_PUMPKIN, Z_WEAVER } from '../../shared/fortkinds.ts';
+import { Z_HUT, Z_LESHY, Z_PELICAN, Z_PUMPKIN, Z_WEAVER } from '../../shared/fortkinds.ts';
+import { bossExposed, f50Rage } from './boss50.ts';
+import { stepHut } from './boss-hut.ts';
+import { stepPelican } from './boss-pelican.ts';
 import { newBossRadius } from '../../shared/fortbosses.ts';
 import { stepBoat, stepHop, type SeaCtx } from './sea.ts';
 import { krakenArmor, stepKraken, stepTentacle, tentacleRage } from './kraken.ts';
@@ -43,7 +46,7 @@ import {
 } from '../../shared/fort50.ts';
 import { Z_WALKER } from '../../shared/fortkinds.ts';
 import { Siege } from './siege.ts';
-import { BOAT_ANCHOR_FLAG, SIEGE_SLOT_RESERVE, Z_ROPECRAB, ZS_SIEGE_APPROACH, ZS_SIEGE_OPEN, ZS_SIEGE_ACTION, ZS_SIEGE_WINDUP, ZS_SIEGE_DEPLOY, Z_JAMPUMP, Z_MILLER, siegeBodyMul } from '../../shared/fortsiege.ts';
+import { BOAT_ANCHOR_FLAG, SIEGE_SLOT_RESERVE, Z_ROPECRAB, ZS_SIEGE_APPROACH, ZS_SIEGE_ACTION, ZS_SIEGE_WINDUP, ZS_SIEGE_DEPLOY, Z_JAMPUMP, Z_MILLER, siegeBodyMul } from '../../shared/fortsiege.ts';
 
 /** История для отката выстрелов: тиков (откат — до MAX_REWIND_TICKS) */
 export const ZHIST_TICKS = 32;
@@ -73,6 +76,8 @@ export interface HordeHost {
   hitPlayer(zid: number, pid: number, dmg: number): void;
   /** Ограниченный толчок вдоль опоры, без сбрасывания через бруствер. */
   pushPlayer?(pid: number, dx: number, dz: number): void;
+  /** Держит человека в точке (ноги) — Пеликан несёт в зобе; клиент берёт положение у сервера */
+  holdPlayer?(pid: number, x: number, y: number, z: number): void;
   /** First solid obstacle on an attack segment. out is collision point (or endpoint); true means blocked. */
   traceAttack(ox: number, oy: number, oz: number, tx: number, ty: number, tz: number, out: { x: number; y: number; z: number }): boolean;
   /** Во сколько раз медленнее в этой точке (лужи варенья): 1 — как обычно */
@@ -401,7 +406,7 @@ export class Horde {
   hpFor(kind: number, tier: number, hpHumans = this.hpHumans): number {
     if (isBossKind(kind)) {
       if (this.plan && this.plan.boss === kind) return this.plan.bossHp * bossTeamMul(hpHumans) / bossTeamMul(this.plan.defenders);
-      return BOSS_BASE_HP * waveHpMul(this.force) * bossTeamMul(hpHumans) * (kind === Z_GOLEM ? 3 : 1);
+      return BOSS_BASE_HP * waveHpMul(this.force) * bossTeamMul(hpHumans) * (kind === Z_GOLEM || kind === Z_HUT ? 3 : 1);
     }
     const scale = this.plan?.siegeHpScale !== undefined && siegeBodyMul(kind, 2) > 1
       ? this.plan.siegeHpScale * (hpHumans === this.hpHumans ? 1 : enemyHpScale(this.wave, hpHumans) / enemyHpScale(this.wave, this.hpHumans))
@@ -542,7 +547,7 @@ export class Horde {
     if (!z.alive) return;
     dmg *= this.siege.cover(z, ox, oz);
     if (z.kind === Z_KRAKEN || z.kind === Z_TENTACLE) dmg *= krakenArmor(this, z);
-    else if (isBossKind(z.kind) && z.state !== ZS_BOSS_OPEN && z.state !== ZS_SIEGE_OPEN) dmg *= BOSS_ARMOR;
+    else if (isBossKind(z.kind) && !bossExposed(z)) dmg *= BOSS_ARMOR;
     if (!(dmg > 0)) return;
     let mark = head ? 1 : 0;
     if (!head && z.kind === Z_ARMORED) {
@@ -581,7 +586,7 @@ export class Horde {
       if (d > r) continue;
       let amount = dmg;
       if (o.kind === Z_KRAKEN || o.kind === Z_TENTACLE) amount *= krakenArmor(this, o);
-      else if (isBossKind(o.kind) && o.state !== ZS_BOSS_OPEN && o.state !== ZS_SIEGE_OPEN) amount *= BOSS_ARMOR;
+      else if (isBossKind(o.kind) && !bossExposed(o)) amount *= BOSS_ARMOR;
       if (!(amount > 0)) continue;
       this.hurt(o, amount, by, 0, o.x, o.y + k.hcy, o.z);
       hits++;
@@ -604,7 +609,7 @@ export class Horde {
       const k = ZK[o.kind];
       if (Math.hypot(o.x - x, o.z - z) > r + k.r) continue;
       let amount = o.maxHp * frac;
-      if (isBossKind(o.kind) && o.state !== ZS_BOSS_OPEN && o.state !== ZS_SIEGE_OPEN) amount *= BOSS_ARMOR;
+      if (isBossKind(o.kind) && !bossExposed(o)) amount *= BOSS_ARMOR;
       this.hurt(o, amount, 0, 0, o.x, o.y + k.hcy, o.z);
       hits++;
     }
@@ -847,6 +852,8 @@ export class Horde {
       else if (z.kind === Z_PUMPKIN) stepPumpkin(this.bossCtx, z);
       else if (z.kind === Z_WEAVER) stepWeaver(this.bossCtx, z);
       else if (z.kind === Z_LESHY) stepLeshy(this.bossCtx, z);
+      else if (z.kind === Z_HUT) stepHut(this.bossCtx, z);
+      else if (z.kind === Z_PELICAN) stepPelican(this.bossCtx, z);
       else if (z.state === ZS_CLIMB || z.state === ZS_TOP || z.state === ZS_DROP) this.stepClimber(z);
       else if (z.kind === Z_SPITTER) this.stepSpitter(z, gateUp);
       else if (z.kind === Z_SAPPER) this.stepSapper(z, gateUp);
@@ -1482,7 +1489,7 @@ export class Horde {
       s.state = z.state;
       s.flags = z.tier | (z.crew ? ZF_CREW : 0) | (z.shield > 0 ? ZF_SHIELD : 0) | (z.carry ? ZF_CARRY : 0)
         | (z.state === ZS_PLANT || (z.kind === Z_MEDIC && z.healT < 30) ? ZF_LIT : 0)
-        | (isBossKind(z.kind) && raging(z) || tentacleRage(z) ? ZF_RAGE : 0);
+        | (isBossKind(z.kind) && f50Rage(z) || tentacleRage(z) ? ZF_RAGE : 0);
       s.r = attackRadius(z.state);
       if ([ZS_SIEGE_DEPLOY, ZS_SIEGE_WINDUP, ZS_SIEGE_ACTION].includes(z.state)) s.r = z.kind === Z_JAMPUMP ? 2 : z.kind === Z_MILLER ? 4 : 3;
       s.hp = z.hp / z.maxHp;
