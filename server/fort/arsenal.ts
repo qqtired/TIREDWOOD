@@ -119,7 +119,7 @@ interface Burn {
 interface RepairWorker { x: number; y: number; z: number; hurt: number }
 interface RepairWork extends RepairWorker {
   pid: number; id: number; price: number; at: number;
-  /** Только FORT_IDEAS: платит начавший; время — лучшее из действующих ремёсел. */
+  /** Только с идеями Т-* (FORT50): платит начавший; время — лучшее из действующих ремёсел. */
   workers?: Map<number, RepairWorker>;
   progress: number;
 }

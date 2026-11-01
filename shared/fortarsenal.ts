@@ -343,7 +343,7 @@ export interface ArsenalRow {
   hv: number;
   /** Гранат в запасе */
   gr: number;
-  /** FORT_IDEAS: готовые значения, без повторения эффектов в клиентском предсказании. */
+  /** Идеи Т-* (FORT50): готовые значения, без повторения эффектов в клиентском предсказании. */
   weapons?: WeaponTiming & { mag: number[]; nextMag?: number[] };
   repairMul?: number;
   towerPriceMul?: number;

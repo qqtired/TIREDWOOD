@@ -217,9 +217,10 @@ export class FortGame implements HordeHost, EventHost {
   constructor(hooks: FortHooks = {}) {
     this.hooks = hooks;
     this.fort50Enabled = hooks.fort50 ?? process.env.FORT50 === '1';
-    const DEV = process.argv.includes('--dev');
-    this.ideasEnabled = this.fort50Enabled && (hooks.ideas ?? (process.env.FORT_IDEAS === undefined ? DEV : process.env.FORT_IDEAS === '1'));
-    this.eliteEnabled = this.fort50Enabled && (hooks.elite ?? (process.env.FORT_ELITE === undefined ? DEV : process.env.FORT_ELITE === '1'));
+    // идеи Т-* и элитки — вместе с «Крепостью 50», без своих флагов (владелец 01.11: «давай меньше флагов, мы все равно всё
+    // выкатываем»); hooks — только для тестов
+    this.ideasEnabled = this.fort50Enabled && (hooks.ideas ?? true);
+    this.eliteEnabled = this.fort50Enabled && (hooks.elite ?? true);
     this.siegeEnabled = hooks.siege ?? (process.env.FORTRESS_SIEGE === '1' || this.fort50Enabled);
     this.ranksEnabled = hooks.ranks ?? false;
     this.map = buildFort({ sections: true, ideas: this.ideasEnabled });
