@@ -31,6 +31,10 @@ import { MOB_STRIDE, type MobAnim, type MobDef } from './mobs/kit.ts';
 import { MobRenderer, mobRoot, mobSeed } from './mobs/renderer.ts';
 import { BIG_BOSS_DIE_S, BigBosses } from './bosses/renderer.ts';
 import { Z_PELICAN } from '../../shared/fortkinds.ts';
+import { ELITE_SCALE } from '../../shared/fortideas.ts';
+import { AURA_JELLY, EliteAura, GAME_AURA, setAuraLook, type AuraHull } from './elite/aura.ts';
+import { eliteEnabled } from './elite/flag.ts';
+import { patchJellyAura } from './elite/rim.ts';
 
 /** Инстансов на часть: живых не больше FORT_MAX_ALIVE, с запасом на тех, кто ещё не пропал из снимков */
 const CAP = 72;
@@ -580,6 +584,11 @@ export class Zombies3D {
   private readonly anchors: BoardingAnchors;
   private readonly siegePhases = new SiegePhaseClock();
   private renderTick = 0;
+  /** Элитки (с FORT50, client/fort/elite): аура — пул частиц, ступень желейки — атрибут тела, хитбокс осадных GLB для частиц */
+  private readonly aura: EliteAura;
+  private readonly jellyRank = new THREE.InstancedBufferAttribute(new Float32Array(CAP), 1);
+  private readonly auraHull: AuraHull = { hull: true, r: 0.5, h: 1.6 };
+  private elite = false;
   phase(id:number,kind:number,state:number,startTick:number,endTick:number):void { this.siegePhases.remember({id,kind,state,startTick,endTick}); }
   get modelsLoading(): boolean { return this.approved.loading; }
 
@@ -592,7 +601,12 @@ export class Zombies3D {
     const bodyGeo = new THREE.LatheGeometry(bodyProfile(), 22);
     bodyGeo.computeVertexNormals();
     this.bodyGeometries = [new THREE.LatheGeometry(bodyProfile(), 12), new THREE.LatheGeometry(bodyProfile(), 16), bodyGeo];
-    this.body = inst(bodyGeo, new THREE.MeshStandardMaterial({ roughness: 0.38, metalness: 0 }), true);
+    // элитки: ступень на всех уровнях детализации тела, контур ауры в материале тела (ступень 0 — как раньше)
+    this.jellyRank.setUsage(THREE.DynamicDrawUsage);
+    for (const g of this.bodyGeometries) g.setAttribute('auraRank', this.jellyRank);
+    this.body = inst(bodyGeo, patchJellyAura(new THREE.MeshStandardMaterial({ roughness: 0.38, metalness: 0 })), true);
+    this.aura = new EliteAura(scene);
+    setAuraLook(GAME_AURA, 'rank');
     this.face = inst(faceGeometry(), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.4 }), false);
     const armMat = new THREE.MeshStandardMaterial({ roughness: 0.45 });
     const ag = armGeometry();
@@ -664,6 +678,7 @@ export class Zombies3D {
     this.wingHz = tier === 'low' ? 20 : tier === 'medium' ? 30 : 60;
     this.mobs.setQuality(q, slow);
     this.approved.setQuality(q);
+    this.aura.setQuality(q, slow);
   }
 
   /** Снимок: зомби по списку; кого нет — пропали (сбиты или ушли в начало дороги — тогда вернутся). */
@@ -772,6 +787,7 @@ export class Zombies3D {
     this.mobs.clear();
     this.big.clear();
     this.approved.clear();
+    this.aura.clear();
     this.anchors.clear();
     this.siegePhases.clear();
   }
@@ -871,8 +887,19 @@ export class Zombies3D {
     }
     // канат Канатника идёт из его левой клешни; крюк улетает на 1,5 с развёртывания — когда модель его бросает
     if (kind === Z_ROPECRAB && !tr.dead && [ZS_SIEGE_DEPLOY,ZS_SIEGE_ACTION,ZS_SIEGE_OPEN].includes(r.st)) this.anchors.add(r.x,r.y,r.z+1,r.tx,r.ty,r.tz,BOAT_ANCHOR_FLAG,r.st,anim.stT,_claw.set(-.88,.72,.96).applyMatrix4(_root),1.5);
-    const drawn = big ? this.big.add(kind, _root, anim, r, this.frameDt, tr.flash * .85, mix > 0 ? _tint : null, mix) : this.approved.has(kind) ? this.approved.add(kind, _root, anim, tr.flash * .85, mix > 0 ? _tint : null, mix, r) : this.mobs.add(kind, tr.seed, _root, anim, tr.flash * .85, mix > 0 ? _tint : null, mix);
+    // элитка (с FORT50): контур и глаза — ступенью в материале модели, пламя и искры — пулом ауры; боссы ступени не имеют
+    const tier = this.elite && !tr.dead ? r.flags & ZF_TIER : 0;
+    const drawn = big ? this.big.add(kind, _root, anim, r, this.frameDt, tr.flash * .85, mix > 0 ? _tint : null, mix) : this.approved.has(kind) ? this.approved.add(kind, _root, anim, tr.flash * .85, mix > 0 ? _tint : null, mix, r) : this.mobs.add(kind, tr.seed, _root, anim, tr.flash * .85, mix > 0 ? _tint : null, mix, tier);
     if (!drawn) return false;
+    if (tier && !big) {
+      if (def && !this.approved.has(kind)) this.aura.add(def, _root, anim, tier, scale);
+      else {
+        // осадный GLB: модели для точек нет — частицы по хитбоксу (в осях корня, масштаб ступени уже в нём)
+        this.auraHull.r = k.hrx;
+        this.auraHull.h = h;
+        this.aura.add(this.auraHull, _root, null, tier, scale);
+      }
+    }
     const sc = SCALES[kind] ?? SCALES[0];
     _m.multiplyMatrices(_root, _sq.makeScale(sc.sxz, (def?.height ?? (big ? this.big.height(kind) : this.approved.height(kind))) / BODY_H, sc.sxz));
     return true;
@@ -1016,6 +1043,8 @@ export class Zombies3D {
     this.mobs.begin();
     this.approved.begin();
     this.big.begin();
+    this.elite = eliteEnabled();
+    this.aura.begin(dt, camPos);
     this.frameDt = dt;
     this.anchors.begin();
     for (const tr of this.tracks.values()) {
@@ -1168,7 +1197,8 @@ export class Zombies3D {
       }
       const sq = tr.flash;
       const tier = r.flags & ZF_TIER;
-      const big = tier === 2 ? 1.12 : 1;
+      // рост ступени: с FORT50 — ELITE_SCALE (элита ×1,25, чемпион ×1,5), без — чемпион ×1,12, как раньше
+      const big = this.elite ? ELITE_SCALE[tier] ?? 1 : tier === 2 ? 1.12 : 1;
       const bloat = kind === Z_BLOATER ? Math.sin(time * 5 + tr.id) * 0.04 : 0;
       let sy = sc.sy * (1 - sq * 0.12 + bloat * 0.5) * big;
       let sxz = sc.sxz * (1 + sq * 0.08 + bloat) * (kind === Z_BLOATER ? 1.1 : 1) * big;
@@ -1217,6 +1247,9 @@ export class Zombies3D {
         _s.set(sxz, sy, sxz);
         _m.compose(_p, _q, _s);
         this.body.setMatrixAt(jelly, _m);
+        const jt = this.elite && !tr.dead ? tier : 0;
+        (this.jellyRank.array as Float32Array)[jelly] = jt;
+        if (jt) this.aura.add(AURA_JELLY, _m, null, jt, big);
         if (boss || Math.hypot(r.x - camPos.x, r.z - camPos.z) < this.detailDistance) this.face.setMatrixAt(faces++, _m);
         _c.set(k.color).lerp(WHITE, sq * 0.75);
         if (boss && st === ZS_BOSS_OPEN) _c.lerp(_c2.set(0x6ce5e3), 0.4);
@@ -1256,10 +1289,12 @@ export class Zombies3D {
         }
       }
       if (tier > 0 && !tr.dead) {
-        // пояс и корона ступени — в осях тела желейки или хитбокса вокруг модели (_m)
-        _arm.makeTranslation(0, 0.58, 0);
-        this.band.setMatrixAt(bands, _m2.multiplyMatrices(_m, _arm));
-        this.band.setColorAt(bands++, _c2.set(TIER_COLORS[tier]));
+        // пояс и корона ступени — в осях тела желейки или хитбокса вокруг модели (_m); с FORT50 пояса нет — светится аура
+        if (!this.elite) {
+          _arm.makeTranslation(0, 0.58, 0);
+          this.band.setMatrixAt(bands, _m2.multiplyMatrices(_m, _arm));
+          this.band.setColorAt(bands++, _c2.set(TIER_COLORS[tier]));
+        }
         if (tier === 2) {
           _arm.makeRotationY(time * 1.5).setPosition(0, BODY_H + 0.04, 0);
           this.crown.setMatrixAt(crowns, _m2.multiplyMatrices(_m, _arm));
@@ -1309,7 +1344,7 @@ export class Zombies3D {
         this.warningFill.setColorAt(warnings++, _c.set(signal.fill));
       }
       // тень на земле (на стене — на её верху: высота ног)
-      const shR = k.r * 2.6 * (1 - rise * 0.6) * (tr.dead ? 1 - tr.anim.die : 1);
+      const shR = k.r * 2.6 * (1 - rise * 0.6) * (tr.dead ? 1 - tr.anim.die : 1) * (this.elite ? big : 1);
       _q.identity();
       const floor = kraken ? NaN : kind === Z_FLYER || kind === Z_PELICAN ? this.ground?.groundBelow(r.x, r.y, r.z) ?? 0 : r.y;
       _p.set(r.x, Number.isFinite(floor) ? floor + 0.03 : -1000, r.z);
@@ -1319,7 +1354,7 @@ export class Zombies3D {
       if (!tr.dead && r.hp < 0.999 && r.hp > 0) {
         const d = camPos.distanceTo(_p.set(r.x, r.y, r.z));
         if (d < BAR_DIST) {
-          const top = r.y + (k.hcy + k.hry) + 0.32;
+          const top = r.y + (k.hcy + k.hry) * (this.elite ? big : 1) + 0.32;
           const w = 0.5 + k.hrx * 0.7;
           _p.set(r.x, top, r.z);
           _s.set(w + 0.06, 0.13, 1);
@@ -1373,5 +1408,11 @@ export class Zombies3D {
     this.approved.end();
     this.big.end();
     this.anchors.end();
+    if (jelly > 0) {
+      this.jellyRank.clearUpdateRanges();
+      this.jellyRank.addUpdateRange(0, jelly);
+      this.jellyRank.needsUpdate = true;
+    }
+    this.aura.end();
   }
 }

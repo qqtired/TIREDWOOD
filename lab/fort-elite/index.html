@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ru" data-skin="retro2" data-hud="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="../../client/assets/ui/icons/pin.webp">
+<title>Элитки крепости — аура</title>
+<link rel="stylesheet" href="../quiz/v2/v2-fonts.css">
+<link rel="stylesheet" href="../../client/ui/kit/tokens.css">
+<link rel="stylesheet" href="../../client/ui/kit/kit.css">
+<link rel="stylesheet" href="elite.css">
+</head>
+<body>
+<header class="fe-head">
+  <img src="../../client/assets/ui/icons/pin.webp" alt="">
+  <div>
+    <p class="k-eyebrow">TIREDWOOD · крепость · 01.11</p>
+    <h1>Элитки — аура</h1>
+    <p class="fe-sub">Элита стала крупнее в 1,25 раза, чемпион — в 1,5 раза и с короной. Кольца вокруг пояса больше нет: светится сама модель. Три варианта ауры — выбери один и цвет.</p>
+  </div>
+</header>
+
+<main class="fe-main">
+  <section class="fe-stand">
+    <canvas id="stage" aria-label="Стенд ауры элиток"></canvas>
+    <div class="fe-bar fe-bar--top">
+      <div class="k-seg fe-seg" id="segVariant" role="group" aria-label="Вариант ауры">
+        <button type="button" data-v="A2"><b>A</b> + свечение</button>
+        <button type="button" data-v="A"><b>A</b> Тёмное пламя</button>
+        <button type="button" data-v="B"><b>B</b> Дымные тени</button>
+        <button type="button" data-v="C"><b>C</b> Искры и контур</button>
+        <button type="button" data-v="off">Без ауры</button>
+      </div>
+      <div class="k-seg fe-seg" id="segMode" role="group" aria-label="Цвет">
+        <button type="button" data-mode="rank">Цвет по рангу</button>
+        <button type="button" data-mode="mono">Один цвет</button>
+      </div>
+    </div>
+    <div class="fe-bar fe-bar--bottom">
+      <div class="k-seg fe-seg" id="segView" role="group" aria-label="Вид">
+        <button type="button" data-view="near">Близко</button>
+        <button type="button" data-view="crowd">Толпа со стены</button>
+      </div>
+      <div class="k-seg fe-seg" id="segMob" role="group" aria-label="Моб">
+        <button type="button" data-mob="walker">Шаркун</button>
+        <button type="button" data-mob="brute">Бугай</button>
+        <button type="button" data-mob="armored">Чугунок</button>
+        <button type="button" data-mob="flyer">Крылатка</button>
+        <button type="button" data-mob="jelly">Желейка</button>
+      </div>
+      <button type="button" class="k-btn k-btn--ghost k-btn--sm fe-pause" id="pause">Пауза</button>
+    </div>
+    <p class="fe-tag" id="tag"></p>
+    <p class="fe-hint" id="hint"></p>
+    <p class="fe-meter" id="meter"></p>
+  </section>
+
+  <section class="fe-chosen fe-card" data-card="A2">
+    <h2>Выбрано: A по рангу «со свечениями»</h2>
+    <p>Пламя A, но у золотого — светлое, почти белое ядро; контур тела светится, глаза горят, искры летят вверх. Так аура чемпиона не путается с поджогом от жаровни. Элита — сине-фиолетовая, чемпион — золотой.</p>
+  </section>
+
+  <section class="fe-cards">
+    <article class="fe-card" data-card="A">
+      <h2><b>A</b> Тёмное пламя</h2>
+      <p>Языки сине-фиолетового пламени срываются с краёв силуэта и тянутся вверх. Глаза горят и оставляют короткий след, когда моб идёт.</p>
+    </article>
+    <article class="fe-card" data-card="B">
+      <h2><b>B</b> Дымные тени</h2>
+      <p>Тёмный дым стекает с тела и тянется шлейфом, край дыма и силуэта светится. Медленнее и тяжелее, тело чуть темнее.</p>
+    </article>
+    <article class="fe-card" data-card="C">
+      <h2><b>C</b> Искры и контур</h2>
+      <p>Яркий светящийся контур по краю модели и искры, которые поднимаются от тела. Чище всех, лучше всех читается издалека.</p>
+    </article>
+  </section>
+
+  <section class="fe-info">
+    <div class="fe-card">
+      <h2>Цвет</h2>
+      <p><b>По рангу:</b> элита — сине-фиолетовая, чемпион — золотисто-оранжевый. <b>Один цвет:</b> у всех фиолетовая, чемпион ярче и выше.</p>
+    </div>
+    <div class="fe-card">
+      <h2>Не тормозит</h2>
+      <p>Все ауры в кадре — одна отрисовка и одна программа: контур — в материале мобов, пламя, дым и искры — один набор частиц. Без ламп и размытия.</p>
+    </div>
+    <div class="fe-card fe-answer">
+      <h2>Как ответить</h2>
+      <p>Буква и цвет, например: <b>«A, по рангу»</b> или <b>«C, один цвет»</b>.</p>
+    </div>
+  </section>
+</main>
+<script type="module" src="./page.ts"></script>
+</body>
+</html>
