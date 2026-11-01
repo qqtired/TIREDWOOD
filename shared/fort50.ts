@@ -5,7 +5,7 @@
 // lab/fort-rework/ (waves.ts, walls.ts, texts.ts).
 import { TICK_RATE } from './constants.ts';
 import {
-  Z_ARMORED, Z_BLOATER, Z_BOSS, Z_BRUTE, Z_CLIMBER, Z_FLYER, Z_GOLEM, Z_LESHY, Z_MEDIC, Z_PUMPKIN, Z_RAM, Z_RUNNER, Z_SAPPER, Z_SHIELD,
+  Z_ARMORED, Z_BLOATER, Z_BOSS, Z_BRUTE, Z_CLIMBER, Z_FLYER, Z_GOLEM, Z_HUT, Z_LESHY, Z_MEDIC, Z_PELICAN, Z_PUMPKIN, Z_RAM, Z_RUNNER, Z_SAPPER, Z_SHIELD,
   Z_SPITTER, Z_WALKER, Z_WEAVER,
 } from './fortkinds.ts';
 import { Z_CANOPY, Z_CRABCRANE, Z_FOREMAN, Z_JAMPUMP, Z_MILLER, Z_ROPECRAB, Z_SPRING } from './fortsiege.ts';
@@ -74,10 +74,11 @@ export const F50_BOSSES: Readonly<Record<number, F50Boss>> = {
   25: { kind: -1, tier: 0, kraken: 0 },
   28: { kind: Z_CRABCRANE, tier: 0 },
   30: { kind: Z_WEAVER, tier: 0 },
-  35: { kind: Z_BOSS, tier: 1, temp: 'Пеликан-Бомбардир' },
+  // Пеликан-Бомбардир и Избушка приняты владельцем 01.11 («релизь их тоже»), модели — client/fort/bosses/
+  35: { kind: Z_PELICAN, tier: 0 },
   40: { kind: Z_LESHY, tier: 0 },
   45: { kind: Z_MILLER, tier: 0 },
-  50: { kind: Z_BOSS, tier: 4, kraken: 3, final: true, temp: 'Избушка' },
+  50: { kind: Z_HUT, tier: 0, final: true },
 };
 
 export function f50Boss(w: number): F50Boss | null {

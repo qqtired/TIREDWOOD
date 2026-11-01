@@ -9,7 +9,11 @@ import {
   ZS_WV_BITE, ZS_WV_BROOD, ZS_WV_CLIMB, ZS_WV_HANG, ZS_WV_OVER, ZS_WV_SWEEP, ZS_WV_TORN, ZS_WV_WEB,
 } from '../../shared/fort.ts';
 import { WV_WEB_TICKS } from '../../shared/fortbosses.ts';
-import { Z_LESHY, Z_PUMPKIN, Z_WEAVER } from '../../shared/fortkinds.ts';
+import { Z_HUT, Z_LESHY, Z_PELICAN, Z_PUMPKIN, Z_WEAVER } from '../../shared/fortkinds.ts';
+import {
+  ZS_F50_BARREL, ZS_HUT_APPEAR, ZS_HUT_BOMBS, ZS_HUT_KICK, ZS_HUT_NEST, ZS_HUT_PHASE, ZS_HUT_STOMP, ZS_PL_BOMB, ZS_PL_CRASH, ZS_PL_DIVE,
+  ZS_PL_FLY, ZS_PL_GROUND, ZS_PL_GUST, ZS_PL_PECK, ZS_PL_PERCH, ZS_PL_PHASE, ZS_PL_SNAP,
+} from '../../shared/fortbosses50.ts';
 import { CRYSTAL, GATE, WALL_H } from '../../shared/fortmap.ts';
 import type { Sound } from '../audio.ts';
 import type { Effects } from '../render/effects.ts';
@@ -33,6 +37,23 @@ export function newBossHudLine(state: number): string | null {
     case ZS_LS_SINK: return 'Уходит под землю';
     case ZS_LS_UNDER: return 'Под землёй — вылезет там, где круг';
     case ZS_LS_RISE: return 'Вылезает!';
+    // «Крепость 50»: Избушка и Пеликан-Бомбардир
+    case ZS_HUT_APPEAR: return 'Встаёт на лапы';
+    case ZS_HUT_KICK: return 'Пинок по стене — уйди с участка';
+    case ZS_HUT_BOMBS: return 'Печные бомбы — уйди из кругов';
+    case ZS_HUT_STOMP: return 'Топот — прыгай, когда круг заполнится';
+    case ZS_HUT_PHASE: return 'Растапливает печь!';
+    case ZS_HUT_NEST: return 'Наседка на стене — дверь открыта, бей в печь!';
+    case ZS_PL_FLY: return 'Кружит высоко — стреляй с упреждением';
+    case ZS_PL_BOMB: return 'Бомбёжка — уйди из кругов или под зубец';
+    case ZS_PL_DIVE: return 'Пике — уйди из красного круга!';
+    case ZS_PL_PHASE: return 'Подбит!';
+    case ZS_PL_PERCH: return 'Садится на бастион — лёгкая цель';
+    case ZS_PL_PECK: return 'Клюёт башню';
+    case ZS_PL_GUST: return 'Ветер крыльями — уйди с полосы';
+    case ZS_PL_CRASH: return 'Сбит! Падает';
+    case ZS_PL_GROUND: return 'Ходит пешком — бей';
+    case ZS_PL_SNAP: return 'Щёлкает клювом — уйди из круга';
   }
   return null;
 }
@@ -41,7 +62,8 @@ export function newBossHudLine(state: number): string | null {
 export function newBossDanger(state: number): boolean | undefined {
   return newBossHudLine(state) === null ? undefined : DANGER_F.has(state);
 }
-const DANGER_F = new Set([ZS_PK_ROLL_WARN, ZS_PK_ROLL, ZS_PK_SPIT, ZS_WV_SWEEP, ZS_WV_WEB, ZS_WV_BITE, ZS_LS_ROOTS, ZS_LS_UNDER]);
+const DANGER_F = new Set([ZS_PK_ROLL_WARN, ZS_PK_ROLL, ZS_PK_SPIT, ZS_WV_SWEEP, ZS_WV_WEB, ZS_WV_BITE, ZS_LS_ROOTS, ZS_LS_UNDER,
+  ZS_HUT_KICK, ZS_HUT_BOMBS, ZS_HUT_STOMP, ZS_PL_BOMB, ZS_PL_DIVE, ZS_PL_GUST, ZS_PL_SNAP]);
 
 /** Тревога на метку атаки нового босса (null — не их атака); near — метка у меня под ногами */
 export function newBossWarnText(attack: number, near: boolean, tx: number, ty: number, tz: number): string | null {
@@ -61,12 +83,36 @@ export function newBossWarnText(attack: number, near: boolean, tx: number, ty: n
       return '🌳 Леший пускает корни · кто в круге — прочь';
     case ZS_LS_HEAL: return '🌳 Леший лечит армию · бейте его, чтобы сорвать колдовство!';
     case ZS_LS_UNDER: return '🌳 Леший ушёл под землю · где круг — там вылезет';
+    case ZS_HUT_KICK: return '🛖 Избушка заносит лапу · пинок по стене — уйди с участка';
+    case ZS_HUT_STOMP: return '🛖 Избушка приседает · топот — прыгай, когда круг заполнится';
+    case ZS_HUT_NEST: return '🛖 Избушка прыгает на стену · уйди из круга, потом бей в открытую дверь!';
+    case ZS_PL_DIVE: return near ? '🪶 Пеликан пикирует на тебя · уйди из круга, а то унесёт в зобе!' : '🪶 Пеликан целится · кого в круге — унесёт в зобе';
+    case ZS_PL_PECK: return '🪶 Пеликан клюёт башню бастиона · уйди из круга';
+    case ZS_PL_SNAP: return '🪶 Пеликан щёлкает клювом по стене · уйди из круга';
   }
   return null;
 }
 
+/** Залп бочек (бомбы Пеликана, печные бомбы и яйца Избушки) и ветер — метки событиями: круг или полоса (null — не их) */
+export function f50VolleyMark(attack: number): 'ring' | 'stripe' | null {
+  return attack === ZS_PL_BOMB || attack === ZS_HUT_BOMBS || attack === ZS_F50_BARREL ? 'ring' : attack === ZS_PL_GUST ? 'stripe' : null;
+}
+
+const volleyAt: Record<number, number> = {};
+/** Тревога на залп — одна на залп (метки — на каждую бочку); null — уже сказали */
+export function f50VolleyText(attack: number, near: boolean, now: number): string | null {
+  if (now - (volleyAt[attack] ?? -99) < 2.5 && !near) return null;
+  volleyAt[attack] = now;
+  return attack === ZS_PL_BOMB ? (near ? '🪶 Бочки летят на тебя · уйди из круга или встань под зубец' : '🪶 Пеликан бомбит · уйди из красных кругов')
+    : attack === ZS_HUT_BOMBS ? (near ? '🛖 Печная бомба летит в тебя · уйди из круга' : '🛖 Избушка стреляет из трубы · уйди из кругов')
+    : attack === ZS_F50_BARREL ? '🛖 Избушка несёт бочки-яйца во двор · прочь из кругов'
+    : '🪶 Пеликан раскрыл крылья · ветер сдует со стены — уйди с полосы';
+}
+
 /** Ярость нового босса (null — не новый) */
-export function newBossRageText(kind: number): string | null {
+export function newBossRageText(kind: number, phase = 2): string | null {
+  if (kind === Z_HUT) return phase >= 3 ? '🛖 Избушка в ярости · прыгает на стену наседкой' : '🛖 Избушка растопила печь · бомб больше, появился топот';
+  if (kind === Z_PELICAN) return phase >= 3 ? '🪶 Пеликан сбит! · дальше пешком — щёлкает по стене и воротам' : '🪶 Пеликан подбит · летает ниже и садится на бастионы';
   return kind === Z_CRABCRANE ? 'Краб-Кран в ярости · следи за опорами и грузом'
     : kind === Z_MILLER ? 'Мельничиха в ярости · уходи с линии ветра'
     : kind === Z_PUMPKIN ? '🎃 Король-Тыква в ярости · катится туда и обратно'
@@ -293,6 +339,65 @@ export function newBossBlast(attack: number, x: number, y: number, z: number, r:
       sound.boom(at, 1.3);
       sound.rumble(at, 1.2);
       return 0.9 * near(16);
+    // «Крепость 50»: Избушка
+    case ZS_HUT_KICK:
+      // пинок по стене: щепки, камешки, пыль, гул
+      effects.burst(x, y, z, 0x8b6c4c, 30, 7, 0, 1, -1, 0.08);
+      effects.burst(x, y, z, 0xcbbfa6, 24, 6, 0, 1, 0, 0.06);
+      effects.puff(x, y, z, r * 0.9, 0xd8c8a8, 1.0, 0.9, 0.6);
+      sound.boom(at, 1.4);
+      return 0.9 * near(18);
+    case ZS_HUT_STOMP:
+      // топот: кольцо пыли по земле и по стене
+      ring(0xc9b896, 1.8);
+      effects.burst(x, y + 0.4, z, 0xd6c29a, 40, 8, 0, 1, 0, 0.09);
+      sound.rumble(at, 1.6);
+      sound.boom(at, 1.2);
+      return 1.0 * near(20);
+    case ZS_HUT_NEST:
+      // села на стену: пыль, щепки, тряска
+      effects.burst(x, y, z, 0x8b6c4c, 36, 8, 0, 1, -1, 0.08);
+      effects.puff(x, y, z, r, 0xd8c8a8, 1.1, 1, 0.6);
+      sound.boom(at, 1.6);
+      sound.rumble(at, 1.2);
+      return 1.0 * near(22);
+    // Пеликан-Бомбардир
+    case ZS_PL_DIVE:
+      if (r <= 0) {
+        // выплюнул пойманного на стену
+        effects.burst(x, y, z, 0xf7b4a0, 20, 4, 0, 1, 0, 0.06);
+        effects.puff(x, y, z, 1.2, 0xffffff, 0.5, 0.4, 0.5);
+        sound.splat(at, dist);
+        alert('🪶 Пеликан выплюнул добычу на стену', 1800);
+        return 0.2 * near(6);
+      }
+      // клюв щёлкнул у цели: перья, пыль
+      effects.burst(x, y, z, 0xf1e9da, 30, 4, 0, 1, 0, 0.07);
+      effects.puff(x, y - 0.5, z, 1.4, 0xd8c8a8, 0.6, 0.6, 0.5);
+      sound.roar(at, 1.4);
+      return 0.4 * near(8);
+    case ZS_PL_PERCH:
+      effects.burst(x, y, z, 0xcbbfa6, 20, 3, 0, 1, 0, 0.06);
+      sound.planks(at);
+      return 0.3 * near(10);
+    case ZS_PL_PECK:
+    case ZS_PL_SNAP:
+      effects.burst(x, y - 0.4, z, 0xcbbfa6, 30, 5, 0, 1, 0, 0.07);
+      effects.puff(x, y - 0.4, z, r * 0.8, 0xd8c8a8, 0.7, 0.6, 0.5);
+      sound.boom(at, 0.9);
+      return 0.5 * near(10);
+    case ZS_PL_GUST:
+      // ветер вдоль хода стены: белая пыль полосой
+      for (let i = 0; i < 8; i++) effects.puff(x + (i / 7 - 0.5) * r * 2, y, z, 1.1, 0xf6f1e6, 0.6, 0.4, 0.45);
+      sound.rumble(at, 0.6);
+      return 0.3 * near(8);
+    case ZS_PL_CRASH:
+      // шлёпнулся: песок и перья
+      effects.burst(x, y, z, 0xd6c29a, 60, 8, 0, 1, 0, 0.1);
+      effects.burst(x, y + 1.5, z, 0xf1e9da, 40, 5, 0, 1, 0, 0.07);
+      effects.puff(x, y + 0.5, z, 3, 0xd8c8a8, 1.2, 1, 0.6);
+      sound.boom(at, 1.5);
+      return 0.9 * near(18);
   }
   return -1;
 }

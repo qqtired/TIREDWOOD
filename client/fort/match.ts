@@ -58,7 +58,8 @@ import type { EventFxApi, EventMarks } from './marks.ts';
 import { KrakenFx } from './krakenfx.ts';
 import type { BossPart } from './ui/boss.ts';
 import { TENT_COUNT } from '../../shared/fortkraken.ts';
-import { Webs3D, newBossBlast, newBossBreachText, newBossRageText, newBossThrow, newBossWarnText } from './bosses-f.ts';
+import { Webs3D, f50VolleyMark, f50VolleyText, newBossBlast, newBossBreachText, newBossRageText, newBossThrow, newBossWarnText } from './bosses-f.ts';
+import { PL_GUST_W } from '../../shared/fortbosses50.ts';
 import { noteFortRecord } from './record.ts';
 import { eventBanner, introBanner } from './ui/record.ts';
 import { f50Client, type Fort50Client } from './f50/index.ts';
@@ -1116,6 +1117,19 @@ export class FortMatch {
             sound.roar([tx, 2, tz], 1.2);
             break;
           }
+          // «Крепость 50»: залп бочек и ветер Пеликана — метка на каждую бочку, тревога — одна на залп
+          const volley = f50VolleyMark(attack);
+          if (volley) {
+            const total = Math.max(1, sec * TICK_RATE);
+            if (volley === 'stripe') this.d.marks?.stripe(warnId, tx, ty - 0.8, tz, wr * 2, PL_GUST_W, end, total);
+            else this.d.marks?.meteor(tx, ty - 0.8, tz, wr, end, total);
+            const text = f50VolleyText(attack, near, this.time);
+            if (text) {
+              hud.alert(text, Math.max(1400, sec * 1000), { timed: true });
+              sound.horn(0.18);
+            }
+            break;
+          }
           const fresh = newBossWarnText(attack, near, tx, e[4], tz);
           if (fresh) {
             hud.alert(fresh, Math.max(1400, sec * 1000), { timed: true });
@@ -1204,7 +1218,7 @@ export class FortMatch {
         case 'bossphase': {
           const [, id] = e;
           const kind = zombies.kindOf(id);
-          hud.alert(newBossRageText(kind) ?? (kind === Z_RAM ? '🐗 Таран в ярости · рвётся два раза подряд'
+          hud.alert(newBossRageText(kind, e[2]) ?? (kind === Z_RAM ? '🐗 Таран в ярости · рвётся два раза подряд'
             : kind === Z_GOLEM ? '🪨 Валун в ярости · бросает по два камня'
             : '👑 Барон в ярости · бьёт чаще и зовёт крылаток'), 3200);
           const seen = zombies.where(id, _v);

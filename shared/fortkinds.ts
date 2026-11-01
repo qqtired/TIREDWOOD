@@ -29,7 +29,10 @@ export const Z_PUMPKIN = 17;
 export const Z_WEAVER = 18;
 /** Леший — босс 42, 84, 126 … */
 export const Z_LESHY = 19;
-export const Z_KINDS = 29;
+/** «Крепость 50» (shared/fortbosses50.ts): Избушка — финал 50-й волны, Пеликан-Бомбардир — 35-я (летает, сбитый ходит пешком) */
+export const Z_HUT = 29;
+export const Z_PELICAN = 30;
+export const Z_KINDS = 31;
 export { Z_ROPECRAB, Z_JAMPUMP, Z_CANOPY, Z_FOREMAN, Z_CRABCRANE, Z_MILLER, Z_SIEGE_TOWER, Z_BATTERY, Z_SPRING } from './fortsiege.ts';
 
 /** Боссы по кругу на 7-й, 14-й, 21-й … волне (директор — FEATURES.bosses, интерфейс — «дальше босс») */
@@ -106,6 +109,8 @@ export const ZK: readonly ZombieKind[] = [
   { name: 'Осадная башня', hp: 1300, speed: 2.1, gateDps: 0, crystalDps: 0, hit: 0, pts: 75, cost: 10, first: NEVER, flags: 0, r: 1.25, hrx: 1.5, hry: 2.4, hcy: 2.4, headY: 3.5, color: 0x8a5a34, icon: '🪜', hint: 'опускает мост на стену · четыре попадания в крепление обрушат его' },
   { name: 'Полевая батарея', hp: 650, speed: 2.8, gateDps: 0, crystalDps: 0, hit: 0, pts: 45, cost: 7, first: NEVER, flags: 0, r: 0.9, hrx: 1.1, hry: 0.95, hcy: 0.85, headY: 1.05, color: 0x8a5a34, icon: '💥', hint: 'маленький расчёт разворачивает пушку · четыре попадания в замок срывают залп' },
   { name: 'Гриб-пружинка', hp: 180, speed: 3.6, gateDps: 3, crystalDps: 4, hit: 8, pts: 18, cost: 3, first: 9, flags: 0, r: 0.38, hrx: 0.58, hry: 0.58, hcy: 0.52, headY: 0.65, color: 0xb06ad8, icon: '🍄', hint: 'подбрасывает соседей на стену · три попадания в шляпку сминают трамплин' },
+  { name: 'Избушка', hp: 2200, speed: 1.8, gateDps: 0, crystalDps: 0, hit: 30, pts: 500, cost: 0, first: NEVER, flags: KF_BOSS, r: 2.6, hrx: 2.8, hry: 5.4, hcy: 6.0, headY: 8.6, color: 0x8b6c4c, icon: '🛖', hint: 'пинает стену и бомбит из трубы · после пинка дверь открыта — бей в печь' },
+  { name: 'Пеликан-Бомбардир', hp: 2200, speed: 2.2, gateDps: 0, crystalDps: 0, hit: 24, pts: 500, cost: 0, first: NEVER, flags: KF_BOSS | KF_AIR, r: 1.4, hrx: 1.6, hry: 1.4, hcy: 2.25, headY: 3.1, color: 0xf1e9da, icon: '🪶', hint: 'бомбит ход стены и хватает в зоб · после пике зоб открыт — бей' },
 ];
 
 // ------------------------------------------------------------ умения (общие для сервера и меток на клиенте)

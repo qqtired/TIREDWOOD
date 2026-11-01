@@ -3,7 +3,7 @@
 // вход — та же волна, поэтому подкрепление при входе новых защитников — разница двух планов (horde.raiseDefenders).
 // Волны 1–14 — ручные (знакомство с врагами), дальше — взвешенный выбор с «темой» волны. Числа — fortwaves.ts.
 import {
-  BOSS_CYCLE, Z_ARMORED, Z_BLOATER, Z_BOSS, Z_BRUTE, Z_CLIMBER, Z_FLYER, Z_GOLEM, Z_KINDS, Z_KRAKEN, Z_MEDIC, Z_RUNNER, Z_SAPPER, Z_SHIELD,
+  BOSS_CYCLE, Z_HUT, Z_ARMORED, Z_BLOATER, Z_BOSS, Z_BRUTE, Z_CLIMBER, Z_FLYER, Z_GOLEM, Z_KINDS, Z_KRAKEN, Z_MEDIC, Z_RUNNER, Z_SAPPER, Z_SHIELD,
   Z_SPITTER, Z_WALKER, ZK,
 } from '../../shared/fortkinds.ts';
 import {
@@ -394,10 +394,10 @@ export function planWave(w: number, humans: number, seed: number, last: LastEven
   }
 
   const plan: WavePlan = {
-    w, defenders: n, spawns, boats, boss, bossTier: tierOfBoss, bossHp: boss >= 0 ? bossHp(wf, n, hpTier) * (boss === Z_GOLEM ? 3 : 1) : 0, kraken, event,
+    w, defenders: n, spawns, boats, boss, bossTier: tierOfBoss, bossHp: boss >= 0 ? bossHp(wf, n, hpTier) * (boss === Z_GOLEM || boss === Z_HUT ? 3 : 1) : 0, kraken, event,
     hpScale, dmgMul: waveDmgMul(wf), roads, ...(f.f50 ? { f50: true, krakenTier: scheduledBoss?.kraken } : {}), ...(f.siege ? { siege: true, siegeEvent, siegeHpScale: s0 } : {}),
     // десант — сюрприз (04.10): в карточке и превью лодок нет, тревога — только когда лодки уже у берега
-    card: { w, ...(f.siege ? { siege: true } : {}), ...(f.f50 ? { f50: true } : {}), title: (f.f50 ? scheduledBoss?.final : isFinalWave(w)) ? 'Финал: Кракен и Барон' : kraken ? 'Кракен' : boss >= 0 ? ZK[boss].name : title, chips: [], boats: 0, crew: 0,
+    card: { w, ...(f.siege ? { siege: true } : {}), ...(f.f50 ? { f50: true } : {}), title: f.f50 && scheduledBoss?.final && !kraken && boss >= 0 ? `Финал: ${ZK[boss].name}` : (f.f50 ? scheduledBoss?.final : isFinalWave(w)) ? 'Финал: Кракен и Барон' : kraken ? 'Кракен' : boss >= 0 ? ZK[boss].name : title, chips: [], boats: 0, crew: 0,
       boss: kraken ? Z_KRAKEN : boss, tier: kraken ? f.f50 ? scheduledBoss!.kraken! : superTier(w) : tierOfBoss, event, roads: [...roads].sort((a, b) => a - b), fresh: [],
       elite: 0, champ: 0 },
   };

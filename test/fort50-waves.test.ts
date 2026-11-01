@@ -5,7 +5,7 @@ import { FT_BREAK, FT_END, FT_WAVE, type FortEvent } from '../shared/fort.ts';
 import {
   F50_GOLD_MUL, F50_LAST_WAVE, f50Boss, f50BossNumber, f50BreakSeconds, f50First, f50Force, f50Wave, f50WaveTokens,
 } from '../shared/fort50.ts';
-import { Z_BOSS, Z_GOLEM, Z_KRAKEN, Z_WALKER } from '../shared/fortkinds.ts';
+import { Z_GOLEM, Z_HUT, Z_KRAKEN, Z_PELICAN, Z_WALKER } from '../shared/fortkinds.ts';
 import { Z_BATTERY, Z_ROPECRAB, Z_SIEGE_TOWER, Z_SPRING, siegeBodyTier } from '../shared/fortsiege.ts';
 import { bossHp, crewSize, EV_NONE, KRAKEN_HEAD_BASE_HP, krakenHp, waveDmgMul, waveTokens } from '../shared/fortwaves.ts';
 import { ACT_GATE, killBounty, repairPrice, waveBonus } from '../shared/fortarsenal.ts';
@@ -34,7 +34,7 @@ test('Ф50: все 50 планов, точные боссы, осада, лод�
     if (p.boss >= 0) {
       bosses.push(w);
       const tier = b?.final ? 4 : Math.floor((f50BossNumber(w) - 1) / 3);
-      assert.equal(p.bossHp, bossHp(wf, 2, tier) * (p.boss === Z_GOLEM ? 3 : 1));
+      assert.equal(p.bossHp, bossHp(wf, 2, tier) * (p.boss === Z_GOLEM || p.boss === Z_HUT ? 3 : 1));
       assert.equal(p.bossTier, b?.tier);
     }
     if (p.kraken) { krakens.push(w); assert.equal(p.krakenTier, b?.kraken); }
@@ -52,11 +52,12 @@ test('Ф50: все 50 планов, точные боссы, осада, лод�
     for (const s of p.spawns) if (FEATURES.kinds.has(s.kind)) assert(f50First(s.kind) <= w);
   }
   assert.deepEqual(bosses, [5, 10, 15, 20, 28, 30, 35, 40, 45, 50]);
-  assert.deepEqual(krakens, [25, 50]);
-  const kinds = bosses.filter((w) => w !== 35 && w !== 50).map((w) => f50Boss(w)!.kind);
+  // Пеликан и Избушка приняты 01.11: каждый босс — один раз, финал — без Кракена
+  assert.deepEqual(krakens, [25]);
+  const kinds = bosses.map((w) => f50Boss(w)!.kind);
   assert.equal(new Set(kinds).size, kinds.length);
-  assert.equal(f50Boss(35)?.kind, Z_BOSS);
-  assert.equal(f50Boss(50)?.kind, Z_BOSS);
+  assert.equal(f50Boss(35)?.kind, Z_PELICAN);
+  assert.equal(f50Boss(50)?.kind, Z_HUT);
   assert.equal(planWave(8, 1, 1, undefined, F50_FEATURES).spawns.filter((s) => s.kind === Z_ROPECRAB).length, 1);
   assert.equal(planWave(9, 1, 1, undefined, F50_FEATURES).spawns.filter((s) => s.kind === Z_SPRING).length, 1);
   const recovery = planWave(9, 2, 1, { wave: -99, kind: EV_NONE, siegeFailureWave: 8 }, F50_FEATURES);
@@ -73,7 +74,7 @@ test('Ф50: сила 25-й соответствует прежней 48-й; HP �
 });
 
 test('Ф50: Кракен берёт HP от силы волны и круг из плана', () => {
-  for (const w of [25, 50]) {
+  for (const w of [25]) {
     const g = new FortGame({ fort50: true });
     const plan = planWave(w, 1, 1, undefined, F50_FEATURES);
     g.horde.startWave(plan, 0);

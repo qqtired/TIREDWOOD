@@ -3,7 +3,7 @@
 // client/assets/fort/ (их адрес даёт ui/icons.ts — там import.meta.glob, сюда его нельзя).
 import {
   Z_ARMORED, Z_BLOATER, Z_BOAT, Z_BOSS, Z_BRUTE, Z_CLIMBER, Z_FLYER, Z_GOLEM, Z_KRAKEN, Z_LESHY, Z_MEDIC, Z_PUMPKIN, Z_RAM,
-  Z_RUNNER, Z_SAPPER, Z_SHIELD, Z_SPITTER, Z_TENTACLE, Z_WALKER, Z_WEAVER,
+  Z_RUNNER, Z_SAPPER, Z_SHIELD, Z_SPITTER, Z_TENTACLE, Z_WALKER, Z_WEAVER, Z_HUT, Z_PELICAN,
 } from '../../../shared/fortkinds.ts';
 import { EV_FOG, EV_GOLD, EV_METEORS, EV_SUPPLY } from '../../../shared/fortwaves.ts';
 import { RALLY_COOLDOWN, RALLY_TICKS } from '../../../shared/fort.ts';
@@ -22,6 +22,8 @@ const FOE: Record<number, string> = {
   [Z_BOSS]: 'boss', [Z_SHIELD]: 'shield', [Z_SPITTER]: 'spitter', [Z_SAPPER]: 'bomb', [Z_MEDIC]: 'medic', [Z_ARMORED]: 'armored',
   [Z_RAM]: 'ram', [Z_GOLEM]: 'golem', [Z_BOAT]: 'landing', [Z_TENTACLE]: 'kraken', [Z_KRAKEN]: 'kraken', [Z_PUMPKIN]: 'pumpkin-boss',
   [Z_WEAVER]: 'weaver', [Z_LESHY]: 'leshy',
+  // боссы «Крепости 50» — Баронова изба и его бомбардир: пока значок Барона
+  [Z_HUT]: 'boss', [Z_PELICAN]: 'boss',
 };
 
 export function foeIcon(kind: number): string {
@@ -42,6 +44,7 @@ const LEAD: Record<string, string> = {
   '🍳': 'armored', '⚓': 'landing', '⛵': 'landing', '👑': 'boss', '🌟': 'gold', '🌫': 'fog', '📦': 'supply', '🔔': 'bell',
   '🐙': 'kraken', '🪨': 'golem', '🎃': 'pumpkin-boss', '🕷': 'weaver', '🕸': 'weaver', '🌳': 'leshy', '💪': 'brute', '✪': 'champion',
   '🔨': 'hammer', '🏰': 'ballista', '🔫': 'shotgun', '🏆': 'records', '⭐': 'level', '⚔': 'records', '🏳': 'white-flag',
+  '🛖': 'boss', '🪶': 'boss',
 };
 /** Спокойные тревоги (колокол, припасы, щит) — сведения, не опасность */
 const CALM = new Set(['bell', 'supply', 'hammer', 'ballista', 'shotgun']);

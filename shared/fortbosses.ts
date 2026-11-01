@@ -8,6 +8,7 @@ import {
   ZS_LS_HEAL, ZS_LS_ROOTS, ZS_LS_UNDER, ZS_PK_ROLL, ZS_PK_ROLL_WARN, ZS_PK_SPIT, ZS_PK_SUMMON, ZS_WV_BITE, ZS_WV_BROOD,
   ZS_WV_SWEEP, ZS_WV_WEB,
 } from './fort.ts';
+import { F50_BOSS_TIMED, f50BossRadius } from './fortbosses50.ts';
 
 // ------------------------------------------------------------ Король-Тыква
 
@@ -116,7 +117,7 @@ export const ZF_WV_WALL = 128;
 /** Состояния новых боссов, у которых в снимке есть отсчёт и цель (fortnet.ts, isTimedState) */
 export const NEW_BOSS_TIMED: readonly number[] = [
   ZS_PK_SUMMON, ZS_PK_ROLL_WARN, ZS_PK_ROLL, ZS_PK_SPIT, ZS_WV_SWEEP, ZS_WV_WEB, ZS_WV_BROOD, ZS_WV_BITE, ZS_LS_ROOTS, ZS_LS_HEAL,
-  ZS_LS_UNDER,
+  ZS_LS_UNDER, ...F50_BOSS_TIMED,
 ];
 
 /** Радиус метки по состоянию нового босса (0 — нет метки) — для снимка */
@@ -133,6 +134,7 @@ export function newBossRadius(state: number): number {
     case ZS_LS_ROOTS: return LS_ROOT_R;
     case ZS_LS_HEAL: return LS_HEAL_R;
     case ZS_LS_UNDER: return LS_EMERGE_R;
-    default: return 0;
+    // Пеликан и Избушка «Крепости 50» — shared/fortbosses50.ts
+    default: return f50BossRadius(state);
   }
 }
