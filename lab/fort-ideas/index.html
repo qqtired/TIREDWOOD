@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ru" data-skin="retro2" data-hud="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="../../client/assets/ui/icons/shield.webp">
+<title>Крепость 50 — новые идеи</title>
+<link rel="stylesheet" href="../quiz/v2/v2-fonts.css">
+<link rel="stylesheet" href="../../client/ui/kit/tokens.css">
+<link rel="stylesheet" href="../../client/ui/kit/kit.css">
+<link rel="stylesheet" href="ideas.css">
+</head>
+<body>
+<header class="ix-head">
+  <img src="../../client/assets/ui/icons/shield.webp" alt="">
+  <div>
+    <p class="k-eyebrow">TIREDWOOD · Крепость 50 · 01.11</p>
+    <h1>Крепость 50 — новые идеи</h1>
+    <p class="ix-sub">Разобрано 23 похожие игры: tower defense, кооперативные шутеры и шутеры от третьего лица. 28 новых идей — ничего со старых страниц.</p>
+  </div>
+</header>
+
+<main class="ix-main">
+  <section class="ix-sec ix-t5-sec" id="top5">
+    <h2>Топ-5 исследователя</h2>
+    <p class="ix-lead">Нажми карточку — откроется идея ниже. Цена: <b>S</b> — до дня, <b>M</b> — 2–3 дня, <b>L</b> — неделя и больше.</p>
+    <div class="ix-t5-grid" id="t5"></div>
+    <div class="ix-best-row" id="best"></div>
+  </section>
+
+  <section class="ix-sec" id="common">
+    <h2>Что общего у лучших игр жанра</h2>
+    <div class="ix-common" id="commonGrid"></div>
+  </section>
+
+  <section class="ix-sec" id="ideas">
+    <h2>Все идеи</h2>
+    <p class="ix-lead">Всё — за флагом; награды — золотом забега, жетоны в рамках 8–15 🪙/мин. Числа — прикидки по формулам игры, баланс не считался. Нажми карточку — она попадёт в список «Беру» внизу.</p>
+    <div class="ix-filters" id="filters">
+      <div class="ix-frow">
+        <span class="ix-flabel">Группа</span>
+        <div class="k-seg ix-seg" id="fSec"></div>
+      </div>
+      <div class="ix-frow">
+        <span class="ix-flabel">Цена</span>
+        <div class="k-seg ix-seg" id="fCost"></div>
+        <button class="k-btn k-btn--ghost k-btn--sm ix-star" id="fStar" type="button" aria-pressed="false">★ Только топ-5</button>
+        <span class="ix-count" id="fCount"></span>
+      </div>
+    </div>
+    <div id="groups"></div>
+    <p class="ix-empty" id="empty" hidden>Под эти фильтры ничего нет — сними один из них.</p>
+  </section>
+
+  <section class="ix-sec" id="sources">
+    <h2>Разобранные игры и источники</h2>
+    <p class="ix-lead">Выборочно: 13 tower defense и оборон от волн и 10 кооперативных шутеров и TPS, всего 23 игры.</p>
+    <ul class="ix-src" id="srcList"></ul>
+    <p class="ix-note">Не повторяет страницы <a href="../fort-rework/">lab/fort-rework/</a> (К-*, М-*, С-*, Ф50-*) и <a href="../ideas/">lab/ideas/</a>, а также то, что уже есть в игре. Ждёт выбора владельца кодами.</p>
+  </section>
+</main>
+
+<div class="ix-pick" id="pick">
+  <span class="ix-pick-l">Беру <b id="pickN">0</b>:</span>
+  <span class="ix-pick-list" id="pickList"></span>
+  <button class="k-btn k-btn--ghost k-btn--sm" id="pickReset" type="button">Топ-5</button>
+  <button class="k-btn k-btn--ghost k-btn--sm" id="pickClear" type="button">Очистить</button>
+  <button class="k-btn k-btn--gold k-btn--sm" id="pickCopy" type="button">Скопировать</button>
+</div>
+<script src="ideas.js" defer></script>
+</body>
+</html>
