@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createHash } from 'node:crypto';
 import { EYE_HEIGHT, TICK_RATE, TRAMPOLINE_VELOCITY } from '../shared/constants.ts';
-import { FT_BREAK, FT_END, FT_WAVE, Z_BRUTE, Z_WALKER, ZK, type FortEvent } from '../shared/fort.ts';
-import { F50_BOSSES, f50Wave, holeCenter, USE_STONE, USE_WALL_FIX, WALL_SECTIONS, STONE_FALL_TICKS, wallFixPrice } from '../shared/fort50.ts';
+import { FT_BREAK, FT_END, FT_WAVE, USE_RALLY_HOTKEY, Z_BRUTE, Z_WALKER, ZK, type FortEvent } from '../shared/fort.ts';
+import { F50_BOSSES, f50Wave, holeCenter, USE_CAMP_BURN, USE_CAMP_STOP, USE_STONE, USE_WALL_FIX, USE_WALL_STOP, WALL_SECTIONS, STONE_FALL_TICKS, wallFixPrice } from '../shared/fort50.ts';
 import { CRAFT_MASON, CRAFTS, CRAB_HITS, CRAB_JACKPOT, crabGold, RACK, TRAMP_SPOTS, trampPrice, USE_CARD, USE_CRAFT, USE_TRAMP, Z_GOLDCRAB } from '../shared/fortideas.ts';
 import { gunMag, gunIntervalQ, gunReload, loadoutOf, ACT_GATE, ACT_CRYSTAL, ACT_TOWER, gateRows, crystalRows, towerRows, GUNS } from '../shared/fortarsenal.ts';
 import { FT_STRIDE, zombieRay } from '../shared/fortaim.ts';
@@ -54,7 +54,8 @@ test('без флагов сохраняются исходные сообщен
   ticks(g, 10);
   assert(!messages[0].some((m) => m.t === 'fideas'));
   const digest = createHash('sha256').update(JSON.stringify(messages)).update(Buffer.concat(bins)).digest('hex');
-  assert.equal(digest, '93df7787861c4fe5465bedfbbc16d6c597b20ed71b881d2c4da45dfaa7bc036a');
+  // в снимке — позиция игрока у вешалки (RACK): сдвинули вешалку — пересчитать
+  assert.equal(digest, '4432990c16ee9a75730ea83585ab3578469ccf7595f0fe0bb0f9b195613dd86c');
   const off = setup(1, { fort50: false, ideas: true, elite: true });
   assert(!off.messages[0].some((m) => m.t === 'fideas'));
 });
@@ -330,4 +331,11 @@ test('замедление задерживает уже выпущенный с
   assert.equal(g.gate, gate);
   ticks(g, 90 + BATTERY_FLIGHT_TICKS);
   assert(g.gate <= gate - BATTERY_GATE_DAMAGE);
+});
+
+test('коды действий идей не пересекаются со стенами, камнями, лагерем и щитом', () => {
+  const taken = new Set<number>([USE_RALLY_HOTKEY, USE_CAMP_BURN, USE_CAMP_STOP, USE_STONE]);
+  for (let s = 0; s < 100; s++) { taken.add(USE_WALL_FIX + s); taken.add(USE_WALL_STOP + s); }
+  const ours = [...TRAMP_SPOTS.map((_, i) => USE_TRAMP + i), ...[0, 1, 2, 3, 4].map((c) => USE_CRAFT + c), ...[0, 1, 2].map((i) => USE_CARD + i)];
+  for (const id of ours) assert(!taken.has(id), `код ${id} уже занят`);
 });

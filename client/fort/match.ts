@@ -1,3 +1,4 @@
+import { setEliteEnabled } from './elite/flag.ts';
 import { SIEGE_METEOR_RADIUS, SIEGE_METEOR_FLIGHT, Z_MILLER, PUMP_POOL_SLOW, PUMP_POOL_TICKS, REPAIR_WORK_TICKS, ZS_SIEGE_GLOB, ZS_SIEGE_SHELL, ZS_SIEGE_WINDUP, ZS_SIEGE_DEPLOY } from '../../shared/fortsiege.ts';
 // Игра в крепости на клиенте: предсказание своего движения (тот же stepPlayer, что на сервере, и ворота в мире
 // коллизий — по хвосту снимка), чужие защитники — интерполяцией, орда — zombies3d.ts, свой выстрел — сразу по тем же
@@ -553,6 +554,8 @@ export class FortMatch {
 
   /** Состояние «Т-идей»: клиент появляется по первому сообщению с включённым флагом; без него крепость как раньше */
   private onIdeas(m: FortIdeasMsg): void {
+    // новый вид элиток (рост, аура, без кольца) — по полю elite
+    setEliteEnabled(m.elite === true);
     if (this.ideas) {
       this.ideas.onMsg(m);
       return;

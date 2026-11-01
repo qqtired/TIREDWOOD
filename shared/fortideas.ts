@@ -29,7 +29,8 @@ export const CRAFTS: readonly CraftDef[] = [
 ];
 
 /** Вешалка во дворе: E рядом — окно выбора */
-export const RACK = { x: -7, z: 1.5 };
+// у подножия западной лестницы на террасу, на ровном полу двора (на самой лестнице E не доставал: сервер требует y ≈ 0)
+export const RACK = { x: -5, z: -0.5 };
 export const RACK_REACH = 2.2;
 /** «Полный расчёт»: все четыре ремесла среди игроков в крепости — золото забега всем ×1,1 */
 export const FULL_CREW_GOLD = 1.1;
@@ -40,8 +41,9 @@ export const FULL_CREW_GOLD = 1.1;
 export const TRAMP_SPOTS: readonly { x: number; z: number }[] = [
   { x: -12.9, z: -4 },
   { x: 12.9, z: -4 },
-  { x: -8, z: -13.4 },
-  { x: 8, z: -13.4 },
+  // у северной стены (внутренняя грань z = −13): край батута в ~1 м от неё
+  { x: -8, z: -10.9 },
+  { x: 8, z: -10.9 },
 ];
 export const TRAMP_REACH = 2.0;
 export function trampPrice(wave: number): number {
@@ -103,9 +105,10 @@ export const ELITE_SCALE: readonly number[] = [1, 1.25, 1.5];
 // ------------------------------------------------------------ действия и сообщения
 
 /** Действия — через существующее { t: 'use', id } */
-export const USE_TRAMP = 5300; // + номер места
-export const USE_CRAFT = 5400; // + ремесло (CRAFT_NONE — снять шапку)
-export const USE_CARD = 5500; // + 0…2 — голос за карточку
+// 5000–5301 заняты стенами, камнями и лагерем (shared/fort50.ts), 5400 — щит клавишей J (shared/fort.ts)
+export const USE_TRAMP = 5600; // + номер места
+export const USE_CRAFT = 5700; // + ремесло (CRAFT_NONE — снять шапку)
+export const USE_CARD = 5800; // + 0…2 — голос за карточку
 
 /** Сервер → игрок: при входе в крепость и при каждом изменении. Новые поля JSON-ом, без смены формата снимка */
 export interface FortIdeasMsg {

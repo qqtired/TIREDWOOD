@@ -1,5 +1,6 @@
 // Мобы крепости, набор A и общая часть: рендерер орды (инстансы, выбор варианта, вспышка), модели набора —
 // цвета, бюджет, конечные позы во всех состояниях вида, существующие виды.
+import { WEAK_SPOTS } from '../shared/fortweak.ts';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import * as THREE from 'three';
@@ -185,7 +186,8 @@ test('набор A: части с цветом, бюджет, существую
       tris += (part.geo.index ? part.geo.index.count : part.geo.getAttribute('position').count) / 3;
     }
     const boss = def.kinds.some((k) => (ZK[k].flags & KF_BOSS) !== 0);
-    assert.ok(tris <= (boss ? 6000 : 1500), `${def.id}: ${tris} треугольников`);
+    // мобы со слабым местом (Т-23: бочонок, клапан, ремень) — до 3500, в пределах правила «моб 1–4 тыс.»
+    assert.ok(tris <= (boss ? 6000 : def.kinds.some((k) => WEAK_SPOTS[k]) ? 3500 : 1500), `${def.id}: ${tris} треугольников`);
     assert.ok(def.parts.some((p) => p.glow), `${def.id}: светящиеся глаза (glow)`);
   }
   for (const kind of [Z_WALKER, Z_RUNNER, Z_BRUTE]) {

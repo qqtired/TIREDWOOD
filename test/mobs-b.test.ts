@@ -1,5 +1,6 @@
 // Мобы «Крепости», набор B (Липучка, Пузырь, Крылатка, Щитоносец): договор kit.ts соблюдён — цвета вершин,
 // бюджет, конечные матрицы во всех состояниях вида, при ударе и гибели; виды существуют; ноги не скользят.
+import { WEAK_SPOTS } from '../shared/fortweak.ts';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import * as THREE from 'three';
@@ -26,7 +27,8 @@ test('набор B: цвета вершин, бюджет, светящиеся 
   for (const def of MOBS_B) {
     // щитоносцы (М-2, 31.10): обе руки — своя часть, щит — две половины (ломается на виду) — до 8 частей
     assert.ok(def.parts.length <= (def.kinds.includes(Z_SHIELD) ? 8 : 6), `${def.id}: частей ${def.parts.length}`);
-    assert.ok(tris(def) <= 1550, `${def.id}: треугольников ${tris(def)}`);
+    // мобы со слабым местом (Т-23: бочонок, клапан, ремень) — до 3500, в пределах правила «моб 1–4 тыс.»
+    assert.ok(tris(def) <= (def.kinds.some((k) => WEAK_SPOTS[k]) ? 3500 : 1550), `${def.id}: треугольников ${tris(def)}`);
     assert.ok(def.parts.some((p) => p.glow), `${def.id}: светящиеся глаза`);
     for (const p of def.parts) {
       assert.ok(BONES.includes(p.bone), `${def.id}: кость ${p.bone}`);
