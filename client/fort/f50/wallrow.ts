@@ -1,6 +1,6 @@
 // «Крепость 50»: строка «Стены» в карточке крепости — под воротами и кристаллом, в том же виде (значок, полоса,
 // число). Значок — план крепости из 11 участков: цвет участка — его стадия (цела, трещины, обвал зубцов, пролом).
-// Число — самый слабый участок; есть пролом — «пролом» (×N). Удар по участку — строка вздрагивает, как у ворот.
+// Число — самый слабый участок; есть пролом — «дыра» («дыры»), обвал бастиона — «обвал». Удар по участку — строка вздрагивает, как у ворот.
 import { WALL_SECTIONS, WS_BREACH, wallStage } from '../../../shared/fort50.ts';
 import { el, setText } from '../ui/dom.ts';
 
@@ -80,9 +80,10 @@ export class WallRow {
     if (key === this.last) return;
     this.last = key;
     stages.forEach((st, i) => { this.cells[i].dataset.stage = String(st); });
-    // сквозной пролом важнее обвала бастиона: туда идут враги
-    const word = passes ? 'пролом' : 'обвал';
-    setText(this.pct, holes ? (holes > 1 ? `${word} ×${holes}` : word) : `${Math.round(weakest * 100)}%`);
+    // сквозной пролом важнее обвала бастиона: туда идут враги. Слово короткое, как «пали» у ворот: в плашке три узкие
+    // ячейки, сколько дыр — видно по красным участкам плана
+    const word = passes ? (passes > 1 ? 'дыры' : 'дыра') : 'обвал';
+    setText(this.pct, holes ? word : `${Math.round(weakest * 100)}%`);
     const low = holes > 0 || weakest < 0.4;
     this.root.classList.toggle('is-low', low);
     this.bar.className = `k-meter ${low ? 'k-meter--bad' : 'k-meter--mode'}`;

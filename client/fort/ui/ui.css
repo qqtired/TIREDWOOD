@@ -346,3 +346,13 @@ html:has(.screen.pause.show:not(.veil)) .ft-tab-scrim { display: none; }
 .ft-walls-plan rect[data-stage='2'] { fill: var(--bad); opacity: 1; }
 .ft-walls-plan rect[data-stage='3'] { fill: var(--dg-red); opacity: 1; animation: ft-shield-ask .45s ease-in-out infinite alternate; }
 .ft-walls-plan rect.is-hit { fill: var(--bad-text); opacity: 1; }
+
+/* «Крепость 50»: в плашке три ячейки (ворота, кристалл, стены) — значки меньше, без делений уровня (они в лавке), чтобы
+   проценты и «дыра» не налезали на соседей и заголовок волны */
+@media (min-width: 781px) {
+  .ft-command:has(.ft-walls:not([hidden])) .ft-hps { gap: 3px; }
+  .ft-command:has(.ft-walls:not([hidden])) .ft-hp { grid-template-columns: 22px auto; grid-template-areas: 'icon pct' 'bar bar'; gap: 3px 2px; }
+  .ft-command:has(.ft-walls:not([hidden])) .ft-hp-ic { width: 22px; height: 22px; }
+  .ft-command:has(.ft-walls:not([hidden])) .ft-hp-pct { font-size: 13px; }
+  .ft-command:has(.ft-walls:not([hidden])) .ft-hp-up { display: none; }
+}
