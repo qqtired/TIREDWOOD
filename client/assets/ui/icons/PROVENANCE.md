@@ -1,5 +1,17 @@
 # Иконки интерфейса TIREDWOOD (client/assets/ui/icons)
 
+## Дополнение 7 — боссы «Крепости 50», 01.11.2026
+
+Значки полоски босса и тревог: `hut-boss.webp` (Избушка, финал 50-й волны) и `pelican-boss.webp` (Пеликан-Бомбардир, 35-я).
+Codex CLI (`codex exec -m gpt-6-astra`, встроенный `image_gen`, прозрачный фон), одна иконка на вызов, с первого раза,
+без правок руками. Промпт = обёртка + Subject + «Общий стиль» ниже. Штатный `post.mjs`: 256×256 WebP с альфой. Описания
+сверены с моделями `client/fort/bosses/{hut,pelican}.ts`.
+
+- **`hut-boss.webp`** — Subject: a cozy old wooden fisherman's log hut walking on two huge orange seagull legs with webbed three-toed feet: dark honey-brown log walls, a grey stone chimney puffing a small soft cloud of smoke, a round attic window, little windows with red shutters, a heavy red plank front door, a small purple pennant on the roof ridge, a row of dried fish hanging under the eaves and two small wooden jam barrels strapped to its side, mid-stride, grumpy-but-friendly storybook character, not scary.
+  - сессия Codex `01a196bc-ed5b-7592-845f-47c33192a73a`, исходник 1254×1254, sha256 f359abb79812…, в игре 16 КБ
+- **`pelican-boss.webp`** — Subject: a big plump white pelican bomber flying with wings spread wide: an old brown leather aviator cap with round goggles, a red scarf fluttering behind, a huge orange-pink beak with its throat pouch stuffed with round purple plums, orange webbed feet clutching a small wooden jam barrel, cheeky determined expression, goofy not scary.
+  - сессия Codex `01a196bc-ed5b-70b3-bf87-9b44c93416bf`, исходник 1254×1254, sha256 4c1ceaf5c25d…, в игре 15 КБ
+
 ## Дополнение 6 — четыре набора пейнтбола (флаг `PAINT4`), 31.10.2026
 
 Иконки карточек выбора набора и ячеек HUD: `squirt.webp` (Брызгалка), `can.webp` (Лейка), `bow.webp` (Лук), `bucket.webp` (ведёрко краски на G). Маркер берёт уже готовую `marker.webp`. Codex CLI (`codex exec -m gpt-6-astra`, встроенный `image_gen`, прозрачный фон), **одна иконка на вызов**, по одному вызову с первого раза, без правок руками. Общий стиль — тот же, что ниже («Общий стиль»), промпт = Subject + общий стиль. Штатный `post.mjs`: 256×256 WebP с альфой, 12–16 КБ.

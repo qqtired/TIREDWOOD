@@ -22,8 +22,8 @@ const FOE: Record<number, string> = {
   [Z_BOSS]: 'boss', [Z_SHIELD]: 'shield', [Z_SPITTER]: 'spitter', [Z_SAPPER]: 'bomb', [Z_MEDIC]: 'medic', [Z_ARMORED]: 'armored',
   [Z_RAM]: 'ram', [Z_GOLEM]: 'golem', [Z_BOAT]: 'landing', [Z_TENTACLE]: 'kraken', [Z_KRAKEN]: 'kraken', [Z_PUMPKIN]: 'pumpkin-boss',
   [Z_WEAVER]: 'weaver', [Z_LESHY]: 'leshy',
-  // боссы «Крепости 50» — Баронова изба и его бомбардир: пока значок Барона
-  [Z_HUT]: 'boss', [Z_PELICAN]: 'boss',
+  // боссы «Крепости 50»: значки imagegen (client/assets/ui/icons/PROVENANCE.md, дополнение 7)
+  [Z_HUT]: 'hut-boss', [Z_PELICAN]: 'pelican-boss',
 };
 
 export function foeIcon(kind: number): string {
@@ -44,7 +44,7 @@ const LEAD: Record<string, string> = {
   '🍳': 'armored', '⚓': 'landing', '⛵': 'landing', '👑': 'boss', '🌟': 'gold', '🌫': 'fog', '📦': 'supply', '🔔': 'bell',
   '🐙': 'kraken', '🪨': 'golem', '🎃': 'pumpkin-boss', '🕷': 'weaver', '🕸': 'weaver', '🌳': 'leshy', '💪': 'brute', '✪': 'champion',
   '🔨': 'hammer', '🏰': 'ballista', '🔫': 'shotgun', '🏆': 'records', '⭐': 'level', '⚔': 'records', '🏳': 'white-flag',
-  '🛖': 'boss', '🪶': 'boss',
+  '🛖': 'hut-boss', '🪶': 'pelican-boss',
 };
 /** Спокойные тревоги (колокол, припасы, щит) — сведения, не опасность */
 const CALM = new Set(['bell', 'supply', 'hammer', 'ballista', 'shotgun']);
