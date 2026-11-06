@@ -60,6 +60,11 @@ export class SkillBot {
         return (s.grounded === 1 || m.bounce !== undefined) && Math.abs(s.y - w.maxY[b]) < 0.03 && over(s, { x0: w.minX[b], x1: w.maxX[b], z0: w.minZ[b], z1: w.maxZ[b] });
       });
     }
+    // батут: коснулся верха — уже подбросило (цепочка батутов без остановки)
+    if (s.grounded !== 1 && link.spring && !('disc' in to)) {
+      const r = to as SkillRect;
+      return s.vy > 1 && Math.abs(s.y - r.y) < 0.01 && over(s, r);
+    }
     if (s.grounded !== 1) return false;
     if ('disc' in to) {
       return this.map.disc.boxes.some((b) => Math.abs(s.y - w.maxY[b]) < 0.03 && over(s, { x0: w.minX[b], x1: w.maxX[b], z0: w.minZ[b], z1: w.maxZ[b] }));
@@ -219,7 +224,7 @@ export class SkillRouteBot extends SkillBot {
       if (s.fireCd > 0 || s.y < floor || !Number.isFinite(s.x + s.y + s.z)) return -1;
       if (this.reached(link, s)) {
         // устоять пару тиков (облако не растаяло под ногами, ступень не осыпалась); «без остановки» — бежим дальше
-        const springy = 'movers' in link.to && link.to.movers.some((m) => this.map.movers[m].bounce !== undefined);
+        const springy = link.spring || ('movers' in link.to && link.to.movers.some((m) => this.map.movers[m].bounce !== undefined));
         if (!link.flow && !springy && !('bell' in link.to)) for (let k = 0; k < 6; k++) if (!tick(0, 0, 0) || s.grounded !== 1) return -1;
         return t;
       }
@@ -264,6 +269,11 @@ export class SkillRouteBot extends SkillBot {
         const phase = ride.kind === 'orbit' ? ride.phase : ride.sched.phase;
         const timing = link.at.map(at => ((at + phase - t) % period + period) % period).filter(wait => wait <= maxWait);
         waits.unshift(...timing);
+      }
+      // подвижная цель приходит раз в every тиков: сначала — удобные моменты её цикла (подход к началу ≈ 8 тиков)
+      if (link.from === undefined && link.at && link.every) {
+        const every = link.every, base = t + 8;
+        waits.unshift(...link.at.map(at => ((at - base) % every + every) % every).filter(wait => wait <= maxWait).sort((a, b) => a - b));
       }
       for (const wait of waits) {
         for (const j of jumps) {

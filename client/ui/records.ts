@@ -86,7 +86,7 @@ export const RECORDS: readonly RecordLine[] = [
   { icon: 'slide', mode: 'Аквапарк', course: 'Первая полоса (архив)', what: 'лучшее время', value: (s) => lap(s.aqBestCourse1), played: (s) => s.aqCourse !== 1 && s.aqBestCourse1 > 0 },
   { icon: 'slide', mode: 'Аквапарк', course: 'Полоса 2 (архив)', what: 'лучшее время', value: (s) => lap(s.aqBestCourse2), played: (s) => s.aqCourse !== 2 && s.aqBestCourse2 > 0 },
   { icon: 'slide', mode: 'Аквапарк', course: 'Полоса 3 (архив)', what: 'лучшее время', value: (s) => lap(s.aqBestCourse3), played: (s) => s.aqCourse !== 3 && s.aqBestCourse3 > 0 },
-  { icon: 'bell-cloud', mode: 'Выше облаков', course: 'Текущая каланча', what: 'лучшее время', whatOf: (p) => `${p.stats.skCourse === 2 ? 185 : 65} м · лучшее время`, value: (s) => lap(s.skBest) },
+  { icon: 'bell-cloud', mode: 'Выше облаков', course: 'Текущая трасса', what: 'лучшее время', whatOf: (p) => `${p.stats.skCourse === 3 ? 'Город вверх · 307' : p.stats.skCourse === 2 ? 185 : 65} м · лучшее время`, value: (s) => lap(s.skBest) },
   { icon: 'bell-cloud', mode: 'Выше облаков', course: 'Каланча 65 м (архив)', what: 'лучшее время', value: (s) => lap(s.skBestLegacy), played: (s) => s.skCourse !== 1 && s.skBestLegacy > 0,
     whatOf: (p) => [medal(p.stats.skMedalLegacy), p.stats.skCleanLegacy ? 'без падений' : null, `${fmt.format(p.stats.skRunsLegacy)} подъёмов`].filter(Boolean).join(' · ') },
   { icon: 'bell-cloud', mode: 'Выше облаков', course: 'Каланча 185 м (архив)', what: 'лучшее время', value: (s) => lap(s.skBestTower185), played: (s) => s.skCourse !== 2 && s.skBestTower185 > 0,

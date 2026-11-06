@@ -1,4 +1,4 @@
-import { SKILL_CAPACITY, type SkillCourse, type SkillStatus } from '../../shared/skilltest.ts';
+import { SKILL_CAPACITY, SKILL_CLIMB_COURSE, type SkillCourse, type SkillStatus, type SkillTopRow } from '../../shared/skilltest.ts';
 import type { ClientMsg } from '../../shared/messages.ts';
 import type { Outfit } from '../../shared/outfit.ts';
 import type { Input } from '../../shared/sim.ts';
@@ -14,6 +14,8 @@ export interface SkillRoomHooks {
   afk?(c: Client): void;
   /** Позвонил в колокол: профиль и жетоны; null — без награды (гость) */
   result?(c: Client, ticks: number, falls: number, place: number): SkillReward | null;
+  /** Доска лучших времён текущей трассы (до SKILL_TOP строк) */
+  top?(): SkillTopRow[];
 }
 
 export class SkillRoom implements Room {
@@ -29,6 +31,7 @@ export class SkillRoom implements Room {
       for (const [c, player] of this.clients) if (p === player) return hooks.result?.(c, ticks, falls, place) ?? null;
       return null;
     };
+    this.game.topOf = () => hooks.top?.() ?? [];
     this.game.onChat = (text) => {
       for (const c of this.clients.keys()) c.sink.sendJson({ t: 'chat', from: '', pid: 0, room: 'skill', team: -1, text, sys: true });
     };
@@ -68,7 +71,8 @@ export class SkillRoom implements Room {
   status(): SkillStatus {
     const race = this.game.race;
     const left = race.phase === 'pre' ? Math.max(0, Math.ceil((race.phaseEnd - this.game.tick) / 60)) : 0;
-    return { n: this.humans, max: SKILL_CAPACITY, names: [...this.clients.keys()].map((c) => c.nick), course: this.game.course, phase: race.phase, left };
+    const top = this.game.course === SKILL_CLIMB_COURSE ? this.game.topOf() : [];
+    return { n: this.humans, max: SKILL_CAPACITY, names: [...this.clients.keys()].map((c) => c.nick), course: this.game.course, phase: race.phase, left, ...(top.length ? { top } : {}) };
   }
   step(): void { for (const [c, p] of this.clients) if (c.profile) p.level = c.profile.level; this.game.step(); }
 }

@@ -159,7 +159,7 @@ export interface Stats {
   skMedal: number;
   skClean: number;
   skDay: number;
-  /** 1 — прежняя каланча 65 м, 2 — каланча 185 м. skRuns остаётся общим за всё время. */
+  /** 1 — прежняя каланча 65 м, 2 — каланча 185 м, 3 — «Город вверх». skRuns остаётся общим за всё время. */
   skCourse: number;
   skBestLegacy: number;
   skMedalLegacy: number;
@@ -171,6 +171,12 @@ export interface Stats {
   skCleanTower185: number;
   skDayTower185: number;
   skRunsTower185: number;
+  /** «Город вверх» (sky-climb-v1): проекция для карточек, когда активна другая трасса */
+  skBestClimb: number;
+  skMedalClimb: number;
+  skCleanClimb: number;
+  skDayClimb: number;
+  skRunsClimb: number;
   /**
    * «Подземелье» (shared/dungeon/api.ts): забегов, рекорд — отбито волн и игровое время до конца последней из них (мс),
    * сбито врагов и боссов за всё время
@@ -220,6 +226,7 @@ export function emptyStats(): Stats {
     skRuns: 0, skBest: 0, skMedal: 0, skClean: 0, skDay: 0,
     skCourse: 0, skBestLegacy: 0, skMedalLegacy: 0, skCleanLegacy: 0, skDayLegacy: 0, skRunsLegacy: 0,
     skBestTower185: 0, skMedalTower185: 0, skCleanTower185: 0, skDayTower185: 0, skRunsTower185: 0,
+    skBestClimb: 0, skMedalClimb: 0, skCleanClimb: 0, skDayClimb: 0, skRunsClimb: 0,
     dgRuns: 0, dgBest: 0, dgBestMs: 0, dgKills: 0, dgBosses: 0,
     arBestTr: 0, arBestTi: 0, arBestCa: 0, arWkTr: 0, arWkTi: 0, arWkCa: 0, arWkBestTr: 0, arWkBestTi: 0, arWkBestCa: 0,
     arRunsTr: 0, arRunsTi: 0, arRunsCa: 0, arDay: 0, arDayCoins: 0, arRecMask: 0,

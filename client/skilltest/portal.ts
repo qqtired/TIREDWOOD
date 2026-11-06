@@ -1,10 +1,21 @@
 import * as THREE from 'three';
-import { SKILL_COURSE, type SkillStatus } from '../../shared/skilltest.ts';
+import { SKILL_CLIMB_COURSE, SKILL_COURSE, type SkillStatus } from '../../shared/skilltest.ts';
 
 /** Строка статуса каланчи: на табличке арки, а при новом оформлении площади — на облаке-вывеске (client/lobby/plaza/north.ts). */
 export function skyStatusLine(s: SkillStatus): string {
   const state = `${s.n}/${s.max}`;
-  return s.n >= s.max ? `Каланча занята · ${state}` : s.phase === 'pre' ? `Сбор забега · старт через ${s.left} с` : s.phase === 'run' ? `Идёт забег · на каланче ${state}` : `Небесная каланча · на каланче ${state}`;
+  const climb = s.course === SKILL_CLIMB_COURSE;
+  const on = climb ? 'на трассе' : 'на каланче';
+  if (s.n >= s.max) return `${climb ? 'Трасса' : 'Каланча'} занята · ${state}`;
+  if (s.phase === 'pre') return `Сбор забега · старт через ${s.left} с`;
+  if (s.phase === 'run') return `Идёт забег · ${on} ${state}`;
+  // «Город вверх»: в покое — рекорд трассы (доска топ-10 — у старта в самом режиме)
+  const best = climb ? s.top?.[0] : undefined;
+  if (best) {
+    const sec = Math.floor(best.ms / 1000), nick = best.nick.length > 14 ? `${best.nick.slice(0, 13)}…` : best.nick;
+    return `Рекорд: ${nick} ${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')} · ${on} ${state}`;
+  }
+  return `${climb ? 'Город вверх' : 'Небесная каланча'} · ${on} ${state}`;
 }
 
 /** Lobby gateway only. Matching colliders and interaction belong to the lobby map. */

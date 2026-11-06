@@ -5,11 +5,12 @@
 // Кто вошёл посреди забега — лезет со своим временем: места нет, рекорд и медаль считаются.
 import { aquaClock } from '../../shared/aquadyn.ts';
 import { makeSkillMap, makeLegacySkillMap, type SkillMap } from '../../shared/skillmap.ts';
+import { makeClimbMap } from '../../shared/skillclimb.ts';
 import { SkillDynamics, inBell, onCheckpoint } from '../../shared/skillphysics.ts';
 import {
-  SKILL_AFTER_FIRST_TICKS, SKILL_AGAIN_TICKS, SKILL_CAPACITY, SKILL_COURSE, SKILL_LEGACY_COURSE, SKILL_GATHER_TICKS, SKILL_REJOIN_TICKS, SKILL_RESULTS_TICKS,
+  SKILL_AFTER_FIRST_TICKS, SKILL_AGAIN_TICKS, SKILL_CAPACITY, SKILL_CLIMB_COURSE, SKILL_COURSE, SKILL_LEGACY_COURSE, SKILL_GATHER_TICKS, SKILL_REJOIN_TICKS, SKILL_RESULTS_TICKS,
   makeSkillProgress, skillClock, skillMedal, skillMs, type SkillFinish, type SkillPeer, type SkillPhase, type SkillProgress,
-  type SkillRaceView, type SkillRow, type SkillServerMsg, type SkillCourse,
+  type SkillRaceView, type SkillRow, type SkillServerMsg, type SkillCourse, type SkillTopRow,
 } from '../../shared/skilltest.ts';
 import { makeEvents, makeInput, makeState, type Input, type PlayerState } from '../../shared/sim.ts';
 import type { Outfit } from '../../shared/outfit.ts';
@@ -69,11 +70,13 @@ export class SkillGame {
   onFinish: (p: SkillPlayer, ticks: number, falls: number, place: number) => SkillReward | null = () => null;
   /** Строка в чат комнаты */
   onChat: (text: string) => void = () => {};
+  /** Доска лучших времён этой трассы (хаб, из архива курса); пусто — доски нет */
+  topOf: () => SkillTopRow[] = () => [];
 
   constructor(now: () => number = Date.now, course: SkillCourse = SKILL_COURSE) {
     this.now = now;
     this.course = course;
-    this.map = course === SKILL_LEGACY_COURSE ? makeLegacySkillMap() : makeSkillMap();
+    this.map = course === SKILL_LEGACY_COURSE ? makeLegacySkillMap() : course === SKILL_CLIMB_COURSE ? makeClimbMap() : makeSkillMap();
     this.world = new CollisionWorld(this.map);
     this.dynamics = new SkillDynamics(this.map, this.world);
   }
@@ -86,7 +89,10 @@ export class SkillGame {
     const progress = restore ? { ...saved!.progress, racer: false } : makeSkillProgress(saved ? saved.progress.run + 1 : 1);
     // Хаб спит без людей: вернувшемуся время отсутствия засчитывается, уже отсчитанные с друзьями тики — нет.
     if (restore && progress.startedAt !== null && progress.finishedAt === null) {
-      progress.startedAt -= Math.max(0, Math.floor((elapsedMs * 60) / 1000) - (this.tick - saved!.leftTick));
+      const away = Math.max(0, Math.floor((elapsedMs * 60) / 1000) - (this.tick - saved!.leftTick));
+      progress.startedAt -= away;
+      // отсечки считаются от старта: тик взятия флага сдвигается вместе с ним
+      if (progress.cpAt !== undefined && progress.cpAt !== null) progress.cpAt -= away;
     }
     this.saved.delete(info.pid);
     const p: SkillPlayer = {
@@ -101,6 +107,7 @@ export class SkillGame {
       this.enlist(p);
     } else this.respawn(p, false);
     this.send(p);
+    this.sendTop(p);
     return p;
   }
 
@@ -128,8 +135,8 @@ export class SkillGame {
     p.lastUse = this.tick;
     p.lastAction = this.tick;
     const race = this.race;
-    // Высокая башня: новый заход принадлежит только нажавшему, друзья продолжают свой подъём.
-    if (this.course === SKILL_COURSE) {
+    // Высокая башня и долгая трасса: новый заход принадлежит только нажавшему, друзья продолжают свой подъём.
+    if (this.course !== SKILL_LEGACY_COURSE) {
       if (id === 0 || id === 2) {
         p.progress = makeSkillProgress(p.progress.run + 1);
         this.dev.delete(p.pid);
@@ -169,6 +176,7 @@ export class SkillGame {
     p.progress = makeSkillProgress(p.progress.run + 1);
     p.progress.checkpoint = n;
     p.progress.startedAt = this.tick;
+    p.progress.cpAt = this.tick;
     this.dev.add(p.pid);
     this.respawn(p, false);
     this.send(p);
@@ -176,7 +184,7 @@ export class SkillGame {
 
   /** Только для проверок (--dev): поставить в точку; подъём без наград. */
   devTeleport(p: SkillPlayer, x: number, y: number, z: number): void {
-    if (![x, y, z].every(Number.isFinite) || Math.abs(x) > 60 || Math.abs(z) > 60 || y < -5 || y > this.map.gallery.y + 15) return;
+    if (![x, y, z].every(Number.isFinite) || this.outside(x, z) || y < -5 || y > this.map.gallery.y + 15) return;
     this.dev.add(p.pid);
     this.race.racers.delete(p.pid);
     p.state = Object.assign(makeState(), { x, y, z });
@@ -210,6 +218,12 @@ export class SkillGame {
     this.respawn(p, false);
   }
 
+  /** Вне трассы — падение: у долгой трассы свои границы, у прежних — ±60 м. */
+  private outside(x: number, z: number): boolean {
+    const l = this.map.limit;
+    return l ? x < l.minX || x > l.maxX || z < l.minZ || z > l.maxZ : Math.abs(x) > 60 || Math.abs(z) > 60;
+  }
+
   respawn(p: SkillPlayer, fall: boolean): void {
     const onSlot = this.race.phase === 'pre' && this.race.racers.has(p.pid);
     const cp = this.map.checkpoints[p.progress.checkpoint];
@@ -229,7 +243,7 @@ export class SkillGame {
     const s = p.state;
     const progress = p.progress;
     const kill = this.map.checkpoints[progress.checkpoint].kill;
-    if (s.y < kill || !Number.isFinite(s.x + s.y + s.z) || Math.abs(s.x) > 60 || Math.abs(s.z) > 60) {
+    if (s.y < kill || !Number.isFinite(s.x + s.y + s.z) || this.outside(s.x, s.z)) {
       this.respawn(p, progress.startedAt !== null && progress.finishedAt === null);
       return;
     }
@@ -241,9 +255,10 @@ export class SkillGame {
       if (s.x >= st.x0 && s.x <= st.x1 && s.z >= st.z0 && s.z <= st.z1) return;
       progress.startedAt = vt;
     }
-    for (let i = this.course === SKILL_COURSE ? Math.min(this.map.checkpoints.length - 1, progress.checkpoint + 1) : this.map.checkpoints.length - 1; i > progress.checkpoint; i--) {
+    for (let i = this.course !== SKILL_LEGACY_COURSE ? Math.min(this.map.checkpoints.length - 1, progress.checkpoint + 1) : this.map.checkpoints.length - 1; i > progress.checkpoint; i--) {
       if (onCheckpoint(this.map, s, i)) {
         progress.checkpoint = i;
+        progress.cpAt = vt;
         break;
       }
     }
@@ -267,6 +282,8 @@ export class SkillGame {
     this.onChat(first && race.racers.size > 1 ? `${p.nick} первым позвонил в колокол — ${time}!` : `${p.nick} позвонил в колокол — ${time}${first ? '!' : ''}`);
     for (const q of this.players.values()) q.sink.sendJson({ t: 'skill_bell', pid: p.pid, nick: p.nick, ticks, first });
     const reward = this.dev.has(p.pid) ? null : this.onFinish(p, ticks, progress.falls, place);
+    // засчитанный финиш мог изменить доску — всем в комнате
+    if (reward) for (const q of this.players.values()) this.sendTop(q);
     const ms = skillMs(ticks);
     const card: SkillReward = reward ?? {
       ticks, falls: progress.falls, medal: skillMedal(ticks, this.course), best: p.best > 0 ? Math.min(p.best, ms) : ms, newBest: p.best <= 0 || ms < p.best,
@@ -365,6 +382,11 @@ export class SkillGame {
         ticks: Math.max(0, ticks), knock: p.state.fireCd, vt: Number.isFinite(p.prevTick) ? p.prevTick : this.tick,
       };
     });
+  }
+
+  /** Доска лучших времён трассы — одному игроку (доска есть только у долгой трассы; прежние курсы — как были). */
+  sendTop(p: SkillPlayer): void {
+    if (this.course === SKILL_CLIMB_COURSE) p.sink.sendJson({ t: 'skill_top', course: this.course, rows: this.topOf() });
   }
 
   private sendAll(): void {
