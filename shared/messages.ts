@@ -423,7 +423,11 @@ export type RaceEvent =
   // сила, x, z
   | ['bump', number, number, number]
   // кто, сила, x, z: удар о бочку, бетонный блок или движущуюся помеху (свой удар клиент видит сразу, по предсказанию)
-  | ['hit', number, number, number, number];
+  | ['hit', number, number, number, number]
+  // затяжка: кто, ступень заряда 0–3 (0 — выпал из следа или рывок)
+  | ['tow', number, number]
+  // затяжка набрана — рывок: кто
+  | ['draft', number];
 
 /** События набережной: плюх в воду (x, z, id), помидор (стол, со стула, в стул), реакция (стол, стул, номер). */
 export type LobbyEvent =

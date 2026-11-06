@@ -387,7 +387,7 @@ test('подскок: пробел — подскок; приземлился с
   assert.equal(s.drift, 1, 'руль в окне — занос');
   const late = placeAt(segAt(-145, 175), 15, LAST);
   hop(late, BTN_FORWARD);
-  for (let i = 0; i < 20; i++) step(late, BTN_FORWARD | BTN_JUMP);
+  for (let i = 0; i < 35; i++) step(late, BTN_FORWARD | BTN_JUMP);
   for (let i = 0; i < 10; i++) step(late, BTN_FORWARD | BTN_LEFT | BTN_JUMP);
   assert.equal(late.drift, 0, 'занос после окна');
 
@@ -414,11 +414,11 @@ test('занос: мини-турбо по времени, отпустил ра
   let m = mt(60, 15, BTN_FORWARD);
   assert.equal(ev.mt, 1);
   assert.equal(ev.drift, 2);
-  assert.deepEqual([m.drift, m.boostT, m.boostLvl], [0, 36, 1]);
-  m = mt(120, 15, BTN_FORWARD);
-  assert.deepEqual([ev.mt, m.boostT, m.boostLvl], [2, 66, 2]);
+  assert.deepEqual([m.drift, m.boostT, m.boostLvl], [0, 42, 1]);
+  m = mt(90, 15, BTN_FORWARD);
+  assert.deepEqual([ev.mt, m.boostT, m.boostLvl], [2, 72, 2]);
   m = mt(150, 15, BTN_FORWARD);
-  assert.deepEqual([ev.mt, m.boostT, m.boostLvl], [3, 96, 3]);
+  assert.deepEqual([ev.mt, m.boostT, m.boostLvl], [3, 102, 3]);
   m = mt(30, 15, BTN_FORWARD);
   assert.deepEqual([ev.mt, m.boostT], [0, 0]);
   m = mt(120, 5, BTN_FORWARD | BTN_JUMP);

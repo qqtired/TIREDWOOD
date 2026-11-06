@@ -49,6 +49,7 @@ import {
   type KartSnap,
   type TrapSnap,
 } from '../../shared/kartnet.ts';
+import { DRAFT_FULL, DRAFT_GRACE, DRAFT_ON, canTow, draftBoost, inTow, towStep } from '../../shared/kartdraft.ts';
 import { DEFAULT_TRACK, buildRaceCourse, type RaceTrackId } from '../../shared/racecourse.ts';
 import { hash32, makeRng } from '../../shared/math.ts';
 import { botsAllowed } from '../../shared/solobots.ts';
@@ -129,6 +130,10 @@ export class Kart {
   bubbleT = 0;
   hideT = 0;
   prog = 0;
+  /** Затяжка: тиков в следе (заряд), сколько тиков уже вне следа, ступень, ушедшая клиентам */
+  towT = 0;
+  towOff = 0;
+  towStep = 0;
 
   constructor(slot: number, name: string, sink: Sink | null, outfit: Outfit) {
     this.slot = slot;
@@ -295,11 +300,14 @@ export class Race {
   start(): void {
     if (this.started || this.closed) return;
     this.started = true;
-    if (botsAllowed(this.humanCount)) for (let n = 0; this.karts.size < this.minKarts; n++) this.addBot(n);
-    for (const k of this.karts.values()) {
-      placeOnGrid(k.state, this.track, k.slot);
+    const solo = botsAllowed(this.humanCount);
+    if (solo) for (let n = 0; this.karts.size < this.minKarts; n++) this.addBot(n);
+    // соло: человек стартует последним — боты впереди, их надо обойти (с первого места гонка шла бы в одиночку)
+    const grid = [...this.karts.values()].sort((a, b) => (solo ? Number(!a.isBot) - Number(!b.isBot) : 0) || a.slot - b.slot);
+    grid.forEach((k, i) => {
+      placeOnGrid(k.state, this.track, solo ? i : k.slot);
       k.selfReset = true;
-    }
+    });
     this.phase = RC_GRID;
     this.phaseEnd = this.tick + RC_GRID_TICKS;
     this.rosterDirty = true;
@@ -408,6 +416,7 @@ export class Race {
       } else this.processHuman(k, canDrive);
     }
     this.bumps();
+    if (DRAFT_ON && canDrive) this.drafts();
     this.pickCrates();
     this.trapsStep();
     this.places();
@@ -490,6 +499,10 @@ export class Race {
     v.ahead = Infinity;
     v.near = Infinity;
     const s = k.state;
+    // соло-пак: насколько бот впереди человека (людей нет — 0)
+    let human = -Infinity;
+    for (const o of this.karts.values()) if (!o.isBot && !o.gone && o.prog > human) human = o.prog;
+    v.lead = human === -Infinity ? 0 : k.prog - human;
     for (const o of this.karts.values()) {
       if (o === k) continue;
       const d = o.prog - k.prog;
@@ -667,6 +680,41 @@ export class Race {
         }
         constrain(a, this.track);
         constrain(b, this.track);
+      }
+    }
+  }
+
+  /**
+   * Затяжка (shared/kartdraft.ts): кто едет в следе соперника — копит заряд; DRAFT_FULL тиков — рывок мини-турбо 2.
+   * Выпал из следа — заряд ещё DRAFT_GRACE тиков держится (поворот, перестроение), потом сброс. Клиентам — ступени.
+   */
+  private drafts(): void {
+    for (const a of this.karts.values()) {
+      const s = a.state;
+      let tow = false;
+      if (canTow(s)) {
+        for (const b of this.karts.values()) {
+          if (b === a || b.state.done || b.state.ghostT > 0) continue;
+          if (inTow(s, b.state)) {
+            tow = true;
+            break;
+          }
+        }
+      }
+      if (tow) {
+        a.towOff = 0;
+        if (++a.towT >= DRAFT_FULL) {
+          a.towT = 0;
+          if (draftBoost(s)) this.events.push(['draft', a.id]);
+        }
+      } else if (a.towT > 0 && ++a.towOff > DRAFT_GRACE) {
+        a.towT = 0;
+        a.towOff = 0;
+      }
+      const step = towStep(a.towT);
+      if (step !== a.towStep) {
+        a.towStep = step;
+        this.events.push(['tow', a.id, step]);
       }
     }
   }

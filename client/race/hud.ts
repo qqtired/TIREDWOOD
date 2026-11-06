@@ -338,11 +338,28 @@ export class RaceHud {
     setTimeout(() => pop.remove(), 600);
   }
 
-  /** Заряд заноса: driftT — сколько тиков длится занос, null — не в заносе (полоса прячется). */
-  setCharge(driftT: number | null): void {
-    const on = driftT !== null && !this.over;
+  /**
+   * Заряд заноса: driftT — сколько тиков длится занос, null — не в заносе. Не в заносе, но в следе соперника — та же
+   * полоса показывает затяжку (tow — заряд 0…1); ни того ни другого — полоса прячется.
+   */
+  setCharge(driftT: number | null, tow: number | null = null): void {
+    const on = (driftT !== null || tow !== null) && !this.over;
     if (this.set('charge', on)) this.charge.hidden = !on;
-    if (driftT === null) return;
+    if (this.set('chargeTow', driftT === null && tow !== null)) this.charge.classList.toggle('is-tow', driftT === null && tow !== null);
+    if (driftT === null) {
+      if (tow === null) return;
+      if (this.set('chargeLvl', -1)) {
+        this.chargeBar.className = 'k-meter k-meter--lg k-meter--good';
+        this.chargeText.textContent = 'Затяжка — держись за ним';
+        this.charge.classList.remove('is-max');
+      }
+      const t = Math.min(1, tow).toFixed(2);
+      if (this.set('chargeV', t)) {
+        this.chargeBar.style.setProperty('--v', t);
+        this.chargeBar.style.setProperty('--g', t);
+      }
+      return;
+    }
     const lvl = driftT >= MT3_TICKS ? 3 : driftT >= MT2_TICKS ? 2 : driftT >= MT1_TICKS ? 1 : 0;
     if (this.set('chargeLvl', lvl)) {
       this.chargeBar.className = `k-meter k-meter--lg ${CHARGE_TONE[lvl]}`;

@@ -91,8 +91,8 @@ function toSeg(x: number, z: number, ax: number, az: number, bx: number, bz: num
 
 // ------------------------------------------------------------ раскладка
 
-test('раскладка: 5 ускорителей, 5 луж, 15 бочек и 3 блока, 2 настила, 4 движущиеся помехи', () => {
-  assert.deepEqual([hz.pads.length, hz.slicks.length, hz.solids.length, hz.decks.length, hz.movers.length], [5, 5, 18, 2, 4]);
+test('раскладка: 7 ускорителей (2 — на выходах из поворотов, динамика 07.11), 5 луж, 15 бочек и 3 блока, 2 настила, 4 движущиеся помехи', () => {
+  assert.deepEqual([hz.pads.length, hz.slicks.length, hz.solids.length, hz.decks.length, hz.movers.length], [7, 5, 18, 2, 4]);
   assert.equal(hz.solids.filter((s) => s.kind === 0).length, 15);
   assert.deepEqual(hz.movers.map((m) => m.kind), [MV_SLIDE, MV_SWING, MV_SPIN, MV_SLIDE]);
   assert.equal(hz.slicks.filter((s) => s.kind === 1).length, 3, 'масло');

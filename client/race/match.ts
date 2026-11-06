@@ -12,6 +12,7 @@ import {
   KE_BOOST, KE_DRIFT, KE_GROUND, KE_ON, KE_PAINT, KM_BUBBLE, decodeKartSnapshot, kartFlags, kartMisc, kartYaw, makeKartHeader,
   type KartSnap, type TrapSnap,
 } from '../../shared/kartnet.ts';
+import { DRAFT_FULL, DRAFT_STEPS } from '../../shared/kartdraft.ts';
 import { clamp, damp, lerpAngle, wrapAngle } from '../../shared/math.ts';
 import type { KartInfo, RaceEvent, RaceResultRow, ServerMsg } from '../../shared/messages.ts';
 import { SNAP_HAS_SELF, SNAP_SELF_RESET, encodeInputs, type EntitySnap } from '../../shared/protocol.ts';
@@ -57,6 +58,9 @@ const CAM_CLEAR = 1.15;
 const FOV_MIN = 70;
 const FOV_SPEED = 12;
 const FOV_TURBO = 6;
+/** Линии скорости без ускорения: с такой доли полной скорости, у потолка — такой силы (турбо — 1) */
+const CRUISE_FROM = 0.86;
+const CRUISE_LINES = 0.2;
 /** После финиша камера облетает карт — до стольких радиан */
 const ORBIT_MAX = 2.4;
 /**
@@ -172,11 +176,17 @@ export class RaceMatch {
   // гонка глазами игрока
   private lapShown = 0;
   private lapSeq = 0;
+  private lapTimed = 0;
   private bestMs = 0;
   private finishMs = 0;
   private countShown = -1;
   private wrongT = 0;
   private sparkLvl = 0;
+  /** Затяжка: ступень заряда 0–3 у каждого карта (события сервера), когда сменилась своя, видел ли уже рывок */
+  private readonly tow = new Map<number, number>();
+  private towAt = 0;
+  private draftSeen = false;
+  private readonly towAcc = new Map<number, number>();
   /** Тиков подряд на луже и контрольных точек подряд (срезка) */
   private slickTicks = 0;
 
@@ -528,8 +538,55 @@ export class RaceMatch {
           sound.kartBump([x, y, z], strength);
           break;
         }
+        case 'tow': {
+          // затяжка копится: ступень заряда (поток воздуха у карта, у себя — полоска)
+          const [, kart, step] = e;
+          if (step > 0) this.tow.set(kart, step);
+          else this.tow.delete(kart);
+          if (kart === this.myId) this.towAt = performance.now();
+          break;
+        }
+        case 'draft': {
+          // затяжка набрана — рывок (своё пламя и линии придут со сверкой состояния)
+          const [, kart] = e;
+          this.tow.delete(kart);
+          if (kart === this.myId) {
+            sound.kartBoost(null, 2);
+            this.fovKick = Math.max(this.fovKick, 4);
+            if (!this.draftSeen) hud.banner('💨 Затяжка! <small>за соперником копится рывок</small>', 1500, 'gold');
+            this.draftSeen = true;
+          } else {
+            const p = this.posOf(kart);
+            if (p) sound.kartBoost([p.x, p.y + 0.5, p.z], 2);
+          }
+          break;
+        }
       }
     }
+  }
+
+  /** Затяжка у карта: тонкие струйки воздуха вдоль бортов (гуще с зарядом) — видно и себе, и остальным. */
+  private towAir(id: number, p: KartPose, dt: number): void {
+    const step = this.tow.get(id) ?? 0;
+    if (step === 0) {
+      this.towAcc.delete(id);
+      return;
+    }
+    let acc = (this.towAcc.get(id) ?? 0) + dt * (12 + 10 * step);
+    const hx = -Math.sin(p.yaw);
+    const hz = -Math.cos(p.yaw);
+    while (acc >= 1) {
+      acc -= 1;
+      const side = Math.random() < 0.5 ? -1 : 1;
+      const out = 0.75 + Math.random() * 0.45;
+      const ahead = 0.4 + Math.random() * 1.4;
+      // струйка стоит в воздухе — карт проносится мимо, она уходит назад вдоль борта
+      this.d.fx.puff(
+        p.x + hx * ahead - hz * side * out, p.y + 0.3 + Math.random() * 0.7, p.z + hz * ahead + hx * side * out,
+        0, 0, 0, 0xffffff, 0.2 + 0.07 * step, 0.06, 0.35, 0.28, 0, 0,
+      );
+    }
+    this.towAcc.set(id, acc);
   }
 
   /** Краска долетела: клякса на карте, у себя — на весь экран. */
@@ -672,12 +729,16 @@ export class RaceMatch {
       this.camInit = false;
     }
     if (ev.lap) {
-      // круг — от линии до линии (первое пересечение — старт первого круга)
-      if (s.lap > 1 && this.lapSeq > 0) {
-        const t = (this.seq - this.lapSeq) * TICK_MS;
-        if (this.bestMs === 0 || t < this.bestMs) this.bestMs = t;
+      // круг — от линии до линии (первое пересечение — старт первого круга). Сверка у линии (толчок в паке) может
+      // откатить карт за линию, и он пересечёт её ещё раз — время круга считаем по первому пересечению
+      if (s.lap > this.lapTimed) {
+        if (s.lap > 1 && this.lapSeq > 0) {
+          const t = (this.seq - this.lapSeq) * TICK_MS;
+          if (this.bestMs === 0 || t < this.bestMs) this.bestMs = t;
+        }
+        this.lapSeq = this.seq;
+        this.lapTimed = s.lap;
       }
-      this.lapSeq = this.seq;
       if (s.lap > this.lapShown) {
         this.lapShown = s.lap;
         if (s.lap === RC_LAPS) hud.banner('🔔 Последний круг!', 2000, 'gold');
@@ -780,6 +841,7 @@ export class RaceMatch {
     for (const [id, v] of this.karts) {
       if (id === this.myId) {
         v.update(this.hasSelf ? this.myPose : null, dt, world.time, world, fx, cam, true);
+        if (this.hasSelf) this.towAir(id, this.myPose, dt);
         continue;
       }
       const r = this.remotes.get(id);
@@ -798,6 +860,7 @@ export class RaceMatch {
       q.flags = this.paintFlying(id) ? s.flags & ~KE_PAINT : s.flags;
       q.misc = r.misc;
       v.update(q, dt, world.time, world, fx, cam, false);
+      this.towAir(id, q, dt);
     }
   }
 
@@ -916,10 +979,15 @@ export class RaceMatch {
     hud.setStanding(this.myPlace, this.total || this.karts.size, s.done ? RC_LAPS : clamp(s.lap, 1, RC_LAPS), RC_LAPS);
     hud.setTimes(this.raceTime(pt), this.bestMs || null);
     hud.setSpeed(Math.hypot(s.vx, s.vz) * 3.6);
-    hud.setCharge(this.hasSelf && s.drift !== 0 && !s.done ? s.driftT : null);
-    // линии скорости: турбо — в полную силу, мини-турбо — слабее
+    // затяжка: ступень с сервера, между ступенями полоска доезжает сама (ступень — треть заряда)
+    const towStep = this.hasSelf && !s.done ? (this.tow.get(this.myId) ?? 0) : 0;
+    const towFill = towStep > 0 ? Math.min(towStep / DRAFT_STEPS, (towStep - 1 + (performance.now() - this.towAt) / ((DRAFT_FULL * TICK_MS) / DRAFT_STEPS)) / DRAFT_STEPS) : 0;
+    hud.setCharge(this.hasSelf && s.drift !== 0 && !s.done ? s.driftT : null, towStep > 0 ? towFill : null);
+    // линии скорости: турбо — в полную силу, мини-турбо — слабее; на полной скорости и в затяжке — чуть-чуть
     const boost = this.hasSelf && !s.done && s.boostT > 0 ? s.boostLvl : 0;
-    hud.setSpeedLines(dt, boost === BOOST_TURBO ? 1 : boost === 3 ? 0.8 : boost === 2 ? 0.6 : boost === 1 ? 0.45 : 0);
+    const pace = this.hasSelf && !s.done ? Math.hypot(s.vx, s.vz) / KART_MAX_SPEED : 0;
+    const cruise = Math.max(towStep > 0 ? 0.22 + 0.06 * towStep : 0, pace > CRUISE_FROM ? (CRUISE_LINES * (pace - CRUISE_FROM)) / (1 - CRUISE_FROM) : 0);
+    hud.setSpeedLines(dt, Math.max(cruise, boost === BOOST_TURBO ? 1 : boost === 3 ? 0.8 : boost === 2 ? 0.6 : boost === 1 ? 0.45 : 0));
     const rolling = this.hasSelf && s.itemT > 0;
     hud.setItem(this.hasSelf ? s.item : ITEM_NONE, rolling, now);
     if (rolling && now - this.rollTickAt > 90) {
