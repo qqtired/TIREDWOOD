@@ -35,6 +35,8 @@ html[data-room='race'] .k-hud > .k-slot--c > .k-hero--lose.is-play { animation: 
 /* заряд заноса: полоса kit k-meter--lg, тон — по уровню (hud.ts); белый «копится» на светлой плашке — серо-бирюзовым */
 .rc-charge .k-meter.rc-meter-0 { --c: var(--surf-faint); }
 .rc-charge.is-max .k-meter { animation: k-bump .3s var(--ease-pop); }
+/* та же полоса — затяжка за соперником (зелёная, без меток мини-турбо) */
+.rc-charge.is-tow .mo-tick { display: none; }
 
 /* итоги: жетоны — жирно */
 .rc-scrim .k-table td:last-child { font-weight: 800; }

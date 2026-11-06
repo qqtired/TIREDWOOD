@@ -5,7 +5,10 @@
 // Бонусы применяют по простым правилам, застряли — R. Срезки (через бухту, через реку, по песку) — только для людей.
 // Руль — кнопками, но «пропорционально»: каждый тик выбирают A, D или ничего — что ближе к нужному повороту руля.
 import { MV_GATE, gatePhase, MV_SPIN, NO_DECK, deckAt, makeCap, moverCap, type Mover, type Solid } from '../../shared/hazards.ts';
-import { ITEM_BUBBLE, ITEM_CLAP, ITEM_JAM, ITEM_PAINT, ITEM_TURBO, KART_R, KART_MAX_SPEED, KART_TURBO_SPEED, KART_TURN_RATE, type KartState } from '../../shared/kart.ts';
+import {
+  ITEM_BUBBLE, ITEM_CLAP, ITEM_JAM, ITEM_PAINT, ITEM_TURBO, KART_R, KART_MAX_SPEED, KART_TURBO_SPEED, KART_TURN_FALL, KART_TURN_RATE, KART_TURN_REF,
+  type KartState,
+} from '../../shared/kart.ts';
 import { makeRng } from '../../shared/math.ts';
 import { BTN_BACK, BTN_FIRE, BTN_FORWARD, BTN_JUMP, BTN_LEFT, BTN_RELOAD, BTN_RIGHT, type Input } from '../../shared/sim.ts';
 import { locate, locateAny, makeLoc, wrapSeg, type Track } from '../../shared/track.ts';
@@ -28,6 +31,11 @@ export interface BotView {
   painted: boolean;
   /** На боте пузырь */
   bubble: boolean;
+  /**
+   * Насколько бот впереди человека по трассе, м (меньше нуля — позади). Боты есть только в соло: отставший бот
+   * чуть смелее в поворотах, далеко ушедший — сбрасывает скорость, чтобы гонка шла паком. Нет — 0.
+   */
+  lead?: number;
 }
 
 interface SkillParams {
@@ -52,16 +60,18 @@ interface SkillParams {
   trick: number;
 }
 
+// Потолки — доли настоящей полной скорости (с темпом KART_PACE): раньше боты упирались в 27–31 м/с при 37 у человека
 const SKILLS: Record<KartSkill, SkillParams> = {
-  easy: { lat: 12.5, turn: 0.72, brake: 14, cut: 0.6, top: 27, look: 1.5, margin: 0.2, drift: 0, launch: [0, 110], trick: 0 },
-  normal: { lat: 16, turn: 0.82, brake: 19, cut: 0.85, top: 29.5, look: 2.4, margin: 0.55, drift: 0.5, launch: [20, 80], trick: 0.5 },
-  hard: { lat: 20, turn: 0.9, brake: 24, cut: 1, top: 31, look: 3.2, margin: 0.9, drift: 1, launch: [24, 58], trick: 1 },
+  easy: { lat: 12.5, turn: 0.72, brake: 14, cut: 0.6, top: 0.82 * KART_MAX_SPEED, look: 1.5, margin: 0.2, drift: 0, launch: [0, 110], trick: 0 },
+  normal: { lat: 16, turn: 0.82, brake: 19, cut: 0.85, top: 0.9 * KART_MAX_SPEED, look: 2.4, margin: 0.55, drift: 0.5, launch: [20, 80], trick: 0.5 },
+  hard: { lat: 20, turn: 0.9, brake: 24, cut: 1, top: 0.97 * KART_MAX_SPEED, look: 3.2, margin: 0.9, drift: 1, launch: [24, 58], trick: 1 },
 };
 
 // числа физики карта (shared/kart.ts) — для расчёта скоростей в поворотах
 const STEER_STEP = 8 / 60;
 const TURN_RATE = KART_TURN_RATE;
-const TURN_FALL = 0.58;
+const TURN_FALL = KART_TURN_FALL;
+const TURN_REF = KART_TURN_REF;
 const TURN_MIN = 0.5;
 const TURN_FULL_AT = 5;
 const MAX_SPEED = KART_MAX_SPEED;
@@ -77,6 +87,15 @@ const DRIFT_CURV = 1 / 34;
 /** Поворот под занос — не короче, м, и без заноса требует скорости не выше, м/с */
 const DRIFT_ZONE_LEN = 14;
 const DRIFT_ZONE_SPEED = 26;
+/**
+ * Соло-пак (боты есть только с одним человеком). Отстал от человека — смелее в поворотах (боковое ускорение до +CATCH_LAT
+ * на CATCH_FULL м отставания); ушёл вперёд дальше HOLD_FROM м — потолок ниже (до −HOLD_TOP на HOLD_FULL м сверху).
+ */
+const CATCH_LAT = 0.3;
+const CATCH_FULL = 120;
+const HOLD_FROM = 25;
+const HOLD_FULL = 140;
+const HOLD_TOP = 0.16;
 
 const STUCK_TICKS = 120;
 /** Цель руля — точка линии впереди на столько метров: база и на каждый м/с скорости */
@@ -88,6 +107,8 @@ const CLEAR = KART_R + 0.45;
 /** Запас вдоль дороги до помехи и расстояние, на котором линия возвращается на место, м */
 const AHEAD_PAD = KART_R + 0.5;
 const BLEND = 7;
+/** К ускорителю линия смещается плавно, на столько метров: резкий сдвиг бот считал поворотом и тормозил перед пластиной */
+const PAD_BLEND = 30;
 /** Лужу объезжаем, только если для этого не нужно сдвигаться дальше, м */
 const SLICK_MAX_SHIFT = 4.6;
 /** Ускоритель притягивает линию, если до него не дальше, м */
@@ -108,13 +129,12 @@ const LAT_SPEED = 3.2;
 const PLAN_AHEAD = 60;
 const PLAN_BEHIND = 4;
 
-/** Наибольшая скорость, на которой руль ещё проходит поворот радиуса r. */
-
 /** Наибольшая скорость, на которой руль ещё проходит поворот радиуса r (занос — сильнее, но путь шире курса). */
 function turnLimit(r: number, share: number, drift = false): number {
-  let v = 30;
+  // от турбо вниз: раньше перебор начинался с 30 м/с — под ускорителем бот тормозил до 31
+  let v = BOOST_TOP;
   for (; v > 5; v -= 0.25) {
-    const w = share * TURN_RATE * (TURN_MIN + (1 - TURN_MIN) * Math.min(1, v / TURN_FULL_AT)) * (1 - TURN_FALL * Math.min(1, v / MAX_SPEED));
+    const w = share * TURN_RATE * (TURN_MIN + (1 - TURN_MIN) * Math.min(1, v / TURN_FULL_AT)) * (1 - TURN_FALL * Math.min(1, v / TURN_REF));
     if (drift ? (v * DRIFT_SLIP) / r <= w * DRIFT_TURN : v / r <= w) break;
   }
   return v;
@@ -154,6 +174,8 @@ export class KartBot {
   private readonly vcap: Float64Array;
   /** То же без потолка скорости бота: под ускорителем */
   private readonly vboost: Float64Array;
+  /** То же, когда бот отстал от человека: в поворотах смелее (CATCH_LAT) */
+  private readonly vfast: Float64Array;
   /** Допустимая скорость в заносе */
   private readonly vdrift: Float64Array;
   /** 1 — впереди (до 30 м) трамплин, провал или гребень: только газ по линии */
@@ -218,6 +240,7 @@ export class KartBot {
     const kv = new Float64Array(n);
     this.kv = kv;
     this.vboost = new Float64Array(n);
+    this.vfast = new Float64Array(n);
     this.vdrift = new Float64Array(n);
     for (let i = 0; i < n; i++) {
       const a = wrapSeg(tr, i - 2);
@@ -233,6 +256,7 @@ export class KartBot {
       kv[i] = cross > 0 ? -k : k;
       const r = k > 1e-4 ? 1 / k : 1e4;
       this.vboost[i] = Math.min(Math.sqrt(sk.lat * r), turnLimit(r, sk.turn), BOOST_TOP);
+      this.vfast[i] = Math.min(Math.sqrt(sk.lat * (1 + CATCH_LAT) * r), turnLimit(r, Math.min(0.94, sk.turn + 0.06)), BOOST_TOP);
       this.vdrift[i] = Math.min(turnLimit(r, sk.turn, true), BOOST_TOP);
     }
     // повороты под занос: подряд кривизна одного знака круче DRIFT_CURV, длиной не меньше DRIFT_ZONE_LEN, где без заноса
@@ -267,7 +291,7 @@ export class KartBot {
       }
       i = j;
     }
-    for (const arr of [this.vboost, this.vdrift]) {
+    for (const arr of [this.vboost, this.vfast, this.vdrift]) {
       for (let pass = 0; pass < 2; pass++) {
         for (let i = n - 1; i >= 0; i--) {
           const next = arr[wrapSeg(tr, i + 1)];
@@ -369,11 +393,12 @@ export class KartBot {
       const sc = (b.a0 + b.a1) / 2;
       const z0 = sc - b.a0 + AHEAD_PAD;
       const z1 = b.a1 - sc + AHEAD_PAD;
+      const bl = b.pad ? PAD_BLEND : BLEND;
       for (let i = 0; i < n; i++) {
         const d = wrap(tr.s[i] - sc);
-        if (d < -z0 - BLEND || d > z1 + BLEND) continue;
+        if (d < -z0 - bl || d > z1 + bl) continue;
         const inside = d >= -z0 && d <= z1;
-        f(i, inside ? 1 : smooth(d < -z0 ? (d + z0 + BLEND) / BLEND : (z1 + BLEND - d) / BLEND));
+        f(i, inside ? 1 : smooth(d < -z0 ? (d + z0 + bl) / bl : (z1 + bl - d) / bl));
         if (inside && bound) bound(i);
       }
     };
@@ -666,14 +691,14 @@ export class KartBot {
     if (drifting) {
       // в заносе: руль «по кривизне линии» чуть впереди (сколько нужно поворота) плюс поправка на отклонение
       const need = this.needTurn(loc.seg, speed) * DRIFT_SLIP;
-      const base = TURN_RATE * (1 - TURN_FALL * Math.min(1, Math.abs(speed) / MAX_SPEED)) * 1.5;
+      const base = TURN_RATE * (1 - TURN_FALL * Math.min(1, Math.abs(speed) / TURN_REF)) * 1.5;
       const factor = need * k.drift / base;
       const ff = ((factor - 0.75) / 0.4) * k.drift;
       want = Math.max(-1, Math.min(1, ff + ang * 2));
     } else if (driftDir !== 0) {
       // в подскоке перед заносом — руль в сторону поворота: сколько нужно, но не меньше порога заноса
       const need = this.needTurn(loc.seg, speed) * driftDir;
-      const base = TURN_RATE * (1 - TURN_FALL * Math.min(1, Math.abs(speed) / MAX_SPEED));
+      const base = TURN_RATE * (1 - TURN_FALL * Math.min(1, Math.abs(speed) / TURN_REF));
       want = driftDir * Math.max(0.4, Math.min(1, need / base));
     }
     // какая кнопка приблизит сглаженный руль к нужному
@@ -687,9 +712,19 @@ export class KartBot {
     else if (dr < dn) b |= BTN_RIGHT;
 
     // газ и тормоз
-    const caps = drifting || driftDir !== 0 ? this.vdrift : k.boostT > 0 ? this.vboost : this.vcap;
-    let cap = Math.min(caps[loc.seg], caps[wrapSeg(tr, loc.seg + 1)]);
-    if (drifting || driftDir !== 0) cap = Math.min(cap, k.boostT > 0 ? BOOST_TOP : this.sk.top + 1);
+    // соло-пак: отстал от человека — потолок до полной скорости и смелее в поворотах, ушёл далеко вперёд — потолок ниже
+    const lead = v.lead ?? 0;
+    const catchUp = lead < 0 ? Math.min(1, -lead / CATCH_FULL) : 0;
+    const hold = lead > HOLD_FROM ? Math.min(1, (lead - HOLD_FROM) / HOLD_FULL) : 0;
+    const top = this.sk.top * (1 - HOLD_TOP * hold) + (MAX_SPEED - this.sk.top) * catchUp;
+    const s1 = wrapSeg(tr, loc.seg + 1);
+    let cap: number;
+    if (drifting || driftDir !== 0) cap = Math.min(this.vdrift[loc.seg], this.vdrift[s1], k.boostT > 0 ? BOOST_TOP : top + 1);
+    else {
+      const vb = Math.min(this.vboost[loc.seg], this.vboost[s1]);
+      const corner = catchUp > 0 ? vb + (Math.min(this.vfast[loc.seg], this.vfast[s1]) - vb) * catchUp : vb;
+      cap = k.boostT > 0 ? corner : Math.min(corner, top);
+    }
     // ждём перед движущейся помехой — тормозим до остановки у границы её зоны
     if (this.holdCap < cap) cap = this.holdCap;
     if (ramp || speed < cap) b |= BTN_FORWARD;
