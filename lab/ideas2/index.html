@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ru" data-skin="retro2" data-hud="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="../../client/assets/ui/icons/compass.webp">
+<title>TIREDWOOD — большой ресерч</title>
+<link rel="stylesheet" href="../quiz/v2/v2-fonts.css">
+<link rel="stylesheet" href="../../client/ui/kit/tokens.css">
+<link rel="stylesheet" href="../../client/ui/kit/kit.css">
+<link rel="stylesheet" href="ideas2.css">
+</head>
+<body>
+<header class="ix-head">
+  <img src="../../client/assets/ui/icons/compass.webp" alt="">
+  <div>
+    <p class="k-eyebrow">TIREDWOOD · большой ресерч · 07.11</p>
+    <h1>Что сделать с игрой дальше</h1>
+    <p class="ix-sub" id="sub"></p>
+  </div>
+</header>
+
+<nav class="ix-nav" aria-label="Разделы страницы">
+  <a href="#sum">Коротко</a>
+  <a href="#data">Цифры</a>
+  <a href="#themes">Выводы</a>
+  <a href="#packs">Пакеты</a>
+  <a href="#ideas">Все идеи</a>
+  <a href="#modes">Новые режимы</a>
+  <a href="#drop">Что отбросил</a>
+</nav>
+
+<main class="ix-main">
+  <section class="ix-sec ix-sum" id="sum"></section>
+
+  <section class="ix-sec" id="data">
+    <h2>Что говорят цифры</h2>
+    <p class="ix-lead">Последний снимок данных игроков на этом Маке — 12.10, через две недели после запуска. Новее нет: сервер без ключа не пускает. Ферма, «Ракушка», бильярд и бега вышли позже — их тут нет.</p>
+    <div class="ix-stats" id="stats"></div>
+    <div class="ix-chart ix-card" id="chart">
+      <div class="ix-chart-h">
+        <p class="ix-chart-t">Сколько человек хоть раз пробовали режим</p>
+        <p class="ix-note">столбик — люди · подпись — люди и всего игр</p>
+      </div>
+      <div class="ix-bars" id="bars" role="list"></div>
+      <p class="ix-note" id="chartNote"></p>
+      <div class="ix-tip" id="tip" hidden></div>
+    </div>
+  </section>
+
+  <section class="ix-sec" id="themes">
+    <h2>Шесть главных выводов</h2>
+    <p class="ix-lead">Что повторялось у разных исследователей. Коды под выводом — идеи, которые его закрывают; нажми код — страница перейдёт к карточке.</p>
+    <div class="ix-themes" id="themeGrid"></div>
+  </section>
+
+  <section class="ix-sec" id="packs">
+    <h2>Пакеты — с чего начать</h2>
+    <p class="ix-lead">Готовые наборы на релиз. «Взять пакет» добавит его коды в список внизу.</p>
+    <div class="ix-packs" id="packGrid"></div>
+  </section>
+
+  <section class="ix-sec" id="ideas">
+    <h2>Все идеи по разделам</h2>
+    <p class="ix-lead">Нажми карточку — она попадёт в список «Беру» внизу. S — до пары часов, M — полдня–день, L — несколько дней. ★ — советую взять первым.</p>
+    <div class="ix-filters" id="filters">
+      <div class="ix-frow">
+        <span class="ix-flabel">Раздел</span>
+        <div class="k-seg ix-seg" id="fSec"></div>
+      </div>
+      <div class="ix-frow">
+        <span class="ix-flabel">Цена</span>
+        <div class="k-seg ix-seg" id="fCost"></div>
+        <button class="k-btn k-btn--ghost k-btn--sm ix-star" id="fStar" type="button" aria-pressed="false">★ Только рекомендую</button>
+        <span class="ix-count" id="fCount"></span>
+      </div>
+    </div>
+    <div id="groups"></div>
+    <p class="ix-empty" id="empty" hidden>Под эти фильтры ничего нет — сними один из них.</p>
+  </section>
+
+  <section class="ix-sec" id="modes">
+    <h2>Новые режимы и события</h2>
+    <p class="ix-lead" id="modesLead"></p>
+    <div class="ix-modes" id="modeGrid"></div>
+  </section>
+
+  <section class="ix-sec" id="drop">
+    <h2>Что отбросил и почему</h2>
+    <ul class="ix-drop" id="dropList"></ul>
+    <p class="ix-note">Полные отчёты исследователей с файлами и строками кода — у ведущего. Всё новое пойдёт за флагом режима, на сайт — только с твоего «да».</p>
+  </section>
+</main>
+
+<div class="ix-pick" id="pick">
+  <span class="ix-pick-l">Беру <b id="pickN">0</b>:</span>
+  <span class="ix-pick-list" id="pickList"></span>
+  <button class="k-btn k-btn--ghost k-btn--sm" id="pickReset" type="button">Рекомендованное</button>
+  <button class="k-btn k-btn--ghost k-btn--sm" id="pickClear" type="button">Очистить</button>
+  <button class="k-btn k-btn--gold k-btn--sm" id="pickCopy" type="button">Скопировать</button>
+</div>
+<script type="module" src="ideas2.js"></script>
+</body>
+</html>
