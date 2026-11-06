@@ -14,7 +14,11 @@ export const SKILL_STEP_THICK = 0.45;
 /** Как выглядит бокс (картинка) — физике всё равно. */
 export type SkillLook =
   | 'tower' | 'belfry' | 'post' | 'housing' | 'start' | 'roof' | 'deck' | 'plank' | 'pocket' | 'block' | 'stair'
-  | 'cp' | 'pier' | 'mushroom' | 'gondola' | 'cart' | 'basket' | 'cloud' | 'disc' | 'step';
+  | 'cp' | 'pier' | 'mushroom' | 'gondola' | 'cart' | 'basket' | 'cloud' | 'disc' | 'step'
+  // «Город вверх» (shared/skillclimb.ts): каждая опора — свой предмет; размеры и оси — docs/skyclimb/README.md
+  | 'crate' | 'barrel' | 'boat' | 'container' | 'gangway' | 'rung' | 'cab' | 'jib' | 'shuttle' | 'awning' | 'balcony'
+  | 'ledge' | 'chimney' | 'watertower' | 'ladder' | 'station' | 'cablecar' | 'core' | 'scaffold' | 'cage' | 'girder'
+  | 'mast' | 'wire' | 'insulator' | 'pole' | 'garland' | 'dome' | 'kite';
 
 export interface SkillRect {
   x0: number;
@@ -77,6 +81,11 @@ export interface SkillStep {
   s: number;
   corner: boolean;
   rect: SkillRect;
+  /** Участок и вид (у старых курсов нет) */
+  sec?: number;
+  look?: SkillLook;
+  /** Сдвиг цикла обвала, тики: своя волна у каждой группы ступеней (у старых курсов нет — общая волна) */
+  t0?: number;
 }
 
 export interface SkillDisc {
@@ -191,6 +200,10 @@ export interface SkillLink {
   alt?: true;
   /** Без остановки: сразу с того места, куда пришёл прошлым переходом (облака, ступени) */
   flow?: true;
+  /** Цель — батут: переход засчитан, когда коснулся его верха и подбросило (цепочки батутов без остановки) */
+  spring?: true;
+  /** Подвижная цель приходит раз в столько тиков (at — удобные тики в этом цикле): бот ждёт сразу нужное */
+  every?: number;
 }
 
 export interface SkillMap extends GameMap {
@@ -217,6 +230,8 @@ export interface SkillMap extends GameMap {
   links: SkillLink[];
   /** Длина пути лестницы, м */
   stairLength: number;
+  /** Дальше этих границ — падение (нет — старое правило ±60 м) */
+  limit?: { minX: number; maxX: number; minZ: number; maxZ: number };
 }
 
 const EAST = -Math.PI / 2;

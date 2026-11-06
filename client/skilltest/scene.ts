@@ -11,7 +11,9 @@ import { SKILL_KNOCK_TICKS, SkillDynamics, makeSackPose, moverAt, sackAt, type P
 import {
   SKILL_COUNT_TICKS, SKILL_COURSE, SKILL_LEGACY_COURSE, SKILL_LEGACY_SECTIONS, SKILL_GOLD_TICKS, SKILL_LEGACY_GOLD_TICKS, SKILL_LEGACY_SILVER_TICKS, SKILL_MEDALS, SKILL_SECTIONS, SKILL_SILVER_TICKS, makeSkillProgress, skillClock,
   skillMedal, skillTime, type SkillPeer, type SkillProgress, type SkillRaceView, type SkillServerMsg, type SkillCourse,
+  SKILL_CLIMB_COURSE, SKILL_CLIMB_GOLD_TICKS, SKILL_CLIMB_SECTIONS, SKILL_CLIMB_SILVER_TICKS, type SkillTopRow,
 } from '../../shared/skilltest.ts';
+import { makeClimbMap } from '../../shared/skillclimb.ts';
 import { CRUMBLE_SPEED, crumbleFront, crumbleReformIn, ramState, windState, type RamPhase } from '../../shared/skilltraps.ts';
 import { ClockSync } from '../net.ts';
 import { Predictor } from '../predict.ts';
@@ -24,6 +26,8 @@ import { SkillHud, type MeterMark } from './hud.ts';
 import { SkillSfx } from './sfx.ts';
 import { SkillWorld } from './world.ts';
 import { CloudTowerWorld } from './cloudworld.ts';
+import { ClimbWorld } from './climbworld.ts';
+import { SplitBook, splitDelta } from './climb/splits.ts';
 
 type StateMsg = Extract<SkillServerMsg, { t: 'skill_state' }>;
 type V3 = [number, number, number];
@@ -57,9 +61,13 @@ export class SkillScene implements Scene {
   get wantsPointer(): boolean { return !this.hud.open; }
   readonly touchMode = 'walk' as const;
   readonly touchUseIcon = '⟳';
-  world: SkillWorld | CloudTowerWorld;
+  world: SkillWorld | CloudTowerWorld | ClimbWorld;
   private course: SkillCourse = SKILL_LEGACY_COURSE;
   private cloudWorld: CloudTowerWorld | null = null;
+  /** «Город вверх»: мир долгой трассы, доска лучших 10 и отсечки на флагах */
+  private climbWorld: ClimbWorld | null = null;
+  private top: SkillTopRow[] = [];
+  private splits: SplitBook | null = null;
   private readonly legacyWorld: SkillWorld;
   get modelsLoading(): boolean { return this.world instanceof CloudTowerWorld && this.world.loading; }
   private readonly d: SceneDeps;
@@ -178,7 +186,7 @@ export class SkillScene implements Scene {
     this.predictor = new Predictor(this.world.collision, this.dynamics);
     this.cam.reset();
     this.hud.show(true);
-    this.hud.notice('Небесная каланча: доберись до колокола на самой верхушке!', 3500);
+    this.hud.notice('Выше облаков: доберись до колокола на самой вершине!', 3500);
     this.d.input.yaw = -Math.PI / 2;
     this.d.input.pitch = -0.18;
   }
@@ -203,11 +211,15 @@ export class SkillScene implements Scene {
   onJson(msg: ServerMsg): void {
     if (!this.active) return;
     if (msg.t === 'skill_state') {
-      if (msg.course === SKILL_COURSE || msg.course === SKILL_LEGACY_COURSE) {
+      if (msg.course === SKILL_COURSE || msg.course === SKILL_LEGACY_COURSE || msg.course === SKILL_CLIMB_COURSE) {
         if (msg.course !== this.course) {
           const aspect = this.world.camera.aspect;
           this.fx.clear();
-          this.world = msg.course === SKILL_COURSE ? this.cloudWorld ??= new CloudTowerWorld(this.d.renderer) : this.legacyWorld;
+          this.world = msg.course === SKILL_CLIMB_COURSE ? this.climbWorld ??= new ClimbWorld(this.d.renderer, makeClimbMap(), SKILL_CLIMB_SECTIONS)
+            : msg.course === SKILL_COURSE ? this.cloudWorld ??= new CloudTowerWorld(this.d.renderer) : this.legacyWorld;
+          this.splits = msg.course === SKILL_CLIMB_COURSE ? new SplitBook(msg.course) : null;
+          this.hud.course(msg.course === SKILL_CLIMB_COURSE ? 'Выше облаков · Город вверх' : 'Выше облаков · Небесная каланча', msg.course === SKILL_CLIMB_COURSE);
+          this.applyTop();
           this.world.camera.aspect = aspect; this.world.camera.updateProjectionMatrix();
           this.world.onPuff = (x, y, z, kind) => this.puff(x, y, z, kind);
           this.world.setQuality(this.d.settings.quality);
@@ -218,7 +230,13 @@ export class SkillScene implements Scene {
         }
         this.onState(msg);
       }
+    } else if (msg.t === 'skill_top') {
+      if (msg.course === SKILL_CLIMB_COURSE) {
+        this.top = msg.rows;
+        this.applyTop();
+      }
     } else if (msg.t === 'skill_finish') {
+      this.splits?.finish(msg.ticks, msg.newBest);
       this.hud.finish(msg, this.d.ui.me().nick, '');
       this.cardUntil = performance.now() + 9000;
       this.sfx.fanfare();
@@ -265,14 +283,28 @@ export class SkillScene implements Scene {
           : msg.race.phase === 'run' && !this.racer ? 'Забег уже идёт — лезь со своим временем: рекорд и медаль считаются'
             : 'Звони в колокол на верхушке! Сорвался — вернёшься к последнему флажку', 4000);
     } else if (p.run !== old.run) {
+      this.splits?.reset();
       this.hud.hideFinish();
       this.cardUntil = 0;
-      this.hud.notice(this.racer && msg.race.phase === 'pre' ? 'На старте! Ждём отсчёт' : 'Новая попытка — время пойдёт, как сойдёшь с крыши');
+      this.hud.notice(this.racer && msg.race.phase === 'pre' ? 'На старте! Ждём отсчёт' : `Новая попытка — время пойдёт, как сойдёшь с ${this.course === SKILL_CLIMB_COURSE ? 'причала' : 'крыши'}`);
     } else if (p.checkpoint > old.checkpoint) {
       const cp = this.world.map.checkpoints[p.checkpoint];
       this.sfx.checkpoint();
-      this.fx.sparkle(cp.x1 - 0.35, cp.y + 3.35, cp.z0 + 0.35);
-      this.hud.notice(`Флажок ${p.checkpoint}: «${SKILL_SECTIONS[Math.min(p.checkpoint, SKILL_SECTIONS.length - 1)].name}» — падение вернёт сюда`);
+      if (this.world instanceof ClimbWorld) {
+        const tip = this.world.flagTip(p.checkpoint);
+        this.fx.sparkle(tip[0], tip[1], tip[2]);
+      } else this.fx.sparkle(cp.x1 - 0.35, cp.y + 3.35, cp.z0 + 0.35);
+      if (this.splits && p.startedAt !== null) {
+        // отсечка: когда взят флаг (часы сервера), против своего лучшего подъёма
+        const at = p.cpAt ?? this.viewTick;
+        const split = Math.max(0, at - p.startedAt);
+        const was = this.splits.flag(p.checkpoint, split);
+        const next = SKILL_CLIMB_SECTIONS[Math.min(p.checkpoint, SKILL_CLIMB_SECTIONS.length - 1)].name;
+        this.hud.split(p.checkpoint, skillClock(split), was === null ? null : splitDelta(split - was), split - (was ?? split), `Дальше: ${next}`);
+      } else {
+        const secs = this.course === SKILL_CLIMB_COURSE ? SKILL_CLIMB_SECTIONS : SKILL_SECTIONS;
+        this.hud.notice(`Флажок ${p.checkpoint}: «${secs[Math.min(p.checkpoint, secs.length - 1)].name}» — падение вернёт сюда`);
+      }
     } else if (p.falls > old.falls) {
       this.sfx.fall();
       this.hud.notice('Сорвался — снова у флажка. Время идёт');
@@ -609,14 +641,15 @@ export class SkillScene implements Scene {
 
   private updateHud(now: number): void {
     const p = this.progress;
-    const sections = this.course === SKILL_COURSE ? SKILL_SECTIONS : SKILL_LEGACY_SECTIONS;
+    const sections = this.course === SKILL_CLIMB_COURSE ? SKILL_CLIMB_SECTIONS : this.course === SKILL_COURSE ? SKILL_SECTIONS : SKILL_LEGACY_SECTIONS;
     const cp = Math.min(p.checkpoint, sections.length - 1);
     const sec = sections[cp];
     this.hud.section(cp, sections.length, sec.name, sec.rule);
-    this.hud.live(p.finishedAt === null && cp === (this.course === SKILL_COURSE ? 15 : 9) ? this.stairsHint() : '');
+    this.hud.live(p.finishedAt === null && this.course !== SKILL_CLIMB_COURSE && cp === (this.course === SKILL_COURSE ? 15 : 9) ? this.stairsHint() : '');
     // плашка времени: медаль цели («Золото — до 2:00»), рекорд и падения, секундомер, полоса — сколько прошло до цели
-    const gold = this.course === SKILL_COURSE ? SKILL_GOLD_TICKS : SKILL_LEGACY_GOLD_TICKS;
-    const silver = this.course === SKILL_COURSE ? SKILL_SILVER_TICKS : SKILL_LEGACY_SILVER_TICKS;
+    const climb = this.course === SKILL_CLIMB_COURSE;
+    const gold = climb ? SKILL_CLIMB_GOLD_TICKS : this.course === SKILL_COURSE ? SKILL_GOLD_TICKS : SKILL_LEGACY_GOLD_TICKS;
+    const silver = climb ? SKILL_CLIMB_SILVER_TICKS : this.course === SKILL_COURSE ? SKILL_SILVER_TICKS : SKILL_LEGACY_SILVER_TICKS;
     let time = skillTime(0), medal = 3, title = `Золото — до ${skillClock(gold)}`, frac = 0;
     if (p.startedAt !== null) {
       const el = Math.max(0, (p.finishedAt ?? this.viewTick) - p.startedAt);
@@ -644,7 +677,7 @@ export class SkillScene implements Scene {
       const me = q.id === this.myId;
       return { id: q.id, nick: q.nick, me, done: q.finished, racer: q.racer, h: q.finished ? 1 : (me ? myY : q.y) / top };
     });
-    let place = this.course === SKILL_COURSE ? `${Math.max(0, Math.floor(myY))} / 185 м` : '';
+    let place = climb ? `${Math.max(0, Math.floor(myY))} / ${Math.round(top)} м` : this.course === SKILL_COURSE ? `${Math.max(0, Math.floor(myY))} / 185 м` : '';
     if (this.race.phase === 'run' && !this.racer) place = 'свой подъём';
     else if (this.racer && this.race.phase === 'run' && this.race.racers > 1) {
       const order = this.peers.filter((q) => q.racer).sort(byPlace);
@@ -662,6 +695,14 @@ export class SkillScene implements Scene {
     const ph = this.race.phase, idle = p.startedAt === null || p.finishedAt !== null;
     this.hud.canAgain((ph === 'pre' && !this.racer) || ((ph === 'none' || ph === 'done') && idle));
     this.sfx.bedUpdate(clamp(myY / top, 0, 1), this.gust);
+  }
+
+  /** Доска лучших 10: табло у старта в мире и строки на карточке итогов */
+  private applyTop(): void {
+    if (this.course !== SKILL_CLIMB_COURSE) return;
+    const me = this.d.ui.me();
+    if (this.world instanceof ClimbWorld) this.world.setTop(this.top.map((r) => ({ nick: r.nick, ticks: Math.round((r.ms * 60) / 1000) })), me.nick);
+    this.hud.setTop(this.top, me.pid);
   }
 
   /** Лестница колокольни: когда побежит обвал и когда она соберётся. */

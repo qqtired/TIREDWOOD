@@ -29,7 +29,7 @@ import type { Profiles } from './profiles.ts';
 import { RaceRoom } from './race/room.ts';
 import { SkillRoom } from './skilltest/room.ts';
 import type { SkillReward } from './skilltest/game.ts';
-import { applySkillFinish } from '../shared/skilltest.ts';
+import { SKILL_TOP, applySkillFinish, skillMs } from '../shared/skilltest.ts';
 import { mskDayNum } from '../shared/fishrules.ts';
 import { HideRoom } from './hide/room.ts';
 import { FarmRoom } from './farm/room.ts';
@@ -39,7 +39,7 @@ import { DG_LOST_MS } from '../shared/dungeon/api.ts';
 import { RateLimiter } from './ratelimit.ts';
 import { ReadyGate } from './readygate.ts';
 import type { Prestart } from '../shared/loading.ts';
-import { addFortRun, emptyStats, saveSkillRecord, selectProfileCourses, type Profile, type Store } from './store.ts';
+import { addFortRun, addSkillTime, emptyStats, saveSkillRecord, selectProfileCourses, skillTop, type Profile, type Store } from './store.ts';
 import type { TgFeed } from './tgfeed.ts';
 import { SessionLink, type LinkSocket } from './link.ts';
 import { VoiceRouter, type VoiceClient } from './voice.ts';
@@ -363,7 +363,7 @@ export class Hub {
     this.tables2 = o.tables2 ?? false;
     this.quiz = LAYOUT === 3 && (o.quiz ?? false);
     this.quizHttp = this.quiz ? o.quizHttp : undefined;
-    this.skill = o.skill ? new SkillRoom({ course: this.store.state.skillCourse, outfitOf: (p) => this.outfitOf(p), afk: (c) => this.onPaintballAfk(c), result: (c, ticks, falls) => this.onSkillResult(c, ticks, falls) }) : null;
+    this.skill = o.skill ? new SkillRoom({ course: this.store.state.skillCourse, outfitOf: (p) => this.outfitOf(p), afk: (c) => this.onPaintballAfk(c), result: (c, ticks, falls) => this.onSkillResult(c, ticks, falls), top: () => skillTop(this.store.state, this.store.state.skillCourse, SKILL_TOP) }) : null;
     this.boatrace = !!o.boatrace;
     this.hide = o.hide ? new HideRoom({ outfitOf: p => this.outfitOf(p), finished: (pid,result) => this.onHideResult(pid,result), afk: c => this.onPaintballAfk(c) }) : null;
     this.farm = o.farm
@@ -1100,6 +1100,7 @@ export class Hub {
     selectProfileCourses(p, { aqua: this.store.state.aquaCourse, skill: course });
     const r = applySkillFinish(p.stats, ticks, falls, mskDayNum(this.now()), course);
     saveSkillRecord(p, course);
+    addSkillTime(this.store.state, course, { pid: p.id, nick: p.nick, ms: skillMs(ticks), at: this.now() });
     if (r.tokens > 0) this.profiles.credit(p, r.tokens, 'mode');
     this.store.markDirty(); this.tokens(c, p.tokens); this.sendMe(c); this.lobby.honorChanged();
     return r;

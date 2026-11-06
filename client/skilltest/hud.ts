@@ -3,7 +3,10 @@
 // рекорд и падения, секундомер, полоса; справа внизу — высотомер с соперниками и местом; снизу — ряд клавиш до старта,
 // потом кнопки «К точке» R и «Сначала» N. Отсчёт — крупными цифрами кита, подсказки — тостами, финиш и итоги забега —
 // общим окном итогов режимов (ModeResults) с кнопками «Ещё забег» E и «На набережную» Esc.
-import { SKILL_CLEAN_REWARD, SKILL_DAILY_REWARD, SKILL_MEDAL_REWARD, SKILL_MEDALS, SKILL_RESULTS_TICKS, skillTime, type SkillFinish, type SkillRow } from '../../shared/skilltest.ts';
+import {
+  SKILL_CLEAN_REWARD, SKILL_CLIMB_CLEAN_REWARD, SKILL_CLIMB_DAILY_REWARD, SKILL_CLIMB_MEDAL_REWARD, SKILL_DAILY_REWARD, SKILL_MEDAL_REWARD, SKILL_MEDALS, SKILL_RESULTS_TICKS, SKILL_TOP,
+  skillTime, type SkillFinish, type SkillRow, type SkillTopRow,
+} from '../../shared/skilltest.ts';
 import type { Ui } from '../scene.ts';
 import { TOUCH } from '../touch.ts';
 import { h, iconImg } from '../ui/kit/dom.ts';
@@ -43,6 +46,8 @@ const MEDAL_ICON = ['', 'medal-bronze', 'medal-silver', 'medal-gold'] as const;
 const CARD_MS = 9000;
 const RESULTS_SEC = SKILL_RESULTS_TICKS / 60;
 const MODE = 'Выше облаков · Небесная каланча';
+/** Время доски: 6:12.4 */
+const topTime = (ms: number): string => { const s = Math.max(0, ms) / 1000; return `${Math.floor(s / 60)}:${(s % 60).toFixed(1).padStart(4, '0')}`; };
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 const medalCell = (m: number) => (m > 0 ? `${iconImg(MEDAL_ICON[m], 'mo-med')}${SKILL_MEDALS[m]}` : '—');
@@ -75,6 +80,11 @@ export class SkillHud {
   private myPid = 0;
   private left = 0;
   private resKey = '';
+  /** Заголовок окна итогов (курс) и «Город вверх»: доска лучших 10 на итогах, награды долгой трассы */
+  private mode = MODE;
+  private climb = false;
+  private top: SkillTopRow[] = [];
+  private topPid = 0;
   private again = false;
   /** Можно «Ещё забег» (не в пути) — только тогда итоги забега открываются окном (в пути не мешаем лезть) */
   private idle = true;
@@ -151,6 +161,30 @@ export class SkillHud {
       this.ui.top.clearToasts('sk-');
       this.render();
     }
+  }
+
+  /** Какой курс: подпись окна итогов и награды долгой трассы */
+  course(mode: string, climb: boolean): void {
+    this.mode = mode;
+    this.climb = climb;
+    this.resKey = '';
+  }
+
+  /** Доска лучших 10 трассы (своя строка — золотом) */
+  setTop(rows: readonly SkillTopRow[], myPid: number): void {
+    this.top = rows.slice(0, SKILL_TOP);
+    this.topPid = myPid;
+    if (this.shown) { this.resKey = ''; this.render(); }
+  }
+
+  /** Отсечка на флаге: «Флаг 7 · 2:31 · −4,2» — зелёным быстрее своего лучшего, красным медленнее; sub — что дальше */
+  split(flag: number, time: string, delta: string | null, diff: number, sub: string): void {
+    if (this.shown) return;
+    const d = delta === null ? '' : ` · <span class="${diff <= 0 ? 'k-good' : 'k-bad'}">${esc(delta)}</span>`;
+    this.ui.top.toast({
+      key: 'sk-note', tone: delta === null ? 'info' : diff <= 0 ? 'good' : 'warn', icon: uiIcon('flag-finish'), title: '', life: 3600,
+      cls: 'sk-split', html: `<div class="k-toast-title">Флаг ${flag} · ${esc(time)}${d}</div><div class="k-toast-sub">${esc(sub)}</div>`,
+    });
   }
 
   section(index: number, total: number, name: string, rule: string): void {
@@ -281,7 +315,7 @@ export class SkillHud {
       if (this.shown) { this.results.hide(); this.shown = false; this.resKey = ''; this.onOpen(false); }
       return;
     }
-    const key = `${card ? `${card.ticks}:${card.place}` : '-'}|${rows ? rows.map((r) => `${r.pid}:${r.place}:${r.ticks}:${r.medal}`).join(',') : ''}`;
+    const key = `${card ? `${card.ticks}:${card.place}` : '-'}|${rows ? rows.map((r) => `${r.pid}:${r.place}:${r.ticks}:${r.medal}`).join(',') : ''}|${this.climb ? this.top.map((r) => `${r.pid}:${r.ms}`).join(',') : ''}`;
     if (key !== this.resKey) {
       this.resKey = key;
       this.results.show(this.spec(card, rows));
@@ -289,6 +323,12 @@ export class SkillHud {
       if (!this.shown) { this.shown = true; this.ui.top.clearToasts('sk-'); this.onOpen(true); }
     }
     if (rows) this.results.note(`Табличка закроется через ${this.left} с`, this.left / RESULTS_SEC);
+  }
+
+  /** Доска лучших 10 на итогах: две колонки по пять, своя строка — золотом */
+  private topHtml(): string {
+    const li = this.top.map((r, i) => `<li class="${r.pid === this.topPid ? 'is-own' : ''}"><b>${i + 1}</b><span class="sk-top-nick">${esc(r.nick)}</span><i>${topTime(r.ms)}</i></li>`).join('');
+    return `<div class="sk-top"><p class="k-eyebrow">Лучшие подъёмы трассы</p><ol class="sk-top-list">${li}</ol></div>`;
   }
 
   private spec(card: SkillFinish | null, rows: SkillRow[] | null): ResultsSpec {
@@ -300,9 +340,10 @@ export class SkillHud {
       else if (card.best > 0) bits.push(`рекорд ${skillTime(Math.round((card.best * 60) / 1000))}`);
       sub = esc(`${bits.join(' · ')}`);
       const chips: string[] = [];
-      if (card.medalUp && card.medal > 0) chips.push(`<span class="k-pill k-pill--gold">${iconImg(MEDAL_ICON[card.medal])}медаль «${SKILL_MEDALS[card.medal]}» +${SKILL_MEDAL_REWARD[card.medal]}</span>`);
-      if (card.clean) chips.push(`<span class="k-pill k-pill--good">значок «Без падений» +${SKILL_CLEAN_REWARD}</span>`);
-      if (card.daily) chips.push(`<span class="k-pill">первый подъём дня +${SKILL_DAILY_REWARD}</span>`);
+      const medalPay = this.climb ? SKILL_CLIMB_MEDAL_REWARD : SKILL_MEDAL_REWARD;
+      if (card.medalUp && card.medal > 0) chips.push(`<span class="k-pill k-pill--gold">${iconImg(MEDAL_ICON[card.medal])}медаль «${SKILL_MEDALS[card.medal]}» +${medalPay[card.medal]}</span>`);
+      if (card.clean) chips.push(`<span class="k-pill k-pill--good">значок «Без падений» +${this.climb ? SKILL_CLIMB_CLEAN_REWARD : SKILL_CLEAN_REWARD}</span>`);
+      if (card.daily) chips.push(`<span class="k-pill">первый подъём дня +${this.climb ? SKILL_CLIMB_DAILY_REWARD : SKILL_DAILY_REWARD}</span>`);
       if (chips.length) extra = `<div class="mo-chips">${chips.join('')}</div>`;
       if (card.tokens > 0) reward = `+${card.tokens} жетонов`;
     }
@@ -317,8 +358,9 @@ export class SkillHud {
       // один на трассе: своя строка — время и медаль
       list = card ? [{ own: true, cells: [placeHtml(card.place), `<span class="k-who">${esc(this.nick)}</span>`, skillTime(card.ticks), medalCell(card.medal)] }] : [];
     }
+    if (this.climb && this.top.length) extra += this.topHtml();
     return {
-      mode: 'skill', eyebrow: MODE, title, sub, extra, reward,
+      mode: 'skill', eyebrow: this.mode, title, sub, extra, reward,
       head: ['', 'Игрок', 'Время', 'Медаль'], rightFrom: 2, rows: list,
       note: 'Табличка закроется через 9 с', noteFrac: 1,
       actions: [{ id: 'again', label: 'Ещё подъём', key: 'E', tone: 'go' }, { id: 'leave', label: 'На набережную', key: 'Esc', tone: 'ghost' }],

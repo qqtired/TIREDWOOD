@@ -113,10 +113,15 @@ const HOLD_EPS = 0.02;
 const HOLD_ABOVE = 0.3;
 const HOLD_FRESH = 60;
 
+/** Ступень в момент t: 0 — стоит, (0, 1) — трясётся, −1 — нет (своя волна группы — сдвиг t0). Физика и картинка. */
+export function stepState(st: SkillStep, t: number): number {
+  return crumbleState(st.s, t - (st.t0 ?? 0));
+}
+
 export function stepHeldBy(st: SkillStep, x: number, y: number, z: number, t: number): boolean {
   const r = st.rect;
   if (y >= r.y - HOLD_EPS) return false;
-  const above = cyc(t, 0, CRUMBLE_PERIOD) < HOLD_FRESH ? HOLD_ABOVE : 0;
+  const above = cyc(t - (st.t0 ?? 0), 0, CRUMBLE_PERIOD) < HOLD_FRESH ? HOLD_ABOVE : 0;
   if (y + PLAYER_HEIGHT + above <= r.y - SKILL_STEP_THICK + HOLD_EPS) return false;
   return x > r.x0 - HOLD_NEAR && x < r.x1 + HOLD_NEAR && z > r.z0 - HOLD_NEAR && z < r.z1 + HOLD_NEAR;
 }
@@ -215,7 +220,7 @@ export class SkillDynamics {
       else this.park(c.box);
     }
     for (const st of map.steps) {
-      if (crumbleState(st.s, t) >= 0) this.setBox(st.box, st.rect.x0, st.rect.y - SKILL_STEP_THICK, st.rect.z0, st.rect.x1, st.rect.y, st.rect.z1);
+      if (stepState(st, t) >= 0) this.setBox(st.box, st.rect.x0, st.rect.y - SKILL_STEP_THICK, st.rect.z0, st.rect.x1, st.rect.y, st.rect.z1);
       else this.park(st.box);
     }
   }
@@ -225,7 +230,7 @@ export class SkillDynamics {
     const steps = this.map.steps;
     for (let i = 0; i < steps.length; i++) {
       const st = steps[i];
-      if (stepHeldBy(st, s.x, s.y, s.z, t) && crumbleState(st.s, t) >= 0) this.park(st.box);
+      if (stepHeldBy(st, s.x, s.y, s.z, t) && stepState(st, t) >= 0) this.park(st.box);
     }
     for (const c of this.map.clouds) if (cloudSolid(c.phase, t) && cloudHeldBy(c, s.x, s.y, s.z)) this.park(c.box);
   }

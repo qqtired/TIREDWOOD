@@ -24,3 +24,17 @@ html:not([data-room='skill']) .sk-only { display: none !important; }
   .sk-alt { display: none !important; }
 }
 @media (prefers-reduced-motion: reduce) { .mo-alt-fill, .mo-alt-mark { transition: none; } }
+
+/* «Город вверх»: тост отсечки на флаге — время и разница со своим лучшим подъёмом */
+.sk-split .k-toast-title .k-good, .sk-split .k-toast-title .k-bad { font-variant-numeric: tabular-nums; }
+.sk-split .k-toast-title { font-variant-numeric: tabular-nums; }
+
+/* «Город вверх»: доска лучших 10 на итогах — две колонки по пять, своя строка золотом */
+.sk-top { margin: 2px 0 12px; }
+.sk-top .k-eyebrow { margin: 0 4px 6px; font-size: var(--fs-13); }
+.sk-top-list { display: grid; grid-template-columns: 1fr 1fr; grid-auto-flow: column; grid-template-rows: repeat(5, auto); gap: 2px 16px; margin: 0; padding: 0; list-style: none; }
+.sk-top-list li { display: grid; grid-template-columns: 2.2ch minmax(0, 1fr) auto; align-items: center; gap: 8px; min-height: 28px; padding: 2px 8px; border-radius: var(--r-sm); font: 600 var(--fs-14)/1.2 var(--font-text); }
+.sk-top-list li b { color: var(--plate-text-dim, inherit); font-weight: 800; text-align: right; }
+.sk-top-list li i { font-style: normal; font-weight: 700; font-variant-numeric: tabular-nums; }
+.sk-top-nick { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sk-top-list li.is-own { background: var(--gold-soft, rgba(224, 170, 60, .18)); color: var(--gold-text); }

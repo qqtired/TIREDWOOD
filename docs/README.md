@@ -32,6 +32,7 @@
 | Архивы рекордов по курсам | `server/store.ts`, `shared/economy.ts`, `client/ui/records.ts` | [course-records.md](course-records.md), `course-records-migration.test.ts` |
 | Совместимость отката с архивами рекордов | `deploy/check-record-rollback.ts`, `deploy/course-records.compat`, `deploy/install.sh` | [review3-integration.md](review3-integration.md), `release-rollback.test.ts` |
 | Башня 185 м | `shared/skilltower.ts`, `client/skilltest/cloudworld.ts` | [cloudtower/README.md](cloudtower/README.md), `skill-cloudtower*.test.ts` |
+| «Город вверх» — трасса 307 м, 28 флагов, топ-10 (флаг `SKILL_CLIMB`) | `shared/skillclimb.ts`, `client/skilltest/climbworld.ts`, `client/skilltest/climb/` | [skyclimb/README.md](skyclimb/README.md), бриф [skyclimb/brief.md](skyclimb/brief.md), `skill-climb*.test.ts` |
 | Аквапарк-подкова | `shared/aqua.ts`, `client/lobby/aquamodels.ts` | [aquapark-v3/README.md](aquapark-v3/README.md), `aqua-model.test.ts` |
 | Памятка Подземелья и метки атак | `client/dungeon/pause-data.ts`, `hud.ts`, `game.ts` | `dungeon-pause-info.test.ts`, `dungeon-telegraph-visibility.test.ts` |
 | Восемь визуалов эволюций на герое | `client/dungeon/evolutions.ts`, `client/assets/dungeon/evolutions/` | `dungeon-evolutions-render.test.ts`, [происхождение моделей](../client/assets/dungeon/evolutions/PROVENANCE.md) |

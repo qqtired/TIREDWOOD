@@ -7,7 +7,9 @@ import type { PlayerState } from './sim.ts';
 /** Новая трасса — новые рекорды: времена старых «Островов» с ней не сравнить. */
 export const SKILL_COURSE = 'cloud-tower-185-v2';
 export const SKILL_LEGACY_COURSE = 'sky-tower-v1';
-export type SkillCourse = typeof SKILL_COURSE | typeof SKILL_LEGACY_COURSE;
+/** «Город вверх»: долгая трасса, 28 флагов (shared/skillclimb.ts), переключатель SKILL_CLIMB=1 */
+export const SKILL_CLIMB_COURSE = 'sky-climb-v1';
+export type SkillCourse = typeof SKILL_COURSE | typeof SKILL_LEGACY_COURSE | typeof SKILL_CLIMB_COURSE;
 export const SKILL_CAPACITY = 5;
 export const SKILL_REJOIN_TICKS = 10 * 60 * TICK_RATE;
 /** Сбор забега: ждём друзей столько (экран загрузки продлевает — server/readygate.ts); последние 3 с — отсчёт */
@@ -23,11 +25,18 @@ export const SKILL_GOLD_TICKS = 300 * TICK_RATE;
 export const SKILL_SILVER_TICKS = 480 * TICK_RATE;
 export const SKILL_LEGACY_GOLD_TICKS = 120 * TICK_RATE;
 export const SKILL_LEGACY_SILVER_TICKS = 210 * TICK_RATE;
+/** «Город вверх»: золото ≈ 1,6 × идеальный бот, серебро ≈ 2,6 × бот (test/skill-climb-route.test.ts), бронза — любой финиш */
+export const SKILL_CLIMB_GOLD_TICKS = 10 * 60 * TICK_RATE;
+export const SKILL_CLIMB_SILVER_TICKS = 16 * 60 * TICK_RATE;
 export const SKILL_MEDALS = ['', 'Бронза', 'Серебро', 'Золото'] as const;
 /** Жетоны за медаль — разово за каждую новую ступень; за «без падений» — разово; за первый подъём дня */
 export const SKILL_MEDAL_REWARD = [0, 20, 40, 80] as const;
 export const SKILL_CLEAN_REWARD = 30;
 export const SKILL_DAILY_REWARD = 10;
+/** Долгая трасса — награды выше */
+export const SKILL_CLIMB_MEDAL_REWARD = [0, 60, 120, 200] as const;
+export const SKILL_CLIMB_CLEAN_REWARD = 100;
+export const SKILL_CLIMB_DAILY_REWARD = 40;
 
 /** Участки по порядку: номер участка — номер последней взятой точки. */
 export const SKILL_SECTIONS = [
@@ -51,6 +60,38 @@ export const SKILL_SECTIONS = [
   { name: 'Колокол', rule: 'Последняя спираль — прыгни в колокол!' },
 ] as const;
 
+/** «Город вверх»: участок i — от флага i до флага i + 1, 27 — к колоколу. */
+export const SKILL_CLIMB_SECTIONS = [
+  { name: 'Ящики', rule: 'Лодка наверху волны — прыгай на ящик' },
+  { name: 'Контейнеры', rule: 'Разбег и прыжок со штабеля на штабель' },
+  { name: 'Сети', rule: 'Сетка пролетела — беги по трапу' },
+  { name: 'Портовый кран', rule: 'Перекладины, стрела, челнок на крышу' },
+  { name: 'Бельевые верёвки', rule: 'Узкие доски между крышами' },
+  { name: 'Маркизы', rule: 'Маркиза подбросит — правь на балкон' },
+  { name: 'Ставни', rule: 'Ставня дрогнула — сейчас хлопнет' },
+  { name: 'Трубы', rule: 'По трубам к горячей — поток поднимет' },
+  { name: 'Карусель', rule: 'Прыгай через перекладину, потом лестница' },
+  { name: 'Колесо обозрения', rule: 'Запрыгни в люльку внизу, сойди наверху' },
+  { name: 'Канатная дорога', rule: 'Зайди в кабину — перевезёт через пропасть' },
+  { name: 'Леса', rule: 'Доска трясётся — сейчас упадёт' },
+  { name: 'Подъёмник', rule: 'Наверху клеть стоит секунду — выходи' },
+  { name: 'Балки', rule: 'Балки едут — прыгай, когда рядом' },
+  { name: 'Обвал лесов', rule: 'Настил осыпается снизу — беги без остановки' },
+  { name: 'Башенный кран', rule: 'Зигзагом по мачте, потом по стреле' },
+  { name: 'Провода', rule: 'Флажки рвутся — порыв. Жди у столба' },
+  { name: 'Фуникулёр', rule: 'Вагончик отвезёт вверх' },
+  { name: 'Мачта', rule: 'Растяжка и полки на ветру' },
+  { name: 'Флажки', rule: 'Мешок пролетел — беги по гирлянде' },
+  { name: 'Корзины', rule: 'Запрыгни в корзину, сойди наверху' },
+  { name: 'Купола', rule: 'Купол подбросит — правь на следующий' },
+  { name: 'Воздушные змеи', rule: 'Змей рядом — прыгай' },
+  { name: 'Тёплый поток', rule: 'Шагни в поток — поднимет' },
+  { name: 'Облака', rule: 'Дрожит — скоро растает. Прыгай за волной' },
+  { name: 'Ветер в облаках', rule: 'Порыв — прячься за облачный вал' },
+  { name: 'Последняя лестница', rule: 'Ступени осыпаются — беги' },
+  { name: 'Колокол', rule: 'Прыгни в колокол!' },
+] as const;
+
 export const SKILL_LEGACY_SECTIONS = [SKILL_SECTIONS[0], SKILL_SECTIONS[1], SKILL_SECTIONS[2], SKILL_SECTIONS[3], SKILL_SECTIONS[4], SKILL_SECTIONS[6], SKILL_SECTIONS[7], SKILL_SECTIONS[9], SKILL_SECTIONS[11], SKILL_SECTIONS[15]] as const;
 
 export interface SkillProgress {
@@ -62,11 +103,26 @@ export interface SkillProgress {
   run: number;
   /** Стартовал вместе с забегом (иначе — свой подъём: время и медаль считаются, места нет) */
   racer: boolean;
+  /**
+   * Когда взят текущий флаг (те же часы, что startedAt): отсечка флага = cpAt − startedAt. null — флаг 0 / не было.
+   * Нет у старого сервера.
+   */
+  cpAt?: number | null;
 }
 
 export function makeSkillProgress(run = 1, racer = false): SkillProgress {
-  return { checkpoint: 0, startedAt: null, finishedAt: null, falls: 0, run, racer };
+  return { checkpoint: 0, startedAt: null, finishedAt: null, falls: 0, run, racer, cpAt: null };
 }
+
+/** Строка доски «лучшие времена трассы»: у каждого — свой лучший подъём. */
+export interface SkillTopRow {
+  pid: number;
+  nick: string;
+  /** Время подъёма, мс */
+  ms: number;
+}
+/** Сколько строк на доске */
+export const SKILL_TOP = 10;
 
 export interface SkillPeer {
   level: number;
@@ -145,7 +201,9 @@ export type SkillServerMsg =
   }
   | ({ t: 'skill_finish' } & SkillFinish)
   /** Кто-то позвонил в колокол: звук всем в комнате */
-  | { t: 'skill_bell'; pid: number; nick: string; ticks: number; first: boolean };
+  | { t: 'skill_bell'; pid: number; nick: string; ticks: number; first: boolean }
+  /** Доска лучших времён трассы (до SKILL_TOP строк): при входе и после каждого засчитанного финиша */
+  | { t: 'skill_top'; course: SkillCourse; rows: SkillTopRow[] };
 
 export interface SkillStatus {
   n: number;
@@ -155,6 +213,8 @@ export interface SkillStatus {
   phase: SkillPhase;
   /** Сколько секунд до старта (сбор) */
   left: number;
+  /** Доска лучших времён трассы для портала (нет — пусто или старый сервер) */
+  top?: SkillTopRow[];
 }
 
 /** 1:48.25 */
@@ -171,8 +231,8 @@ export function skillClock(ticks: number): string {
 
 /** Медаль за время подъёма: 3 — золото, 2 — серебро, 1 — бронза. */
 export function skillMedal(ticks: number, course: SkillCourse = SKILL_COURSE): number {
-  const gold = course === SKILL_LEGACY_COURSE ? SKILL_LEGACY_GOLD_TICKS : SKILL_GOLD_TICKS;
-  const silver = course === SKILL_LEGACY_COURSE ? SKILL_LEGACY_SILVER_TICKS : SKILL_SILVER_TICKS;
+  const gold = course === SKILL_LEGACY_COURSE ? SKILL_LEGACY_GOLD_TICKS : course === SKILL_CLIMB_COURSE ? SKILL_CLIMB_GOLD_TICKS : SKILL_GOLD_TICKS;
+  const silver = course === SKILL_LEGACY_COURSE ? SKILL_LEGACY_SILVER_TICKS : course === SKILL_CLIMB_COURSE ? SKILL_CLIMB_SILVER_TICKS : SKILL_SILVER_TICKS;
   return ticks <= gold ? 3 : ticks <= silver ? 2 : 1;
 }
 
@@ -186,13 +246,15 @@ export function skillMs(ticks: number): number {
  */
 export function applySkillFinish(stats: Stats, ticks: number, falls: number, day: number, course: SkillCourse = SKILL_COURSE): Omit<SkillFinish, 'place'> {
   const medal = skillMedal(ticks, course);
+  const climb = course === SKILL_CLIMB_COURSE;
+  const medalReward = climb ? SKILL_CLIMB_MEDAL_REWARD : SKILL_MEDAL_REWARD;
   const had = Math.max(0, Math.min(3, Math.floor(stats.skMedal)));
   let tokens = 0;
-  for (let m = had + 1; m <= medal; m++) tokens += SKILL_MEDAL_REWARD[m];
+  for (let m = had + 1; m <= medal; m++) tokens += medalReward[m];
   const clean = falls === 0 && stats.skClean < 1;
-  if (clean) tokens += SKILL_CLEAN_REWARD;
+  if (clean) tokens += climb ? SKILL_CLIMB_CLEAN_REWARD : SKILL_CLEAN_REWARD;
   const daily = stats.skDay !== day;
-  if (daily) tokens += SKILL_DAILY_REWARD;
+  if (daily) tokens += climb ? SKILL_CLIMB_DAILY_REWARD : SKILL_DAILY_REWARD;
   const ms = skillMs(ticks);
   const newBest = stats.skBest <= 0 || ms < stats.skBest;
   stats.skRuns++;

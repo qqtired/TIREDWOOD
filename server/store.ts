@@ -24,7 +24,13 @@ export type { Stats };
 
 export const LEGACY_SKILL_COURSE = 'sky-tower-v1';
 export const TOWER_SKILL_COURSE = 'cloud-tower-185-v2';
-export type SkillRecordCourse = typeof LEGACY_SKILL_COURSE | typeof TOWER_SKILL_COURSE;
+export const CLIMB_SKILL_COURSE = 'sky-climb-v1';
+export type SkillRecordCourse = typeof LEGACY_SKILL_COURSE | typeof TOWER_SKILL_COURSE | typeof CLIMB_SKILL_COURSE;
+/** Номер курса в Stats.skCourse */
+const SKILL_COURSE_NO: Record<SkillRecordCourse, number> = { [LEGACY_SKILL_COURSE]: 1, [TOWER_SKILL_COURSE]: 2, [CLIMB_SKILL_COURSE]: 3 };
+function skillCourseOf(no: number): SkillRecordCourse | null {
+  return no === 1 ? LEGACY_SKILL_COURSE : no === 2 ? TOWER_SKILL_COURSE : no === 3 ? CLIMB_SKILL_COURSE : null;
+}
 export interface SkillCourseRecord { best: number; medal: number; clean: number; day: number; runs: number }
 export interface RecordCourses { aqua: number; regatta: string; skill: SkillRecordCourse }
 
@@ -93,6 +99,11 @@ export interface State {
   regattaCourse: string;
   regattaArchive: Record<string, AquaRecord[]>;
   skillCourse: SkillRecordCourse;
+  /**
+   * Лучшие времена «Выше облаков» по курсам (мс; у каждого игрока — только свой лучший, список не обрезается):
+   * доска «топ-10» — первые строки активного курса. Старые сохранения — поля нет.
+   */
+  skillArchive?: Record<string, AquaRecord[]>;
   /** Пять отдельных крупнейших уловов календарного дня по Москве; не личные рекорды игроков. */
   fishPodium: { day: string; catches: FishPodiumCatch[] };
   /** Сроки общих событий, абсолютные миллисекунды; переживают перезапуск. */
@@ -135,7 +146,7 @@ const BACKUP_RE = /^state-\d{4}-\d{2}-\d{2}\.json$/;
 
 function currentRecordCourses(overrides: Partial<RecordCourses> = {}): RecordCourses {
   return { aqua: overrides.aqua ?? AQUA_COURSE, regatta: overrides.regatta ?? RG_COURSE,
-    skill: overrides.skill ?? (process.env.SKILL_TOWER2 === '1' ? TOWER_SKILL_COURSE : LEGACY_SKILL_COURSE) };
+    skill: overrides.skill ?? (process.env.SKILL_CLIMB === '1' ? CLIMB_SKILL_COURSE : process.env.SKILL_TOWER2 === '1' ? TOWER_SKILL_COURSE : LEGACY_SKILL_COURSE) };
 }
 
 function emptyState(courses = currentRecordCourses()): State {
@@ -223,8 +234,10 @@ function projectCourseRecords(p: Profile, aqua: number, skill: SkillRecordCourse
   const s = p.stats, a = p.aquaBests ?? {}, k = p.skillRecords ?? {};
   s.aqCourse = aqua;
   s.aqBestCourse1 = a['1'] ?? 0; s.aqBestCourse2 = a['2'] ?? 0; s.aqBestCourse3 = a['3'] ?? 0;
-  s.skCourse = skill === TOWER_SKILL_COURSE ? 2 : 1;
-  const old = k[LEGACY_SKILL_COURSE], tower = k[TOWER_SKILL_COURSE];
+  s.skCourse = SKILL_COURSE_NO[skill] ?? 1;
+  const old = k[LEGACY_SKILL_COURSE], tower = k[TOWER_SKILL_COURSE], climb = k[CLIMB_SKILL_COURSE];
+  s.skBestClimb = climb?.best ?? 0; s.skMedalClimb = climb?.medal ?? 0; s.skCleanClimb = climb?.clean ?? 0;
+  s.skDayClimb = climb?.day ?? 0; s.skRunsClimb = climb?.runs ?? 0;
   s.skBestLegacy = old?.best ?? 0; s.skMedalLegacy = old?.medal ?? 0; s.skCleanLegacy = old?.clean ?? 0;
   s.skDayLegacy = old?.day ?? 0; s.skRunsLegacy = old?.runs ?? 0;
   s.skBestTower185 = tower?.best ?? 0; s.skMedalTower185 = tower?.medal ?? 0; s.skCleanTower185 = tower?.clean ?? 0;
@@ -244,7 +257,7 @@ function captureSkill(p: Profile, course: string, finished = false): void {
 /** Сначала сохранить исходный активный курс, затем выбрать цель. Можно вызывать повторно, в том числе при входе. */
 export function selectProfileCourses(p: Profile, courses: Pick<RecordCourses, 'aqua' | 'skill'>,
   fromAqua = p.stats.aqCourse || courses.aqua,
-  fromSkill: string = p.stats.skCourse === 1 ? LEGACY_SKILL_COURSE : p.stats.skCourse === 2 ? TOWER_SKILL_COURSE : courses.skill): void {
+  fromSkill: string = skillCourseOf(p.stats.skCourse) ?? courses.skill): void {
   const bests = p.aquaBests ?? (p.aquaBests = {});
   if (p.stats.aqBest > 0) bests[String(fromAqua)] = better(bests[String(fromAqua)], p.stats.aqBest);
   p.stats.aqBest = bests[String(courses.aqua)] ?? 0;
@@ -264,11 +277,26 @@ export function saveSkillRecord(p: Profile, course: SkillRecordCourse): void {
   projectCourseRecords(p, p.stats.aqCourse || AQUA_COURSE, course);
 }
 
+/**
+ * Засчитанный подъём — в доску курса: у игрока одна строка (лучшая), ник — последний.
+ */
+export function addSkillTime(state: State, course: string, rec: AquaRecord): void {
+  const archive = state.skillArchive ?? (state.skillArchive = {});
+  const rows = mergeRecordRows(archive[course] ?? [], [rec]);
+  // ник обновляем и при более медленном подъёме: на доске — как игрока зовут сейчас
+  for (const r of rows) if (r.pid === rec.pid) r.nick = rec.nick;
+  archive[course] = rows;
+}
+
+export function skillTop(state: State, course: string, n = 10): Array<{ pid: number; nick: string; ms: number }> {
+  return (state.skillArchive?.[course] ?? []).slice(0, n).map((r) => ({ pid: r.pid, nick: r.nick, ms: r.ms }));
+}
+
 /** После финиша аквапарка: aqRuns считает вызывающий код, здесь только best и его проекции. */
 export function saveAquaRecord(p: Profile, course: number): void {
   const records = p.aquaBests ?? (p.aquaBests = {});
   if (p.stats.aqBest > 0) records[String(course)] = better(records[String(course)], p.stats.aqBest);
-  projectCourseRecords(p, course, p.stats.skCourse === 2 ? TOWER_SKILL_COURSE : LEGACY_SKILL_COURSE);
+  projectCourseRecords(p, course, skillCourseOf(p.stats.skCourse) ?? LEGACY_SKILL_COURSE);
 }
 
 function normalizeBlackjackEscrow(raw: unknown): Profile['blackjackEscrow'] {
@@ -300,7 +328,8 @@ export function normalizeProfile(raw: unknown): Profile | null {
   }
   const skillRecords = parseSkillRecords(r.skillRecords);
   for (const [id, value] of [[LEGACY_SKILL_COURSE, { best: stats.skBestLegacy, medal: stats.skMedalLegacy, clean: stats.skCleanLegacy, day: stats.skDayLegacy, runs: stats.skRunsLegacy }],
-    [TOWER_SKILL_COURSE, { best: stats.skBestTower185, medal: stats.skMedalTower185, clean: stats.skCleanTower185, day: stats.skDayTower185, runs: stats.skRunsTower185 }]] as const) {
+    [TOWER_SKILL_COURSE, { best: stats.skBestTower185, medal: stats.skMedalTower185, clean: stats.skCleanTower185, day: stats.skDayTower185, runs: stats.skRunsTower185 }],
+    [CLIMB_SKILL_COURSE, { best: stats.skBestClimb, medal: stats.skMedalClimb, clean: stats.skCleanClimb, day: stats.skDayClimb, runs: stats.skRunsClimb }]] as const) {
     if (value.best || value.medal || value.clean || value.runs) skillRecords[id] = mergeSkill(skillRecords[id], value);
   }
   // Старый максимум хранится в альбоме; сундуки, хлам и старая золотая рыбка сюда не входят.
@@ -369,6 +398,7 @@ function parseState(text: string, courses: RecordCourses): State {
     regattaCourse: courses.regatta,
     regattaArchive,
     skillCourse: courses.skill,
+    ...(raw.skillArchive !== undefined ? { skillArchive: parseRecordArchive(raw.skillArchive) } : {}),
     fishPodium: parseFishPodium(raw.fishPodium),
     lobbyEvents: parseLobbyEvents(raw.lobbyEvents),
     // необязательное: старые сохранения без рекордов крепости читаются как есть (поле появится с первым забегом)
