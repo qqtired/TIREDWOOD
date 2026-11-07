@@ -21,7 +21,7 @@ export interface LiveIn {
   pbHumans: number;
   /** rec — рекорд крепости (live — его бьют прямо сейчас) */
   fort: { phase: number; wave: number; humans: number; left: number; rec?: { wave: number; live?: boolean } } | null;
-  skill: { n: number; max: number; phase: string; left: number } | null;
+  skill: { n: number; max: number; phase: string; left: number; top?: ReadonlyArray<{ nick: string; ms: number }> } | null;
   kart: { phase: string; n: number; left: number; lap: number; laps: number } | null;
   hide: { phase: string; n: number; max: number; left?: number } | null;
   /** Регата: сбор у круга и идёт ли заезд в бухте */

@@ -109,6 +109,9 @@ export function signStatus(mode: StatusMode, s: LiveIn, x: SignExtras): SignStat
       if (k.n >= k.max) return { text: 'каланча занята · мест нет', tone: 'bad' };
       if (k.phase === 'pre') return { text: `забег через ${clock(k.left)} · ${k.n} из ${k.max}`, tone: 'open' };
       if (k.phase === 'run') return { text: `забег идёт · ${k.n} из ${k.max}`, tone: 'go' };
+      // «Город вверх» отдаёт доску времён: в покое на вывеске — рекорд трассы
+      const best = k.top?.[0];
+      if (k.n === 0 && best) return { text: cut(`рекорд ${best.nick} ${clock(Math.floor(best.ms / 1000))} · побей!`), tone: 'open' };
       return k.n > 0 ? { text: `на каланче ${k.n} из ${k.max}`, tone: 'go' } : { text: 'каланча свободна', tone: 'open' };
     }
     case 'kart': {
