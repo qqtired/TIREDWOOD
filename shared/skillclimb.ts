@@ -336,7 +336,7 @@ export function makeClimbMap(): SkillMap {
   }
   link({ movers: gondolas }, 'jump', { at: [2350, 2370, 2390, 10, 30], every: 300 });
   const cp10 = R(wheelX - 5, wheelX + 5, wheelZ - 8.1, wheelZ - 1.6, cy + R9);
-  ride(gondolas[0], cp10, 'station', 'jump', [1170, 1190, 1210, 1230], { h: 1.2, cp: NORTH });
+  ride(gondolas[0], cp10, 'station', 'jump', [1170, 1190, 1210, 1230], { h: 1.2, cp: NORTH + .95 });
 
   // ---------------------------------------------------------------- 10. Канатная дорога: две кабины навстречу через пропасть
   const cableIn = cp10.z0 - .15 - 1.7, cableRise = 7, cableRun = 30;
@@ -347,7 +347,7 @@ export function makeClimbMap(): SkillMap {
   });
   link({ movers: cars }, 'walk', { at: [10, 50, 90, 880, 920, 960], every: 870 });
   const cp11 = R(wheelX - 5, wheelX + 9.5, cableIn - cableRun - 1.7 - .15 - 4.4, cableIn - cableRun - 1.7 - .15, cp10.y + cableRise);
-  ride(cars[0], cp11, 'station', 'walk', [880, 910, 940], { h: 1.2, cp: NORTH });
+  ride(cars[0], cp11, 'station', 'walk', [880, 910, 940], { h: 1.2, cp: EAST + .12 });
 
   // ================================================================ 4. СТРОЙКА (121 → 180): вертикально
   // Корпус строящегося дома: восточная стена — леса, северо-восток — подъёмник, крыша — флаг 13, запад — балки и обвал.

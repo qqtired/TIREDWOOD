@@ -691,8 +691,9 @@ export function shield(b: Batch, w: number, h: number): void {
 /** Плетёная корзина шара (подвижная, верх пола в y = 0): пол, плетёные борта по bodies или низкий кант, стропы к оболочке. */
 export function balloonBasket(b: Batch, w: number, d: number, n: number, walls: Array<{ min: V3; max: V3 }> = []): void {
   basketBody(b, w, d, walls);
-  const R = Math.max(w, d) * 1.05 + 1.6;
-  const cy = 4.6 + R * 0.945;
+  // купол высоко над корзиной: у причала он не должен заслонять камеру
+  const R = Math.max(w, d) * 0.7 + 1.1;
+  const cy = 9.5 + R * 0.945;
   balloonEnvelope(b, 0, cy, 0, R, n);
   basketRopes(b, w, d, 0, cy - R * 0.945, R);
 }

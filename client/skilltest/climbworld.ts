@@ -226,6 +226,9 @@ export class ClimbWorld {
     // карусели крыш
     for (const c of this.map.carousels ?? []) this.carousel(c);
     this.escapeStringers();
+    this.craneLegs();
+    this.attachments();
+    this.gantry();
   }
 
   private pad(p: SkillPad, x: Box, look: string, n: number): void {
@@ -249,7 +252,14 @@ export class ClimbWorld {
       case 'boat': kit.boat(b, w, d, h, n); return;
       case 'gangway': kit.gangway(b, x); legs(); return;
       case 'rung': kit.rung(b, x); return;
-      case 'cab': kit.cab(b, x); return;
+      case 'cab':
+        if (th === 'wires') { this.poleTop(b, x); if (gap > 0.5) this.pylon(b, x, x.y0 - gap); return; }
+        kit.cab(b, x);
+        if (th === 'port' && gap > 0.5) {
+          // вторая (задняя) нога портального крана — решётка до земли
+          kit.lattice(b, x.x0 + 0.35, x.z0 + 0.3, x.x1 - 0.35, x.z1 - 0.3, x.y0 - gap, x.y0, K.orange, 0.08, 2.2, K.white);
+        }
+        return;
       case 'jib': kit.jib(b, x); return;
       case 'roof': this.houseStack(x, gap, n, p.sec); return;
       case 'ledge': kit.ledge(b, x); return;
@@ -266,7 +276,8 @@ export class ClimbWorld {
       case 'wire': kit.cables(b, x); return;
       case 'insulator': kit.insulator(b, x); return;
       case 'pole':
-        kit.pole(b, x);
+        if (th === 'wires') this.poleTop(b, x);
+        else kit.pole(b, x);
         if (th === 'sky' || th === 'clouds') this.hangFromBalloon(b, x, n);
         else if (gap > 0.5) this.pylon(b, x, x.y0 - gap);
         return;
@@ -277,7 +288,7 @@ export class ClimbWorld {
         else if (x.y1 - x.y0 > 3) this.timberTower(b, x);
         else kit.pier(b, x, x.y0 - gap);
         return;
-      case 'core': this.core(b, x); return;
+      case 'core': this.core(b, { ...x, y0: Math.min(x.y0, this.below(x)) }); return;
       case 'balcony': this.balcony(b, x); return;
       case 'station':
         b.deck(x.x0, x.x1, x.z0, x.z1, x.y1, Math.min(h, 0.6), K.red);
@@ -443,6 +454,171 @@ export class ClimbWorld {
   private barrels(b: Batch, x: Box, n: number): void {
     const H = x.y1 - x.y0, k = Math.max(1, Math.round(H / 1.3)), h = H / k;
     for (let i = 0; i < k; i++) kit.barrel(b, { ...x, y0: x.y0 + h * i, y1: x.y0 + h * (i + 1) - (i < k - 1 ? 0.01 : 0) }, n * 3 + i);
+  }
+
+  /** Верх столба проводов: деревянная площадка-траверса, под ней толстый столб, по краям траверсы — белые изоляторы. */
+  private poleTop(b: Batch, x: Box): void {
+    const cx = (x.x0 + x.x1) / 2, cz = (x.z0 + x.z1) / 2, w = x.x1 - x.x0, d = x.z1 - x.z0;
+    // настил из досок
+    b.deck(x.x0, x.x1, x.z0, x.z1, x.y1, Math.min(0.22, x.y1 - x.y0), K.woodDark);
+    // траверса — брус шире площадки на 0,9 м с обеих сторон
+    const alongX = w >= d, L = (alongX ? w : d) / 2 + 0.9, ty = x.y1 - 0.42;
+    if (alongX) b.span('wood', 0x6b4a30, cx - L, ty - 0.16, cz - 0.13, cx + L, ty, cz + 0.13);
+    else b.span('wood', 0x6b4a30, cx - 0.13, ty - 0.16, cz - L, cx + 0.13, ty, cz + L);
+    // изоляторы на концах траверсы и у середины — белые «тарелки»
+    for (const u of [-L + 0.25, L - 0.25]) {
+      const ix = alongX ? cx + u : cx, iz = alongX ? cz : cz + u;
+      for (let k = 0; k < 3; k++) b.cyl('plaster', K.white, ix, ty + 0.06 + k * 0.11, iz, 0.13 - k * 0.015, 0.06, 10);
+      b.cyl('metal', K.steelDark, ix, ty + 0.36, iz, 0.03, 0.12, 6);
+    }
+    // столб под площадкой и подкосы к траверсе
+    const r = Math.min(w, d) * 0.2;
+    b.cyl('wood', 0x7d5a3c, cx, x.y1 - 1.6, cz, r, 2.6, 10, r * 0.9);
+    for (const sg of [-1, 1]) {
+      const ex = alongX ? cx + sg * (L - 0.6) : cx, ez = alongX ? cz : cz + sg * (L - 0.6);
+      kit.strut(b, 'metal', K.steelDark, [cx, ty - 1.3, cz], [ex, ty - 0.16, ez], 0.04, 4);
+    }
+  }
+
+  /** Нога портового крана: решётчатая наклонная ферма под перекладинами, от причала-основания к кабине. */
+  private craneLegs(): void {
+    const bySec = new Map<number, Box[]>();
+    for (const [i, p] of this.map.pads.entries()) if ((p.look as string) === 'rung' && themeOf(p.sec) === 'port') bySec.set(p.sec, [...(bySec.get(p.sec) ?? []), this.staticBoxes[i]]);
+    for (const [sec, list] of bySec) {
+      if (list.length < 2) continue;
+      const { b } = this.chunk(sec);
+      list.sort((a, c) => a.y1 - c.y1);
+      const c0 = list[0], c1 = list[list.length - 1];
+      const cxs = list.map((r) => (r.x0 + r.x1) / 2), czs = list.map((r) => (r.z0 + r.z1) / 2);
+      const alongZ = Math.abs(czs[czs.length - 1] - czs[0]) >= Math.abs(cxs[cxs.length - 1] - cxs[0]);
+      const midX = cxs.reduce((a, v) => a + v, 0) / cxs.length, midZ = czs.reduce((a, v) => a + v, 0) / czs.length;
+      const A = new THREE.Vector3(alongZ ? midX : cxs[0], c0.y0 - 0.06, alongZ ? czs[0] : midZ);
+      const E = new THREE.Vector3(alongZ ? midX : cxs[cxs.length - 1], c1.y0 - 0.06, alongZ ? czs[czs.length - 1] : midZ);
+      const dir = E.clone().sub(A).normalize();
+      // вниз — до основания (пока не упрёмся в опору), вверх — в кабину
+      for (let k = 0; k < 16 && !this.solidAt(A.x, A.y - 0.5, A.z); k++) A.addScaledVector(dir, -0.25);
+      E.addScaledVector(dir, 1.4);
+      const lat = alongZ ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 0, 1);
+      const half = Math.max(0.3, (alongZ ? Math.min(...list.map((r) => Math.abs((r.x0 + r.x1) / 2 - midX) - (r.x1 - r.x0) / 2)) : Math.min(...list.map((r) => Math.abs((r.z0 + r.z1) / 2 - midZ) - (r.z1 - r.z0) / 2))) + 0.02);
+      const len = A.distanceTo(E), n = Math.max(2, Math.round(len / 1.3));
+      const pt = (t: number, side: number, low: boolean): [number, number, number] => {
+        const p = A.clone().addScaledVector(dir, len * t).addScaledVector(lat, side * half);
+        return [p.x, p.y - (low ? 0.85 : 0), p.z];
+      };
+      for (const side of [-1, 1]) for (const low of [false, true]) kit.strut(b, 'metal', K.orange, pt(0, side, low), pt(1, side, low), 0.09, 6);
+      for (let i = 0; i <= n; i++) {
+        const t = i / n;
+        for (const side of [-1, 1]) kit.strut(b, 'metal', K.orange, pt(t, side, false), pt(t, side, true), 0.05, 4);
+        kit.strut(b, 'metal', K.white, pt(t, -1, true), pt(t, 1, true), 0.045, 4);
+        if (i < n) {
+          const t2 = (i + 1) / n;
+          for (const side of [-1, 1]) kit.strut(b, 'metal', K.white, pt(t, side, i % 2 === 0), pt(t2, side, i % 2 !== 0), 0.04, 4);
+          kit.strut(b, 'metal', K.white, pt(t, -1, true), pt(t2, 1, true), 0.035, 3);
+        }
+      }
+    }
+    // стрела портового крана: перемычка к кабине и ванты с мачты на кабине к концу стрелы
+    for (const [i, p] of this.map.pads.entries()) {
+      if ((p.look as string) !== 'jib' || themeOf(p.sec) !== 'port') continue;
+      const j = this.staticBoxes[i];
+      const cabI = this.map.pads.findIndex((q, k) => (q.look as string) === 'cab' && q.sec === p.sec && Math.abs(this.staticBoxes[k].y1 - j.y0) < 4);
+      if (cabI < 0) continue;
+      const c = this.staticBoxes[cabI], { b } = this.chunk(p.sec);
+      const jz = Math.abs(j.z1 - c.z1) < Math.abs(j.z0 - c.z0) ? j.z1 : j.z0, far = jz === j.z1 ? j.z0 : j.z1;
+      const jx = (j.x0 + j.x1) / 2, cxx = j.x1 < c.x0 ? c.x0 : c.x1;
+      b.span('metal', K.orange, Math.min(jx, cxx), j.y0 - 0.35, jz - (jz === j.z1 ? 1.2 : 0), Math.max(jx, cxx), j.y0 - 0.05, jz + (jz === j.z1 ? 0 : 1.2));
+      const top: [number, number, number] = [(c.x0 + c.x1) / 2, c.y1 + 4.5, (c.z0 + c.z1) / 2];
+      kit.strut(b, 'metal', K.orange, [top[0], c.y1, top[2]], top, 0.12, 6);
+      kit.strut(b, 'metal', 0x3c3f42, top, [jx, j.y1 + 0.05, far], 0.035, 3);
+      kit.strut(b, 'metal', 0x3c3f42, top, [jx, j.y1 + 0.05, (far + jz) / 2], 0.03, 3);
+    }
+  }
+
+  /** Верх козлового крана над балками на тросах (участок стройки), или null. */
+  private gantryTopOf(sec: number): number | null {
+    const gs = this.map.movers.filter((v) => (v.look as string) === 'girder' && v.sec === sec && themeOf(v.sec) === 'build');
+    return gs.length ? Math.max(...gs.map((v) => v.y)) + 14 : null;
+  }
+
+  /** Козловой кран над участком «Балки»: четыре решётчатые опоры, две продольные фермы, рельс над каждой балкой. */
+  private gantry(): void {
+    const secs = new Set(this.map.movers.filter((v) => (v.look as string) === 'girder' && themeOf(v.sec) === 'build').map((v) => v.sec));
+    for (const sec of secs) {
+      const top = this.gantryTopOf(sec)!, gs = this.map.movers.filter((v) => (v.look as string) === 'girder' && v.sec === sec);
+      const rest = this.map.pads.map((p, i) => ({ p, b: this.staticBoxes[i] })).filter(({ p }) => (p.look as string) === 'girder' && p.sec === sec);
+      const xs = [...gs.map((v) => v.x - v.w / 2), ...gs.map((v) => v.x + v.w / 2), ...rest.flatMap(({ b }) => [b.x0, b.x1])];
+      const zs = [...gs.flatMap((v) => [v.z + Math.min(0, v.dz) - v.d / 2, v.z + Math.max(0, v.dz) + v.d / 2]), ...rest.flatMap(({ b }) => [b.z0, b.z1])];
+      const x0 = Math.min(...xs) - 1.6, x1 = Math.max(...xs) + 1.6, z0 = Math.min(...zs) - 0.8, z1 = Math.max(...zs) + 0.8;
+      const { b } = this.chunk(sec), T = top + 1.3;
+      // опоры по углам — до земли или крыши
+      for (const [cx, cz] of [[x0, z0], [x1, z0], [x0, z1], [x1, z1]]) {
+        const bot = this.below({ x0: cx - 0.6, x1: cx + 0.6, z0: cz - 0.6, z1: cz + 0.6, y0: top - 1, y1: top - 1 });
+        kit.lattice(b, cx - 0.6, cz - 0.6, cx + 0.6, cz + 0.6, bot, T, K.orange, 0.08, 4, K.white);
+      }
+      // продольные фермы (вдоль x) и поперечины на торцах
+      for (const z of [z0, z1]) {
+        b.span('metal', K.orange, x0, T - 0.3, z - 0.2, x1, T, z + 0.2);
+        b.span('metal', K.orange, x0, top - 0.3, z - 0.2, x1, top, z + 0.2);
+        for (let x = x0, k = 0; x < x1 - 0.1; x += 2.5, k++) kit.strut(b, 'metal', K.white, [x, k % 2 ? top - 0.15 : T - 0.15, z], [Math.min(x1, x + 2.5), k % 2 ? T - 0.15 : top - 0.15, z], 0.05, 4);
+      }
+      for (const x of [x0, x1]) b.span('metal', K.orange, x - 0.2, T - 0.3, z0, x + 0.2, T, z1);
+      // рельсы над балками (вдоль хода) и подвес неподвижной балки
+      for (const v of gs) b.span('metal', K.steelDark, v.x - 0.12, top, z0, v.x + 0.12, top + 0.3, z1);
+      for (const { b: r } of rest) {
+        const cx = (r.x0 + r.x1) / 2, cz = (r.z0 + r.z1) / 2;
+        b.span('metal', K.steelDark, cx - 0.12, top, z0, cx + 0.12, top + 0.3, z1);
+        for (const dz of [-(r.z1 - r.z0) / 2 + 0.3, (r.z1 - r.z0) / 2 - 0.3]) kit.strut(b, 'metal', 0x3c3f42, [cx, r.y1, cz + dz], [cx, r.y1 + 3.2, cz], 0.03, 3);
+        kit.strut(b, 'metal', 0x3c3f42, [cx, r.y1 + 3.2, cz], [cx, top, cz], 0.035, 3);
+        b.cyl('metal', K.orange, cx, r.y1 + 3.35, cz, 0.22, 0.4, 8);
+      }
+    }
+  }
+
+  /** Крепления мелких опор: балки у мачты — кронштейнами к мачте, изоляторы — к столбу и станции, ступени растяжки — на трос. */
+  private attachments(): void {
+    const looks = this.map.pads.map((p) => p.look as string);
+    const nearest = (pt: THREE.Vector3, box: Box): THREE.Vector3 => new THREE.Vector3(THREE.MathUtils.clamp(pt.x, box.x0, box.x1), pt.y, THREE.MathUtils.clamp(pt.z, box.z0, box.z1));
+    for (const [i, p] of this.map.pads.entries()) {
+      const x = this.staticBoxes[i], th = themeOf(p.sec), { b } = this.chunk(p.sec);
+      const c = new THREE.Vector3((x.x0 + x.x1) / 2, x.y0, (x.z0 + x.z1) / 2);
+      if (looks[i] === 'girder') {
+        const mi = this.map.pads.findIndex((q, k) => looks[k] === 'mast' && q.sec === p.sec);
+        if (mi < 0) continue;
+        const m = this.staticBoxes[mi];
+        const mp = nearest(c, m), gp = nearest(mp, x);
+        if (mp.distanceTo(gp) < 0.15) continue;
+        mp.y = gp.y = x.y0 + 0.04;
+        kit.strut(b, 'metal', K.steelDark, [gp.x, gp.y, gp.z], [mp.x, mp.y, mp.z], 0.07, 5);
+        kit.strut(b, 'metal', K.steelDark, [gp.x, gp.y, gp.z], [mp.x, mp.y - Math.min(2.2, 0.8 + mp.distanceTo(gp) * 0.5), mp.z], 0.05, 4);
+      } else if (looks[i] === 'insulator') {
+        // к двум ближайшим опорам проводов (столб, станция, кабина) — стальные тяги
+        const sup = this.map.pads.map((q, k) => ({ k, box: this.staticBoxes[k] })).filter(({ k }) => k !== i && ['pole', 'station', 'cab'].includes(looks[k]))
+          .map((o) => ({ ...o, dist: nearest(c, o.box).distanceTo(c) })).sort((a, z) => a.dist - z.dist).slice(0, 2);
+        for (const o of sup) {
+          if (o.dist > 6) continue;
+          const t = nearest(c, o.box);
+          t.y = Math.min(o.box.y1 - 0.25, c.y + 0.1);
+          kit.strut(b, 'metal', K.steelDark, [c.x, c.y + 0.05, c.z], [t.x, t.y, t.z], 0.05, 4);
+        }
+      } else if (looks[i] === 'wire' && th === 'wires' && Math.max(x.x1 - x.x0, x.z1 - x.z0) < 1.2) {
+        // ступень на растяжке мачты: трос под ступенью до соседних
+        const next = this.map.pads.findIndex((q, k) => k > i && looks[k] === 'wire' && q.sec === p.sec);
+        const nb = next >= 0 ? this.staticBoxes[next] : null;
+        const a: [number, number, number] = [c.x, x.y0 - 0.05, c.z];
+        if (nb && Math.max(nb.x1 - nb.x0, nb.z1 - nb.z0) < 1.2) kit.strut(b, 'metal', 0x3c3f42, a, [(nb.x0 + nb.x1) / 2, nb.y0 - 0.05, (nb.z0 + nb.z1) / 2], 0.05, 4);
+        else {
+          // последняя ступень — трос к ближайшей мачте
+          const mi = this.map.pads.findIndex((q, k) => looks[k] === 'mast' && q.sec === p.sec);
+          if (mi >= 0) { const t = nearest(c, this.staticBoxes[mi]); kit.strut(b, 'metal', 0x3c3f42, a, [t.x, x.y0 + 1.2, t.z], 0.05, 4); }
+        }
+        const prev = [...this.map.pads.keys()].filter((k) => k < i && looks[k] === 'wire' && this.map.pads[k].sec === p.sec).pop();
+        if (prev === undefined) {
+          // первая — к станции/площадке под ней
+          const si = this.map.pads.findIndex((q, k) => (looks[k] === 'station' || q.cp !== undefined) && q.sec <= p.sec && nearest(c, this.staticBoxes[k]).distanceTo(c) < 2.5);
+          if (si >= 0) { const t = nearest(c, this.staticBoxes[si]); kit.strut(b, 'metal', 0x3c3f42, a, [t.x, this.staticBoxes[si].y1 - 0.1, t.z], 0.05, 4); }
+        }
+      }
+    }
   }
 
   /** Площадки пожарной лестницы одного участка — по высоте, соседние связаны двумя стальными косоурами; нижняя — колонной вниз. */
@@ -734,7 +910,10 @@ export class ClimbWorld {
         const ends: Array<[number, number]> = along ? [[-L, 0], [L, 0]] : [[0, -L], [0, L]];
         for (const [ex, ez] of ends) m.beam('metal', 0x3c3f42, [ex, 0, ez], [0, 3.2, 0], 0.03, 3);
         m.cyl('metal', K.orange, 0, 3.35, 0, 0.22, 0.4, 8);
-        m.beam('metal', 0x3c3f42, [0, 3.5, 0], [0, 14, 0], 0.035, 3);
+        // трос — до каретки на рельсе козлового крана над участком
+        const top = this.gantryTopOf(mv.sec) ?? mv.y + 14;
+        m.beam('metal', 0x3c3f42, [0, 3.5, 0], [0, top - mv.y - 0.35, 0], 0.035, 3);
+        m.span('metal', K.orange, -0.3, top - mv.y - 0.4, -0.45, 0.3, top - mv.y - 0.05, 0.45);
       } else if (look === 'shuttle' || (th === 'port' && look === 'cart')) {
         kit.container(m, { x0: -w / 2, x1: w / 2, y0: -h, y1: 0, z0: -d / 2, z1: d / 2 }, i);
         const jibAbove = this.staticBoxes.find((b, k) => (this.map.pads[k].look as string) === 'jib' && b.y0 > mv.y && mv.x > b.x0 - 3 && mv.x < b.x1 + 3 && mv.z > b.z0 - 3 && mv.z < b.z1 + 3);
@@ -789,14 +968,40 @@ export class ClimbWorld {
     const ux = mv.dx / len, uy = mv.dy / len, uz = mv.dz / len;
     if (look === 'cablecar' || (th === 'wheel' && look !== 'gondola')) {
       const hang = 3.9;
-      const p0: [number, number, number] = [a[0] - ux * 3, a[1] + hang - uy * 3, a[2] - uz * 3];
-      const p1: [number, number, number] = [e[0] + ux * 3, e[1] + hang + uy * 3, e[2] + uz * 3];
+      // портал (шкив и мачта) — дальше по ходу, за краем станции: на площадке он закрывал бы игрока
+      // если шкив вынесен за станцию — его мачта короткая, на консоли у края станции, а не до земли
+      const hold = new Map<number[], Box>();
+      const out = (q: [number, number, number], sg: number): [number, number, number] => {
+        let k = 3, last: Box | null = null;
+        for (; k < 16; k += 0.5) {
+          const px = q[0] + ux * k * sg, pz = q[2] + uz * k * sg;
+          const hit = this.staticBoxes.find((o) => px > o.x0 - 0.9 && px < o.x1 + 0.9 && pz > o.z0 - 0.9 && pz < o.z1 + 0.9 && o.y1 > q[1] - 8 && o.y1 < q[1] + 2);
+          if (!hit) break;
+          last = hit;
+        }
+        const p: [number, number, number] = [q[0] + ux * k * sg, q[1] + hang + uy * k * sg, q[2] + uz * k * sg];
+        if (last) hold.set(p, last);
+        return p;
+      };
+      const p0 = out(a, -1), p1 = out(e, 1);
       b.beam('metal', 0x2f3235, p0, p1, 0.05, 5);
       for (const p of [p0, p1]) {
         // шкив на портале
         b.cyl('metal', K.red, p[0], p[1] + 0.2, p[2], 0.6, 0.25, 12);
-        const bot = this.groundUnder(p[0], p[2], p[1] - 0.5);
-        if (p[1] - bot > 1) kit.lattice(b, p[0] - 0.5, p[2] - 0.5, p[0] + 0.5, p[2] + 0.5, bot, p[1] - 0.1, K.steel, 0.06, 2.4, K.red);
+        const st = hold.get(p);
+        if (st) {
+          const foot = Math.min(p[1] - 1.5, st.y1 - 2.2);
+          kit.lattice(b, p[0] - 0.5, p[2] - 0.5, p[0] + 0.5, p[2] + 0.5, foot, p[1] - 0.1, K.steel, 0.06, 2.4, K.red);
+          const nx = THREE.MathUtils.clamp(p[0], st.x0, st.x1), nz = THREE.MathUtils.clamp(p[2], st.z0, st.z1);
+          for (const o of [-0.45, 0.45]) {
+            const ox = Math.abs(ux) > Math.abs(uz) ? 0 : o, oz = Math.abs(ux) > Math.abs(uz) ? o : 0;
+            kit.strut(b, 'metal', K.steelDark, [p[0] + ox, foot + 0.1, p[2] + oz], [nx + ox, st.y1 - 0.35, nz + oz], 0.07, 5);
+            kit.strut(b, 'metal', K.steelDark, [p[0] + ox, foot + 0.1, p[2] + oz], [nx + ox, foot - 0.4, nz + oz], 0.06, 5);
+          }
+        } else {
+          const bot = this.groundUnder(p[0], p[2], p[1] - 0.5);
+          if (p[1] - bot > 1) kit.lattice(b, p[0] - 0.5, p[2] - 0.5, p[0] + 0.5, p[2] + 0.5, bot, p[1] - 0.1, K.steel, 0.06, 2.4, K.red);
+        }
       }
       return;
     }
@@ -817,7 +1022,17 @@ export class ClimbWorld {
     }
     if (look === 'cage' || (th === 'build' && mv.dy > 2)) {
       // мачта подъёмника — с дальней от трассы стороны
-      const sx = look === 'cage' ? 1 : mv.x - scx, sz = look === 'cage' ? 0 : mv.z - scz;
+      // у клети — сбоку (±z), с той стороны, что дальше от камеры игрока на флаге наверху
+      let cageSide = 1;
+      if (look === 'cage') {
+        const top = Math.max(a[1], e[1]);
+        const cp = this.map.checkpoints.filter((c) => Math.abs(c.y - top) < 3).sort((p, q) => Math.hypot(p.px - mv.x, p.pz - mv.z) - Math.hypot(q.px - mv.x, q.pz - mv.z))[0];
+        if (cp) {
+          const camX = cp.px + Math.sin(cp.yaw) * 4.5, camZ = cp.pz + Math.cos(cp.yaw) * 4.5, off = mv.d / 2 + 0.75;
+          cageSide = Math.hypot(mv.x - camX, mv.z - off - camZ) > Math.hypot(mv.x - camX, mv.z + off - camZ) ? -1 : 1;
+        }
+      }
+      const sx = look === 'cage' ? 0 : mv.x - scx, sz = look === 'cage' ? cageSide : mv.z - scz;
       const alongX = Math.abs(sx) > Math.abs(sz);
       const ox = alongX ? Math.sign(sx || 1) * (mv.w / 2 + 0.75) : 0, oz = alongX ? 0 : Math.sign(sz || 1) * (mv.d / 2 + 0.75);
       const bot = this.groundUnder(mv.x + ox, mv.z + oz, Math.min(a[1], e[1]) - 1);
@@ -980,7 +1195,9 @@ export class ClimbWorld {
     for (const [zi, w] of map.winds.entries()) {
       const inside = this.map.pads.filter((p) => {
         const b = this.staticBoxes[this.map.pads.indexOf(p)];
-        return b.y1 >= w.y0 && b.y1 <= w.y1 && b.x1 > w.x0 && b.x0 < w.x1 && b.z1 > w.z0 && b.z0 < w.z1 && (b.x1 - b.x0) * (b.z1 - b.z0) > 1.2;
+        // не на флаге и не рядом с ним: колдун у точки появления закрывает игрока
+        const nearFlag = this.map.checkpoints.some((c) => Math.abs(c.y - b.y1) < 3 && b.x1 > c.x0 - 3 && b.x0 < c.x1 + 3 && b.z1 > c.z0 - 3 && b.z0 < c.z1 + 3);
+        return p.cp === undefined && !nearFlag && b.y1 >= w.y0 && b.y1 <= w.y1 && b.x1 > w.x0 && b.x0 < w.x1 && b.z1 > w.z0 && b.z0 < w.z1 && (b.x1 - b.x0) * (b.z1 - b.z0) > 1.2;
       }).map((p) => this.staticBoxes[this.map.pads.indexOf(p)]);
       // на две площадки ближе к наветренной стороне — по колдуну
       inside.sort((a, b) => ((a.x0 + a.x1) * w.dx + (a.z0 + a.z1) * w.dz) - ((b.x0 + b.x1) * w.dx + (b.z0 + b.z1) * w.dz));
