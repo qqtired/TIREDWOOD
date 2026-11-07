@@ -65,6 +65,8 @@ Environment=MODES2=1
 Environment=TABLES2=1
 Environment=BANANA=1
 Environment=PAINT4=1
+# «Выше облаков» — долгая трасса «Город вверх» 307 м вместо башни 185 м — «да владельца 2026-11-07» («выкладывай всё»)
+Environment=SKILL_CLIMB=1
 StateDirectory=game-opus
 StateDirectoryMode=0700
 Restart=always
